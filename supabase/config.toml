@@ -88,6 +88,12 @@ deno_version = 2
 [functions.book-search]
 verify_jwt = false
 
+[functions.mux-create-upload]
+verify_jwt = false
+
+[functions.mux-playback-token]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

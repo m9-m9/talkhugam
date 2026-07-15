@@ -83,6 +83,37 @@ export async function createDirectUpload(
   return parsed.data
 }
 
+export async function getDirectUpload(
+  credentials: MuxCredentials,
+  uploadId: string,
+  fetcher: typeof fetch = fetch,
+): Promise<DirectUpload> {
+  const response = await fetcher(
+    `https://api.mux.com/video/v1/uploads/${encodeURIComponent(uploadId)}`,
+    { headers: { Authorization: createBasicAuthorization(credentials) } },
+  )
+
+  if (!response.ok) throw new MuxApiError(response.status)
+  const parsed = directUploadResponseSchema.parse(await response.json())
+  return parsed.data
+}
+
+export async function deleteDirectUpload(
+  credentials: MuxCredentials,
+  uploadId: string,
+  fetcher: typeof fetch = fetch,
+): Promise<void> {
+  const response = await fetcher(
+    `https://api.mux.com/video/v1/uploads/${encodeURIComponent(uploadId)}`,
+    {
+      method: 'DELETE',
+      headers: { Authorization: createBasicAuthorization(credentials) },
+    },
+  )
+
+  if (!response.ok && response.status !== 404) throw new MuxApiError(response.status)
+}
+
 export async function deleteMuxAsset(
   credentials: MuxCredentials,
   assetId: string,
