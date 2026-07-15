@@ -51,6 +51,9 @@ jobs:
       - name: Type-check Edge Functions
         run: pnpm backend:check:functions
 
+      - name: Type-check backend integration tests
+        run: pnpm backend:check:integration
+
       - name: Test Edge Functions
         run: pnpm backend:test:functions
 
