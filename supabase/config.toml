@@ -85,6 +85,9 @@ policy = "per_worker"
 inspector_port = 8083
 deno_version = 2
 
+[functions.book-search]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327
