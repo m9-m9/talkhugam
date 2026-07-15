@@ -103,6 +103,12 @@ verify_jwt = false
 [functions.account-delete]
 verify_jwt = false
 
+[functions.naver-oauth-start]
+verify_jwt = false
+
+[functions.naver-oauth-callback]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327
