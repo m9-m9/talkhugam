@@ -69,4 +69,4 @@ export async function handleDeletionWorker(request: Request): Promise<Response> 
   return Response.json({ claimed: jobs.length, completed, retried })
 }
 
-Deno.serve(handleDeletionWorker)
+if (import.meta.main) Deno.serve(handleDeletionWorker)

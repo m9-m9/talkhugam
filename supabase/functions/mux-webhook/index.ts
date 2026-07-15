@@ -77,4 +77,4 @@ export async function handleMuxWebhook(request: Request): Promise<Response> {
   }
 }
 
-Deno.serve(handleMuxWebhook)
+if (import.meta.main) Deno.serve(handleMuxWebhook)

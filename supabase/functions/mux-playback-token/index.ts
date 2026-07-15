@@ -95,4 +95,4 @@ export async function handleMuxPlaybackToken(request: Request): Promise<Response
   }
 }
 
-Deno.serve(handleMuxPlaybackToken)
+if (import.meta.main) Deno.serve(handleMuxPlaybackToken)

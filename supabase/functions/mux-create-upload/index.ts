@@ -117,4 +117,4 @@ export async function handleMuxCreateUpload(request: Request): Promise<Response>
   }
 }
 
-Deno.serve(handleMuxCreateUpload)
+if (import.meta.main) Deno.serve(handleMuxCreateUpload)
