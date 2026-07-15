@@ -8,11 +8,44 @@ importers:
 
   .:
     devDependencies:
+      deno:
+        specifier: 2.9.2
+        version: 2.9.2
       supabase:
         specifier: 2.109.1
         version: 2.109.1
 
 packages:
+
+  '@deno/darwin-arm64@2.9.2':
+    resolution: {integrity: sha512-UJswiF56uU1Slb0BSXpCloTFBpq226HP9ev9omhAPXmKmRMsDbQVGiflXr0M17tNf2T26/zzTOAzyJqs1hmjKQ==}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@deno/darwin-x64@2.9.2':
+    resolution: {integrity: sha512-fro8jjKASMY4yt8Guxp32QyRITm1cKfnEJCxjOZdGt3JVGuZG2TbHKa1YsT06k8ibIXWkOcZJ0rNVvQvNRybNw==}
+    cpu: [x64]
+    os: [darwin]
+
+  '@deno/linux-arm64-glibc@2.9.2':
+    resolution: {integrity: sha512-auZ8yqm+ALQgHAlcQDAB6LNgIeDszUoXZsjrZZ4f4oIl/ZQpWPjeVaVBRqZuRYQcItspapG565wkW7khpG2NHg==}
+    cpu: [arm64]
+    os: [linux]
+
+  '@deno/linux-x64-glibc@2.9.2':
+    resolution: {integrity: sha512-bOmdYLSydi5E4m6V7/9OHVFnvmwbrPAYXunuMoZO3Tik7NOhwyv551HIbBmliADwXlj7/Na9B3elmA3+AZ7X9w==}
+    cpu: [x64]
+    os: [linux]
+
+  '@deno/win32-arm64@2.9.2':
+    resolution: {integrity: sha512-qshNCBNy17HvXSX1jRS4+ek188x1LR88WPQ/LTuFruS1RCpjAcBaNeE7zHpJyWqzwZYcDZV8UGupEfxTVytTbw==}
+    cpu: [arm64]
+    os: [win32]
+
+  '@deno/win32-x64@2.9.2':
+    resolution: {integrity: sha512-pkyCD46XwP410oDyVPsMpwhIC3/+DDmghNgeWlTal0LsM+RJpArNULL6QSHyL3WDxticwGJ7N4lFEwnAfMgqWg==}
+    cpu: [x64]
+    os: [win32]
 
   '@ecies/ciphers@0.2.6':
     resolution: {integrity: sha512-patgsRPKGkhhoBjETV4XxD0En4ui5fbX0hzayqI3M8tvNMGUoUvmyYAIWwlxBc1KX5cturfqByYdj5bYGRpN9g==}
@@ -72,6 +105,10 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  deno@2.9.2:
+    resolution: {integrity: sha512-9+QTuIC400Zg/iVJ0OkwqbafMbhAFXaJjLaGGe9/dSk535yzBSorQPKCnz9Jnu3V1Erb3enRQzHKzRAKPOVrmw==}
+    hasBin: true
+
   eciesjs@0.5.0:
     resolution: {integrity: sha512-s0J9SEVYAEPg7J63GFMApLYzPH9VNIQIyC6s15JpnqVc0TqcKWdbgFlnAweEBRyMmko2dcs2sfC83Hj4J43tuA==}
     engines: {bun: '>=1', deno: '>=2.7.10', node: '>=16'}
@@ -84,6 +121,24 @@ packages:
     hasBin: true
 
 snapshots:
+
+  '@deno/darwin-arm64@2.9.2':
+    optional: true
+
+  '@deno/darwin-x64@2.9.2':
+    optional: true
+
+  '@deno/linux-arm64-glibc@2.9.2':
+    optional: true
+
+  '@deno/linux-x64-glibc@2.9.2':
+    optional: true
+
+  '@deno/win32-arm64@2.9.2':
+    optional: true
+
+  '@deno/win32-x64@2.9.2':
+    optional: true
 
   '@ecies/ciphers@0.2.6(@noble/ciphers@1.3.0)':
     dependencies:
@@ -120,6 +175,15 @@ snapshots:
 
   '@supabase/cli-windows-x64@2.109.1':
     optional: true
+
+  deno@2.9.2:
+    optionalDependencies:
+      '@deno/darwin-arm64': 2.9.2
+      '@deno/darwin-x64': 2.9.2
+      '@deno/linux-arm64-glibc': 2.9.2
+      '@deno/linux-x64-glibc': 2.9.2
+      '@deno/win32-arm64': 2.9.2
+      '@deno/win32-x64': 2.9.2
 
   eciesjs@0.5.0:
     dependencies:

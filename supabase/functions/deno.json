@@ -6,7 +6,7 @@
     "useUnknownInCatchVariables": true
   },
   "imports": {
-    "@supabase/supabase-js": "npm:@supabase/supabase-js@2.110.6",
+    "@supabase/supabase-js": "npm:@supabase/supabase-js@2.110.5",
     "jose": "npm:jose@6.2.3",
     "zod": "npm:zod@4.4.3"
   },

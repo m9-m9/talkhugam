@@ -14,10 +14,13 @@
     "backend:reset": "supabase db reset",
     "backend:lint": "supabase db lint --local --level warning",
     "backend:test:db": "supabase test db",
+    "backend:check:functions": "deno check --config supabase/functions/deno.json supabase/functions",
+    "backend:test:functions": "deno test --config supabase/functions/deno.json --allow-env supabase/functions",
     "backend:functions:serve": "supabase functions serve --env-file supabase/functions/.env.local",
     "backend:types": "supabase gen types typescript --local > supabase/types/database.types.ts"
   },
   "devDependencies": {
+    "deno": "2.9.2",
     "supabase": "2.109.1"
   }
 }
