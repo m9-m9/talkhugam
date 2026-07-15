@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { createRequestId, failureResponse, successResponse } from '../_shared/api.ts'
 import { parseJsonBody } from '../_shared/body.ts'
 import { createCorsHeaders, optionsResponse } from '../_shared/cors.ts'
+import { logOperationalEvent } from '../_shared/logger.ts'
 import { createAdminClient, getAuthenticatedContext } from '../_shared/supabase.ts'
 import { accountDeleteInputSchema } from './schema.ts'
 
@@ -80,6 +81,7 @@ export async function handleAccountDelete(request: Request): Promise<Response> {
     })
     if (finishResponse.error) throw finishResponse.error
 
+    logOperationalEvent('info', 'account_delete_succeeded', { requestId, status: body.value.mode })
     return successResponse(
       { requestId: prepared.request_id, deleted: true },
       requestId,
@@ -94,7 +96,7 @@ export async function handleAccountDelete(request: Request): Promise<Response> {
       })
     }
 
-    console.error(JSON.stringify({ function: 'account-delete', requestId, error: 'request_failed' }))
+    logOperationalEvent('error', 'account_delete_failed', { requestId, retryable: true })
     return failureResponse(
       { code: 'INTERNAL_ERROR', message: '계정 삭제를 완료하지 못했습니다.', retryable: true },
       requestId,

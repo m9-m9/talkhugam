@@ -3,6 +3,7 @@ import { createRequestId, failureResponse, successResponse } from '../_shared/ap
 import { parseJsonBody } from '../_shared/body.ts'
 import { createCorsHeaders, optionsResponse } from '../_shared/cors.ts'
 import { readRequiredEnv } from '../_shared/env.ts'
+import { logOperationalEvent } from '../_shared/logger.ts'
 import { createDirectUpload, deleteDirectUpload, getDirectUpload } from '../_shared/mux.ts'
 import { createAdminClient, getAuthenticatedContext } from '../_shared/supabase.ts'
 import { muxCreateUploadInputSchema } from './schema.ts'
@@ -100,6 +101,7 @@ export async function handleMuxCreateUpload(request: Request): Promise<Response>
       throw assetResponse.error
     }
 
+    logOperationalEvent('info', 'mux_upload_started', { requestId, status: 'waiting_upload' })
     return successResponse(
       { postId, uploadId: upload.id, uploadUrl: upload.url },
       requestId,
@@ -107,7 +109,7 @@ export async function handleMuxCreateUpload(request: Request): Promise<Response>
       201,
     )
   } catch {
-    console.error(JSON.stringify({ function: 'mux-create-upload', requestId, error: 'request_failed' }))
+    logOperationalEvent('error', 'mux_upload_failed', { requestId, retryable: true })
     return failureResponse(
       { code: 'VIDEO_UPLOAD_FAILED', message: '영상 업로드를 시작하지 못했습니다.', retryable: true },
       requestId,

@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { readRequiredEnv } from '../_shared/env.ts'
+import { logOperationalEvent } from '../_shared/logger.ts'
 import { verifyMuxWebhook } from '../_shared/mux.ts'
 import { createAdminClient } from '../_shared/supabase.ts'
 import { muxWebhookEventSchema, normalizeMuxEvent } from './schema.ts'
@@ -72,7 +73,11 @@ export async function handleMuxWebhook(request: Request): Promise<Response> {
 
     return Response.json({ received: true, handled: true, applied: z.boolean().parse(response.data) })
   } catch {
-    console.error(JSON.stringify({ function: 'mux-webhook', eventId: parsed.data.id, error: 'apply_failed' }))
+    logOperationalEvent('error', 'mux_webhook_failed', {
+      eventId: parsed.data.id,
+      status: 'apply_failed',
+      retryable: true,
+    })
     return new Response('Webhook processing failed', { status: 500 })
   }
 }

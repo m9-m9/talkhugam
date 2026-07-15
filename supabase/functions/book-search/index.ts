@@ -3,6 +3,7 @@ import { createRequestId, failureResponse, successResponse } from '../_shared/ap
 import { parseJsonBody } from '../_shared/body.ts'
 import { createCorsHeaders, optionsResponse } from '../_shared/cors.ts'
 import { readRequiredEnv } from '../_shared/env.ts'
+import { logOperationalEvent } from '../_shared/logger.ts'
 import { createAdminClient, getAuthenticatedContext } from '../_shared/supabase.ts'
 import { fetchKakaoBooks, KakaoBookSearchError } from './kakao.ts'
 import { bookSearchInputSchema } from './schema.ts'
@@ -101,7 +102,7 @@ export async function handleBookSearch(request: Request): Promise<Response> {
     const result = await fetchKakaoBooks(body.value, readRequiredEnv('KAKAO_REST_API_KEY'))
     return successResponse(result, requestId, headers)
   } catch (error) {
-    console.error(JSON.stringify({ function: 'book-search', requestId, error: 'request_failed' }))
+    logOperationalEvent('error', 'book_search_failed', { requestId, retryable: true })
     return failureFromError(error, requestId, headers)
   }
 }

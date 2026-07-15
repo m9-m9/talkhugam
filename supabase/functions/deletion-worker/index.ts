@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { readRequiredEnv } from '../_shared/env.ts'
+import { logOperationalEvent } from '../_shared/logger.ts'
 import { deleteMuxAsset } from '../_shared/mux.ts'
 import { secureEqual } from '../_shared/secret.ts'
 import { createAdminClient } from '../_shared/supabase.ts'
@@ -66,6 +67,11 @@ export async function handleDeletionWorker(request: Request): Promise<Response> 
     }
   }
 
+  logOperationalEvent('info', 'deletion_worker_completed', {
+    jobCount: jobs.length,
+    completedCount: completed,
+    retriedCount: retried,
+  })
   return Response.json({ claimed: jobs.length, completed, retried })
 }
 

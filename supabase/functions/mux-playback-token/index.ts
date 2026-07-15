@@ -3,6 +3,7 @@ import { createRequestId, failureResponse, successResponse } from '../_shared/ap
 import { parseJsonBody } from '../_shared/body.ts'
 import { createCorsHeaders, optionsResponse } from '../_shared/cors.ts'
 import { readRequiredEnv } from '../_shared/env.ts'
+import { logOperationalEvent } from '../_shared/logger.ts'
 import { signPlaybackToken } from '../_shared/mux.ts'
 import { getAuthenticatedContext } from '../_shared/supabase.ts'
 import { muxPlaybackTokenInputSchema } from './schema.ts'
@@ -85,7 +86,7 @@ export async function handleMuxPlaybackToken(request: Request): Promise<Response
       headers,
     )
   } catch {
-    console.error(JSON.stringify({ function: 'mux-playback-token', requestId, error: 'request_failed' }))
+    logOperationalEvent('error', 'mux_playback_token_failed', { requestId, retryable: true })
     return failureResponse(
       { code: 'INTERNAL_ERROR', message: '재생 권한을 만들지 못했습니다.', retryable: true },
       requestId,
