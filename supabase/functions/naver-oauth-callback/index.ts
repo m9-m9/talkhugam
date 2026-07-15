@@ -7,6 +7,7 @@ import {
   fetchNaverProfile,
   verifyStateCookie,
 } from '../_shared/naver.ts'
+import { consumeRequestRateLimit } from '../_shared/rate-limit.ts'
 import { createAdminClient } from '../_shared/supabase.ts'
 
 function redirectWithError(returnTo: string, code: string, cookie: string): Response {
@@ -68,6 +69,19 @@ export async function handleNaverOauthCallback(request: Request): Promise<Respon
       { 'set-cookie': clearCookie },
     )
   }
+
+  let isAllowed = false
+  try {
+    isAllowed = await consumeRequestRateLimit(
+      request,
+      readRequiredEnv('AUTH_RATE_LIMIT_SECRET'),
+      { bucket: 'naver-oauth-callback', limit: 30, windowSeconds: 600 },
+    )
+  } catch {
+    logOperationalEvent('error', 'naver_oauth_failed', { requestId, retryable: true })
+    return redirectWithError(statePayload.returnTo, 'provider_failed', clearCookie)
+  }
+  if (!isAllowed) return redirectWithError(statePayload.returnTo, 'rate_limited', clearCookie)
 
   if (requestUrl.searchParams.has('error')) {
     return redirectWithError(statePayload.returnTo, 'provider_denied', clearCookie)

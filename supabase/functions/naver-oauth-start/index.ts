@@ -1,10 +1,13 @@
+import { createRequestId } from '../_shared/api.ts'
 import { readRequiredEnv } from '../_shared/env.ts'
+import { logOperationalEvent } from '../_shared/logger.ts'
 import {
   createNaverAuthorizeUrl,
   createStateCookie,
   parseAllowedRedirects,
   selectReturnTo,
 } from '../_shared/naver.ts'
+import { consumeRequestRateLimit } from '../_shared/rate-limit.ts'
 
 function methodNotAllowed(): Response {
   return new Response('Method Not Allowed', {
@@ -15,6 +18,25 @@ function methodNotAllowed(): Response {
 
 export async function handleNaverOauthStart(request: Request): Promise<Response> {
   if (request.method !== 'GET') return methodNotAllowed()
+
+  const requestId = createRequestId(request)
+  let isAllowed = false
+  try {
+    isAllowed = await consumeRequestRateLimit(
+      request,
+      readRequiredEnv('AUTH_RATE_LIMIT_SECRET'),
+      { bucket: 'naver-oauth-start', limit: 20, windowSeconds: 600 },
+    )
+  } catch {
+    logOperationalEvent('error', 'naver_oauth_failed', { requestId, retryable: true })
+    return new Response('Service Unavailable', { status: 503, headers: { 'cache-control': 'no-store' } })
+  }
+  if (!isAllowed) {
+    return new Response('Too Many Requests', {
+      status: 429,
+      headers: { 'cache-control': 'no-store', 'retry-after': '600' },
+    })
+  }
 
   const requestUrl = new URL(request.url)
   const redirectUri = readRequiredEnv('NAVER_REDIRECT_URI')

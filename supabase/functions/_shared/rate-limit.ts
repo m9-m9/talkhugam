@@ -35,3 +35,12 @@ export async function consumeRateLimit(input: RateLimitInput): Promise<boolean> 
   if (error) throw error
   return z.boolean().parse(data)
 }
+
+export async function consumeRequestRateLimit(
+  request: Request,
+  secret: string,
+  input: Omit<RateLimitInput, 'subject'>,
+): Promise<boolean> {
+  const subject = await createRequestFingerprint(request, secret)
+  return consumeRateLimit({ ...input, subject })
+}
