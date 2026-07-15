@@ -94,6 +94,12 @@ verify_jwt = false
 [functions.mux-playback-token]
 verify_jwt = false
 
+[functions.mux-webhook]
+verify_jwt = false
+
+[functions.deletion-worker]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327
