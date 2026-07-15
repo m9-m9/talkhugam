@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { secureEqual } from './secret.ts'
+import { createHmacSha256, secureEqual } from './secret.ts'
 
 const NAVER_AUTHORIZE_ENDPOINT = 'https://nid.naver.com/oauth2.0/authorize'
 const NAVER_TOKEN_ENDPOINT = 'https://nid.naver.com/oauth2.0/token'
@@ -54,15 +54,7 @@ function decodeBase64Url(value: string): Uint8Array {
 }
 
 async function sign(value: string, secret: string): Promise<string> {
-  const key = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign'],
-  )
-  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(value))
-  return encodeBase64Url(new Uint8Array(signature))
+  return encodeBase64Url(await createHmacSha256(value, secret))
 }
 
 export function parseAllowedRedirects(rawRedirects: string): readonly string[] {
