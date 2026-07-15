@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitOverride": true,
+    "noUncheckedIndexedAccess": true,
+    "useUnknownInCatchVariables": true
+  },
+  "imports": {
+    "@supabase/supabase-js": "npm:@supabase/supabase-js@2.110.6",
+    "jose": "npm:jose@6.2.3",
+    "zod": "npm:zod@4.4.3"
+  },
+  "lint": {
+    "rules": {
+      "tags": ["recommended"]
+    }
+  }
+}

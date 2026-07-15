@@ -1,0 +1,23 @@
+{
+  "name": "talkhugam-backend",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Talk후감 Phase 1 Supabase backend",
+  "packageManager": "pnpm@10.4.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "backend:start": "supabase start",
+    "backend:stop": "supabase stop",
+    "backend:status": "supabase status",
+    "backend:reset": "supabase db reset",
+    "backend:lint": "supabase db lint --local --level warning",
+    "backend:test:db": "supabase test db",
+    "backend:functions:serve": "supabase functions serve --env-file supabase/functions/.env.local",
+    "backend:types": "supabase gen types typescript --local > supabase/types/database.types.ts"
+  },
+  "devDependencies": {
+    "supabase": "2.109.1"
+  }
+}
