@@ -135,14 +135,18 @@ export async function fetchNaverProfile(
   credentials: NaverCredentials,
   fetcher: typeof fetch = fetch,
 ): Promise<NaverProfile> {
-  const tokenUrl = new URL(NAVER_TOKEN_ENDPOINT)
-  tokenUrl.searchParams.set('grant_type', 'authorization_code')
-  tokenUrl.searchParams.set('client_id', credentials.clientId)
-  tokenUrl.searchParams.set('client_secret', credentials.clientSecret)
-  tokenUrl.searchParams.set('code', code)
-  tokenUrl.searchParams.set('state', state)
-
-  const tokenResponse = await fetcher(tokenUrl, { method: 'POST' })
+  const tokenParameters = new URLSearchParams({
+    grant_type: 'authorization_code',
+    client_id: credentials.clientId,
+    client_secret: credentials.clientSecret,
+    code,
+    state,
+  })
+  const tokenResponse = await fetcher(NAVER_TOKEN_ENDPOINT, {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: tokenParameters,
+  })
   if (!tokenResponse.ok) throw new Error('Naver token exchange failed')
   const token = tokenResponseSchema.parse(await tokenResponse.json())
   const profileResponse = await fetcher(NAVER_PROFILE_ENDPOINT, {
