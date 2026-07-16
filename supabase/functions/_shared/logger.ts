@@ -9,6 +9,8 @@ export type OperationalEvent =
   | 'mux_upload_failed'
   | 'mux_upload_started'
   | 'mux_webhook_failed'
+  | 'kakao_oauth_failed'
+  | 'kakao_oauth_succeeded'
   | 'naver_oauth_failed'
   | 'naver_oauth_succeeded'
 
