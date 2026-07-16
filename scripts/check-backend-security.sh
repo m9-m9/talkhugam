@@ -24,27 +24,29 @@ check_tracked_env_files() {
 }
 
 check_cors_policy() {
-  if rg -n -i \
+  if find "$FUNCTIONS_DIR" -type f -name '*.ts' -exec grep -E -n -i \
     "access-control-allow-origin['\"]?[[:space:]]*[:=][[:space:]]*['\"]\\*|cors_origin[[:space:]]*:[[:space:]]*['\"]\\*" \
-    "$FUNCTIONS_DIR" --glob '*.ts'; then
+    {} +; then
     fail 'wildcard CORS origin found'
   fi
 
-  rg -q "readOptionalEnv\('ALLOWED_ORIGINS'\)" "$FUNCTIONS_DIR/_shared/cors.ts" \
+  grep -E -q "readOptionalEnv\('ALLOWED_ORIGINS'\)" "$FUNCTIONS_DIR/_shared/cors.ts" \
     || fail 'CORS helper must read ALLOWED_ORIGINS'
 }
 
 check_logging_policy() {
   local direct_console_calls
   direct_console_calls="$(
-    rg -n 'console\.(debug|error|info|log|warn)' "$FUNCTIONS_DIR" --glob '*.ts' \
-      --glob '!**/_shared/logger.ts' --glob '!**/*test.ts' || true
+    find "$FUNCTIONS_DIR" -type f -name '*.ts' \
+      ! -path "$FUNCTIONS_DIR/_shared/logger.ts" \
+      ! -name '*test.ts' \
+      -exec grep -E -n 'console\.(debug|error|info|log|warn)' {} + || true
   )"
 
   [[ -z "$direct_console_calls" ]] \
     || fail "direct console logging outside logger: $direct_console_calls"
 
-  if rg -n "^[[:space:]]*'(body|caption|email|token|uploadUrl|userId)'," \
+  if grep -E -n "^[[:space:]]*'(body|caption|email|token|uploadUrl|userId)'," \
     "$FUNCTIONS_DIR/_shared/logger.ts"; then
     fail 'sensitive field found in operational log allowlist'
   fi
@@ -58,7 +60,7 @@ check_function_auth_registration() {
     function_name="$(basename "$function_dir")"
     [[ "$function_name" == _* ]] && continue
 
-    rg -q "^\[functions\.${function_name}\]$" "$CONFIG_FILE" \
+    grep -E -q "^\[functions\.${function_name}\]$" "$CONFIG_FILE" \
       || fail "missing config.toml entry for Edge Function: $function_name"
     awk -v section="[functions.${function_name}]" '
       $0 == section { found = 1; next }
