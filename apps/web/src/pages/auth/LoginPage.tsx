@@ -131,9 +131,13 @@ export function LoginPage() {
     <main className="bg-surface mx-auto flex min-h-screen w-full max-w-md flex-col justify-center gap-12 px-6">
       <div className="space-y-4">
         <p className="text-primary text-sm font-medium">Talk후감</p>
-        <h1 className="text-ink text-3xl font-semibold break-keep">함께 읽은 순간을 오래 남겨요</h1>
+        <h1 className="text-ink text-3xl font-semibold break-keep">
+          읽고 느낀 마음을
+          <br />
+          함께 나눠요
+        </h1>
         <p className="text-ink-subtle text-sm">
-          가까운 사람들과 비공개 독서방에서 대화를 시작해요.
+          같은 책을 읽고 느낀 점을 편하게 나누는 독서방이에요.
         </p>
       </div>
       <div className="space-y-3">
