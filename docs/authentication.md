@@ -59,7 +59,7 @@ Kakao bridge는 `profile_nickname`, `profile_image`만 요청한다. 그래서 �
 - [ ] Naver 애플리케이션 callback URL과 `NAVER_REDIRECT_URI` 일치
 - [ ] Naver 제공 정보는 식별자와 표시 이름에 필요한 최소 항목만 동의 요청
 - [ ] 운영 `ALLOWED_AUTH_REDIRECTS`에 배포 도메인 callback만 등록
-- [ ] 여섯 secret을 로컬 파일이나 Git이 아닌 Supabase secret에 등록
+- [ ] 필요한 Kakao·Naver·공통 secret을 로컬 파일이나 Git이 아닌 Supabase secret에 등록
 - [ ] 신규 사용자별 `auth.users`, `profiles`, `notification_preferences` 생성 확인
 - [ ] 기존 사용자 재로그인 시 새 계정이 생기지 않는지 확인
 - [ ] 변조 state, 만료 state, 허용되지 않은 `return_to`, 공급자 거부 흐름 확인
