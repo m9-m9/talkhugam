@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from 'npm:zod@4.4.3'
 import { readRequiredEnv } from '../_shared/env.ts'
 import { logOperationalEvent } from '../_shared/logger.ts'
 import { deleteMuxAsset } from '../_shared/mux.ts'

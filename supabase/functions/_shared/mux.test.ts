@@ -4,7 +4,7 @@ import {
   generateKeyPair,
   importSPKI,
   jwtVerify,
-} from 'jose'
+} from 'npm:jose@6.2.3'
 import { assert, assertEquals } from 'jsr:@std/assert@1.0.14'
 import {
   createDirectUpload,

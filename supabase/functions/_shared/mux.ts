@@ -1,5 +1,5 @@
-import { importPKCS8, SignJWT } from 'jose'
-import { z } from 'zod'
+import { importPKCS8, SignJWT } from 'npm:jose@6.2.3'
+import { z } from 'npm:zod@4.4.3'
 
 const directUploadResponseSchema = z.object({
   data: z.object({

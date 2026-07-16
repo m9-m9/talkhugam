@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from 'npm:zod@4.4.3'
 
 const playbackIdSchema = z.object({
   id: z.string().min(1),

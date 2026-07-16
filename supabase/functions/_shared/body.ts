@@ -1,4 +1,4 @@
-import type { ZodType } from 'zod'
+import type { ZodType } from 'npm:zod@4.4.3'
 
 export type ParsedBody<T> =
   | { ok: true; value: T }

@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from 'npm:zod@4.4.3'
 
 export const bookSearchInputSchema = z.object({
   query: z.string().trim().min(2).max(100),

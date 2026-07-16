@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from 'npm:zod@4.4.3'
 import { createHmacSha256, secureEqual } from './secret.ts'
 
 const NAVER_AUTHORIZE_ENDPOINT = 'https://nid.naver.com/oauth2.0/authorize'

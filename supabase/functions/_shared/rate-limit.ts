@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from 'npm:zod@4.4.3'
 import { createHmacSha256 } from './secret.ts'
 import { createAdminClient } from './supabase.ts'
 

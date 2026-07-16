@@ -1,5 +1,5 @@
-import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js'
-import { readRequiredEnv } from './env.ts'
+import { createClient, type SupabaseClient, type User } from 'npm:@supabase/supabase-js@2.110.5'
+import { readOptionalEnv, readRequiredEnv } from './env.ts'
 
 export type AuthenticatedContext = {
   client: SupabaseClient
@@ -14,9 +14,12 @@ function getBearerToken(request: Request): string | null {
 }
 
 export function createAdminClient(): SupabaseClient {
+  const secretKey = readOptionalEnv('SUPABASE_SECRET_KEY')
+    ?? readRequiredEnv('SUPABASE_SERVICE_ROLE_KEY')
+
   return createClient(
     readRequiredEnv('SUPABASE_URL'),
-    readRequiredEnv('SUPABASE_SECRET_KEY'),
+    secretKey,
     { auth: { autoRefreshToken: false, persistSession: false } },
   )
 }
