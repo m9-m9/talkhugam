@@ -1,8 +1,9 @@
 import { createBrowserRouter } from 'react-router-dom'
 
-import { HomePage } from '../../pages/home/HomePage'
 import { AuthCallbackPage } from '../../pages/auth/AuthCallbackPage'
 import { LoginPage } from '../../pages/auth/LoginPage'
+import { OnboardingPage } from '../../pages/onboarding/OnboardingPage'
+import { RoomsPage } from '../../pages/rooms/RoomsPage'
 
 export const router = createBrowserRouter([
   {
@@ -15,10 +16,10 @@ export const router = createBrowserRouter([
   },
   {
     path: '/onboarding',
-    element: <HomePage />,
+    element: <OnboardingPage />,
   },
   {
     path: '/rooms',
-    element: <HomePage />,
+    element: <RoomsPage />,
   },
 ])

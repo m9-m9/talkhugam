@@ -1,5 +1,6 @@
 import { useState } from 'react'
 
+import { getClientEnv } from '../../app/env'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 
 type Provider = 'google' | 'kakao' | 'naver'
@@ -13,8 +14,9 @@ export function LoginPage() {
     setIsPending(true)
 
     if (provider === 'naver') {
+      const { VITE_SUPABASE_URL } = getClientEnv()
       window.location.assign(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/naver-oauth-start?return_to=${encodeURIComponent(`${window.location.origin}/auth/callback`)}`,
+        `${VITE_SUPABASE_URL}/functions/v1/naver-oauth-start?return_to=${encodeURIComponent(`${window.location.origin}/auth/callback`)}`,
       )
       return
     }
