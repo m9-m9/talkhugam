@@ -34,6 +34,14 @@ export type NaverProfile = {
   displayName: string
 }
 
+export type NaverProfileFailureStage = 'token' | 'profile'
+
+export class NaverProfileRequestError extends Error {
+  constructor(readonly stage: NaverProfileFailureStage) {
+    super(`Naver ${stage} request failed`)
+  }
+}
+
 type NaverCredentials = {
   clientId: string
   clientSecret: string
@@ -139,13 +147,23 @@ export async function fetchNaverProfile(
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: tokenParameters,
   })
-  if (!tokenResponse.ok) throw new Error('Naver token exchange failed')
-  const token = tokenResponseSchema.parse(await tokenResponse.json())
+  if (!tokenResponse.ok) throw new NaverProfileRequestError('token')
+  let token: z.infer<typeof tokenResponseSchema>
+  try {
+    token = tokenResponseSchema.parse(await tokenResponse.json())
+  } catch {
+    throw new NaverProfileRequestError('token')
+  }
   const profileResponse = await fetcher(NAVER_PROFILE_ENDPOINT, {
     headers: { authorization: `${token.token_type} ${token.access_token}` },
   })
-  if (!profileResponse.ok) throw new Error('Naver profile request failed')
-  const profile = profileResponseSchema.parse(await profileResponse.json()).response
+  if (!profileResponse.ok) throw new NaverProfileRequestError('profile')
+  let profile: z.infer<typeof profileResponseSchema>['response']
+  try {
+    profile = profileResponseSchema.parse(await profileResponse.json()).response
+  } catch {
+    throw new NaverProfileRequestError('profile')
+  }
 
   return {
     subject: profile.id,

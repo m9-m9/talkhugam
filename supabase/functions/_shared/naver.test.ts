@@ -1,9 +1,10 @@
-import { assert, assertEquals, assertNotEquals } from 'jsr:@std/assert@1.0.19'
+import { assert, assertEquals, assertNotEquals, assertRejects } from 'jsr:@std/assert@1.0.19'
 import {
   createNaverAuthorizeUrl,
   createStateCookie,
   createSyntheticNaverEmail,
   fetchNaverProfile,
+  NaverProfileRequestError,
   parseAllowedRedirects,
   selectReturnTo,
   verifyStateCookie,
@@ -83,4 +84,19 @@ Deno.test('Naver profile exchange keeps the client secret out of the request URL
   assertEquals(requests[0]?.url.includes('client-secret'), false)
   assert(String(requests[0]?.init?.body).includes('client_secret=client-secret'))
   assertEquals(new Headers(requests[1]?.init?.headers).get('authorization'), 'Bearer access')
+})
+
+Deno.test('Naver profile exchange identifies a token request failure', async () => {
+  const fetcher: typeof fetch = () => Promise.resolve(new Response(null, { status: 401 }))
+
+  const error = await assertRejects(
+    () => fetchNaverProfile('authorization-code', STATE, {
+      clientId: 'client-id',
+      clientSecret: 'client-secret',
+      redirectUri: 'https://api.example/callback',
+    }, fetcher),
+    NaverProfileRequestError,
+  )
+
+  assertEquals(error.stage, 'token')
 })

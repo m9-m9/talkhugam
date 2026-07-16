@@ -5,6 +5,7 @@ import {
   clearStateCookie,
   createSyntheticNaverEmail,
   fetchNaverProfile,
+  NaverProfileRequestError,
   type NaverProfile,
   verifyStateCookie,
 } from '../_shared/naver.ts'
@@ -98,9 +99,12 @@ export async function handleNaverOauthCallback(request: Request): Promise<Respon
       clientSecret: readRequiredEnv('NAVER_CLIENT_SECRET'),
       redirectUri,
     })
-  } catch {
+  } catch (error: unknown) {
     logOperationalEvent('error', 'naver_oauth_failed', { requestId, retryable: true })
-    return redirectWithError(statePayload.returnTo, 'naver_profile_failed', clearCookie)
+    const errorCode = error instanceof NaverProfileRequestError
+      ? `naver_${error.stage}_failed`
+      : 'naver_profile_failed'
+    return redirectWithError(statePayload.returnTo, errorCode, clearCookie)
   }
 
   try {
