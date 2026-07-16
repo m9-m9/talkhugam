@@ -32,6 +32,28 @@ function GoogleLogo() {
   )
 }
 
+function KakaoLogo() {
+  return (
+    <svg aria-hidden="true" height="20" viewBox="0 0 20 20" width="20">
+      <path
+        d="M10 2.5c-4.142 0-7.5 2.67-7.5 5.964 0 2.134 1.414 4.016 3.54 5.074l-.747 2.757 3.213-2.116c.486.064.985.097 1.494.097 4.142 0 7.5-2.67 7.5-5.964S14.142 2.5 10 2.5Z"
+        fill="currentColor"
+      />
+    </svg>
+  )
+}
+
+function NaverLogo() {
+  return (
+    <svg aria-hidden="true" height="20" viewBox="0 0 20 20" width="20">
+      <path
+        d="M3 2.5h3.38l4.36 7.126V2.5H14v15h-3.38L6.26 10.374V17.5H3v-15Z"
+        fill="currentColor"
+      />
+    </svg>
+  )
+}
+
 type SocialLoginButtonProps = {
   disabled: boolean
   onClick: () => void
@@ -43,12 +65,13 @@ function SocialLoginButton({ disabled, onClick, provider }: SocialLoginButtonPro
     return (
       <button
         aria-label="카카오로 로그인"
-        className="h-12 w-full overflow-hidden rounded-md disabled:opacity-50"
+        className="text-ink flex h-12 w-full items-center justify-center gap-3 rounded-md bg-[#fee500] px-4 text-sm font-medium disabled:opacity-50"
         disabled={disabled}
         onClick={onClick}
         type="button"
       >
-        <img alt="" className="block h-12 w-full" src="/brand/social/kakao-login.png" />
+        <KakaoLogo />
+        카카오로 계속하기
       </button>
     )
   }
@@ -57,12 +80,13 @@ function SocialLoginButton({ disabled, onClick, provider }: SocialLoginButtonPro
     return (
       <button
         aria-label="네이버로 로그인"
-        className="h-12 w-full overflow-hidden rounded-md disabled:opacity-50"
+        className="flex h-12 w-full items-center justify-center gap-3 rounded-md bg-[#03c75a] px-4 text-sm font-medium text-white disabled:opacity-50"
         disabled={disabled}
         onClick={onClick}
         type="button"
       >
-        <img alt="" className="block h-12 w-full" src="/brand/social/naver-login.png" />
+        <NaverLogo />
+        네이버로 계속하기
       </button>
     )
   }
