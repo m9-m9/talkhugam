@@ -4,15 +4,9 @@ import { getClientEnv } from '../../app/env'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 
 type Provider = 'google' | 'kakao' | 'naver'
-type BridgedProvider = Exclude<Provider, 'google'>
-
-function createBridgeStartUrl(
-  provider: BridgedProvider,
-  supabaseUrl: string,
-  origin: string,
-): string {
+function createNaverBridgeStartUrl(supabaseUrl: string, origin: string): string {
   const returnTo = encodeURIComponent(`${origin}/auth/callback`)
-  return `${supabaseUrl}/functions/v1/${provider}-oauth-start?return_to=${returnTo}`
+  return `${supabaseUrl}/functions/v1/naver-oauth-start?return_to=${returnTo}`
 }
 
 function GoogleLogo() {
@@ -94,11 +88,9 @@ export function LoginPage() {
     setErrorMessage(null)
     setIsPending(true)
 
-    if (provider !== 'google') {
+    if (provider === 'naver') {
       const { VITE_SUPABASE_URL } = getClientEnv()
-      window.location.assign(
-        createBridgeStartUrl(provider, VITE_SUPABASE_URL, window.location.origin),
-      )
+      window.location.assign(createNaverBridgeStartUrl(VITE_SUPABASE_URL, window.location.origin))
       return
     }
 
