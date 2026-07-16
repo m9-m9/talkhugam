@@ -1,11 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { z } from 'zod'
 
+import { parseOnboardingCompletedAt } from './onboardingCompletion'
 import { normalizeProfileForm, profileFormSchema, type ProfileForm } from './profileForm'
-
-const completedProfileSchema = z.object({
-  onboarding_completed_at: z.string().datetime(),
-})
 
 export async function completeOnboarding(
   client: SupabaseClient,
@@ -26,7 +22,7 @@ export async function completeOnboarding(
     .single()
 
   if (response.error) throw response.error
-  completedProfileSchema.parse(response.data)
+  parseOnboardingCompletedAt(response.data.onboarding_completed_at)
 }
 
 export function createInitialProfileForm(displayName: string | undefined): ProfileForm {
