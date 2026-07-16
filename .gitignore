@@ -20,6 +20,10 @@ test-results/
 # Supabase local state
 supabase/.temp/
 
+# Local backup artifacts
+/backups/
+*.dump
+
 # Deployment providers
 .vercel/
 .netlify/

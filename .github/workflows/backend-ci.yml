@@ -1,0 +1,116 @@
+name: Backend CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/**'
+      - 'scripts/**'
+      - 'supabase/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+  push:
+    branches: [main]
+    paths:
+      - '.github/**'
+      - 'scripts/**'
+      - 'supabase/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  edge-functions:
+    name: Edge Functions
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check pinned Supabase CLI
+        run: pnpm exec supabase --version
+
+      - name: Check backend security policy
+        run: pnpm backend:check:security
+
+      - name: Type-check Edge Functions
+        run: pnpm backend:check:functions
+
+      - name: Type-check backend integration tests
+        run: pnpm backend:check:integration
+
+      - name: Test Edge Functions
+        run: pnpm backend:test:functions
+
+  database:
+    name: Database migrations and RLS
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Start local Supabase
+        run: pnpm backend:start
+
+      - name: Apply migrations from a clean database
+        run: pnpm backend:reset
+
+      - name: Lint database schema
+        run: pnpm backend:lint
+
+      - name: Run pgTAP contracts
+        run: pnpm backend:test:db
+
+      - name: Stop local Supabase
+        if: always()
+        run: pnpm backend:stop
+
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Scan repository for secrets
+        uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,2 @@
+-- Deterministic development fixtures are added with each domain migration.
+-- Production data must never be copied into this file.

@@ -1,0 +1,30 @@
+{
+  "name": "talkhugam-backend",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Talk후감 Phase 1 Supabase backend",
+  "packageManager": "pnpm@10.4.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "backend:start": "supabase start",
+    "backend:stop": "supabase stop",
+    "backend:status": "supabase status",
+    "backend:reset": "supabase db reset",
+    "backend:lint": "supabase db lint --local --level warning",
+    "backend:test:db": "supabase test db",
+    "backend:check:security": "bash scripts/check-backend-security.sh",
+    "backend:check:functions": "deno check --config supabase/functions/deno.json supabase/functions",
+    "backend:check:integration": "deno check --config supabase/functions/deno.json supabase/tests/integration",
+    "backend:test:functions": "deno test --config supabase/functions/deno.json --allow-env supabase/functions",
+    "backend:test:integration": "deno test --config supabase/functions/deno.json --allow-env --allow-net --env-file=.env supabase/tests/integration",
+    "backend:test:mux": "deno test --config supabase/functions/deno.json --allow-env --allow-net --env-file=.env supabase/tests/integration/muxLiveFlow.test.ts",
+    "backend:functions:serve": "supabase functions serve --env-file supabase/functions/.env.local",
+    "backend:types": "supabase gen types typescript --local > supabase/types/database.types.ts"
+  },
+  "devDependencies": {
+    "deno": "2.9.2",
+    "supabase": "2.109.1"
+  }
+}
