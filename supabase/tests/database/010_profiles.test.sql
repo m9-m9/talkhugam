@@ -2,7 +2,7 @@ begin;
 
 \ir ../helpers/auth.inc
 
-select plan(13);
+select plan(15);
 
 select has_table('public', 'profiles', 'profiles table should exist');
 select has_table(
@@ -12,6 +12,12 @@ select has_table(
 );
 select col_is_pk('public', 'profiles', 'id', 'profiles.id should be the primary key');
 select col_is_fk('public', 'profiles', 'id', 'profiles.id should reference auth.users');
+select has_column(
+  'public',
+  'profiles',
+  'onboarding_completed_at',
+  'profiles should record first-run onboarding completion'
+);
 select ok(
   (select relrowsecurity from pg_class where oid = 'public.profiles'::regclass),
   'profiles should have RLS enabled'
@@ -98,6 +104,22 @@ select is_empty(
     returning id
   $$,
   'a user should not update another profile'
+);
+select lives_ok(
+  $$
+    update public.profiles
+    set onboarding_completed_at = now()
+    where id = '00000000-0000-0000-0000-000000000111'
+  $$,
+  'a user should mark their own onboarding as completed'
+);
+select ok(
+  (
+    select onboarding_completed_at is not null
+    from public.profiles
+    where id = '00000000-0000-0000-0000-000000000111'
+  ),
+  'the onboarding completion timestamp should persist'
 );
 
 reset role;
