@@ -236,7 +236,10 @@ as $$
 begin
   update private.account_deletion_requests
   set
-    status = case when p_succeeded then 'auth_deleted' else 'failed' end,
+    status = case
+      when p_succeeded then 'auth_deleted'::public.account_deletion_status
+      else 'failed'::public.account_deletion_status
+    end,
     last_error = case
       when p_succeeded then null
       else coalesce(nullif(btrim(p_last_error), ''), 'AUTH_DELETE_FAILED')

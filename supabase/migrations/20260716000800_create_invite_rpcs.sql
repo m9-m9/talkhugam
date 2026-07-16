@@ -204,8 +204,9 @@ begin
 
   select *
   into v_member
-  from public.room_members
-  where room_id = v_room.id and profile_id = v_profile_id
+  from public.room_members as room_member
+  where room_member.room_id = v_room.id
+    and room_member.profile_id = v_profile_id
   for update;
 
   if v_member.id is not null and v_member.status = 'active' then
@@ -215,8 +216,9 @@ begin
 
   select count(*)
   into v_active_member_count
-  from public.room_members
-  where room_id = v_room.id and status = 'active';
+  from public.room_members as room_member
+  where room_member.room_id = v_room.id
+    and room_member.status = 'active';
 
   if v_active_member_count >= 6 then
     raise exception using errcode = 'P0001', message = 'ROOM_FULL';
