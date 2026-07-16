@@ -1,16 +1,24 @@
 import { createBrowserRouter } from 'react-router-dom'
 
 import { HomePage } from '../../pages/home/HomePage'
-import { resolveAuthDestination } from '../../features/auth/resolveAuthDestination'
+import { AuthCallbackPage } from '../../pages/auth/AuthCallbackPage'
+import { LoginPage } from '../../pages/auth/LoginPage'
 
 export const router = createBrowserRouter([
   {
     path: '/',
-    element: <HomePage />,
+    element: <LoginPage />,
   },
   {
     path: '/auth/callback',
-    loader: () => ({ destination: resolveAuthDestination(null) }),
+    element: <AuthCallbackPage />,
+  },
+  {
+    path: '/onboarding',
+    element: <HomePage />,
+  },
+  {
+    path: '/rooms',
     element: <HomePage />,
   },
 ])
