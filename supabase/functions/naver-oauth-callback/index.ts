@@ -5,6 +5,7 @@ import {
   clearStateCookie,
   createSyntheticNaverEmail,
   fetchNaverProfile,
+  type NaverProfile,
   verifyStateCookie,
 } from '../_shared/naver.ts'
 import { consumeRequestRateLimit } from '../_shared/rate-limit.ts'
@@ -90,12 +91,19 @@ export async function handleNaverOauthCallback(request: Request): Promise<Respon
   const code = requestUrl.searchParams.get('code')
   if (!code) return redirectWithError(statePayload.returnTo, 'missing_code', clearCookie)
 
+  let profile: NaverProfile
   try {
-    const profile = await fetchNaverProfile(code, state, {
+    profile = await fetchNaverProfile(code, state, {
       clientId: readRequiredEnv('NAVER_CLIENT_ID'),
       clientSecret: readRequiredEnv('NAVER_CLIENT_SECRET'),
       redirectUri,
     })
+  } catch {
+    logOperationalEvent('error', 'naver_oauth_failed', { requestId, retryable: true })
+    return redirectWithError(statePayload.returnTo, 'naver_profile_failed', clearCookie)
+  }
+
+  try {
     const actionLink = await createSupabaseLoginLink(profile.subject, profile.displayName, statePayload.returnTo)
     logOperationalEvent('info', 'naver_oauth_succeeded', { requestId, status: 'redirected' })
     return new Response(null, {
