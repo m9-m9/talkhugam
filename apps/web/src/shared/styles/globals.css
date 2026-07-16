@@ -1,0 +1,47 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-surface: #fffaf8;
+  --color-surface-muted: #fff1ec;
+  --color-ink: #272320;
+  --color-ink-subtle: #7b746d;
+  --color-primary: #ff835f;
+  --spacing-0: 0px;
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-6: 24px;
+  --spacing-8: 32px;
+  --spacing-10: 40px;
+  --spacing-12: 48px;
+  --spacing-16: 64px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+}
+
+@layer base {
+  :root {
+    color: var(--color-ink);
+    background: var(--color-surface);
+    font-family:
+      Pretendard,
+      -apple-system,
+      BlinkMacSystemFont,
+      'Segoe UI',
+      sans-serif;
+  }
+
+  body {
+    min-width: 320px;
+    min-height: 100vh;
+    margin: 0;
+  }
+
+  button,
+  input,
+  textarea {
+    font: inherit;
+  }
+}
