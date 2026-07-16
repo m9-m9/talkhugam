@@ -4,6 +4,87 @@ import { getClientEnv } from '../../app/env'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 
 type Provider = 'google' | 'kakao' | 'naver'
+type BridgedProvider = Exclude<Provider, 'google'>
+
+function createBridgeStartUrl(
+  provider: BridgedProvider,
+  supabaseUrl: string,
+  origin: string,
+): string {
+  const returnTo = encodeURIComponent(`${origin}/auth/callback`)
+  return `${supabaseUrl}/functions/v1/${provider}-oauth-start?return_to=${returnTo}`
+}
+
+function GoogleLogo() {
+  return (
+    <svg aria-hidden="true" height="18" viewBox="0 0 18 18" width="18">
+      <path
+        d="M17.64 9.205c0-.639-.057-1.254-.164-1.845H9v3.49h4.844a4.14 4.14 0 0 1-1.796 2.715v2.26h2.909c1.703-1.568 2.683-3.877 2.683-6.62Z"
+        fill="#4285F4"
+      />
+      <path
+        d="M9 18c2.43 0 4.467-.806 5.956-2.175l-2.908-2.26c-.806.54-1.838.86-3.048.86-2.345 0-4.33-1.584-5.037-3.71H.956v2.334A9 9 0 0 0 9 18Z"
+        fill="#34A853"
+      />
+      <path
+        d="M3.963 10.715A5.41 5.41 0 0 1 3.681 9c0-.595.102-1.174.282-1.715V4.951H.956A9 9 0 0 0 0 9c0 1.452.348 2.827.956 4.049l3.007-2.334Z"
+        fill="#FBBC05"
+      />
+      <path
+        d="M9 3.574c1.322 0 2.51.455 3.444 1.348l2.583-2.584C13.463.884 11.426 0 9 0A9 9 0 0 0 .956 4.951l3.007 2.334C4.67 5.158 6.655 3.574 9 3.574Z"
+        fill="#EA4335"
+      />
+    </svg>
+  )
+}
+
+type SocialLoginButtonProps = {
+  disabled: boolean
+  onClick: () => void
+  provider: Provider
+}
+
+function SocialLoginButton({ disabled, onClick, provider }: SocialLoginButtonProps) {
+  if (provider === 'kakao') {
+    return (
+      <button
+        aria-label="카카오로 로그인"
+        className="h-12 w-full overflow-hidden rounded-md disabled:opacity-50"
+        disabled={disabled}
+        onClick={onClick}
+        type="button"
+      >
+        <img alt="" className="block h-12 w-full" src="/brand/social/kakao-login.png" />
+      </button>
+    )
+  }
+
+  if (provider === 'naver') {
+    return (
+      <button
+        aria-label="네이버로 로그인"
+        className="h-12 w-full overflow-hidden rounded-md disabled:opacity-50"
+        disabled={disabled}
+        onClick={onClick}
+        type="button"
+      >
+        <img alt="" className="block h-12 w-full" src="/brand/social/naver-login.png" />
+      </button>
+    )
+  }
+
+  return (
+    <button
+      className="text-ink flex h-12 w-full items-center justify-center gap-3 rounded-md border border-[#747775] bg-white px-4 text-sm font-medium disabled:opacity-50"
+      disabled={disabled}
+      onClick={onClick}
+      type="button"
+    >
+      <GoogleLogo />
+      Google로 계속하기
+    </button>
+  )
+}
 
 export function LoginPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -13,10 +94,10 @@ export function LoginPage() {
     setErrorMessage(null)
     setIsPending(true)
 
-    if (provider === 'naver') {
+    if (provider !== 'google') {
       const { VITE_SUPABASE_URL } = getClientEnv()
       window.location.assign(
-        `${VITE_SUPABASE_URL}/functions/v1/naver-oauth-start?return_to=${encodeURIComponent(`${window.location.origin}/auth/callback`)}`,
+        createBridgeStartUrl(provider, VITE_SUPABASE_URL, window.location.origin),
       )
       return
     }
@@ -31,26 +112,22 @@ export function LoginPage() {
   }
 
   return (
-    <main className="bg-surface mx-auto flex min-h-screen w-full max-w-md flex-col justify-center gap-8 px-6">
-      <div className="space-y-3">
+    <main className="bg-surface mx-auto flex min-h-screen w-full max-w-md flex-col justify-center gap-12 px-6">
+      <div className="space-y-4">
         <p className="text-primary text-sm font-medium">Talk후감</p>
-        <h1 className="text-ink text-3xl font-semibold">함께 읽은 순간을 오래 남겨요</h1>
+        <h1 className="text-ink text-3xl font-semibold break-keep">함께 읽은 순간을 오래 남겨요</h1>
         <p className="text-ink-subtle text-sm">
           가까운 사람들과 비공개 독서방에서 대화를 시작해요.
         </p>
       </div>
       <div className="space-y-3">
         {(['kakao', 'google', 'naver'] as const).map((provider) => (
-          <button
-            className="text-ink min-h-11 w-full rounded-md border border-black/10 bg-white px-4 text-sm font-medium disabled:opacity-50"
+          <SocialLoginButton
             disabled={isPending}
             key={provider}
             onClick={() => void handleLogin(provider)}
-            type="button"
-          >
-            {provider === 'kakao' ? '카카오' : provider === 'google' ? 'Google' : '네이버'}로
-            계속하기
-          </button>
+            provider={provider}
+          />
         ))}
       </div>
       {errorMessage ? (
