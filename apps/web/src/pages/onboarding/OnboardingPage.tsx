@@ -112,19 +112,35 @@ export function OnboardingPage() {
           />
         </Field>
         <Field label="MBTI (선택)" errorMessage={form.formState.errors.mbti?.message}>
-          <select
-            className="focus:border-primary min-h-11 w-full rounded-md border border-black/10 bg-white px-3 text-sm outline-none"
-            {...form.register('mbti', {
-              setValueAs: (value: string) => value || null,
-            })}
-          >
-            <option value="">선택 안 함</option>
-            {mbtiOptions.map((mbti) => (
-              <option key={mbti} value={mbti}>
-                {mbti}
-              </option>
-            ))}
-          </select>
+          <div className="relative">
+            <select
+              className="focus:border-primary min-h-11 w-full appearance-none rounded-md border border-black/10 bg-white px-3 pr-12 text-sm outline-none"
+              {...form.register('mbti', {
+                setValueAs: (value: string) => value || null,
+              })}
+            >
+              <option value="">선택 안 함</option>
+              {mbtiOptions.map((mbti) => (
+                <option key={mbti} value={mbti}>
+                  {mbti}
+                </option>
+              ))}
+            </select>
+            <svg
+              aria-hidden="true"
+              className="text-ink pointer-events-none absolute top-1/2 right-6 size-4 -translate-y-1/2"
+              fill="none"
+              viewBox="0 0 16 16"
+            >
+              <path
+                d="m3 6 5 5 5-5"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="1.5"
+              />
+            </svg>
+          </div>
         </Field>
         {errorMessage ? (
           <p className="text-sm text-red-600" role="alert">
