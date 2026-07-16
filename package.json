@@ -1,8 +1,8 @@
 {
-  "name": "talkhugam-backend",
+  "name": "talkhugam",
   "version": "0.0.0",
   "private": true,
-  "description": "Talk후감 Phase 1 Supabase backend",
+  "description": "Talk후감 Phase 1 workspace",
   "packageManager": "pnpm@10.4.0",
   "engines": {
     "node": ">=22"
@@ -21,7 +21,13 @@
     "backend:test:integration": "deno test --config supabase/functions/deno.json --allow-env --allow-net --env-file=.env supabase/tests/integration",
     "backend:test:mux": "deno test --config supabase/functions/deno.json --allow-env --allow-net --env-file=.env supabase/tests/integration/muxLiveFlow.test.ts",
     "backend:functions:serve": "supabase functions serve --env-file supabase/functions/.env.local",
-    "backend:types": "supabase gen types typescript --local > supabase/types/database.types.ts"
+    "backend:types": "supabase gen types typescript --local > supabase/types/database.types.ts",
+    "dev:web": "pnpm --filter @talkhugam/web dev",
+    "build:web": "pnpm --filter @talkhugam/web build",
+    "lint:web": "pnpm --filter @talkhugam/web lint",
+    "format:web": "pnpm --filter @talkhugam/web format",
+    "typecheck:web": "pnpm --filter @talkhugam/web typecheck",
+    "test:web": "pnpm --filter @talkhugam/web test"
   },
   "devDependencies": {
     "deno": "2.9.2",

@@ -19,6 +19,23 @@
 - Tailwind CSS, shadcn/ui
 - Vitest, Testing Library, Playwright
 
-## 상태
+## 로컬 개발
 
-Phase 1 구현을 시작하기 위한 저장소 초기화 단계입니다.
+```bash
+pnpm install
+pnpm dev:web
+```
+
+웹 앱은 `apps/web`에 있습니다. Supabase migration과 Edge Function은 저장소 루트의 `supabase`에서 관리합니다.
+
+## 품질 검증
+
+```bash
+pnpm format:web
+pnpm lint:web
+pnpm typecheck:web
+pnpm test:web
+pnpm build:web
+```
+
+PR에서는 Frontend CI가 위 웹 품질 검증을, Backend CI가 migration·RLS·Edge Function 검증을 자동 실행합니다.
