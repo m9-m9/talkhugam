@@ -17,6 +17,7 @@ import { useVideoUpload } from '../../features/video-upload'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { SelectMenu } from '../../shared/ui/SelectMenu'
 
 export function VideoArchivePage() {
   const navigate = useNavigate()
@@ -186,26 +187,18 @@ function VideoFilters({
       >
         내 영상
       </button>
-      <label className="sr-only" htmlFor="video-member-filter">
-        멤버별 영상 보기
-      </label>
-      <select
-        className="border-ink/20 bg-surface text-ink focus-visible:ring-primary min-h-11 cursor-pointer rounded-lg border py-2 pr-8 pl-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
+      <SelectMenu
         disabled={isMemberFilterPending}
-        id="video-member-filter"
-        onChange={(event) => {
-          const memberId = event.target.value
+        label="멤버 필터"
+        onChange={(memberId) => {
           onChange(memberId ? { kind: 'member', memberId } : { kind: 'all' })
         }}
+        options={[
+          { label: '모든 멤버', value: '' },
+          ...members.map((member) => ({ label: member.displayName, value: member.id })),
+        ]}
         value={selectedMemberId}
-      >
-        <option value="">모든 멤버</option>
-        {members.map((member) => (
-          <option key={member.id} value={member.id}>
-            {member.displayName}
-          </option>
-        ))}
-      </select>
+      />
     </div>
   )
 }

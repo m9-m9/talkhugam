@@ -89,6 +89,26 @@ test('keeps saved videos in a two-column archive gallery', async ({ page }) => {
   ).toHaveLength(2)
 })
 
+test('filters saved videos with the custom member selection menu', async ({ page }) => {
+  await authenticatePage(page)
+  await mockVideoMembers(page)
+  await mockVideoPosts(page, [
+    createVideoPostRow('4b7227b2-5350-4a61-9114-b2d0c915fd1b', '민규'),
+    {
+      ...createVideoPostRow('e45b7500-b6bd-43d6-8438-e5b643c84282', '수진'),
+      author_member_id: 'b21f0060-cd1d-40db-a6ae-fd2eb3e9f862',
+    },
+  ])
+  await page.goto(`/rooms/${roomId}/books/${bookChatId}/videos`)
+
+  await page.getByRole('button', { name: '멤버 필터: 모든 멤버' }).click()
+  await expect(page.getByRole('listbox', { name: '멤버 필터' })).toBeVisible()
+  await page.getByRole('option', { name: '민규' }).click()
+
+  await expect(page.getByRole('list', { name: '영상 기록' }).getByRole('listitem')).toHaveCount(1)
+  await expect(page.getByRole('button', { name: '멤버 필터: 민규' })).toBeVisible()
+})
+
 test('opens a gallery thumbnail in the immersive video viewer', async ({ page }) => {
   const videoId = '4b7227b2-5350-4a61-9114-b2d0c915fd1b'
   await authenticatePage(page)

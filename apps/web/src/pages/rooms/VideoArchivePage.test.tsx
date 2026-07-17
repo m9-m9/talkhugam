@@ -158,7 +158,7 @@ describe('VideoArchivePage', () => {
     expect(screen.queryByRole('button', { name: '수진님의 영상 보기' })).not.toBeInTheDocument()
   })
 
-  it('filters the gallery by a selected room member', async () => {
+  it('opens a member filter menu and filters the gallery by the chosen member', async () => {
     getVideoFilterMembers.mockResolvedValueOnce([
       { displayName: '민규', id: 'member-1', isCurrentUser: true },
       { displayName: '수진', id: 'member-2', isCurrentUser: false },
@@ -169,12 +169,43 @@ describe('VideoArchivePage', () => {
     ])
     renderArchivePage()
 
-    fireEvent.change(await screen.findByRole('combobox', { name: '멤버별 영상 보기' }), {
-      target: { value: 'member-2' },
-    })
+    fireEvent.click(await screen.findByRole('button', { name: '멤버 필터: 모든 멤버' }))
+
+    expect(await screen.findByRole('listbox', { name: '멤버 필터' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('option', { name: '수진' }))
 
     expect(screen.getAllByRole('listitem')).toHaveLength(1)
     expect(screen.getByRole('button', { name: '수진님의 영상 보기' })).toBeInTheDocument()
+  })
+
+  it('dismisses the member filter menu when the user clicks outside it', async () => {
+    getVideoFilterMembers.mockResolvedValueOnce([
+      { displayName: '민규', id: 'member-1', isCurrentUser: true },
+    ])
+    getVideoPosts.mockResolvedValueOnce([createReadyVideo('video-1', 'member-1', '민규')])
+    renderArchivePage()
+
+    fireEvent.click(await screen.findByRole('button', { name: '멤버 필터: 모든 멤버' }))
+    expect(await screen.findByRole('listbox', { name: '멤버 필터' })).toBeInTheDocument()
+
+    fireEvent.pointerDown(document.body)
+
+    expect(screen.queryByRole('listbox', { name: '멤버 필터' })).not.toBeInTheDocument()
+  })
+
+  it('dismisses the member filter menu with Escape', async () => {
+    getVideoFilterMembers.mockResolvedValueOnce([
+      { displayName: '민규', id: 'member-1', isCurrentUser: true },
+    ])
+    getVideoPosts.mockResolvedValueOnce([createReadyVideo('video-1', 'member-1', '민규')])
+    renderArchivePage()
+
+    fireEvent.click(await screen.findByRole('button', { name: '멤버 필터: 모든 멤버' }))
+    expect(await screen.findByRole('listbox', { name: '멤버 필터' })).toBeInTheDocument()
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+
+    expect(screen.queryByRole('listbox', { name: '멤버 필터' })).not.toBeInTheDocument()
   })
 
   it('opens a ready video from a square gallery thumbnail', async () => {
