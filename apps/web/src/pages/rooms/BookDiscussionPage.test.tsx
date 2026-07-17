@@ -5,27 +5,56 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { BookDiscussionPage } from './BookDiscussionPage'
 
-const { getBookChatCompletions, getPosts, getVideoPosts, parsePostForm, videoUploadState } =
-  vi.hoisted(() => ({
-    getBookChatCompletions: vi.fn().mockResolvedValue([]),
-    getPosts: vi.fn().mockResolvedValue([]),
-    getVideoPosts: vi.fn().mockResolvedValue([]),
-    parsePostForm: vi.fn(
-      ({ body, labels }: { body: string; labels: Array<{ kind: string; value: string }> }) => {
-        const normalizedLabels = labels
-          .map((label) => ({ ...label, value: label.value.trim() }))
-          .filter((label) => label.value.length > 0)
-        if (body.trim().length === 0 && normalizedLabels.length === 0)
-          throw new Error('invalid post')
-        return { body, labels: normalizedLabels }
-      },
-    ),
-    videoUploadState: { isUploadingVideo: false },
-  }))
+const {
+  createPost,
+  createReply,
+  getBookChatCompletions,
+  getPosts,
+  getVideoFilterMembers,
+  getVideoPosts,
+  parsePostForm,
+  videoUploadState,
+} = vi.hoisted(() => ({
+  createPost: vi.fn().mockResolvedValue('post-1'),
+  createReply: vi.fn().mockResolvedValue('reply-1'),
+  getBookChatCompletions: vi.fn().mockResolvedValue([]),
+  getPosts: vi.fn().mockResolvedValue([]),
+  getVideoFilterMembers: vi.fn().mockResolvedValue([
+    {
+      displayName: '민수',
+      id: 'b3c8b282-6092-45f8-b15f-523a9dcd0eab',
+      isCurrentUser: false,
+    },
+    {
+      displayName: '나',
+      id: '0ce71cea-b4ea-4e18-a605-bf2088d4ba15',
+      isCurrentUser: true,
+    },
+  ]),
+  getVideoPosts: vi.fn().mockResolvedValue([]),
+  parsePostForm: vi.fn(
+    ({
+      body,
+      labels,
+      mentionedMemberIds = [],
+    }: {
+      body: string
+      labels: Array<{ kind: string; value: string }>
+      mentionedMemberIds?: string[]
+    }) => {
+      const normalizedLabels = labels
+        .map((label) => ({ ...label, value: label.value.trim() }))
+        .filter((label) => label.value.length > 0)
+      if (body.trim().length === 0 && normalizedLabels.length === 0) throw new Error('invalid post')
+      return { body, labels: normalizedLabels, mentionedMemberIds }
+    },
+  ),
+  videoUploadState: { isUploadingVideo: false },
+}))
 
 vi.mock('../../entities/post', () => ({
-  createPost: vi.fn(),
-  createReply: vi.fn(),
+  createPost,
+  createReply,
   getPosts,
   parsePostForm,
   postKeys: { byBookChat: (bookChatId: string) => ['posts', bookChatId] },
@@ -34,8 +63,12 @@ vi.mock('../../entities/post', () => ({
 
 vi.mock('../../entities/video', () => ({
   getVideoPlaybackAuthorization: vi.fn(),
+  getVideoFilterMembers,
   getVideoPosts,
-  videoKeys: { byBookChat: (bookChatId: string) => ['video-posts', bookChatId] },
+  videoKeys: {
+    byBookChat: (bookChatId: string) => ['video-posts', bookChatId],
+    members: (roomId: string) => ['video-filter-members', roomId],
+  },
 }))
 
 vi.mock('../../entities/reading-room', () => ({
@@ -68,6 +101,9 @@ vi.mock('../../shared/api/supabaseClient', () => ({
 describe('BookDiscussionPage', () => {
   afterEach(() => {
     cleanup()
+    createPost.mockClear()
+    createReply.mockClear()
+    getVideoFilterMembers.mockClear()
     getVideoPosts.mockResolvedValue([])
     videoUploadState.isUploadingVideo = false
   })
@@ -105,6 +141,224 @@ describe('BookDiscussionPage', () => {
     fireEvent.keyDown(window, { key: 'Escape' })
 
     expect(screen.queryByText('페이지 라벨')).not.toBeInTheDocument()
+  })
+
+  it('keeps a selected mention after closing the action bubble outside', async () => {
+    renderBookDiscussionPage()
+    openMentionSelector()
+
+    expect(await screen.findByRole('button', { name: '민수 멘션' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '민수 멘션' }))
+    fireEvent.pointerDown(document.body)
+
+    expect(screen.queryByText('멤버 멘션')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '민수 멘션 삭제' })).toBeInTheDocument()
+  })
+
+  it('preserves the draft, labels, and mentions after an outside click closes the menu', async () => {
+    renderBookDiscussionPage()
+    await prepareComposerState()
+
+    fireEvent.pointerDown(document.body)
+
+    expectComposerState()
+  })
+
+  it('preserves the draft, labels, and mentions after Escape closes the menu', async () => {
+    renderBookDiscussionPage()
+    await prepareComposerState()
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+
+    expectComposerState()
+  })
+
+  it('preserves the draft, labels, and mentions after the plus button closes the menu', async () => {
+    renderBookDiscussionPage()
+    await prepareComposerState()
+
+    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 닫기' }))
+
+    expectComposerState()
+  })
+
+  it('does not offer the current user as a mention candidate', async () => {
+    renderBookDiscussionPage()
+    openMentionSelector()
+
+    expect(await screen.findByRole('button', { name: '민수 멘션' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '나 멘션' })).not.toBeInTheDocument()
+  })
+
+  it('shows a retry action when loading mention members fails', async () => {
+    getVideoFilterMembers.mockRejectedValueOnce(new Error('network'))
+    renderBookDiscussionPage()
+    openMentionSelector()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '멘션할 멤버를 불러오지 못했어요. 다시 시도해 주세요.',
+    )
+    fireEvent.click(screen.getByRole('button', { name: '다시 시도' }))
+
+    await vi.waitFor(() => expect(getVideoFilterMembers).toHaveBeenCalledTimes(2))
+    expect(await screen.findByRole('button', { name: '민수 멘션' })).toBeInTheDocument()
+  })
+
+  it('shows the normal empty state without an error or retry action', async () => {
+    getVideoFilterMembers.mockResolvedValueOnce([])
+    renderBookDiscussionPage()
+    openMentionSelector()
+
+    expect(await screen.findByText('멘션할 멤버가 없어요.')).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '다시 시도' })).not.toBeInTheDocument()
+  })
+
+  it('gives the mention removal action a 44px touch target', async () => {
+    renderBookDiscussionPage()
+    await prepareComposerState()
+
+    expect(screen.getByRole('button', { name: '민수 멘션 삭제' })).toHaveClass(
+      'min-h-11',
+      'min-w-11',
+    )
+  })
+
+  it('submits selected mentions with a new post', async () => {
+    renderBookDiscussionPage()
+    openMentionSelector()
+    await screen.findByRole('button', { name: '민수 멘션' })
+    fireEvent.click(screen.getByRole('button', { name: '민수 멘션' }))
+    fireEvent.change(screen.getByLabelText('메시지 입력'), { target: { value: '함께 읽어 봐요' } })
+    fireEvent.click(screen.getByRole('button', { name: '전송' }))
+
+    await vi.waitFor(() =>
+      expect(createPost).toHaveBeenCalledWith(
+        undefined,
+        'book-1',
+        expect.objectContaining({
+          mentionedMemberIds: ['b3c8b282-6092-45f8-b15f-523a9dcd0eab'],
+        }),
+      ),
+    )
+  })
+
+  it('submits selected mentions with a reply', async () => {
+    getPosts.mockResolvedValueOnce([
+      {
+        authorName: '서연',
+        body: '인상 깊었어요',
+        createdAt: '2026-07-18T00:00:00.000Z',
+        depth: 0,
+        id: 'f17c0d6d-3e6e-4b7f-a1f1-5d652aa2a85e',
+        labels: [],
+        rootPostId: null,
+      },
+    ])
+    renderBookDiscussionPage()
+
+    fireEvent.click(await screen.findByRole('button', { name: '답글 남기기' }))
+    openMentionSelector()
+    await screen.findByRole('button', { name: '민수 멘션' })
+    fireEvent.click(screen.getByRole('button', { name: '민수 멘션' }))
+    fireEvent.change(screen.getByLabelText('메시지 입력'), { target: { value: '저도요' } })
+    fireEvent.click(screen.getByRole('button', { name: '전송' }))
+
+    await vi.waitFor(() =>
+      expect(createReply).toHaveBeenCalledWith(
+        undefined,
+        'f17c0d6d-3e6e-4b7f-a1f1-5d652aa2a85e',
+        expect.objectContaining({
+          mentionedMemberIds: ['b3c8b282-6092-45f8-b15f-523a9dcd0eab'],
+        }),
+      ),
+    )
+  })
+
+  it('clears the new post draft, labels, and mentions after a successful submission', async () => {
+    renderBookDiscussionPage()
+    await prepareComposerState()
+
+    fireEvent.click(screen.getByRole('button', { name: '전송' }))
+
+    await vi.waitFor(() => {
+      expect(createPost).toHaveBeenCalledTimes(1)
+      expect(screen.getByLabelText('메시지 입력')).toHaveValue('')
+      expect(screen.queryByText('페이지 87')).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: '민수 멘션 삭제' })).not.toBeInTheDocument()
+    })
+  })
+
+  it('clears the reply state after a successful reply submission', async () => {
+    getPosts.mockResolvedValueOnce([
+      {
+        authorName: '서연',
+        body: '인상 깊었어요',
+        createdAt: '2026-07-18T00:00:00.000Z',
+        depth: 0,
+        id: 'f17c0d6d-3e6e-4b7f-a1f1-5d652aa2a85e',
+        labels: [],
+        rootPostId: null,
+      },
+    ])
+    renderBookDiscussionPage()
+    fireEvent.click(await screen.findByRole('button', { name: '답글 남기기' }))
+    openMentionSelector()
+    await screen.findByRole('button', { name: '민수 멘션' })
+    fireEvent.click(screen.getByRole('button', { name: '민수 멘션' }))
+    fireEvent.change(screen.getByLabelText('메시지 입력'), { target: { value: '저도요' } })
+
+    fireEvent.click(screen.getByRole('button', { name: '전송' }))
+
+    await vi.waitFor(() => {
+      expect(createReply).toHaveBeenCalledTimes(1)
+      expect(screen.queryByText('답글 남기기', { selector: 'p' })).not.toBeInTheDocument()
+      expect(screen.getByLabelText('메시지 입력')).toHaveValue('')
+      expect(screen.queryByRole('button', { name: '민수 멘션 삭제' })).not.toBeInTheDocument()
+    })
+  })
+
+  it('preserves the draft, labels, and mentions when a post submission fails', async () => {
+    createPost.mockRejectedValueOnce(new Error('network'))
+    renderBookDiscussionPage()
+    await prepareComposerState()
+
+    fireEvent.click(screen.getByRole('button', { name: '전송' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '감상을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.',
+    )
+    expectComposerState()
+  })
+
+  it('preserves the reply state, draft, and mentions when a reply submission fails', async () => {
+    getPosts.mockResolvedValueOnce([
+      {
+        authorName: '서연',
+        body: '인상 깊었어요',
+        createdAt: '2026-07-18T00:00:00.000Z',
+        depth: 0,
+        id: 'f17c0d6d-3e6e-4b7f-a1f1-5d652aa2a85e',
+        labels: [],
+        rootPostId: null,
+      },
+    ])
+    createReply.mockRejectedValueOnce(new Error('network'))
+    renderBookDiscussionPage()
+    fireEvent.click(await screen.findByRole('button', { name: '답글 남기기' }))
+    openMentionSelector()
+    await screen.findByRole('button', { name: '민수 멘션' })
+    fireEvent.click(screen.getByRole('button', { name: '민수 멘션' }))
+    fireEvent.change(screen.getByLabelText('메시지 입력'), { target: { value: '저도요' } })
+
+    fireEvent.click(screen.getByRole('button', { name: '전송' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '감상을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.',
+    )
+    expect(screen.getByText('답글 남기기', { selector: 'p' })).toBeInTheDocument()
+    expect(screen.getByLabelText('메시지 입력')).toHaveValue('저도요')
+    expect(screen.getByRole('button', { name: '민수 멘션 삭제' })).toBeInTheDocument()
   })
 
   it.each([
@@ -213,6 +467,30 @@ describe('BookDiscussionPage', () => {
 function openPageLabelEditor() {
   fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
   fireEvent.click(screen.getByRole('button', { name: '페이지 라벨' }))
+}
+
+/** 채팅 추가 메뉴에서 멤버 멘션 선택 목록을 연다. */
+function openMentionSelector() {
+  fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
+  fireEvent.click(screen.getByRole('button', { name: '멤버 멘션' }))
+}
+
+/** 본문·페이지 라벨·멤버 멘션을 포함한 작성 중 상태를 만든다. */
+async function prepareComposerState() {
+  openPageLabelEditor()
+  fireEvent.change(screen.getByLabelText('페이지 번호'), { target: { value: '87' } })
+  fireEvent.click(screen.getByRole('button', { name: '라벨 추가' }))
+  openMentionSelector()
+  await screen.findByRole('button', { name: '민수 멘션' })
+  fireEvent.click(screen.getByRole('button', { name: '민수 멘션' }))
+  fireEvent.change(screen.getByLabelText('메시지 입력'), { target: { value: '함께 읽어 봐요' } })
+}
+
+/** 작성 중인 본문·라벨·멘션이 화면에 유지되는지 검증한다. */
+function expectComposerState() {
+  expect(screen.getByLabelText('메시지 입력')).toHaveValue('함께 읽어 봐요')
+  expect(screen.getByText('페이지 87')).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: '민수 멘션 삭제' })).toBeInTheDocument()
 }
 
 function renderBookDiscussionPage() {

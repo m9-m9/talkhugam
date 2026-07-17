@@ -23,8 +23,10 @@ import {
 } from '../../entities/book-completion'
 import {
   getVideoPlaybackAuthorization,
+  getVideoFilterMembers,
   getVideoPosts,
   videoKeys,
+  type VideoFilterMember,
   type VideoPost,
 } from '../../entities/video'
 import { useVideoUpload } from '../../features/video-upload'
@@ -44,6 +46,7 @@ export function BookDiscussionPage() {
   const profileId = useAuthenticatedUser().id
   const [draft, setDraft] = useState('')
   const [labels, setLabels] = useState<PostForm['labels']>([])
+  const [mentionedMemberIds, setMentionedMemberIds] = useState<PostForm['mentionedMemberIds']>([])
   const [replyTo, setReplyTo] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const {
@@ -66,6 +69,11 @@ export function BookDiscussionPage() {
       )
         ? 3_000
         : false,
+  })
+  const membersQuery = useQuery({
+    enabled: Boolean(roomId),
+    queryFn: () => getVideoFilterMembers(createSupabaseClient(), roomId ?? ''),
+    queryKey: videoKeys.members(roomId ?? ''),
   })
   const completionsQuery = useQuery({
     enabled: Boolean(bookChatId),
@@ -95,7 +103,7 @@ export function BookDiscussionPage() {
 
   /** 제출 요청이나 사용자 동작을 처리한다. */
   async function handleSubmit() {
-    const parsed = postInput(draft, labels)
+    const parsed = postInput(draft, labels, mentionedMemberIds)
     if (!parsed.ok || !bookChatId) {
       setErrorMessage('감상이나 라벨을 하나 이상 남겨 주세요.')
       return
@@ -110,6 +118,7 @@ export function BookDiscussionPage() {
       else await createPost(createSupabaseClient(), bookChatId, parsed.value)
       setDraft('')
       setLabels([])
+      setMentionedMemberIds([])
       setReplyTo(null)
       await queryClient.invalidateQueries({ queryKey: postKeys.byBookChat(bookChatId) })
       await queryClient.invalidateQueries({ queryKey: readingRoomKeys.all })
@@ -157,12 +166,17 @@ export function BookDiscussionPage() {
         isReplying={Boolean(replyTo)}
         key={bookChatId}
         labels={labels}
+        mentionCandidates={(membersQuery.data ?? []).filter((member) => !member.isCurrentUser)}
+        mentionedMemberIds={mentionedMemberIds}
         onCancelReply={() => setReplyTo(null)}
         onChangeDraft={setDraft}
         onChangeLabels={setLabels}
+        onChangeMentionedMemberIds={setMentionedMemberIds}
         onOpenVideoArchive={() => void navigate(`/rooms/${roomId}/books/${bookChatId}/videos`)}
+        onRetryMentionMembers={() => void membersQuery.refetch()}
         onSelectVideo={uploadVideo}
         onSubmit={() => void handleSubmit()}
+        hasMentionMemberError={membersQuery.isError}
         isUploadingVideo={isUploadingVideo}
         value={draft}
       />
@@ -351,25 +365,35 @@ function CompletionReviewForm({
 /** 대화 입력창 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function ChatComposer({
   errorMessage,
+  hasMentionMemberError,
   isReplying,
   isUploadingVideo,
   labels,
+  mentionCandidates,
+  mentionedMemberIds,
   onCancelReply,
   onChangeDraft,
   onChangeLabels,
+  onChangeMentionedMemberIds,
   onOpenVideoArchive,
+  onRetryMentionMembers,
   onSelectVideo,
   onSubmit,
   value,
 }: {
   errorMessage: string | null
+  hasMentionMemberError: boolean
   isReplying: boolean
   isUploadingVideo: boolean
   labels: PostForm['labels']
+  mentionCandidates: VideoFilterMember[]
+  mentionedMemberIds: PostForm['mentionedMemberIds']
   onCancelReply: () => void
   onChangeDraft: (value: string) => void
   onChangeLabels: (labels: PostForm['labels']) => void
+  onChangeMentionedMemberIds: (mentionedMemberIds: PostForm['mentionedMemberIds']) => void
   onOpenVideoArchive: () => void
+  onRetryMentionMembers: () => void
   onSelectVideo: (file: File | undefined) => void
   onSubmit: () => void
   value: string
@@ -381,6 +405,7 @@ function ChatComposer({
   const firstActionButtonRef = useRef<HTMLButtonElement>(null)
   const [isActionTrayOpen, setIsActionTrayOpen] = useState(false)
   const [labelKind, setLabelKind] = useState<LabelKind | null>(null)
+  const [isMentionSelectorOpen, setIsMentionSelectorOpen] = useState(false)
   const [labelDrafts, setLabelDrafts] = useState<Record<LabelKind, string>>({
     chapter: '',
     page: '',
@@ -401,6 +426,22 @@ function ChatComposer({
   /** Remove 라벨 요청이나 사용자 동작을 처리한다. */
   function handleRemoveLabel(index: number) {
     onChangeLabels(labels.filter((_, labelIndex) => labelIndex !== index))
+  }
+
+  /** 선택한 멤버의 멘션 상태를 추가하거나 해제한다. */
+  function handleToggleMention(memberId: string) {
+    const hasMentionedMember = mentionedMemberIds.includes(memberId)
+    if (hasMentionedMember) {
+      onChangeMentionedMemberIds(mentionedMemberIds.filter((id) => id !== memberId))
+      return
+    }
+    if (mentionedMemberIds.length === 6) return
+    onChangeMentionedMemberIds([...mentionedMemberIds, memberId])
+  }
+
+  /** 선택한 멤버 멘션을 입력 영역에서 제거한다. */
+  function handleRemoveMention(memberId: string) {
+    onChangeMentionedMemberIds(mentionedMemberIds.filter((id) => id !== memberId))
   }
 
   /** 복귀 To 라벨 선택 요청이나 사용자 동작을 처리한다. */
@@ -467,6 +508,28 @@ function ChatComposer({
           ))}
         </ul>
       ) : null}
+      {mentionedMemberIds.length > 0 ? (
+        <ul className="mb-3 flex flex-wrap gap-2" aria-label="선택한 멘션">
+          {mentionCandidates
+            .filter((member) => mentionedMemberIds.includes(member.id))
+            .map((member) => (
+              <li
+                className="bg-primary/10 text-primary flex min-h-8 items-center gap-1 rounded-md px-2 text-xs"
+                key={member.id}
+              >
+                @{member.displayName}
+                <button
+                  aria-label={`${member.displayName} 멘션 삭제`}
+                  className="-my-2 -mr-2 flex min-h-11 min-w-11 cursor-pointer items-center justify-center"
+                  onClick={() => handleRemoveMention(member.id)}
+                  type="button"
+                >
+                  ×
+                </button>
+              </li>
+            ))}
+        </ul>
+      ) : null}
       {isActionTrayOpen ? (
         <div
           aria-labelledby="chat-action-menu-title"
@@ -523,6 +586,67 @@ function ChatComposer({
                 </button>
               </div>
             </div>
+          ) : isMentionSelectorOpen ? (
+            <div>
+              <div className="mb-2 flex min-h-11 items-center gap-2">
+                <button
+                  aria-label="메시지 추가 메뉴로 돌아가기"
+                  className="text-ink hover:bg-surface-muted flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-md"
+                  onClick={() => setIsMentionSelectorOpen(false)}
+                  type="button"
+                >
+                  <svg aria-hidden="true" className="size-5" fill="none" viewBox="0 0 24 24">
+                    <path
+                      d="m14.5 5-7 7 7 7"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeWidth="1.8"
+                    />
+                  </svg>
+                </button>
+                <h2 className="text-ink text-sm font-semibold" id="chat-action-menu-title">
+                  멤버 멘션
+                </h2>
+              </div>
+              {hasMentionMemberError ? (
+                <div className="space-y-2" role="alert">
+                  <p className="text-sm text-red-600">
+                    멘션할 멤버를 불러오지 못했어요. 다시 시도해 주세요.
+                  </p>
+                  <button
+                    className="border-ink/10 text-ink min-h-11 cursor-pointer rounded-md border px-3 text-sm font-medium"
+                    onClick={onRetryMentionMembers}
+                    type="button"
+                  >
+                    다시 시도
+                  </button>
+                </div>
+              ) : mentionCandidates.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {mentionCandidates.map((member) => {
+                    const hasMentionedMember = mentionedMemberIds.includes(member.id)
+                    return (
+                      <button
+                        aria-label={`${member.displayName} 멘션`}
+                        aria-pressed={hasMentionedMember}
+                        className={`min-h-11 cursor-pointer rounded-md border px-3 text-sm font-medium ${
+                          hasMentionedMember
+                            ? 'border-primary bg-primary text-white'
+                            : 'border-ink/10 text-ink bg-white'
+                        }`}
+                        key={member.id}
+                        onClick={() => handleToggleMention(member.id)}
+                        type="button"
+                      >
+                        @{member.displayName}
+                      </button>
+                    )
+                  })}
+                </div>
+              ) : (
+                <p className="text-ink-subtle text-sm">멘션할 멤버가 없어요.</p>
+              )}
+            </div>
           ) : (
             <>
               <h2 className="sr-only" id="chat-action-menu-title">
@@ -540,6 +664,7 @@ function ChatComposer({
                   label="챕터 라벨"
                   onClick={() => setLabelKind('chapter')}
                 />
+                <ActionButton label="멤버 멘션" onClick={() => setIsMentionSelectorOpen(true)} />
                 <ActionButton
                   label="영상 올리기"
                   onClick={() => {
@@ -820,10 +945,14 @@ function getVideoMessageLabel(video: VideoPost, hasPlaybackError: boolean) {
   return '영상 준비 중…'
 }
 
-/** 메시지 본문과 라벨을 전송 가능한 입력 형식으로 검증한다. */
-function postInput(body: string, labels: PostForm['labels']) {
+/** 메시지 본문·라벨·멘션을 전송 가능한 입력 형식으로 검증한다. */
+function postInput(
+  body: string,
+  labels: PostForm['labels'],
+  mentionedMemberIds: PostForm['mentionedMemberIds'],
+) {
   try {
-    return { ok: true as const, value: parsePostForm({ body, labels }) }
+    return { ok: true as const, value: parsePostForm({ body, labels, mentionedMemberIds }) }
   } catch {
     return { ok: false as const }
   }
