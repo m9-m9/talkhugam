@@ -13,6 +13,13 @@
   저장 방법, 완료 여부를 확인하는 방법**을 순서대로 안내한다. 비밀값 자체는 채팅이나
   커밋에 남기지 않으며, 값이 없으면 생성·확인해야 할 서비스 위치를 함께 설명한다.
 
+## 코드 구현 워크플로
+
+- 새 기능, 버그 수정, 리팩터링처럼 **코드를 작성하거나 변경할 때만** Superpowers의
+  `test-driven-development`, `systematic-debugging`, `verification-before-completion`을 사용한다.
+- 기획 논의, 문구 수정, Figma만 수정하는 작업에는 Superpowers 절차를 강제하지 않는다.
+- Superpowers 지침과 이 파일이 충돌하면 이 파일의 보안, 아키텍처, UI, 테스트, Git 규칙을 우선한다.
+
 ## TypeScript와 함수
 
 - TypeScript strict 설정을 유지한다.
