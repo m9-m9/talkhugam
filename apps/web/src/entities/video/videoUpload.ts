@@ -6,6 +6,15 @@ const uploadResponseSchema = z.object({
   ok: z.literal(true),
 })
 
+const playbackAuthorizationSchema = z.object({
+  data: z.object({
+    expiresAt: z.number().int().positive(),
+    playbackId: z.string().min(1),
+    token: z.string().min(1),
+  }),
+  ok: z.literal(true),
+})
+
 const videoAssetSchema = z.object({
   error_code: z.string().nullable(),
   post_id: z.string().uuid(),
@@ -17,6 +26,7 @@ export type VideoAsset = {
   postId: string
   status: z.infer<typeof videoAssetSchema>['status']
 }
+export type VideoPlaybackAuthorization = z.infer<typeof playbackAuthorizationSchema>['data']
 export const videoKeys = { byPost: (postId: string) => ['video-asset', postId] as const }
 
 export async function createVideoUpload(
@@ -52,6 +62,19 @@ export async function getVideoAsset(
   if (!response.data) return null
   const asset = videoAssetSchema.parse(response.data)
   return { errorCode: asset.error_code, postId: asset.post_id, status: asset.status }
+}
+
+export async function getVideoPlaybackAuthorization(
+  client: SupabaseClient,
+  postId: string,
+): Promise<VideoPlaybackAuthorization> {
+  const response = await client.functions.invoke('mux-playback-token', { body: { postId } })
+  if (response.error) throw response.error
+  return parseVideoPlaybackAuthorization(response.data)
+}
+
+export function parseVideoPlaybackAuthorization(value: unknown): VideoPlaybackAuthorization {
+  return playbackAuthorizationSchema.parse(value).data
 }
 
 export function validateVideoDuration(durationSeconds: number): boolean {
