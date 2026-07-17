@@ -21,13 +21,35 @@ const videoAssetSchema = z.object({
   status: z.enum(['waiting_upload', 'processing', 'ready', 'failed', 'deleted']),
 })
 
+const videoPostAssetSchema = z.object({
+  status: z.enum(['waiting_upload', 'processing', 'ready', 'failed', 'deleted']),
+})
+
+const videoPostRowSchema = z.object({
+  author_name_snapshot: z.string(),
+  body: z.string().nullable(),
+  created_at: z.string().datetime({ offset: true }),
+  id: z.string().uuid(),
+  video_assets: z.union([videoPostAssetSchema, z.array(videoPostAssetSchema).max(1)]).nullable(),
+})
+
 export type VideoAsset = {
   errorCode: string | null
   postId: string
   status: z.infer<typeof videoAssetSchema>['status']
 }
 export type VideoPlaybackAuthorization = z.infer<typeof playbackAuthorizationSchema>['data']
-export const videoKeys = { byPost: (postId: string) => ['video-asset', postId] as const }
+export type VideoPost = {
+  authorName: string
+  body: string | null
+  createdAt: string
+  id: string
+  status: VideoAsset['status']
+}
+export const videoKeys = {
+  byBookChat: (bookChatId: string) => ['video-posts', bookChatId] as const,
+  byPost: (postId: string) => ['video-asset', postId] as const,
+}
 
 export async function createVideoUpload(
   client: SupabaseClient,
@@ -64,6 +86,21 @@ export async function getVideoAsset(
   return { errorCode: asset.error_code, postId: asset.post_id, status: asset.status }
 }
 
+export async function getVideoPosts(
+  client: SupabaseClient,
+  bookChatId: string,
+): Promise<VideoPost[]> {
+  const response = await client
+    .from('posts')
+    .select('id, body, author_name_snapshot, created_at, video_assets(status)')
+    .eq('book_chat_id', bookChatId)
+    .eq('type', 'video')
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false })
+  if (response.error) throw response.error
+  return parseVideoPosts(response.data)
+}
+
 export async function getVideoPlaybackAuthorization(
   client: SupabaseClient,
   postId: string,
@@ -77,6 +114,25 @@ export function parseVideoPlaybackAuthorization(value: unknown): VideoPlaybackAu
   return playbackAuthorizationSchema.parse(value).data
 }
 
+export function parseVideoPosts(value: unknown): VideoPost[] {
+  return z.array(videoPostRowSchema).parse(value).map(mapVideoPost)
+}
+
+export function shouldRefreshVideoPosts(posts: VideoPost[] | undefined): boolean {
+  return posts?.some((post) => post.status === 'waiting_upload' || post.status === 'processing') ?? false
+}
+
 export function validateVideoDuration(durationSeconds: number): boolean {
   return Number.isFinite(durationSeconds) && durationSeconds > 0 && durationSeconds <= 30
+}
+
+function mapVideoPost(row: z.infer<typeof videoPostRowSchema>): VideoPost {
+  const asset = Array.isArray(row.video_assets) ? row.video_assets[0] : row.video_assets
+  return {
+    authorName: row.author_name_snapshot,
+    body: row.body,
+    createdAt: row.created_at,
+    id: row.id,
+    status: asset?.status ?? 'waiting_upload',
+  }
 }

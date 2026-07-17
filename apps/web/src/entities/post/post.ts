@@ -29,6 +29,7 @@ export async function getPosts(
     .from('posts')
     .select('id, body, depth, root_post_id, author_name_snapshot, created_at')
     .eq('book_chat_id', bookChatId)
+    .eq('type', 'text')
     .is('deleted_at', null)
     .order('created_at', { ascending: true })
 

@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import MuxPlayer from '@mux/mux-player-react'
 
 import {
   createPost,
@@ -10,6 +11,13 @@ import {
   postKeys,
   type DiscussionPost,
 } from '../../entities/post'
+import {
+  getVideoPlaybackAuthorization,
+  getVideoPosts,
+  shouldRefreshVideoPosts,
+  videoKeys,
+  type VideoPost,
+} from '../../entities/video'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 
 export function BookDiscussionPage() {
@@ -23,6 +31,12 @@ export function BookDiscussionPage() {
     enabled: Boolean(bookChatId),
     queryFn: () => getPosts(createSupabaseClient(), bookChatId ?? ''),
     queryKey: postKeys.byBookChat(bookChatId ?? ''),
+  })
+  const videoPostsQuery = useQuery({
+    enabled: Boolean(bookChatId),
+    queryFn: () => getVideoPosts(createSupabaseClient(), bookChatId ?? ''),
+    queryKey: videoKeys.byBookChat(bookChatId ?? ''),
+    refetchInterval: (query) => (shouldRefreshVideoPosts(query.state.data) ? 3_000 : false),
   })
 
   async function handleSubmit() {
@@ -63,7 +77,7 @@ export function BookDiscussionPage() {
             onClick={() => void navigate(`/rooms/${roomId}/books/${bookChatId}/video`)}
             type="button"
           >
-            영상
+            영상 남기기
           </button>
         </div>
       </header>
@@ -72,6 +86,14 @@ export function BookDiscussionPage() {
           <p className="text-ink-subtle text-sm">감상을 불러오고 있어요.</p>
         ) : (
           <PostList posts={roots} allPosts={postsQuery.data ?? []} onReply={setReplyTo} />
+        )}
+      </section>
+      <section className="mt-8">
+        <h2 className="text-ink text-base font-bold">영상 기록</h2>
+        {videoPostsQuery.isPending ? (
+          <p className="text-ink-subtle mt-4 text-sm">영상을 불러오고 있어요.</p>
+        ) : (
+          <VideoFeed posts={videoPostsQuery.data ?? []} />
         )}
       </section>
       <section className="border-ink/10 mt-6 border-t pt-4">
@@ -96,6 +118,79 @@ export function BookDiscussionPage() {
         </button>
       </section>
     </main>
+  )
+}
+
+function VideoFeed({ posts }: { posts: VideoPost[] }) {
+  if (posts.length === 0)
+    return <p className="text-ink-subtle mt-4 text-sm">아직 남겨진 영상이 없어요.</p>
+  return (
+    <ul className="mt-4 space-y-4">
+      {posts.map((post) => (
+        <li className="border-ink/10 overflow-hidden rounded-lg border bg-white" key={post.id}>
+          <VideoPostCard post={post} />
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+function VideoPostCard({ post }: { post: VideoPost }) {
+  const playbackQuery = useQuery({
+    enabled: post.status === 'ready',
+    queryFn: () => getVideoPlaybackAuthorization(createSupabaseClient(), post.id),
+    queryKey: ['video-playback', post.id],
+    staleTime: 4 * 60 * 1_000,
+  })
+
+  if (post.status === 'ready')
+    return (
+      <>
+        {playbackQuery.data ? (
+          <MuxPlayer
+            className="aspect-video w-full"
+            metadata={{ video_id: post.id, video_title: 'Talk후감 영상' }}
+            playbackId={playbackQuery.data.playbackId}
+            streamType="on-demand"
+            tokens={{ playback: playbackQuery.data.token }}
+          />
+        ) : (
+          <VideoPlaceholder message="재생 화면을 준비하고 있어요…" />
+        )}
+        <VideoMeta post={post} />
+      </>
+    )
+  if (post.status === 'failed')
+    return (
+      <>
+        <VideoPlaceholder message="영상 처리에 실패했어요." />
+        <VideoMeta post={post} />
+      </>
+    )
+  return (
+    <>
+      <VideoPlaceholder message="영상 준비 중 · 대화는 계속할 수 있어요" />
+      <VideoMeta post={post} />
+    </>
+  )
+}
+
+function VideoPlaceholder({ message }: { message: string }) {
+  return (
+    <div className="bg-ink flex aspect-video items-center justify-center px-6 text-center">
+      <p className="text-sm text-white" role="status">
+        {message}
+      </p>
+    </div>
+  )
+}
+
+function VideoMeta({ post }: { post: VideoPost }) {
+  return (
+    <div className="p-4">
+      <p className="text-ink text-sm font-medium">{post.authorName}</p>
+      {post.body ? <p className="text-ink-subtle mt-2 text-sm">{post.body}</p> : null}
+    </div>
   )
 }
 
