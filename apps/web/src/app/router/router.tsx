@@ -7,6 +7,7 @@ import { OnboardingPage } from '../../pages/onboarding/OnboardingPage'
 import { AccountSettingsPage } from '../../pages/profile/AccountSettingsPage'
 import { ProfileEditPage } from '../../pages/profile/ProfileEditPage'
 import { ProfilePage } from '../../pages/profile/ProfilePage'
+import { NotificationsPage } from '../../pages/notifications/NotificationsPage'
 import { BookSearchPage } from '../../pages/rooms/BookSearchPage'
 import { BookDiscussionPage } from '../../pages/rooms/BookDiscussionPage'
 import { CreateRoomPage } from '../../pages/rooms/CreateRoomPage'
@@ -34,6 +35,7 @@ export const router = createBrowserRouter([
         element: <AppNavigationLayout />,
         children: [
           { path: '/rooms', element: <RoomsPage /> },
+          { path: '/notifications', element: <NotificationsPage /> },
           { path: '/profile', element: <ProfilePage /> },
           { path: '/profile/edit', element: <ProfileEditPage /> },
           { path: '/profile/settings', element: <AccountSettingsPage /> },
