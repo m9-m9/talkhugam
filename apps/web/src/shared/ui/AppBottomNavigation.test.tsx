@@ -12,7 +12,7 @@ describe('AppBottomNavigation', () => {
   afterEach(cleanup)
 
   it('opens a two-page action book from the centered plus button', () => {
-    render(
+    const { container } = render(
       <MemoryRouter initialEntries={['/rooms']}>
         <AppBottomNavigation />
         <Routes>
@@ -25,6 +25,7 @@ describe('AppBottomNavigation', () => {
 
     expect(screen.getByRole('button', { name: '새 모임 만들기' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '초대 코드로 참여' })).toBeInTheDocument()
+    expect(container.querySelector('path')?.getAttribute('d')).toContain('C31 1 75 1')
   })
 
   it('navigates to room creation from the left page of the action book', () => {
