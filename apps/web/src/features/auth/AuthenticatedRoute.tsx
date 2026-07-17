@@ -4,10 +4,7 @@ import { z } from 'zod'
 
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
-import {
-  authenticatedUserContext,
-  type AuthenticatedUser,
-} from './authenticatedUser'
+import { authenticatedUserContext, type AuthenticatedUser } from './authenticatedUser'
 
 const authenticatedUserSchema = z.object({
   app_metadata: z.unknown().default({}),
