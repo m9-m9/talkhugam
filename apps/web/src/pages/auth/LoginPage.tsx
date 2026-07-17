@@ -5,11 +5,13 @@ import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 type Provider = 'google' | 'kakao' | 'naver'
+/** Naver OAuth 시작 Edge Function URL을 만든다. */
 function createNaverBridgeStartUrl(supabaseUrl: string, origin: string): string {
   const returnTo = encodeURIComponent(`${origin}/auth/callback`)
   return `${supabaseUrl}/functions/v1/naver-oauth-start?return_to=${returnTo}`
 }
 
+/** Google 로고 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function GoogleLogo() {
   return (
     <svg aria-hidden="true" height="18" viewBox="0 0 18 18" width="18">
@@ -33,6 +35,7 @@ function GoogleLogo() {
   )
 }
 
+/** Kakao 로고 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function KakaoLogo() {
   return (
     <svg aria-hidden="true" height="20" viewBox="0 0 20 20" width="20">
@@ -44,6 +47,7 @@ function KakaoLogo() {
   )
 }
 
+/** Naver 로고 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function NaverLogo() {
   return (
     <svg aria-hidden="true" height="20" viewBox="0 0 20 20" width="20">
@@ -61,6 +65,7 @@ type SocialLoginButtonProps = {
   provider: Provider
 }
 
+/** 소셜 로그인 버튼 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function SocialLoginButton({ disabled, onClick, provider }: SocialLoginButtonProps) {
   if (provider === 'kakao') {
     return (
@@ -105,10 +110,12 @@ function SocialLoginButton({ disabled, onClick, provider }: SocialLoginButtonPro
   )
 }
 
+/** 로그인 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 export function LoginPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isPending, setIsPending] = useState(false)
 
+  /** 로그인 요청이나 사용자 동작을 처리한다. */
   async function handleLogin(provider: Provider) {
     setErrorMessage(null)
     setIsPending(true)

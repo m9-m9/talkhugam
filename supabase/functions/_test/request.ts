@@ -4,6 +4,7 @@ type RequestOptions = {
   method?: string
 }
 
+/** JSON 요청 데이터를 생성해 반환한다. */
 export function createJsonRequest(
   path: string,
   body: unknown,

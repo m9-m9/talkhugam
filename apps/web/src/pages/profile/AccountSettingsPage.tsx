@@ -12,6 +12,7 @@ type AccountIdentity = {
   providers: string[]
 }
 
+/** 계정 설정 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 export function AccountSettingsPage() {
   const navigate = useNavigate()
   const user = useAuthenticatedUser()
@@ -20,6 +21,7 @@ export function AccountSettingsPage() {
   const [isSigningOut, setIsSigningOut] = useState(false)
 
   useEffect(() => {
+    /** 현재 로그인 사용자와 연결된 provider 정보를 불러온다. */
     function loadAccount() {
       try {
         setAccount({
@@ -34,6 +36,7 @@ export function AccountSettingsPage() {
     loadAccount()
   }, [user])
 
+  /** Sign Out 요청이나 사용자 동작을 처리한다. */
   async function handleSignOut() {
     setErrorMessage(null)
     setIsSigningOut(true)
@@ -104,6 +107,7 @@ export function AccountSettingsPage() {
   )
 }
 
+/** 계정 상세 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function AccountDetail({ label, value }: { label: string; value: string }) {
   return (
     <div className="border-ink/10 flex flex-col gap-2 border-b px-4 py-4 last:border-b-0">
@@ -113,6 +117,7 @@ function AccountDetail({ label, value }: { label: string; value: string }) {
   )
 }
 
+/** 계정 설정 상태 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function AccountSettingsState({ message }: { message: string }) {
   return (
     <main className="app-page bg-surface flex items-center justify-center px-4">

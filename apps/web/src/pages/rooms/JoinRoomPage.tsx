@@ -15,6 +15,7 @@ import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
+/** 참여 독서방 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 export function JoinRoomPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -25,6 +26,7 @@ export function JoinRoomPage() {
     resolver: zodResolver(joinRoomFormSchema),
   })
 
+  /** 제출 요청이나 사용자 동작을 처리한다. */
   async function handleSubmit(values: JoinRoomForm) {
     setErrorMessage(null)
     const client = createSupabaseClient()

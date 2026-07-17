@@ -1,5 +1,6 @@
 const genericMessage = '영상 업로드를 시작하지 못했어요. 잠시 후 다시 시도해 주세요.'
 
+/** 영상 업로드 오류 메시지 데이터를 조회하거나 계산해 반환한다. */
 export function getVideoUploadErrorMessage(error: unknown): string {
   const status = getFunctionResponseStatus(error)
 
@@ -11,6 +12,7 @@ export function getVideoUploadErrorMessage(error: unknown): string {
   return genericMessage
 }
 
+/** Edge Function 실패 응답에서 HTTP status를 추출한다. */
 function getFunctionResponseStatus(error: unknown): number | null {
   if (!isObject(error) || !('context' in error)) return null
 
@@ -18,6 +20,7 @@ function getFunctionResponseStatus(error: unknown): number | null {
   return context instanceof Response ? context.status : null
 }
 
+/** 외부 값이 null이 아닌 일반 객체인지 판별한다. */
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }

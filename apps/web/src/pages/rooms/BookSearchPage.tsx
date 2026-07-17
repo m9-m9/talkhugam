@@ -20,6 +20,7 @@ const querySchema = z
   .min(2, '책 제목이나 저자를 두 글자 이상 입력해 주세요.')
   .max(100)
 
+/** 책 검색 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 export function BookSearchPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -52,6 +53,7 @@ export function BookSearchPage() {
     }
   }, [query, searchVersion])
 
+  /** 검색어 변경 요청이나 사용자 동작을 처리한다. */
   function handleQueryChange(value: string) {
     const isValidQuery = querySchema.safeParse(value).success
     setQuery(value)
@@ -60,6 +62,7 @@ export function BookSearchPage() {
     setIsSearching(isValidQuery)
   }
 
+  /** 검색 요청이나 사용자 동작을 처리한다. */
   function handleSearch() {
     const parsed = querySchema.safeParse(query)
     if (!parsed.success) {
@@ -73,6 +76,7 @@ export function BookSearchPage() {
     setSearchVersion((version) => version + 1)
   }
 
+  /** Select 책 요청이나 사용자 동작을 처리한다. */
   async function handleSelectBook(book: BookSearchItem) {
     if (!roomId) return
     setSelectedBookId(book.title)
@@ -124,6 +128,7 @@ export function BookSearchPage() {
   )
 }
 
+/** 책 검색 결과 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function BookResults({
   hasQuery,
   isCreatingId,
@@ -183,6 +188,7 @@ function BookResults({
   )
 }
 
+/** 입력된 검색어로 책 목록을 조회해 반환한다. */
 async function searchBooksForQuery(
   query: string,
   isCancelled: () => boolean,

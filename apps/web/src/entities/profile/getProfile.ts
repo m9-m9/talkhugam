@@ -13,6 +13,7 @@ export type Profile = {
   mbti: string | null
 }
 
+/** 프로필 데이터를 조회하거나 계산해 반환한다. */
 export async function getProfile(client: SupabaseClient, profileId: string): Promise<Profile> {
   const response = await client
     .from('profiles')

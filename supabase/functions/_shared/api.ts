@@ -58,10 +58,12 @@ const JSON_HEADERS = {
   'content-type': 'application/json; charset=utf-8',
 } as const
 
+/** 요청 ID 데이터를 생성해 반환한다. */
 export function createRequestId(request: Request): string {
   return request.headers.get('x-request-id') ?? crypto.randomUUID()
 }
 
+/** 데이터와 요청 ID를 포함한 표준 성공 응답을 만든다. */
 export function successResponse<T>(
   data: T,
   requestId: string,
@@ -76,6 +78,7 @@ export function successResponse<T>(
   })
 }
 
+/** 오류 코드와 요청 ID를 포함한 표준 실패 응답을 만든다. */
 export function failureResponse(
   input: FailureInput,
   requestId: string,

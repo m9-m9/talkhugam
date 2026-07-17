@@ -54,6 +54,7 @@ export type CreatedRoomInvite = {
   roomId: string
 }
 
+/** 독서방 With 초대 데이터를 생성해 반환한다. */
 export async function createRoomWithInvite(
   client: SupabaseClient,
   profileId: string,
@@ -66,6 +67,7 @@ export async function createRoomWithInvite(
   return { code: invite.code, expiresAt: invite.expiresAt, roomId }
 }
 
+/** 초대 코드를 검증해 현재 사용자를 독서방 멤버로 참여시킨다. */
 export async function joinRoomByCode(
   client: SupabaseClient,
   profileId: string,
@@ -82,6 +84,7 @@ export async function joinRoomByCode(
   return getSingleResult(joinRoomResultSchema.parse(response.data)).room_id
 }
 
+/** 독서방 데이터를 생성해 반환한다. */
 async function createReadingRoom(
   client: SupabaseClient,
   values: CreateRoomForm,
@@ -98,6 +101,7 @@ async function createReadingRoom(
   return getSingleResult(createRoomResultSchema.parse(response.data)).room_id
 }
 
+/** 초대 데이터를 생성해 반환한다. */
 async function createInvite(client: SupabaseClient, roomId: string) {
   const response = await client.rpc('create_room_invite', { p_room_id: roomId })
 
@@ -107,6 +111,7 @@ async function createInvite(client: SupabaseClient, roomId: string) {
   return { code: invite.code, expiresAt: invite.expires_at }
 }
 
+/** Supabase 응답에서 단일 결과를 검증해 반환한다. */
 function getSingleResult<T>(results: readonly T[]): T {
   const result = results.at(0)
   if (!result) throw new Error('RPC returned no result')

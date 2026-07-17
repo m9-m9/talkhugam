@@ -11,6 +11,7 @@ const queryClient = new QueryClient({
   },
 })
 
+/** 앱 provider 구성 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 export function AppProviders({ children }: PropsWithChildren) {
   return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
 }

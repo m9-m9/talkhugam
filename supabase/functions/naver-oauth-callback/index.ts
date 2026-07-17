@@ -12,6 +12,7 @@ import {
 import { consumeRequestRateLimit } from '../_shared/rate-limit.ts'
 import { createAdminClient } from '../_shared/supabase.ts'
 
+/** 인증 오류 코드를 callback URL에 담아 redirect 응답을 만든다. */
 function redirectWithError(returnTo: string, code: string, cookie: string): Response {
   const url = new URL(returnTo)
   url.searchParams.set('auth_error', code)
@@ -21,6 +22,7 @@ function redirectWithError(returnTo: string, code: string, cookie: string): Resp
   })
 }
 
+/** Supabase 로그인 링크 데이터를 생성해 반환한다. */
 async function createSupabaseLoginLink(
   subject: string,
   displayName: string,
@@ -42,6 +44,7 @@ async function createSupabaseLoginLink(
   return data.properties.action_link
 }
 
+/** Naver OAuth callback 요청이나 사용자 동작을 처리한다. */
 export async function handleNaverOauthCallback(request: Request): Promise<Response> {
   const requestId = createRequestId(request)
   if (request.method !== 'GET') {

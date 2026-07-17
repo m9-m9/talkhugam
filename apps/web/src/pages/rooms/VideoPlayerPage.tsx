@@ -11,6 +11,7 @@ import {
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
+/** 영상 재생 화면 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 export function VideoPlayerPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -35,6 +36,7 @@ export function VideoPlayerPage() {
     },
   })
 
+  /** 삭제 요청이나 사용자 동작을 처리한다. */
   function handleDelete() {
     if (!window.confirm('이 영상을 삭제할까요? 삭제 후 복구할 수 없어요.')) return
     deleteMutation.mutate()
@@ -99,6 +101,7 @@ export function VideoPlayerPage() {
   )
 }
 
+/** 뒤로가기 아이콘 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function BackIcon() {
   return (
     <svg aria-hidden="true" className="size-6" fill="none" viewBox="0 0 24 24">

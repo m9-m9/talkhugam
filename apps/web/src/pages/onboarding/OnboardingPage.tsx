@@ -33,6 +33,7 @@ const mbtiOptions = [
   'ENTJ',
 ] as const
 
+/** 온보딩 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 export function OnboardingPage() {
   const navigate = useNavigate()
   const user = useAuthenticatedUser()
@@ -44,6 +45,7 @@ export function OnboardingPage() {
   })
 
   useEffect(() => {
+    /** 현재 사용자의 프로필을 불러와 온보딩 입력값을 채운다. */
     async function loadProfile() {
       const client = createSupabaseClient()
 
@@ -64,6 +66,7 @@ export function OnboardingPage() {
     void loadProfile()
   }, [form, user.id])
 
+  /** 제출 요청이나 사용자 동작을 처리한다. */
   async function handleSubmit(values: ProfileForm) {
     setErrorMessage(null)
     form.clearErrors()
@@ -158,10 +161,12 @@ export function OnboardingPage() {
   )
 }
 
+/** MBTI 상태인지 판별한다. */
 function isMbti(value: string | null): value is (typeof mbtiOptions)[number] {
   return value !== null && mbtiOptions.includes(value as (typeof mbtiOptions)[number])
 }
 
+/** 입력 필드 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function Field({
   children,
   errorMessage,
@@ -180,6 +185,7 @@ function Field({
   )
 }
 
+/** 온보딩 상태 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function OnboardingState({ message }: { message: string }) {
   return (
     <main className="app-page bg-surface flex items-center justify-center px-4">

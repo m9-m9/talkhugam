@@ -13,6 +13,7 @@ import {
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
+/** 독서방 목록 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 export function RoomsPage() {
   const roomsQuery = useQuery({
     queryFn: () => getReadingRooms(createSupabaseClient()),
@@ -37,6 +38,7 @@ export function RoomsPage() {
   )
 }
 
+/** 독서방 목록 콘텐츠 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function RoomsContent({
   error,
   isPending,
@@ -57,6 +59,7 @@ function RoomsContent({
   return <RoomsList rooms={rooms} />
 }
 
+/** 독서방 목록 로딩 상태 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function RoomsLoadingState() {
   return (
     <div className="flex flex-1 items-center justify-center">
@@ -65,6 +68,7 @@ function RoomsLoadingState() {
   )
 }
 
+/** 독서방 목록 오류 상태 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function RoomsErrorState({ onRetry }: { onRetry: () => void }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center text-center">
@@ -81,6 +85,7 @@ function RoomsErrorState({ onRetry }: { onRetry: () => void }) {
   )
 }
 
+/** 빈 독서방 목록 상태 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function EmptyRoomsState() {
   return (
     <div className="flex flex-1 flex-col items-center justify-center text-center">
@@ -91,6 +96,7 @@ function EmptyRoomsState() {
   )
 }
 
+/** 독서방 목록 목록 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function RoomsList({ rooms }: { rooms: ReadingRoom[] }) {
   const navigate = useNavigate()
 
@@ -133,6 +139,7 @@ function RoomsList({ rooms }: { rooms: ReadingRoom[] }) {
   )
 }
 
+/** 독서방 멤버 프로필 이미지 목록 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function RoomMemberAvatars({ members }: { members: readonly ReadingRoomMember[] }) {
   const visibleMembers = members.slice(0, 3)
   const remainingCount = members.length - visibleMembers.length

@@ -8,6 +8,7 @@ import { createAdminClient, getAuthenticatedContext } from '../_shared/supabase.
 import { fetchKakaoBooks, KakaoBookSearchError } from './kakao.ts'
 import { bookSearchInputSchema } from './schema.ts'
 
+/** 책 검색 Limit 제한을 확인하고 사용량을 반영한다. */
 async function consumeBookSearchLimit(userId: string): Promise<boolean> {
   const admin = createAdminClient()
   const { data, error } = await admin.rpc('consume_rate_limit', {
@@ -21,6 +22,7 @@ async function consumeBookSearchLimit(userId: string): Promise<boolean> {
   return z.boolean().parse(data)
 }
 
+/** 발생한 오류를 표준 API 실패 응답으로 변환한다. */
 function failureFromError(error: unknown, requestId: string, headers: HeadersInit): Response {
   if (error instanceof KakaoBookSearchError && error.upstreamStatus === 429) {
     return failureResponse(
@@ -48,6 +50,7 @@ function failureFromError(error: unknown, requestId: string, headers: HeadersIni
   )
 }
 
+/** 책 검색 요청이나 사용자 동작을 처리한다. */
 export async function handleBookSearch(request: Request): Promise<Response> {
   const preflight = optionsResponse(request)
   if (preflight) return preflight

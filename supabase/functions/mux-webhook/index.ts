@@ -7,6 +7,7 @@ import { muxWebhookEventSchema, normalizeMuxEvent } from './schema.ts'
 
 const postIdSchema = z.uuid()
 
+/** Mux metadata에서 연결된 메시지 ID를 안전하게 결정한다. */
 async function resolvePostId(
   event: z.infer<typeof muxWebhookEventSchema>,
 ): Promise<string | null> {
@@ -25,6 +26,7 @@ async function resolvePostId(
   return response.data?.post_id ?? null
 }
 
+/** Mux webhook 요청이나 사용자 동작을 처리한다. */
 export async function handleMuxWebhook(request: Request): Promise<Response> {
   if (request.method !== 'POST') return new Response('Method Not Allowed', { status: 405 })
 

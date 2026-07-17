@@ -2,6 +2,7 @@ import { matchPath, Outlet, useLocation } from 'react-router-dom'
 
 import { AppBottomNavigation } from '../../shared/ui/AppBottomNavigation'
 
+/** 앱 이동 레이아웃 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 export function AppNavigationLayout() {
   const { pathname } = useLocation()
   const bookChatMatch = matchPath({ end: true, path: '/rooms/:roomId/books/:bookChatId' }, pathname)

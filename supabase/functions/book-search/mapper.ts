@@ -11,11 +11,13 @@ type IsbnPair = {
   isbn13: string | null
 }
 
+/** 외부 텍스트 값을 정리하고 비어 있으면 null로 변환한다. */
 function optionalText(value: string): string | null {
   const normalized = value.trim()
   return normalized || null
 }
 
+/** 외부 입력을 검증해 Isbn 형식으로 변환한다. */
 export function parseIsbn(value: string): IsbnPair {
   const values = value.split(/\s+/).filter(Boolean)
   const isbn10 = values.find((isbn) => /^\d{9}[\dX]$/i.test(isbn)) ?? null
@@ -23,6 +25,7 @@ export function parseIsbn(value: string): IsbnPair {
   return { isbn10, isbn13 }
 }
 
+/** 원본 데이터를 도서 검색 문서 도메인 모델로 변환한다. */
 function mapDocument(document: KakaoBookResponse['documents'][number]): BookSearchItem {
   const isbn = parseIsbn(document.isbn)
   const publishedAt = document.datetime.match(/^\d{4}-\d{2}-\d{2}/)?.[0] ?? null
@@ -39,6 +42,7 @@ function mapDocument(document: KakaoBookResponse['documents'][number]): BookSear
   }
 }
 
+/** 원본 데이터를 Kakao 책 응답 도메인 모델로 변환한다. */
 export function mapKakaoBookResponse(value: unknown, input: BookSearchInput): BookSearchResult {
   const response = kakaoBookResponseSchema.parse(value)
 

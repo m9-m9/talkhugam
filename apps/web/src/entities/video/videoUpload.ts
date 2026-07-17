@@ -69,12 +69,17 @@ export type VideoFilterMember = {
 export type VideoPostFilter =
   { kind: 'all' } | { kind: 'member'; memberId: string } | { kind: 'mine'; memberId: string | null }
 export const videoKeys = {
+  /** 책 대화방 식별자로 안정적인 query key를 생성한다. */
   byBookChat: (bookChatId: string) => ['video-posts', bookChatId] as const,
+  /** 독서방 식별자로 영상 필터 멤버 query key를 생성한다. */
   members: (roomId: string) => ['video-filter-members', roomId] as const,
+  /** 메시지 식별자로 안정적인 query key를 생성한다. */
   byPost: (postId: string) => ['video-asset', postId] as const,
+  /** 메시지 식별자로 영상 재생 query key를 생성한다. */
   playback: (postId: string) => ['video-playback', postId] as const,
 }
 
+/** 영상 업로드 데이터를 생성해 반환한다. */
 export async function createVideoUpload(
   client: SupabaseClient,
   bookChatId: string,
@@ -86,6 +91,7 @@ export async function createVideoUpload(
   return uploadResponseSchema.parse(response.data).data
 }
 
+/** 영상 파일 데이터를 외부 저장소에 업로드한다. */
 export async function uploadVideoFile(uploadUrl: string, file: File): Promise<void> {
   const response = await fetch(uploadUrl, {
     body: file,
@@ -95,6 +101,7 @@ export async function uploadVideoFile(uploadUrl: string, file: File): Promise<vo
   if (!response.ok) throw new Error('Video upload failed')
 }
 
+/** 영상 자산 데이터를 조회하거나 계산해 반환한다. */
 export async function getVideoAsset(
   client: SupabaseClient,
   postId: string,
@@ -110,6 +117,7 @@ export async function getVideoAsset(
   return { errorCode: asset.error_code, postId: asset.post_id, status: asset.status }
 }
 
+/** 영상 메시지 목록 데이터를 조회하거나 계산해 반환한다. */
 export async function getVideoPosts(
   client: SupabaseClient,
   bookChatId: string,
@@ -125,6 +133,7 @@ export async function getVideoPosts(
   return parseVideoPosts(response.data)
 }
 
+/** 영상 메시지 데이터를 조회하거나 계산해 반환한다. */
 export async function getVideoPost(
   client: SupabaseClient,
   bookChatId: string,
@@ -142,6 +151,7 @@ export async function getVideoPost(
   return mapVideoPost(videoPostRowSchema.parse(response.data))
 }
 
+/** 영상 필터 멤버 목록 데이터를 조회하거나 계산해 반환한다. */
 export async function getVideoFilterMembers(
   client: SupabaseClient,
   roomId: string,
@@ -160,11 +170,13 @@ export async function getVideoFilterMembers(
   return parseVideoFilterMembers(membersResponse.data, userResponse.data.user.id)
 }
 
+/** 영상 메시지 관련 데이터를 안전하게 삭제한다. */
 export async function deleteVideoPost(client: SupabaseClient, postId: string): Promise<void> {
   const response = await client.rpc('delete_video_post', { p_post_id: postId })
   if (response.error) throw response.error
 }
 
+/** 영상 재생 권한 데이터를 조회하거나 계산해 반환한다. */
 export async function getVideoPlaybackAuthorization(
   client: SupabaseClient,
   postId: string,
@@ -174,10 +186,12 @@ export async function getVideoPlaybackAuthorization(
   return parseVideoPlaybackAuthorization(response.data)
 }
 
+/** 외부 입력을 검증해 영상 재생 권한 형식으로 변환한다. */
 export function parseVideoPlaybackAuthorization(value: unknown): VideoPlaybackAuthorization {
   return playbackAuthorizationSchema.parse(value).data
 }
 
+/** 업로드 완료 영상 이동 상태 데이터를 조회하거나 계산해 반환한다. */
 export function getUploadedVideoNavigationState(
   value: unknown,
 ): UploadedVideoNavigationState | null {
@@ -185,10 +199,12 @@ export function getUploadedVideoNavigationState(
   return parsed.success ? parsed.data : null
 }
 
+/** 외부 입력을 검증해 영상 메시지 목록 형식으로 변환한다. */
 export function parseVideoPosts(value: unknown): VideoPost[] {
   return z.array(videoPostRowSchema).parse(value).map(mapVideoPost)
 }
 
+/** 외부 입력을 검증해 영상 필터 멤버 목록 형식으로 변환한다. */
 export function parseVideoFilterMembers(
   value: unknown,
   currentUserId: string,
@@ -203,6 +219,7 @@ export function parseVideoFilterMembers(
     }))
 }
 
+/** 조건에 맞는 영상 메시지 목록만 골라 반환한다. */
 export function filterVideoPosts(
   posts: readonly VideoPost[],
   filter: VideoPostFilter,
@@ -212,12 +229,14 @@ export function filterVideoPosts(
   return posts.filter((post) => post.authorMemberId === filter.memberId)
 }
 
+/** Mux 썸네일 URL 데이터를 생성해 반환한다. */
 export function createMuxThumbnailUrl(authorization: VideoPlaybackAuthorization): string {
   const playbackId = encodeURIComponent(authorization.playbackId)
   const token = encodeURIComponent(authorization.thumbnailToken)
   return `https://image.mux.com/${playbackId}/thumbnail.webp?token=${token}`
 }
 
+/** Refresh 영상 메시지 목록 조건을 충족하는지 판별한다. */
 export function shouldRefreshVideoPosts(
   posts: VideoPost[] | undefined,
   uploadedVideo: UploadedVideoNavigationState | null = null,
@@ -228,6 +247,7 @@ export function shouldRefreshVideoPosts(
   return hasPendingVideo || shouldShowUploadedVideoPlaceholder(posts, uploadedVideo, now)
 }
 
+/** 표시 Uploaded 영상 대기 상태 조건을 충족하는지 판별한다. */
 export function shouldShowUploadedVideoPlaceholder(
   posts: VideoPost[] | undefined,
   uploadedVideo: UploadedVideoNavigationState | null,
@@ -238,10 +258,12 @@ export function shouldShowUploadedVideoPlaceholder(
   return !posts?.some((post) => post.id === uploadedVideo.uploadedVideoPostId)
 }
 
+/** 영상 재생 시간 값의 유효성을 검증한다. */
 export function validateVideoDuration(durationSeconds: number): boolean {
   return Number.isFinite(durationSeconds) && durationSeconds > 0 && durationSeconds <= 30
 }
 
+/** 영상 재생 시간 데이터를 조회하거나 계산해 반환한다. */
 export async function getVideoDuration(file: File): Promise<number> {
   const url = URL.createObjectURL(file)
   try {
@@ -256,6 +278,7 @@ export async function getVideoDuration(file: File): Promise<number> {
   }
 }
 
+/** 원본 데이터를 영상 메시지 도메인 모델로 변환한다. */
 function mapVideoPost(row: z.infer<typeof videoPostRowSchema>): VideoPost {
   const asset = Array.isArray(row.video_assets) ? row.video_assets[0] : row.video_assets
   return {

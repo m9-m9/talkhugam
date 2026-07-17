@@ -1,4 +1,4 @@
-name: Backend CI
+name: 백엔드 CI
 
 on:
   pull_request:
@@ -27,90 +27,90 @@ concurrency:
 
 jobs:
   edge-functions:
-    name: Edge Functions
+    name: Edge Function 검사
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
     steps:
-      - name: Checkout repository
+      - name: 저장소 내려받기
         uses: actions/checkout@v7
 
-      - name: Set up pnpm
+      - name: pnpm 설정
         uses: pnpm/action-setup@v6
 
-      - name: Set up Node.js
+      - name: Node.js 설정
         uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
 
-      - name: Install locked dependencies
+      - name: 잠금 파일 기준 의존성 설치
         run: pnpm install --frozen-lockfile
 
-      - name: Check pinned Supabase CLI
+      - name: 고정된 Supabase CLI 버전 확인
         run: pnpm exec supabase --version
 
-      - name: Check backend security policy
+      - name: 백엔드 보안 정책 검사
         run: pnpm backend:check:security
 
-      - name: Type-check Edge Functions
+      - name: Edge Function 타입 검사
         run: pnpm backend:check:functions
 
-      - name: Type-check backend integration tests
+      - name: 백엔드 통합 테스트 타입 검사
         run: pnpm backend:check:integration
 
-      - name: Test Edge Functions
+      - name: Edge Function 테스트
         run: pnpm backend:test:functions
 
   database:
-    name: Database migrations and RLS
+    name: 데이터베이스 migration과 RLS 검사
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
     steps:
-      - name: Checkout repository
+      - name: 저장소 내려받기
         uses: actions/checkout@v7
 
-      - name: Set up pnpm
+      - name: pnpm 설정
         uses: pnpm/action-setup@v6
 
-      - name: Set up Node.js
+      - name: Node.js 설정
         uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
 
-      - name: Install locked dependencies
+      - name: 잠금 파일 기준 의존성 설치
         run: pnpm install --frozen-lockfile
 
-      - name: Start local Supabase
+      - name: 로컬 Supabase 시작
         run: pnpm backend:start
 
-      - name: Apply migrations from a clean database
+      - name: 빈 데이터베이스에 migration 적용
         run: pnpm backend:reset
 
-      - name: Lint database schema
+      - name: 데이터베이스 schema 정적 검사
         run: pnpm backend:lint
 
-      - name: Run pgTAP contracts
+      - name: pgTAP 계약 테스트
         run: pnpm backend:test:db
 
-      - name: Stop local Supabase
+      - name: 로컬 Supabase 종료
         if: always()
         run: pnpm backend:stop
 
   secrets:
-    name: Secret scan
+    name: 비밀값 검사
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
     steps:
-      - name: Checkout full history
+      - name: 전체 Git 이력 내려받기
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - name: Scan repository for secrets
+      - name: 저장소 비밀값 검사
         uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

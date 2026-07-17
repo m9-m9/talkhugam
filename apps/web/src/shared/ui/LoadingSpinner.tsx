@@ -17,6 +17,7 @@ const labelClasses = {
   inverse: 'text-white',
 } as const
 
+/** 로딩 스피너 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 export function LoadingSpinner({
   label,
   showLabel = true,

@@ -34,6 +34,7 @@ const mbtiOptions = [
   'ENTJ',
 ] as const
 
+/** 프로필 편집 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 export function ProfileEditPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -58,6 +59,7 @@ export function ProfileEditPage() {
     })
   }, [form, profileQuery.data])
 
+  /** 제출 요청이나 사용자 동작을 처리한다. */
   async function handleSubmit(values: ProfileForm) {
     setErrorMessage(null)
     try {
@@ -149,10 +151,12 @@ export function ProfileEditPage() {
   )
 }
 
+/** MBTI 상태인지 판별한다. */
 function isMbti(value: string | null): value is (typeof mbtiOptions)[number] {
   return value !== null && mbtiOptions.includes(value as (typeof mbtiOptions)[number])
 }
 
+/** 편집 입력 필드 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function EditField({
   children,
   errorMessage,
@@ -171,6 +175,7 @@ function EditField({
   )
 }
 
+/** 프로필 편집 상태 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function ProfileEditState({ message }: { message: string }) {
   return (
     <main className="app-page bg-surface flex items-center justify-center px-4">

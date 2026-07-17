@@ -31,6 +31,7 @@ export const profileFormSchema = z.object({
 
 export type ProfileForm = z.infer<typeof profileFormSchema>
 
+/** 프로필 입력 폼을 내부 표준 형식으로 정규화한다. */
 export function normalizeProfileForm(input: ProfileForm): ProfileForm {
   return {
     displayName: input.displayName.trim(),

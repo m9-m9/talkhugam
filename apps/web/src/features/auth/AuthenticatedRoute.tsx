@@ -12,12 +12,14 @@ const authenticatedUserSchema = z.object({
   id: z.string().min(1),
 })
 
+/** 인증 라우트 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 export function AuthenticatedRoute() {
   const [user, setUser] = useState<AuthenticatedUser | null | undefined>(undefined)
 
   useEffect(() => {
     let isActive = true
 
+    /** 현재 Supabase 세션을 확인해 보호된 화면의 접근 상태를 결정한다. */
     async function authenticate() {
       const response = await createSupabaseClient().auth.getUser()
       if (!isActive) return

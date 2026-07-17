@@ -7,6 +7,7 @@ import { AppHeader } from '../../shared/ui/AppHeader'
 import { BookCover } from '../../shared/ui/BookCover'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
+/** 독서방 상세 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 export function RoomDetailPage() {
   const navigate = useNavigate()
   const { roomId } = useParams()
@@ -65,6 +66,7 @@ export function RoomDetailPage() {
   )
 }
 
+/** 책 대화 목록 콘텐츠 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function BookChatsContent({
   chats,
   isError,
@@ -114,6 +116,7 @@ function BookChatsContent({
   )
 }
 
+/** 빈 책 대화 목록 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function EmptyBookChats() {
   return (
     <div className="bg-surface-muted mt-6 rounded-lg p-6 text-center">
@@ -123,6 +126,7 @@ function EmptyBookChats() {
   )
 }
 
+/** 독서방 로딩 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function RoomLoadingPage() {
   return (
     <main className="bg-surface flex min-h-screen items-center justify-center px-4">
@@ -131,6 +135,7 @@ function RoomLoadingPage() {
   )
 }
 
+/** 독서방 Unavailable 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function RoomUnavailablePage({ onBack }: { onBack: () => void }) {
   return (
     <main className="bg-surface flex min-h-screen flex-col items-center justify-center px-4 text-center">

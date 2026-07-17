@@ -54,14 +54,17 @@ export const readingRoomKeys = {
   all: ['reading-rooms'] as const,
 }
 
+/** 외부 입력을 검증해 독서방 목록 형식으로 변환한다. */
 export function parseReadingRooms(value: unknown): ReadingRoom[] {
   return readingRoomsSchema.parse(value).map((room) => mapReadingRoom(room, []))
 }
 
+/** 외부 입력을 검증해 독서방 요약 목록 형식으로 변환한다. */
 export function parseReadingRoomSummaries(value: unknown): ReadingRoom[] {
   return readingRoomSummariesSchema.parse(value).map(mapReadingRoomSummary)
 }
 
+/** 독서방 목록 데이터를 조회하거나 계산해 반환한다. */
 export async function getReadingRooms(client: SupabaseClient): Promise<ReadingRoom[]> {
   const roomsResponse = await client.rpc('get_my_reading_room_summaries')
 
@@ -85,6 +88,7 @@ export async function getReadingRooms(client: SupabaseClient): Promise<ReadingRo
   return mapRoomsWithMembers(rooms, roomMembersSchema.parse(membersResponse.data))
 }
 
+/** 독서방 멤버 요약 값을 화면 표시용 문자열로 변환한다. */
 export function formatRoomMemberSummary(members: readonly ReadingRoomMember[]): string {
   const displayNames = members.map((member) => member.displayName)
   const visibleNames = displayNames.slice(0, 2).join(' · ')
@@ -95,6 +99,7 @@ export function formatRoomMemberSummary(members: readonly ReadingRoomMember[]): 
   return `${visibleNames} · ${displayNames.length}명`
 }
 
+/** 독서방 메시지 미리보기 값을 화면 표시용 문자열로 변환한다. */
 export function formatRoomMessagePreview(room: ReadingRoom): string {
   if (room.lastMessage === null) return room.description ?? '아직 첫 이야기를 기다리고 있어요.'
   if (room.lastMessage.type === 'video')
@@ -104,6 +109,7 @@ export function formatRoomMessagePreview(room: ReadingRoom): string {
   return `${room.lastMessage.authorName}: ${room.lastMessage.body}`
 }
 
+/** 독서방 메시지 시각 값을 화면 표시용 문자열로 변환한다. */
 export function formatRoomMessageTime(value: string | null): string | null {
   if (value === null) return null
 
@@ -113,6 +119,7 @@ export function formatRoomMessageTime(value: string | null): string | null {
   return `${hours}:${minutes}`
 }
 
+/** 원본 데이터를 멤버 정보를 포함한 독서방 목록 도메인 모델로 변환한다. */
 function mapRoomsWithMembers(
   rooms: readonly ReadingRoom[],
   members: readonly z.infer<typeof roomMemberRowSchema>[],
@@ -128,6 +135,7 @@ function mapRoomsWithMembers(
   return rooms.map((room) => ({ ...room, members: membersByRoomId.get(room.id) ?? [] }))
 }
 
+/** 원본 데이터를 독서방 도메인 모델로 변환한다. */
 function mapReadingRoom(
   row: z.infer<typeof readingRoomRowSchema>,
   members: ReadingRoomMember[],
@@ -143,6 +151,7 @@ function mapReadingRoom(
   }
 }
 
+/** 원본 데이터를 독서방 요약 도메인 모델로 변환한다. */
 function mapReadingRoomSummary(row: z.infer<typeof readingRoomSummaryRowSchema>): ReadingRoom {
   return {
     createdAt: row.created_at,
@@ -155,6 +164,7 @@ function mapReadingRoomSummary(row: z.infer<typeof readingRoomSummaryRowSchema>)
   }
 }
 
+/** 원본 데이터를 독서방 최근 메시지 도메인 모델로 변환한다. */
 function mapRoomLastMessage(
   row: z.infer<typeof readingRoomSummaryRowSchema>,
 ): RoomLastMessage | null {
@@ -170,6 +180,7 @@ function mapRoomLastMessage(
   }
 }
 
+/** 원본 데이터를 독서방 멤버 도메인 모델로 변환한다. */
 function mapReadingRoomMember(row: z.infer<typeof roomMemberRowSchema>): ReadingRoomMember {
   return {
     displayName: row.room_display_name,

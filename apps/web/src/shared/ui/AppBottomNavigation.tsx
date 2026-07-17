@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 
+/** 앱 하단 이동 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 export function AppBottomNavigation() {
   const location = useLocation()
   const navigate = useNavigate()
@@ -11,10 +12,12 @@ export function AppBottomNavigation() {
   const isProfileActive = location.pathname.startsWith('/profile')
 
   useEffect(() => {
+    /** Escape 키 요청이나 사용자 동작을 처리한다. */
     function handleEscape(event: KeyboardEvent) {
       if (event.key === 'Escape') setIsActionBookOpen(false)
     }
 
+    /** 외부 포인터 Down 요청이나 사용자 동작을 처리한다. */
     function handleOutsidePointerDown(event: PointerEvent) {
       if (!isActionBookOpen || !(event.target instanceof Node)) return
       if (actionBookRef.current?.contains(event.target)) return
@@ -30,11 +33,13 @@ export function AppBottomNavigation() {
     }
   }, [isActionBookOpen])
 
+  /** 생성 독서방 요청이나 사용자 동작을 처리한다. */
   function handleCreateRoom() {
     setIsActionBookOpen(false)
     void navigate('/rooms/create')
   }
 
+  /** 참여 독서방 요청이나 사용자 동작을 처리한다. */
   function handleJoinRoom() {
     setIsActionBookOpen(false)
     void navigate('/rooms/join')

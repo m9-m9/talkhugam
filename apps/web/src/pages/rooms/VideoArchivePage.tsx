@@ -19,6 +19,7 @@ import { AppHeader } from '../../shared/ui/AppHeader'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 import { SelectMenu } from '../../shared/ui/SelectMenu'
 
+/** 영상 보관함 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 export function VideoArchivePage() {
   const navigate = useNavigate()
   const { bookChatId, roomId } = useParams()
@@ -42,10 +43,12 @@ export function VideoArchivePage() {
     queryKey: videoKeys.members(roomId ?? ''),
   })
 
+  /** Select 영상 요청이나 사용자 동작을 처리한다. */
   function handleSelectVideo(file: File | undefined) {
     void uploadVideo(file)
   }
 
+  /** Open 영상 선택창 요청이나 사용자 동작을 처리한다. */
   function handleOpenVideoPicker() {
     fileInputRef.current?.click()
   }
@@ -156,6 +159,7 @@ export function VideoArchivePage() {
   )
 }
 
+/** 영상 필터 목록 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function VideoFilters({
   filter,
   isMemberFilterPending,
@@ -208,6 +212,7 @@ function VideoFilters({
   )
 }
 
+/** 필터 버튼 Class 이름 데이터를 조회하거나 계산해 반환한다. */
 function getFilterButtonClassName(isActive: boolean): string {
   const colorClassName = isActive
     ? 'border-primary bg-primary text-ink'
@@ -215,6 +220,7 @@ function getFilterButtonClassName(isActive: boolean): string {
   return `${colorClassName} focus-visible:ring-primary min-h-11 shrink-0 cursor-pointer rounded-lg border px-3 text-sm font-medium focus-visible:ring-2 focus-visible:outline-none`
 }
 
+/** 영상 갤러리 항목 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function VideoGalleryItem({ onOpen, video }: { onOpen: () => void; video: VideoPost }) {
   const playbackQuery = useQuery({
     enabled: video.status === 'ready',
@@ -256,6 +262,7 @@ function VideoGalleryItem({ onOpen, video }: { onOpen: () => void; video: VideoP
   )
 }
 
+/** 재생 배지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function PlayBadge() {
   return (
     <span
@@ -269,6 +276,7 @@ function PlayBadge() {
   )
 }
 
+/** 영상 카메라 아이콘 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function VideoCameraIcon() {
   return (
     <svg aria-hidden="true" className="size-5" fill="none" viewBox="0 0 24 24">
@@ -283,6 +291,7 @@ function VideoCameraIcon() {
   )
 }
 
+/** 영상 대기 상태 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function VideoPlaceholder({ isLoading, message }: { isLoading: boolean; message: string }) {
   return (
     <div className="bg-ink absolute inset-0 flex items-center justify-center px-4 text-center">
@@ -295,6 +304,7 @@ function VideoPlaceholder({ isLoading, message }: { isLoading: boolean; message:
   )
 }
 
+/** 추가 아이콘 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function PlusIcon({ className }: { className: string }) {
   return (
     <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 24 24">

@@ -50,10 +50,13 @@ export type BookSearchItem = z.infer<typeof bookSearchItemSchema>
 export type ReadingRoomDetail = z.infer<typeof roomSchema>
 
 export const bookChatKeys = {
+  /** 독서방 식별자로 안정적인 query key를 생성한다. */
   byRoom: (roomId: string) => ['book-chats', roomId] as const,
+  /** 독서방 식별자로 독서방 상세 query key를 생성한다. */
   room: (roomId: string) => ['reading-room', roomId] as const,
 }
 
+/** 책 대화방 목록 데이터를 조회하거나 계산해 반환한다. */
 export async function getBookChats(client: SupabaseClient, roomId: string): Promise<BookChat[]> {
   const response = await client
     .from('book_chats')
@@ -67,6 +70,7 @@ export async function getBookChats(client: SupabaseClient, roomId: string): Prom
   return parseBookChats(response.data)
 }
 
+/** 독서방 데이터를 조회하거나 계산해 반환한다. */
 export async function getReadingRoom(
   client: SupabaseClient,
   roomId: string,
@@ -81,6 +85,7 @@ export async function getReadingRoom(
   return response.data ? roomSchema.parse(response.data) : null
 }
 
+/** 검색어로 책 목록을 조회해 반환한다. */
 export async function searchBooks(
   client: SupabaseClient,
   query: string,
@@ -91,6 +96,7 @@ export async function searchBooks(
   return parseBookSearchResponse(response.data)
 }
 
+/** 책 대화방 데이터를 생성해 반환한다. */
 export async function createBookChat(
   client: SupabaseClient,
   roomId: string,
@@ -118,6 +124,7 @@ export async function createBookChat(
   return result.book_chat_id
 }
 
+/** 원본 데이터를 책 대화방 도메인 모델로 변환한다. */
 function mapBookChat(row: z.infer<typeof bookChatRowSchema>): BookChat[] {
   if (!row.books) return []
 
@@ -132,10 +139,12 @@ function mapBookChat(row: z.infer<typeof bookChatRowSchema>): BookChat[] {
   ]
 }
 
+/** 외부 입력을 검증해 책 대화방 목록 형식으로 변환한다. */
 export function parseBookChats(value: unknown): BookChat[] {
   return z.array(bookChatRowSchema).parse(value).flatMap(mapBookChat)
 }
 
+/** 외부 입력을 검증해 책 검색 응답 형식으로 변환한다. */
 export function parseBookSearchResponse(value: unknown): BookSearchItem[] {
   return bookSearchResponseSchema.parse(value).data.items
 }

@@ -7,6 +7,7 @@ import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
+/** 프로필 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 export function ProfilePage() {
   const navigate = useNavigate()
   const profileId = useAuthenticatedUser().id
@@ -99,6 +100,7 @@ export function ProfilePage() {
   )
 }
 
+/** 프로필 상세 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function ProfileDetail({ label, value }: { label: string; value: string }) {
   return (
     <div className="border-ink/10 flex items-start justify-between gap-6 border-b px-4 py-4 last:border-b-0">
@@ -108,6 +110,7 @@ function ProfileDetail({ label, value }: { label: string; value: string }) {
   )
 }
 
+/** 프로필 상태 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function ProfileState({ message }: { message: string }) {
   return (
     <main className="app-page bg-surface flex items-center justify-center px-4">

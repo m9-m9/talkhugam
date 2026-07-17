@@ -15,6 +15,7 @@ type SelectMenuProps = {
   value: string
 }
 
+/** Select 메뉴 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 export function SelectMenu({
   disabled = false,
   label,
@@ -32,12 +33,14 @@ export function SelectMenu({
   useEffect(() => {
     if (!isOpen) return
 
+    /** 외부 포인터 Down 요청이나 사용자 동작을 처리한다. */
     function handleOutsidePointerDown(event: PointerEvent) {
       if (!(event.target instanceof Node)) return
       if (containerRef.current?.contains(event.target)) return
       setIsOpen(false)
     }
 
+    /** Escape 키 요청이나 사용자 동작을 처리한다. */
     function handleEscape(event: KeyboardEvent) {
       if (event.key !== 'Escape') return
       setIsOpen(false)
@@ -52,6 +55,7 @@ export function SelectMenu({
     }
   }, [isOpen])
 
+  /** Select 요청이나 사용자 동작을 처리한다. */
   function handleSelect(nextValue: string) {
     onChange(nextValue)
     setIsOpen(false)
@@ -119,6 +123,7 @@ export function SelectMenu({
   )
 }
 
+/** 펼침 표시 아이콘 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function ChevronIcon({ isOpen }: { isOpen: boolean }) {
   return (
     <svg
@@ -132,6 +137,7 @@ function ChevronIcon({ isOpen }: { isOpen: boolean }) {
   )
 }
 
+/** 선택 표시 아이콘 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function CheckIcon() {
   return (
     <svg

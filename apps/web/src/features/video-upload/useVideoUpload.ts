@@ -12,11 +12,13 @@ import {
 import { readingRoomKeys } from '../../entities/reading-room'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 
+/** 영상 업로드 상태와 사용자 동작을 재사용 가능한 hook으로 제공한다. */
 export function useVideoUpload(bookChatId: string | undefined) {
   const queryClient = useQueryClient()
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isUploadingVideo, setIsUploadingVideo] = useState(false)
 
+  /** 영상 데이터를 외부 저장소에 업로드한다. */
   async function uploadVideo(file: File | undefined) {
     if (!file || !bookChatId) return
     setErrorMessage(null)
@@ -38,6 +40,7 @@ export function useVideoUpload(bookChatId: string | undefined) {
     }
   }
 
+  /** 영상 업로드 뒤 관련 영상 목록 query를 다시 불러온다. */
   async function refreshVideoPosts(targetBookChatId: string) {
     await queryClient.invalidateQueries({ queryKey: videoKeys.byBookChat(targetBookChatId) })
   }

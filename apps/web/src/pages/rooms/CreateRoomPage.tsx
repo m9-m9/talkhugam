@@ -16,6 +16,7 @@ import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
+/** 생성 독서방 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 export function CreateRoomPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -27,6 +28,7 @@ export function CreateRoomPage() {
     resolver: zodResolver(createRoomFormSchema),
   })
 
+  /** 제출 요청이나 사용자 동작을 처리한다. */
   async function handleSubmit(values: CreateRoomForm) {
     setErrorMessage(null)
     const client = createSupabaseClient()
@@ -103,9 +105,11 @@ export function CreateRoomPage() {
   )
 }
 
+/** 독서방 생성 완료 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function RoomCreatedPage({ invite, onClose }: { invite: CreatedRoomInvite; onClose: () => void }) {
   const [isCopied, setIsCopied] = useState(false)
 
+  /** 복사 초대 요청이나 사용자 동작을 처리한다. */
   async function handleCopyInvite() {
     try {
       await navigator.clipboard.writeText(invite.code)
@@ -154,6 +158,7 @@ function RoomCreatedPage({ invite, onClose }: { invite: CreatedRoomInvite; onClo
   )
 }
 
+/** 입력 폼 입력 필드 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function FormField({
   children,
   errorMessage,

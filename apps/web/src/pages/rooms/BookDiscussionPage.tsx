@@ -27,6 +27,7 @@ import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 type LabelKind = 'page' | 'chapter'
 
+/** 책 Discussion 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 export function BookDiscussionPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -57,6 +58,7 @@ export function BookDiscussionPage() {
         : false,
   })
 
+  /** 제출 요청이나 사용자 동작을 처리한다. */
   async function handleSubmit() {
     const parsed = postInput(draft, labels)
     if (!parsed.ok || !bookChatId) {
@@ -120,6 +122,7 @@ export function BookDiscussionPage() {
   )
 }
 
+/** 대화 입력창 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function ChatComposer({
   errorMessage,
   isReplying,
@@ -157,6 +160,7 @@ function ChatComposer({
     page: '',
   })
 
+  /** Add 라벨 요청이나 사용자 동작을 처리한다. */
   function handleAddLabel() {
     if (!labelKind) return
     const nextLabel = createDraftLabel(labelKind, labelDrafts[labelKind])
@@ -168,16 +172,19 @@ function ChatComposer({
     messageInputRef.current?.focus()
   }
 
+  /** Remove 라벨 요청이나 사용자 동작을 처리한다. */
   function handleRemoveLabel(index: number) {
     onChangeLabels(labels.filter((_, labelIndex) => labelIndex !== index))
   }
 
+  /** 복귀 To 라벨 선택 요청이나 사용자 동작을 처리한다. */
   function handleReturnToLabelSelection() {
     setLabelKind(null)
     window.requestAnimationFrame(() => firstActionButtonRef.current?.focus())
   }
 
   useEffect(() => {
+    /** 외부 포인터 Down 요청이나 사용자 동작을 처리한다. */
     function handleOutsidePointerDown(event: PointerEvent) {
       if (!isActionTrayOpen || !(event.target instanceof Node)) return
       if (actionMenuRef.current?.contains(event.target)) return
@@ -185,6 +192,7 @@ function ChatComposer({
       setIsActionTrayOpen(false)
     }
 
+    /** Escape 키 요청이나 사용자 동작을 처리한다. */
     function handleEscape(event: KeyboardEvent) {
       if (event.key !== 'Escape' || !isActionTrayOpen) return
       setIsActionTrayOpen(false)
@@ -397,6 +405,7 @@ function ChatComposer({
   )
 }
 
+/** 동작 버튼 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function ActionButton({
   buttonRef,
   disabled = false,
@@ -421,6 +430,7 @@ function ActionButton({
   )
 }
 
+/** 대화 타임라인 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function ChatTimeline({
   allPosts,
   onReply,
@@ -471,6 +481,7 @@ function ChatTimeline({
   )
 }
 
+/** 영상 메시지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function VideoMessage({ video }: { video: VideoPost }) {
   const playbackQuery = useQuery({
     enabled: video.status === 'ready',
@@ -508,6 +519,7 @@ function VideoMessage({ video }: { video: VideoPost }) {
   )
 }
 
+/** 메시지 라벨 목록 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function PostLabels({ labels }: { labels: DiscussionPost['labels'] }) {
   if (labels.length === 0) return null
   return (
@@ -524,6 +536,7 @@ function PostLabels({ labels }: { labels: DiscussionPost['labels'] }) {
   )
 }
 
+/** 답글 목록 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function Replies({ posts }: { posts: DiscussionPost[] }) {
   if (posts.length === 0) return null
   return (
@@ -540,6 +553,7 @@ function Replies({ posts }: { posts: DiscussionPost[] }) {
   )
 }
 
+/** 작성 중 라벨 데이터를 생성해 반환한다. */
 function createDraftLabel(kind: LabelKind, value: string): PostForm['labels'][number] | null {
   try {
     return parsePostForm({ body: '', labels: [{ kind, value }] }).labels[0] ?? null
@@ -548,12 +562,14 @@ function createDraftLabel(kind: LabelKind, value: string): PostForm['labels'][nu
   }
 }
 
+/** 라벨 값을 화면 표시용 문자열로 변환한다. */
 function formatLabel(label: PostForm['labels'][number]) {
   if (label.kind === 'page') return `페이지 ${label.value}`
   if (label.kind === 'chapter') return `챕터 ${label.value}`
   return label.value
 }
 
+/** 대화 메시지 목록 데이터를 생성해 반환한다. */
 function createChatMessages(posts: DiscussionPost[], videos: VideoPost[]) {
   const textMessages = posts.map((post) => ({
     createdAt: post.createdAt,
@@ -570,6 +586,7 @@ function createChatMessages(posts: DiscussionPost[], videos: VideoPost[]) {
   )
 }
 
+/** 영상 메시지 라벨 데이터를 조회하거나 계산해 반환한다. */
 function getVideoMessageLabel(video: VideoPost, hasPlaybackError: boolean) {
   if (video.status === 'failed') return '영상 처리에 실패했어요.'
   if (hasPlaybackError) return '재생 정보를 불러오지 못했어요.'
@@ -577,6 +594,7 @@ function getVideoMessageLabel(video: VideoPost, hasPlaybackError: boolean) {
   return '영상 준비 중…'
 }
 
+/** 메시지 본문과 라벨을 전송 가능한 입력 형식으로 검증한다. */
 function postInput(body: string, labels: PostForm['labels']) {
   try {
     return { ok: true as const, value: parsePostForm({ body, labels }) }

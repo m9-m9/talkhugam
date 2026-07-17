@@ -6,6 +6,7 @@ type AppHeaderProps = {
   title: string
 }
 
+/** 앱 헤더 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 export function AppHeader({ action, onBack, title }: AppHeaderProps) {
   return (
     <header className="border-ink/10 -mx-4 flex min-h-16 items-center gap-2 border-b px-4">

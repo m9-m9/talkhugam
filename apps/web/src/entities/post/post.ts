@@ -44,12 +44,17 @@ export type DiscussionPost = {
 }
 export type PostForm = z.infer<typeof postFormSchema>
 
-export const postKeys = { byBookChat: (bookChatId: string) => ['posts', bookChatId] as const }
+export const postKeys = {
+  /** 책 대화방 식별자로 안정적인 query key를 생성한다. */
+  byBookChat: (bookChatId: string) => ['posts', bookChatId] as const,
+}
 
+/** 외부 입력을 검증해 메시지 목록 형식으로 변환한다. */
 export function parsePosts(value: unknown): DiscussionPost[] {
   return z.array(postRowSchema).parse(value).map(mapDiscussionPost)
 }
 
+/** 메시지 목록 데이터를 조회하거나 계산해 반환한다. */
 export async function getPosts(
   client: SupabaseClient,
   bookChatId: string,
@@ -68,6 +73,7 @@ export async function getPosts(
   return parsePosts(response.data)
 }
 
+/** 메시지 데이터를 생성해 반환한다. */
 export async function createPost(
   client: SupabaseClient,
   bookChatId: string,
@@ -84,6 +90,7 @@ export async function createPost(
   return z.string().uuid().parse(response.data)
 }
 
+/** 답글 데이터를 생성해 반환한다. */
 export async function createReply(
   client: SupabaseClient,
   rootPostId: string,
@@ -98,10 +105,12 @@ export async function createReply(
   return z.string().uuid().parse(response.data)
 }
 
+/** 외부 입력을 검증해 메시지 입력 폼 형식으로 변환한다. */
 export function parsePostForm(value: unknown): PostForm {
   return postFormSchema.parse(value)
 }
 
+/** 원본 데이터를 대화 메시지 도메인 모델로 변환한다. */
 function mapDiscussionPost(row: z.infer<typeof postRowSchema>): DiscussionPost {
   return {
     authorName: row.author_name_snapshot,

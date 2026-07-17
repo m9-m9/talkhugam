@@ -6,6 +6,7 @@ const DEFAULT_ALLOWED_ORIGINS = [
   'http://127.0.0.1:3000',
 ]
 
+/** 외부 입력을 검증해 허용된 Origins 형식으로 변환한다. */
 export function parseAllowedOrigins(rawOrigins: string | undefined): ReadonlySet<string> {
   const origins = rawOrigins
     ?.split(',')
@@ -15,6 +16,7 @@ export function parseAllowedOrigins(rawOrigins: string | undefined): ReadonlySet
   return new Set(origins?.length ? origins : DEFAULT_ALLOWED_ORIGINS)
 }
 
+/** 요청 origin을 검증해 CORS 응답 header를 만든다. */
 export function createCorsHeaders(request: Request): HeadersInit {
   const origin = request.headers.get('origin')
   const allowedOrigins = parseAllowedOrigins(readOptionalEnv('ALLOWED_ORIGINS'))
@@ -29,6 +31,7 @@ export function createCorsHeaders(request: Request): HeadersInit {
   }
 }
 
+/** 허용된 origin을 반영한 CORS preflight 응답을 만든다. */
 export function optionsResponse(request: Request): Response | null {
   if (request.method !== 'OPTIONS') return null
 

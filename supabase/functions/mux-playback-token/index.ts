@@ -13,6 +13,7 @@ const videoAssetSchema = z.object({
   status: z.literal('ready'),
 })
 
+/** Mux Playback 토큰 요청이나 사용자 동작을 처리한다. */
 export async function handleMuxPlaybackToken(request: Request): Promise<Response> {
   const preflight = optionsResponse(request)
   if (preflight) return preflight
@@ -106,6 +107,7 @@ export async function handleMuxPlaybackToken(request: Request): Promise<Response
   }
 }
 
+/** 영상 재생 서명 오류를 사용자용 오류 코드로 변환한다. */
 function getPlaybackSigningErrorCode(error: unknown): string {
   if (!(error instanceof Error)) return 'PLAYBACK_TOKEN_UNKNOWN'
   if (error.message.startsWith('Missing required environment variable')) return 'PLAYBACK_TOKEN_SECRET_MISSING'

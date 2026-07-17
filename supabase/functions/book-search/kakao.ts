@@ -4,6 +4,7 @@ import { mapKakaoBookResponse } from './mapper.ts'
 const KAKAO_BOOK_ENDPOINT = 'https://dapi.kakao.com/v3/search/book'
 
 export class KakaoBookSearchError extends Error {
+  /** 전달받은 값으로 클래스 인스턴스의 초기 상태를 구성한다. */
   constructor(
     readonly upstreamStatus: number,
     readonly isRetryable: boolean,
@@ -13,6 +14,7 @@ export class KakaoBookSearchError extends Error {
   }
 }
 
+/** Kakao 책 URL 데이터를 생성해 반환한다. */
 export function createKakaoBookUrl(input: BookSearchInput): URL {
   const url = new URL(KAKAO_BOOK_ENDPOINT)
   url.searchParams.set('query', input.query)
@@ -22,6 +24,7 @@ export function createKakaoBookUrl(input: BookSearchInput): URL {
   return url
 }
 
+/** 외부 서비스에 Kakao 책 목록 데이터를 요청해 반환한다. */
 export async function fetchKakaoBooks(
   input: BookSearchInput,
   restApiKey: string,
