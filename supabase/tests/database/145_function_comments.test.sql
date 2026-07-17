@@ -17,6 +17,7 @@ with documented_function_names(function_name) as (
     ('private.hash_invite_value'),
     ('private.is_active_room_member'),
     ('private.is_room_owner'),
+    ('private.invoke_deletion_worker'),
     ('private.notify_room_member_change'),
     ('private.profile_display_name'),
     ('private.set_updated_at'),
@@ -65,7 +66,7 @@ database_functions as (
 )
 select is(
   count(distinct function_name),
-  48::bigint,
+  49::bigint,
   '모든 애플리케이션 데이터베이스 함수가 존재한다'
 )
 from database_functions;
@@ -85,6 +86,7 @@ with documented_function_names(function_name) as (
     ('private.hash_invite_value'),
     ('private.is_active_room_member'),
     ('private.is_room_owner'),
+    ('private.invoke_deletion_worker'),
     ('private.notify_room_member_change'),
     ('private.profile_display_name'),
     ('private.set_updated_at'),

@@ -96,7 +96,8 @@ psql \
 1. Auth 공급자와 redirect URL을 운영 checklist에서 다시 설정한다.
 2. `avatars` bucket 정책을 migration과 비교한 뒤 객체를 복원한다.
 3. Edge Functions를 기록된 commit에서 배포하고 새 프로젝트의 시크릿을 주입한다.
-4. Realtime table 설정, extension, scheduled worker와 Mux webhook을 다시 연결한다.
+4. Realtime table 설정, extension, scheduled worker와 Mux webhook을 다시 연결한다. 삭제 worker는
+   [삭제 worker 운영 스케줄](./deletion-worker-schedule.md)의 Vault 설정을 먼저 복원한 뒤 Cron job을 활성화한다.
 5. Mux 삭제 worker는 DB 검증 완료 전까지 실행하지 않는다.
 
 ## 복구 검증
