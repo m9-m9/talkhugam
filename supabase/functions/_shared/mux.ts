@@ -32,8 +32,14 @@ function createBasicAuthorization(credentials: MuxCredentials): string {
 }
 
 function decodeSigningPrivateKey(value: string): string {
-  if (value.includes('BEGIN PRIVATE KEY')) return value.replaceAll('\\n', '\n')
-  return new TextDecoder().decode(Uint8Array.from(atob(value), (character) => character.charCodeAt(0)))
+  const normalized = value.trim().replaceAll('\\n', '\n')
+  if (normalized.includes('BEGIN')) return normalized
+
+  const decoded = new TextDecoder().decode(
+    Uint8Array.from(atob(normalized), (character) => character.charCodeAt(0)),
+  )
+  if (!decoded.includes('BEGIN')) throw new Error('Mux signing key is not a PEM value')
+  return decoded
 }
 
 function parseSignatureHeader(header: string): { timestamp: string; signatures: string[] } | null {

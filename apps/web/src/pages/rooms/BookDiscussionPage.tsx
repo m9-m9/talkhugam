@@ -195,6 +195,8 @@ function VideoPostCard({
               thumbnail: playbackQuery.data.thumbnailToken,
             }}
           />
+        ) : playbackQuery.isError ? (
+          <VideoPlaceholder message="재생 정보를 불러오지 못했어요. 잠시 후 다시 시도해 주세요." />
         ) : (
           <VideoPlaceholder message="재생 화면을 준비하고 있어요…" />
         )}
