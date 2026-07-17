@@ -17,6 +17,7 @@ import { useVideoUpload } from '../../features/video-upload'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { RetryState } from '../../shared/ui/RetryState'
 import { SelectMenu } from '../../shared/ui/SelectMenu'
 
 /** 영상 보관함 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
@@ -25,6 +26,7 @@ export function VideoArchivePage() {
   const { bookChatId, roomId } = useParams()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [filter, setFilter] = useState<VideoPostFilter>({ kind: 'all' })
+  const [isRetryingVideos, setIsRetryingVideos] = useState(false)
   const { errorMessage, isUploadingVideo, uploadVideo } = useVideoUpload(bookChatId)
   const videosQuery = useQuery({
     enabled: Boolean(bookChatId),
@@ -60,10 +62,20 @@ export function VideoArchivePage() {
   const resolvedFilter =
     filter.kind === 'mine' ? { kind: 'mine' as const, memberId: currentMemberId } : filter
   const filteredVideos = filterVideoPosts(videosQuery.data ?? [], resolvedFilter)
+  const shouldShowVideoLoadError = videosQuery.isError || isRetryingVideos
 
   /** 실패한 멤버 필터 조회를 다시 요청하고 최신 상태를 반영한다. */
   function handleRetryMembers() {
     void membersQuery.refetch()
+  }
+
+  /**
+   * 입력 없이 실패한 영상 목록 조회를 다시 요청하고 재시도 중 화면 상태를 유지한다.
+   * @returns 반환값 없이 비동기 조회 시작을 예약한다.
+   */
+  function handleRetryVideos() {
+    setIsRetryingVideos(true)
+    void videosQuery.refetch().finally(() => setIsRetryingVideos(false))
   }
 
   return (
@@ -105,6 +117,9 @@ export function VideoArchivePage() {
           {errorMessage}
         </p>
       ) : null}
+      {shouldShowVideoLoadError ? (
+        <VideoArchiveLoadError isRetrying={isRetryingVideos} onRetry={handleRetryVideos} />
+      ) : null}
       {isUploadingVideo ? (
         <div className="mt-4">
           <LoadingSpinner label="영상을 올리고 있어요…" size="sm" />
@@ -120,7 +135,7 @@ export function VideoArchivePage() {
           onChange={setFilter}
         />
       ) : null}
-      {videosQuery.isPending ? (
+      {videosQuery.isPending && !isRetryingVideos ? (
         <div className="mt-12">
           <LoadingSpinner label="영상을 불러오고 있어요." />
         </div>
@@ -145,7 +160,7 @@ export function VideoArchivePage() {
             </button>
           </div>
         )
-      ) : (
+      ) : shouldShowVideoLoadError ? null : (
         <button
           aria-label="첫 영상 올리기"
           className="border-primary/50 bg-surface-muted hover:border-primary focus-visible:ring-primary mt-8 flex min-h-40 w-full cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border border-dashed transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
@@ -163,6 +178,33 @@ export function VideoArchivePage() {
         </button>
       )}
     </main>
+  )
+}
+
+/**
+ * 재시도 상태와 재요청 handler를 입력받아 영상 목록 조회 오류 안내 UI를 반환한다.
+ * @returns 오류 문구, 재시도 버튼 및 진행 중 책 로딩 스피너를 포함한 React 요소를 반환한다.
+ */
+function VideoArchiveLoadError({
+  isRetrying,
+  onRetry,
+}: {
+  isRetrying: boolean
+  onRetry: () => void
+}) {
+  return (
+    <div className="mt-8">
+      <RetryState
+        isRetrying={isRetrying}
+        message="영상 기록을 불러오지 못했어요. 다시 시도해 주세요."
+        onRetry={onRetry}
+      />
+      {isRetrying ? (
+        <div className="mt-4">
+          <LoadingSpinner label="영상을 다시 불러오고 있어요." size="sm" />
+        </div>
+      ) : null}
+    </div>
   )
 }
 

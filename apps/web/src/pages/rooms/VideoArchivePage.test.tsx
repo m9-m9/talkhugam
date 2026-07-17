@@ -94,6 +94,51 @@ describe('VideoArchivePage', () => {
     inputClick.mockRestore()
   })
 
+  it('shows a video query error instead of the empty upload state and retries', async () => {
+    getVideoPosts.mockRejectedValueOnce(new Error('network'))
+    renderArchivePage()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '영상 기록을 불러오지 못했어요. 다시 시도해 주세요.',
+    )
+    expect(screen.queryByRole('button', { name: '첫 영상 올리기' })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '다시 시도' }))
+
+    await vi.waitFor(() => expect(getVideoPosts).toHaveBeenCalledTimes(2))
+    expect(await screen.findByRole('button', { name: '첫 영상 올리기' })).toBeInTheDocument()
+  })
+
+  it('keeps the retry action disabled while the failed video query is being requested again', async () => {
+    const retryRequest = createDeferredValue<ReturnType<typeof createFailedVideos>>()
+    getVideoPosts
+      .mockRejectedValueOnce(new Error('network'))
+      .mockReturnValueOnce(retryRequest.promise)
+    renderArchivePage()
+
+    fireEvent.click(await screen.findByRole('button', { name: '다시 시도' }))
+
+    expect(
+      await screen.findByRole('status', { name: '영상을 다시 불러오고 있어요.' }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '다시 시도' })).toBeDisabled()
+
+    retryRequest.resolve([])
+
+    expect(await screen.findByRole('button', { name: '첫 영상 올리기' })).toBeInTheDocument()
+  })
+
+  it('keeps saved videos visible when a later video query fails', async () => {
+    getVideoPosts.mockRejectedValueOnce(new Error('network'))
+    renderArchivePage({ initialVideos: createFailedVideos() })
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '영상 기록을 불러오지 못했어요. 다시 시도해 주세요.',
+    )
+    expect(screen.getByRole('list', { name: '영상 기록' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '민규님의 영상 상태' })).toBeInTheDocument()
+  })
+
   it('sends the selected video to the shared uploader', () => {
     renderArchivePage()
     const file = new File(['video'], 'moment.mp4', { type: 'video/mp4' })
@@ -290,6 +335,18 @@ describe('VideoArchivePage', () => {
   })
 })
 
+/**
+ * 입력 없이 오류 또는 처리 실패 상태를 검증할 영상 목록을 생성한다.
+ * @returns 민규가 작성한 처리 실패 영상 하나를 반환한다.
+ */
+function createFailedVideos() {
+  return [createFailedVideo('video-1', '민규')]
+}
+
+/**
+ * 영상 식별자와 작성자 이름을 입력받아 처리 실패 상태의 영상 도메인 데이터를 생성한다.
+ * @returns 영상 보관함 목록 테스트에 쓸 처리 실패 영상 데이터를 반환한다.
+ */
 function createFailedVideo(id: string, authorName: string) {
   return {
     authorMemberId: 'member-1',
@@ -301,6 +358,10 @@ function createFailedVideo(id: string, authorName: string) {
   }
 }
 
+/**
+ * 영상 식별자, 작성자 식별자와 이름을 입력받아 재생 가능한 영상 도메인 데이터를 생성한다.
+ * @returns 영상 필터 및 재생 테스트에 쓸 준비 완료 영상 데이터를 반환한다.
+ */
 function createReadyVideo(id: string, authorMemberId: string, authorName: string) {
   return {
     authorMemberId,
@@ -312,8 +373,16 @@ function createReadyVideo(id: string, authorMemberId: string, authorName: string
   }
 }
 
-function renderArchivePage() {
+/**
+ * 선택적인 초기 영상 데이터를 입력받아 영상 보관함 라우트를 테스트 환경에 렌더링한다.
+ * @returns React Testing Library가 제공하는 렌더링 결과를 반환한다.
+ */
+function renderArchivePage({
+  initialVideos,
+}: { initialVideos?: ReturnType<typeof createFailedVideos> } = {}) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  if (initialVideos) queryClient.setQueryData(['video-posts', 'book-1'], initialVideos)
+
   return render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={['/rooms/room-1/books/book-1/videos']}>
@@ -327,4 +396,17 @@ function renderArchivePage() {
       </MemoryRouter>
     </QueryClientProvider>,
   )
+}
+
+/**
+ * 임의의 제네릭 값을 입력 없이 나중에 완료할 수 있는 Promise를 생성한다.
+ * @returns Promise와 해당 Promise를 완료할 resolve 함수를 반환한다.
+ */
+function createDeferredValue<Value>() {
+  let resolvePromise: (value: Value) => void = () => undefined
+  const promise = new Promise<Value>((resolve) => {
+    resolvePromise = resolve
+  })
+
+  return { promise, resolve: resolvePromise }
 }
