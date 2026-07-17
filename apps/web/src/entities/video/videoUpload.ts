@@ -18,6 +18,7 @@ const playbackAuthorizationSchema = z.object({
 
 const uploadedVideoNavigationStateSchema = z.object({
   uploadedVideoPostId: z.string().uuid(),
+  uploadedVideoStartedAt: z.number().int().positive(),
 })
 
 const videoAssetSchema = z.object({
@@ -44,6 +45,7 @@ export type VideoAsset = {
   status: z.infer<typeof videoAssetSchema>['status']
 }
 export type VideoPlaybackAuthorization = z.infer<typeof playbackAuthorizationSchema>['data']
+export type UploadedVideoNavigationState = z.infer<typeof uploadedVideoNavigationStateSchema>
 export type VideoPost = {
   authorName: string
   body: string | null
@@ -124,9 +126,11 @@ export function parseVideoPlaybackAuthorization(value: unknown): VideoPlaybackAu
   return playbackAuthorizationSchema.parse(value).data
 }
 
-export function getUploadedVideoPostId(value: unknown): string | null {
+export function getUploadedVideoNavigationState(
+  value: unknown,
+): UploadedVideoNavigationState | null {
   const parsed = uploadedVideoNavigationStateSchema.safeParse(value)
-  return parsed.success ? parsed.data.uploadedVideoPostId : null
+  return parsed.success ? parsed.data : null
 }
 
 export function parseVideoPosts(value: unknown): VideoPost[] {
@@ -135,14 +139,22 @@ export function parseVideoPosts(value: unknown): VideoPost[] {
 
 export function shouldRefreshVideoPosts(
   posts: VideoPost[] | undefined,
-  uploadedVideoPostId: string | null = null,
+  uploadedVideo: UploadedVideoNavigationState | null = null,
+  now = Date.now(),
 ): boolean {
   const hasPendingVideo =
     posts?.some((post) => post.status === 'waiting_upload' || post.status === 'processing') ?? false
-  const isUploadedVideoMissing =
-    uploadedVideoPostId !== null && !posts?.some((post) => post.id === uploadedVideoPostId)
+  return hasPendingVideo || shouldShowUploadedVideoPlaceholder(posts, uploadedVideo, now)
+}
 
-  return hasPendingVideo || isUploadedVideoMissing
+export function shouldShowUploadedVideoPlaceholder(
+  posts: VideoPost[] | undefined,
+  uploadedVideo: UploadedVideoNavigationState | null,
+  now = Date.now(),
+): boolean {
+  if (uploadedVideo === null) return false
+  if (now - uploadedVideo.uploadedVideoStartedAt > 45_000) return false
+  return !posts?.some((post) => post.id === uploadedVideo.uploadedVideoPostId)
 }
 
 export function validateVideoDuration(durationSeconds: number): boolean {

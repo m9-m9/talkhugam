@@ -15,8 +15,9 @@ import {
   getVideoPlaybackAuthorization,
   getVideoPosts,
   deleteVideoPost,
-  getUploadedVideoPostId,
+  getUploadedVideoNavigationState,
   shouldRefreshVideoPosts,
+  shouldShowUploadedVideoPlaceholder,
   videoKeys,
   type VideoPost,
 } from '../../entities/video'
@@ -31,7 +32,7 @@ export function BookDiscussionPage() {
   const [draft, setDraft] = useState('')
   const [replyTo, setReplyTo] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const uploadedVideoPostId = getUploadedVideoPostId(location.state)
+  const uploadedVideo = getUploadedVideoNavigationState(location.state)
   const postsQuery = useQuery({
     enabled: Boolean(bookChatId),
     queryFn: () => getPosts(createSupabaseClient(), bookChatId ?? ''),
@@ -42,7 +43,7 @@ export function BookDiscussionPage() {
     queryFn: () => getVideoPosts(createSupabaseClient(), bookChatId ?? ''),
     queryKey: videoKeys.byBookChat(bookChatId ?? ''),
     refetchInterval: (query) =>
-      shouldRefreshVideoPosts(query.state.data, uploadedVideoPostId) ? 3_000 : false,
+      shouldRefreshVideoPosts(query.state.data, uploadedVideo) ? 3_000 : false,
   })
   const deleteVideoMutation = useMutation({
     mutationFn: (postId: string) => deleteVideoPost(createSupabaseClient(), postId),
@@ -80,9 +81,9 @@ export function BookDiscussionPage() {
 
   if (!roomId || !bookChatId) return <main className="bg-surface min-h-screen" />
   const roots = postsQuery.data?.filter((post) => post.depth === 0) ?? []
-  const isWaitingForUploadedVideo = shouldRefreshVideoPosts(
+  const shouldShowUploadPlaceholder = shouldShowUploadedVideoPlaceholder(
     videoPostsQuery.data,
-    uploadedVideoPostId,
+    uploadedVideo,
   )
   return (
     <main className="bg-surface mx-auto flex min-h-screen w-full max-w-md flex-col px-6 py-8">
@@ -122,7 +123,7 @@ export function BookDiscussionPage() {
         ) : (
           <VideoFeed
             isDeleting={deleteVideoMutation.isPending}
-            isWaitingForUploadedVideo={isWaitingForUploadedVideo}
+            shouldShowUploadPlaceholder={shouldShowUploadPlaceholder}
             onDelete={(postId) => void handleDeleteVideo(postId)}
             posts={videoPostsQuery.data ?? []}
           />
@@ -155,20 +156,20 @@ export function BookDiscussionPage() {
 
 function VideoFeed({
   isDeleting,
-  isWaitingForUploadedVideo,
+  shouldShowUploadPlaceholder,
   onDelete,
   posts,
 }: {
   isDeleting: boolean
-  isWaitingForUploadedVideo: boolean
+  shouldShowUploadPlaceholder: boolean
   onDelete: (postId: string) => void
   posts: VideoPost[]
 }) {
-  if (posts.length === 0 && !isWaitingForUploadedVideo)
+  if (posts.length === 0 && !shouldShowUploadPlaceholder)
     return <p className="text-ink-subtle mt-4 text-sm">아직 남겨진 영상이 없어요.</p>
   return (
     <ul className="mt-4 space-y-4">
-      {isWaitingForUploadedVideo ? (
+      {shouldShowUploadPlaceholder ? (
         <li className="border-ink/10 overflow-hidden rounded-lg border bg-white">
           <VideoPlaceholder message="업로드한 영상을 독서방에 추가하고 있어요…" />
         </li>

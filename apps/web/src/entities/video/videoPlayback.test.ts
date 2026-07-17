@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
 import {
-  getUploadedVideoPostId,
+  getUploadedVideoNavigationState,
   parseVideoPlaybackAuthorization,
   parseVideoPosts,
   shouldRefreshVideoPosts,
+  shouldShowUploadedVideoPlaceholder,
 } from './videoUpload'
 
 describe('parseVideoPlaybackAuthorization', () => {
@@ -79,13 +80,46 @@ describe('video feed state', () => {
   })
 
   it('keeps refreshing until a just-uploaded video is returned by the list query', () => {
-    expect(shouldRefreshVideoPosts([], '4b7227b2-5350-4a61-9114-b2d0c915fd1b')).toBe(true)
+    expect(
+      shouldRefreshVideoPosts(
+        [],
+        {
+          uploadedVideoPostId: '4b7227b2-5350-4a61-9114-b2d0c915fd1b',
+          uploadedVideoStartedAt: 1_784_269_000_000,
+        },
+        1_784_269_001_000,
+      ),
+    ).toBe(true)
   })
 
-  it('reads only a valid uploaded video id from navigation state', () => {
+  it('does not show an upload placeholder for stale navigation state', () => {
     expect(
-      getUploadedVideoPostId({ uploadedVideoPostId: '4b7227b2-5350-4a61-9114-b2d0c915fd1b' }),
-    ).toBe('4b7227b2-5350-4a61-9114-b2d0c915fd1b')
-    expect(getUploadedVideoPostId({ uploadedVideoPostId: 'not-a-uuid' })).toBeNull()
+      shouldShowUploadedVideoPlaceholder(
+        [],
+        {
+          uploadedVideoPostId: '4b7227b2-5350-4a61-9114-b2d0c915fd1b',
+          uploadedVideoStartedAt: 1_784_269_000_000,
+        },
+        1_784_269_046_000,
+      ),
+    ).toBe(false)
+  })
+
+  it('reads only fresh valid upload navigation state', () => {
+    expect(
+      getUploadedVideoNavigationState({
+        uploadedVideoPostId: '4b7227b2-5350-4a61-9114-b2d0c915fd1b',
+        uploadedVideoStartedAt: 1_784_269_000_000,
+      }),
+    ).toEqual({
+      uploadedVideoPostId: '4b7227b2-5350-4a61-9114-b2d0c915fd1b',
+      uploadedVideoStartedAt: 1_784_269_000_000,
+    })
+    expect(getUploadedVideoNavigationState({ uploadedVideoPostId: 'not-a-uuid' })).toBeNull()
+    expect(
+      getUploadedVideoNavigationState({
+        uploadedVideoPostId: '4b7227b2-5350-4a61-9114-b2d0c915fd1b',
+      }),
+    ).toBeNull()
   })
 })

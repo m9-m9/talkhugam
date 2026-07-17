@@ -29,7 +29,7 @@ export function VideoUploadPage() {
       await uploadVideoFile(upload.uploadUrl, file)
       void navigate(`/rooms/${roomId}/books/${bookChatId}`, {
         replace: true,
-        state: { uploadedVideoPostId: upload.postId },
+        state: { uploadedVideoPostId: upload.postId, uploadedVideoStartedAt: Date.now() },
       })
     } catch (error) {
       setErrorMessage(getVideoUploadErrorMessage(error))
