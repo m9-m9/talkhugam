@@ -2,8 +2,13 @@ import { createClient } from '@supabase/supabase-js'
 
 import { getClientEnv } from '../../app/env'
 
-export function createSupabaseClient() {
-  const env = getClientEnv()
+let supabaseClient: ReturnType<typeof createClient> | undefined
 
-  return createClient(env.VITE_SUPABASE_URL, env.VITE_SUPABASE_PUBLISHABLE_KEY)
+export function createSupabaseClient() {
+  if (supabaseClient) return supabaseClient
+
+  const env = getClientEnv()
+  supabaseClient = createClient(env.VITE_SUPABASE_URL, env.VITE_SUPABASE_PUBLISHABLE_KEY)
+
+  return supabaseClient
 }
