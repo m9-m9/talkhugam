@@ -3,6 +3,8 @@ import { createBrowserRouter } from 'react-router-dom'
 import { AuthCallbackPage } from '../../pages/auth/AuthCallbackPage'
 import { LoginPage } from '../../pages/auth/LoginPage'
 import { OnboardingPage } from '../../pages/onboarding/OnboardingPage'
+import { CreateRoomPage } from '../../pages/rooms/CreateRoomPage'
+import { JoinRoomPage } from '../../pages/rooms/JoinRoomPage'
 import { RoomsPage } from '../../pages/rooms/RoomsPage'
 
 export const router = createBrowserRouter([
@@ -21,5 +23,13 @@ export const router = createBrowserRouter([
   {
     path: '/rooms',
     element: <RoomsPage />,
+  },
+  {
+    path: '/rooms/create',
+    element: <CreateRoomPage />,
+  },
+  {
+    path: '/rooms/join',
+    element: <JoinRoomPage />,
   },
 ])
