@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -172,6 +172,13 @@ describe('VideoArchivePage', () => {
     fireEvent.click(await screen.findByRole('button', { name: '멤버 필터: 모든 멤버' }))
 
     expect(await screen.findByRole('listbox', { name: '멤버 필터' })).toBeInTheDocument()
+    expect(screen.getByText('누구의 영상?')).toBeInTheDocument()
+    expect(
+      within(screen.getByRole('option', { name: '모든 멤버' })).queryByText('모', { exact: true }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: '멤버 필터: 모든 멤버' }).closest('.overflow-x-auto'),
+    ).toBeNull()
     fireEvent.click(screen.getByRole('option', { name: '수진' }))
 
     expect(screen.getAllByRole('listitem')).toHaveLength(1)

@@ -170,7 +170,7 @@ function VideoFilters({
   const selectedMemberId = filter.kind === 'member' ? filter.memberId : ''
 
   return (
-    <div className="mt-6 flex items-center gap-2 overflow-x-auto pb-1">
+    <div className="mt-6 flex items-center gap-2 pb-1">
       <button
         aria-pressed={filter.kind === 'all'}
         className={getFilterButtonClassName(filter.kind === 'all')}
@@ -190,12 +190,17 @@ function VideoFilters({
       <SelectMenu
         disabled={isMemberFilterPending}
         label="멤버 필터"
+        menuTitle="누구의 영상?"
         onChange={(memberId) => {
           onChange(memberId ? { kind: 'member', memberId } : { kind: 'all' })
         }}
         options={[
           { label: '모든 멤버', value: '' },
-          ...members.map((member) => ({ label: member.displayName, value: member.id })),
+          ...members.map((member) => ({
+            badge: member.displayName.slice(0, 1),
+            label: member.displayName,
+            value: member.id,
+          })),
         ]}
         value={selectedMemberId}
       />

@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 
 export type SelectMenuOption = {
+  badge?: string
   label: string
   value: string
 }
@@ -8,12 +9,20 @@ export type SelectMenuOption = {
 type SelectMenuProps = {
   disabled?: boolean
   label: string
+  menuTitle?: string
   onChange: (value: string) => void
   options: readonly SelectMenuOption[]
   value: string
 }
 
-export function SelectMenu({ disabled = false, label, onChange, options, value }: SelectMenuProps) {
+export function SelectMenu({
+  disabled = false,
+  label,
+  menuTitle,
+  onChange,
+  options,
+  value,
+}: SelectMenuProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const listboxId = useId()
@@ -67,16 +76,19 @@ export function SelectMenu({ disabled = false, label, onChange, options, value }
       {isOpen ? (
         <div
           aria-label={label}
-          className="border-ink/15 bg-surface absolute top-full right-0 z-30 mt-2 min-w-full overflow-hidden rounded-lg border p-1 shadow-lg"
+          className="border-ink/15 bg-surface absolute top-full right-0 z-30 mt-2 w-52 rounded-lg border p-2 shadow-lg"
           id={listboxId}
           role="listbox"
         >
+          {menuTitle ? (
+            <p className="text-ink-subtle px-2 pt-1 pb-2 text-xs font-semibold">{menuTitle}</p>
+          ) : null}
           {options.map((option) => {
             const isSelected = option.value === value
             return (
               <button
                 aria-selected={isSelected}
-                className={`focus-visible:ring-primary flex min-h-11 w-full cursor-pointer items-center justify-between rounded-md px-3 text-left text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none ${
+                className={`focus-visible:ring-primary flex min-h-11 w-full cursor-pointer items-center justify-between rounded-md px-2 text-left text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none ${
                   isSelected
                     ? 'bg-primary/15 text-ink font-semibold'
                     : 'text-ink-subtle hover:bg-surface-muted'
@@ -86,7 +98,17 @@ export function SelectMenu({ disabled = false, label, onChange, options, value }
                 role="option"
                 type="button"
               >
-                {option.label}
+                <span className="flex min-w-0 items-center gap-2">
+                  {option.badge ? (
+                    <span
+                      aria-hidden="true"
+                      className="bg-surface-muted text-ink-subtle flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold"
+                    >
+                      {option.badge}
+                    </span>
+                  ) : null}
+                  <span className="truncate">{option.label}</span>
+                </span>
                 {isSelected ? <CheckIcon /> : null}
               </button>
             )

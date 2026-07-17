@@ -103,6 +103,7 @@ test('filters saved videos with the custom member selection menu', async ({ page
 
   await page.getByRole('button', { name: '멤버 필터: 모든 멤버' }).click()
   await expect(page.getByRole('listbox', { name: '멤버 필터' })).toBeVisible()
+  await expect(page.getByText('누구의 영상?')).toBeVisible()
   await page.getByRole('option', { name: '민규' }).click()
 
   await expect(page.getByRole('list', { name: '영상 기록' }).getByRole('listitem')).toHaveCount(1)
