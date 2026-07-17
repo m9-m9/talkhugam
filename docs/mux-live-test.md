@@ -1,7 +1,7 @@
 # Mux 실연동 테스트
 
 이 테스트는 실제 Mux Direct Upload와 encoding을 생성하므로 기본값으로 실행되지 않는다.
-Mux와 Supabase 프로젝트를 연결한 뒤 TALK-3 검증 때만 명시적으로 활성화한다.
+Mux와 Supabase 프로젝트를 연결한 뒤 명시적으로 활성화한다.
 
 ## 사전 조건
 
@@ -58,4 +58,4 @@ pnpm backend:test:mux
 - 로그에는 upload URL, playback token, 원본 영상 URL이 출력되지 않았는지 확인
 
 실제 upload→ready→signed playback과 cleanup이 모두 통과한 실행 일시, Git commit, Mux asset ID는
-노션 TALK-3에 기록한다. secret이나 signed URL은 기록하지 않는다.
+접근 제한된 운영 기록에 남긴다. secret이나 signed URL은 기록하지 않는다.
