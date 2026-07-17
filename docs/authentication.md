@@ -61,8 +61,8 @@ Supabase Auth의 Kakao provider에 REST API key와 Client Secret을 등록한다
 - [ ] 변조 state, 만료 state, 허용되지 않은 `return_to`, 공급자 거부 흐름 확인
 - [ ] 계정 삭제 후 같은 공급자로 다시 로그인할 때 신규 계정으로 생성되는지 확인
 
-## 내일 필요한 실제 검증
+## 운영 배포 전 실제 검증
 
 Kakao, Google, Naver 개발자 애플리케이션 값과 Supabase 프로젝트가 준비된 뒤 실제 모바일 브라우저에서
-동의 → callback → session 감지 → 온보딩 분기를 검증한다. 이 문서의 체크리스트가 통과하기 전에는
-인증 관련 티켓을 `완료`로 변경하지 않는다.
+동의 → callback → session 감지 → 온보딩 분기를 검증한다. 이 문서의 체크리스트는 자동화된 단위·E2E
+테스트를 대체하지 않으며, 실제 공급자 설정을 바꾸거나 배포 도메인이 달라질 때마다 다시 확인한다.
