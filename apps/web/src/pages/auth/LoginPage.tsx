@@ -80,7 +80,7 @@ function SocialLoginButton({ disabled, onClick, provider }: SocialLoginButtonPro
     return (
       <button
         aria-label="네이버로 로그인"
-        className="flex h-12 w-full items-center justify-center gap-3 rounded-md bg-[#03c75a] px-4 text-sm font-medium text-white disabled:opacity-50"
+        className="text-ink flex h-12 w-full items-center justify-center gap-3 rounded-md bg-[#03c75a] px-4 text-sm font-medium disabled:opacity-50"
         disabled={disabled}
         onClick={onClick}
         type="button"
