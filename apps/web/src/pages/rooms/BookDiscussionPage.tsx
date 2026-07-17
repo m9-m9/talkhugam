@@ -56,7 +56,16 @@ export function BookDiscussionPage() {
       </button>
       <header className="mt-3">
         <p className="text-primary text-sm font-medium">책 대화</p>
-        <h1 className="text-ink mt-2 text-xl font-bold">읽고 느낀 걸 나눠요</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-ink mt-2 text-xl font-bold">읽고 느낀 걸 나눠요</h1>
+          <button
+            className="text-primary min-h-11 px-3 text-sm font-medium"
+            onClick={() => void navigate(`/rooms/${roomId}/books/${bookChatId}/video`)}
+            type="button"
+          >
+            영상
+          </button>
+        </div>
       </header>
       <section className="mt-8 flex-1">
         {postsQuery.isPending ? (
