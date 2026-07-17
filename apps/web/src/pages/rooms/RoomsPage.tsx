@@ -37,7 +37,7 @@ export function RoomsPage() {
     )
 
   return (
-    <main className="bg-surface mx-auto flex min-h-screen w-full max-w-md flex-col">
+    <main className="app-page bg-surface flex flex-col">
       <header className="flex items-center justify-between px-6 pt-6 pb-4">
         <h1 className="text-ink text-lg font-bold">내 독서방</h1>
         <button

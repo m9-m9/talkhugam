@@ -89,7 +89,7 @@ export function ProfileEditPage() {
   if (profileQuery.isError) return <ProfileEditState message="프로필 정보를 불러오지 못했어요." />
 
   return (
-    <main className="bg-surface mx-auto min-h-screen w-full max-w-md px-6 py-8">
+    <main className="app-page bg-surface px-6 py-8">
       <button
         className="text-ink-subtle -ml-3 min-h-11 px-3 text-sm"
         onClick={() => void navigate('/profile')}
@@ -195,7 +195,7 @@ function EditField({
 
 function ProfileEditState({ message }: { message: string }) {
   return (
-    <main className="bg-surface mx-auto flex min-h-screen w-full max-w-md items-center justify-center px-6">
+    <main className="app-page bg-surface flex items-center justify-center px-6">
       <LoadingSpinner label={message} />
     </main>
   )

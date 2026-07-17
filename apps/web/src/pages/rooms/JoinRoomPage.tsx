@@ -42,7 +42,7 @@ export function JoinRoomPage() {
   }
 
   return (
-    <main className="bg-surface mx-auto min-h-screen w-full max-w-md px-6 py-8">
+    <main className="app-page bg-surface px-6 py-8">
       <button
         className="text-ink-subtle -ml-3 min-h-11 px-3 text-sm"
         onClick={() => void navigate(-1)}

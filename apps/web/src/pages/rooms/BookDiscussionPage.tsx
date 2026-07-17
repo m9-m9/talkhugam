@@ -86,7 +86,7 @@ export function BookDiscussionPage() {
     uploadedVideo,
   )
   return (
-    <main className="bg-surface mx-auto flex min-h-screen w-full max-w-md flex-col px-6 py-8">
+    <main className="app-page bg-surface flex flex-col px-6 py-8">
       <button
         className="text-ink-subtle -ml-3 min-h-11 px-3 text-sm"
         onClick={() => void navigate(`/rooms/${roomId}`)}

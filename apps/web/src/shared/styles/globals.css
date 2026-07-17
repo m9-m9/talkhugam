@@ -3,6 +3,7 @@
 @theme {
   --color-surface: #fffaf8;
   --color-surface-muted: #fff1ec;
+  --color-border: #e7ded7;
   --color-ink: #272320;
   --color-ink-subtle: #7b746d;
   --color-primary: #ff835f;
@@ -34,6 +35,7 @@
   }
 
   body {
+    background: var(--color-surface-muted);
     min-width: 320px;
     min-height: 100vh;
     margin: 0;
@@ -43,6 +45,19 @@
   input,
   textarea {
     font: inherit;
+  }
+}
+
+.app-page {
+  margin-inline: auto;
+  max-width: 640px;
+  min-height: 100vh;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .app-page {
+    border-inline: 1px solid var(--color-border);
   }
 }
 

@@ -53,7 +53,7 @@ export function CreateRoomPage() {
   }
 
   return (
-    <main className="bg-surface mx-auto min-h-screen w-full max-w-md px-6 py-8">
+    <main className="app-page bg-surface px-6 py-8">
       <button
         className="text-ink-subtle -ml-3 min-h-11 px-3 text-sm"
         onClick={() => void navigate(-1)}
@@ -125,7 +125,7 @@ function RoomCreatedPage({ invite, onClose }: { invite: CreatedRoomInvite; onClo
   }
 
   return (
-    <main className="bg-surface mx-auto flex min-h-screen w-full max-w-md flex-col px-6 py-8">
+    <main className="app-page bg-surface flex flex-col px-6 py-8">
       <header>
         <h1 className="text-ink text-xl font-bold">독서방 만들기 완료</h1>
         <p className="text-ink-subtle mt-1 text-sm">새 독서방을 만들었어요.</p>

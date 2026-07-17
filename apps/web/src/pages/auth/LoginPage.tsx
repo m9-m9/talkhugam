@@ -128,7 +128,7 @@ export function LoginPage() {
   }
 
   return (
-    <main className="bg-surface mx-auto flex min-h-screen w-full max-w-md flex-col justify-center gap-12 px-6">
+    <main className="app-page bg-surface flex flex-col justify-center gap-12 px-6">
       <div className="space-y-4">
         <p className="text-primary text-sm font-medium">Talk후감</p>
         <h1 className="text-ink text-3xl font-semibold break-keep">
