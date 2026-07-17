@@ -10,6 +10,7 @@ const playbackAuthorizationSchema = z.object({
   data: z.object({
     expiresAt: z.number().int().positive(),
     playbackId: z.string().min(1),
+    thumbnailToken: z.string().min(1),
     token: z.string().min(1),
   }),
   ok: z.literal(true),
@@ -99,6 +100,11 @@ export async function getVideoPosts(
     .order('created_at', { ascending: false })
   if (response.error) throw response.error
   return parseVideoPosts(response.data)
+}
+
+export async function deleteVideoPost(client: SupabaseClient, postId: string): Promise<void> {
+  const response = await client.rpc('delete_video_post', { p_post_id: postId })
+  if (response.error) throw response.error
 }
 
 export async function getVideoPlaybackAuthorization(

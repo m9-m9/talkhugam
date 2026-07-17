@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import MuxPlayer from '@mux/mux-player-react'
@@ -14,6 +14,7 @@ import {
 import {
   getVideoPlaybackAuthorization,
   getVideoPosts,
+  deleteVideoPost,
   shouldRefreshVideoPosts,
   videoKeys,
   type VideoPost,
@@ -38,6 +39,12 @@ export function BookDiscussionPage() {
     queryKey: videoKeys.byBookChat(bookChatId ?? ''),
     refetchInterval: (query) => (shouldRefreshVideoPosts(query.state.data) ? 3_000 : false),
   })
+  const deleteVideoMutation = useMutation({
+    mutationFn: (postId: string) => deleteVideoPost(createSupabaseClient(), postId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: videoKeys.byBookChat(bookChatId ?? '') })
+    },
+  })
 
   async function handleSubmit() {
     const parsed = postInput(draft)
@@ -54,6 +61,15 @@ export function BookDiscussionPage() {
       await queryClient.invalidateQueries({ queryKey: postKeys.byBookChat(bookChatId) })
     } catch {
       setErrorMessage('감상을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.')
+    }
+  }
+
+  async function handleDeleteVideo(postId: string) {
+    if (!window.confirm('이 영상을 삭제할까요? 삭제 후 복구할 수 없어요.')) return
+    try {
+      await deleteVideoMutation.mutateAsync(postId)
+    } catch {
+      setErrorMessage('영상을 삭제하지 못했어요. 잠시 후 다시 시도해 주세요.')
     }
   }
 
@@ -93,7 +109,11 @@ export function BookDiscussionPage() {
         {videoPostsQuery.isPending ? (
           <p className="text-ink-subtle mt-4 text-sm">영상을 불러오고 있어요.</p>
         ) : (
-          <VideoFeed posts={videoPostsQuery.data ?? []} />
+          <VideoFeed
+            isDeleting={deleteVideoMutation.isPending}
+            onDelete={(postId) => void handleDeleteVideo(postId)}
+            posts={videoPostsQuery.data ?? []}
+          />
         )}
       </section>
       <section className="border-ink/10 mt-6 border-t pt-4">
@@ -119,23 +139,40 @@ export function BookDiscussionPage() {
       </section>
     </main>
   )
+
 }
 
-function VideoFeed({ posts }: { posts: VideoPost[] }) {
+function VideoFeed({
+  isDeleting,
+  onDelete,
+  posts,
+}: {
+  isDeleting: boolean
+  onDelete: (postId: string) => void
+  posts: VideoPost[]
+}) {
   if (posts.length === 0)
     return <p className="text-ink-subtle mt-4 text-sm">아직 남겨진 영상이 없어요.</p>
   return (
     <ul className="mt-4 space-y-4">
       {posts.map((post) => (
         <li className="border-ink/10 overflow-hidden rounded-lg border bg-white" key={post.id}>
-          <VideoPostCard post={post} />
+          <VideoPostCard isDeleting={isDeleting} onDelete={onDelete} post={post} />
         </li>
       ))}
     </ul>
   )
 }
 
-function VideoPostCard({ post }: { post: VideoPost }) {
+function VideoPostCard({
+  isDeleting,
+  onDelete,
+  post,
+}: {
+  isDeleting: boolean
+  onDelete: (postId: string) => void
+  post: VideoPost
+}) {
   const playbackQuery = useQuery({
     enabled: post.status === 'ready',
     queryFn: () => getVideoPlaybackAuthorization(createSupabaseClient(), post.id),
@@ -152,25 +189,29 @@ function VideoPostCard({ post }: { post: VideoPost }) {
             metadata={{ video_id: post.id, video_title: 'Talk후감 영상' }}
             playbackId={playbackQuery.data.playbackId}
             streamType="on-demand"
-            tokens={{ playback: playbackQuery.data.token }}
+            thumbnailTime={0}
+            tokens={{
+              playback: playbackQuery.data.token,
+              thumbnail: playbackQuery.data.thumbnailToken,
+            }}
           />
         ) : (
           <VideoPlaceholder message="재생 화면을 준비하고 있어요…" />
         )}
-        <VideoMeta post={post} />
+        <VideoMeta isDeleting={isDeleting} onDelete={onDelete} post={post} />
       </>
     )
   if (post.status === 'failed')
     return (
       <>
         <VideoPlaceholder message="영상 처리에 실패했어요." />
-        <VideoMeta post={post} />
+        <VideoMeta isDeleting={isDeleting} onDelete={onDelete} post={post} />
       </>
     )
   return (
     <>
       <VideoPlaceholder message="영상 준비 중 · 대화는 계속할 수 있어요" />
-      <VideoMeta post={post} />
+      <VideoMeta isDeleting={isDeleting} onDelete={onDelete} post={post} />
     </>
   )
 }
@@ -185,11 +226,29 @@ function VideoPlaceholder({ message }: { message: string }) {
   )
 }
 
-function VideoMeta({ post }: { post: VideoPost }) {
+function VideoMeta({
+  isDeleting,
+  onDelete,
+  post,
+}: {
+  isDeleting: boolean
+  onDelete: (postId: string) => void
+  post: VideoPost
+}) {
   return (
-    <div className="p-4">
-      <p className="text-ink text-sm font-medium">{post.authorName}</p>
-      {post.body ? <p className="text-ink-subtle mt-2 text-sm">{post.body}</p> : null}
+    <div className="flex items-start justify-between gap-4 p-4">
+      <div>
+        <p className="text-ink text-sm font-medium">{post.authorName}</p>
+        {post.body ? <p className="text-ink-subtle mt-2 text-sm">{post.body}</p> : null}
+      </div>
+      <button
+        className="text-ink-subtle min-h-11 px-2 text-xs"
+        disabled={isDeleting}
+        onClick={() => onDelete(post.id)}
+        type="button"
+      >
+        삭제
+      </button>
     </div>
   )
 }

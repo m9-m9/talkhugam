@@ -79,9 +79,17 @@ export async function handleMuxPlaybackToken(request: Request): Promise<Response
       nowSeconds,
       300,
     )
+    const thumbnailToken = await signPlaybackToken(
+      asset.playback_id,
+      readRequiredEnv('MUX_SIGNING_KEY_ID'),
+      readRequiredEnv('MUX_SIGNING_PRIVATE_KEY'),
+      nowSeconds,
+      300,
+      't',
+    )
 
     return successResponse(
-      { playbackId: asset.playback_id, token, expiresAt },
+      { playbackId: asset.playback_id, thumbnailToken, token, expiresAt },
       requestId,
       headers,
     )

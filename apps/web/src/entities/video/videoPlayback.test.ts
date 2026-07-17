@@ -10,16 +10,30 @@ describe('parseVideoPlaybackAuthorization', () => {
   it('parses an authenticated Mux playback response', () => {
     expect(
       parseVideoPlaybackAuthorization({
-        data: { expiresAt: 1_784_269_999, playbackId: 'playback-id', token: 'signed-token' },
+        data: {
+          expiresAt: 1_784_269_999,
+          playbackId: 'playback-id',
+          thumbnailToken: 'signed-thumbnail-token',
+          token: 'signed-token',
+        },
         ok: true,
       }),
-    ).toEqual({ expiresAt: 1_784_269_999, playbackId: 'playback-id', token: 'signed-token' })
+    ).toEqual({
+      expiresAt: 1_784_269_999,
+      playbackId: 'playback-id',
+      thumbnailToken: 'signed-thumbnail-token',
+      token: 'signed-token',
+    })
   })
 
   it('rejects a response without a signed token', () => {
     expect(() =>
       parseVideoPlaybackAuthorization({
-        data: { expiresAt: 1_784_269_999, playbackId: 'playback-id' },
+        data: {
+          expiresAt: 1_784_269_999,
+          playbackId: 'playback-id',
+          thumbnailToken: 'signed-thumbnail-token',
+        },
         ok: true,
       }),
     ).toThrow()

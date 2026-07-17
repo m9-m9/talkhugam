@@ -1,5 +1,6 @@
 export {
   createVideoUpload,
+  deleteVideoPost,
   getVideoAsset,
   getVideoPlaybackAuthorization,
   getVideoPosts,
