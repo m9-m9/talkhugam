@@ -10,8 +10,10 @@ const {
   createReply,
   getBookChatCompletions,
   getPosts,
+  getVideoPlaybackAuthorization,
   getVideoFilterMembers,
   getVideoPosts,
+  loadMuxPlayer,
   parsePostForm,
   videoUploadState,
 } = vi.hoisted(() => ({
@@ -19,6 +21,7 @@ const {
   createReply: vi.fn().mockResolvedValue('reply-1'),
   getBookChatCompletions: vi.fn().mockResolvedValue([]),
   getPosts: vi.fn().mockResolvedValue([]),
+  getVideoPlaybackAuthorization: vi.fn(),
   getVideoFilterMembers: vi.fn().mockResolvedValue([
     {
       displayName: '민수',
@@ -32,6 +35,7 @@ const {
     },
   ]),
   getVideoPosts: vi.fn().mockResolvedValue([]),
+  loadMuxPlayer: vi.fn(),
   parsePostForm: vi.fn(
     ({
       body,
@@ -52,6 +56,11 @@ const {
   videoUploadState: { isUploadingVideo: false },
 }))
 
+vi.mock('@mux/mux-player-react', () => {
+  loadMuxPlayer()
+  return { default: () => <div data-testid="mux-player" /> }
+})
+
 vi.mock('../../entities/post', () => ({
   createPost,
   createReply,
@@ -62,7 +71,7 @@ vi.mock('../../entities/post', () => ({
 }))
 
 vi.mock('../../entities/video', () => ({
-  getVideoPlaybackAuthorization: vi.fn(),
+  getVideoPlaybackAuthorization,
   getVideoFilterMembers,
   getVideoPosts,
   videoKeys: {
@@ -105,10 +114,41 @@ describe('BookDiscussionPage', () => {
     createReply.mockClear()
     getPosts.mockClear()
     getPosts.mockResolvedValue([])
+    getVideoPlaybackAuthorization.mockClear()
     getVideoFilterMembers.mockClear()
     getVideoPosts.mockClear()
     getVideoPosts.mockResolvedValue([])
+    loadMuxPlayer.mockClear()
     videoUploadState.isUploadingVideo = false
+  })
+
+  it('does not load the Mux player while the conversation has no ready video', async () => {
+    renderBookDiscussionPage()
+
+    await screen.findByRole('heading', { name: '읽고 느낀 걸 나눠요' })
+
+    expect(loadMuxPlayer).not.toHaveBeenCalled()
+  })
+
+  it('loads the Mux player after the ready video playback authorization resolves', async () => {
+    getVideoPosts.mockResolvedValueOnce([
+      {
+        authorName: '민규',
+        body: null,
+        createdAt: '2026-07-18T00:00:00.000Z',
+        id: 'video-1',
+        status: 'ready',
+      },
+    ])
+    getVideoPlaybackAuthorization.mockResolvedValueOnce({
+      playbackId: 'playback-id',
+      thumbnailToken: 'thumbnail-token',
+      token: 'playback-token',
+    })
+    renderBookDiscussionPage()
+
+    expect(await screen.findByTestId('mux-player')).toBeInTheDocument()
+    expect(loadMuxPlayer).toHaveBeenCalledOnce()
   })
 
   it('opens the message actions as a speech bubble above the composer', () => {

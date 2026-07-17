@@ -1,4 +1,3 @@
-import MuxPlayer from '@mux/mux-player-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -11,6 +10,7 @@ import {
   videoKeys,
 } from '../../entities/video'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
+import { LazyMuxVideoPlayer } from '../../shared/ui/LazyMuxVideoPlayer'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 import { RetryState } from '../../shared/ui/RetryState'
 
@@ -172,11 +172,11 @@ export function VideoPlayerPage() {
         ) : isVideoLoading ? (
           <LoadingSpinner label="영상을 준비하고 있어요." tone="inverse" />
         ) : playbackQuery.data ? (
-          <MuxPlayer
+          <LazyMuxVideoPlayer
             className="absolute inset-0 size-full"
-            metadata={{ video_id: videoId, video_title: 'Talk후감 영상' }}
+            metadata={{ videoId, videoTitle: 'Talk후감 영상' }}
             playbackId={playbackQuery.data.playbackId}
-            streamType="on-demand"
+            tone="inverse"
             tokens={{
               playback: playbackQuery.data.token,
               thumbnail: playbackQuery.data.thumbnailToken,

@@ -1,5 +1,4 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import MuxPlayer from '@mux/mux-player-react'
 import { useEffect, useRef, useState, type RefObject } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
@@ -34,6 +33,7 @@ import { useAuthenticatedUser } from '../../features/auth'
 import { readingRoomKeys } from '../../entities/reading-room'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
+import { LazyMuxVideoPlayer } from '../../shared/ui/LazyMuxVideoPlayer'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 import { RetryState } from '../../shared/ui/RetryState'
 
@@ -924,11 +924,10 @@ function VideoMessage({ video }: { video: VideoPost }) {
   if (video.status === 'ready' && playbackQuery.data)
     return (
       <article className="border-ink/10 w-full max-w-full overflow-hidden rounded-lg border bg-white">
-        <MuxPlayer
+        <LazyMuxVideoPlayer
           className="aspect-video w-full"
-          metadata={{ video_id: video.id, video_title: 'Talk후감 영상' }}
+          metadata={{ videoId: video.id, videoTitle: 'Talk후감 영상' }}
           playbackId={playbackQuery.data.playbackId}
-          streamType="on-demand"
           thumbnailTime={0}
           tokens={{
             playback: playbackQuery.data.token,

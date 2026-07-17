@@ -5,10 +5,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { VideoArchivePage } from './VideoArchivePage'
 
-vi.mock('@mux/mux-player-react', () => ({
-  default: () => <div data-testid="mux-player" />,
-}))
-
 const {
   getVideoFilterMembers,
   getVideoPlaybackAuthorization,
