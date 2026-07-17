@@ -1,0 +1,16 @@
+{
+  "name": "Talk후감",
+  "short_name": "Talk후감",
+  "lang": "ko",
+  "display": "standalone",
+  "background_color": "#FAF8F5",
+  "theme_color": "#FF835F",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
