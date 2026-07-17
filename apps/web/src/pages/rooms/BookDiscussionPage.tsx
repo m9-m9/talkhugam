@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import MuxPlayer from '@mux/mux-player-react'
 import { useEffect, useRef, useState, type RefObject } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -14,12 +14,21 @@ import {
   type PostForm,
 } from '../../entities/post'
 import {
+  bookCompletionKeys,
+  getBookChatCompletions,
+  removeBookChatCompletion,
+  upsertBookChatCompletion,
+  type BookChatCompletion,
+  type BookCompletionInput,
+} from '../../entities/book-completion'
+import {
   getVideoPlaybackAuthorization,
   getVideoPosts,
   videoKeys,
   type VideoPost,
 } from '../../entities/video'
 import { useVideoUpload } from '../../features/video-upload'
+import { useAuthenticatedUser } from '../../features/auth'
 import { readingRoomKeys } from '../../entities/reading-room'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
@@ -32,6 +41,7 @@ export function BookDiscussionPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { bookChatId, roomId } = useParams()
+  const profileId = useAuthenticatedUser().id
   const [draft, setDraft] = useState('')
   const [labels, setLabels] = useState<PostForm['labels']>([])
   const [replyTo, setReplyTo] = useState<string | null>(null)
@@ -56,6 +66,31 @@ export function BookDiscussionPage() {
       )
         ? 3_000
         : false,
+  })
+  const completionsQuery = useQuery({
+    enabled: Boolean(bookChatId),
+    queryFn: () => getBookChatCompletions(createSupabaseClient(), bookChatId ?? '', profileId),
+    queryKey: bookCompletionKeys.byChat(bookChatId ?? ''),
+  })
+  const completionMutation = useMutation({
+    mutationFn: (input: BookCompletionInput) =>
+      upsertBookChatCompletion(createSupabaseClient(), input),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: bookCompletionKeys.byChat(bookChatId ?? '') }),
+        queryClient.invalidateQueries({ queryKey: bookCompletionKeys.myBooks(profileId) }),
+      ])
+    },
+  })
+  const completionRemovalMutation = useMutation({
+    mutationFn: (targetBookChatId: string) =>
+      removeBookChatCompletion(createSupabaseClient(), targetBookChatId),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: bookCompletionKeys.byChat(bookChatId ?? '') }),
+        queryClient.invalidateQueries({ queryKey: bookCompletionKeys.myBooks(profileId) }),
+      ])
+    },
   })
 
   /** 제출 요청이나 사용자 동작을 처리한다. */
@@ -92,6 +127,19 @@ export function BookDiscussionPage() {
         <p className="text-primary text-sm font-medium">책 대화</p>
         <h1 className="text-ink mt-2 text-xl font-bold">읽고 느낀 걸 나눠요</h1>
       </header>
+      <CompletionSection
+        bookChatId={bookChatId}
+        completions={completionsQuery.data ?? []}
+        errorMessage={
+          completionMutation.isError || completionRemovalMutation.isError
+            ? '완독 기록을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.'
+            : null
+        }
+        isLoading={completionsQuery.isPending}
+        isSaving={completionMutation.isPending || completionRemovalMutation.isPending}
+        onRemove={() => completionRemovalMutation.mutate(bookChatId)}
+        onSave={(input) => completionMutation.mutate(input)}
+      />
       <section className="mt-8 flex-1">
         {postsQuery.isPending || videosQuery.isPending ? (
           <LoadingSpinner label="대화를 불러오고 있어요." size="sm" />
@@ -119,6 +167,184 @@ export function BookDiscussionPage() {
         value={draft}
       />
     </main>
+  )
+}
+
+/** 개인 완독 기록과 모임 멤버의 총평 현황을 렌더링한다. */
+function CompletionSection({
+  bookChatId,
+  completions,
+  errorMessage,
+  isLoading,
+  isSaving,
+  onRemove,
+  onSave,
+}: {
+  bookChatId: string
+  completions: BookChatCompletion[]
+  errorMessage: string | null
+  isLoading: boolean
+  isSaving: boolean
+  onRemove: () => void
+  onSave: (input: BookCompletionInput) => void
+}) {
+  const ownCompletion = completions.find((completion) => completion.isMe)
+
+  /** 빈 완독 기록 저장 요청이나 사용자 동작을 처리한다. */
+  function handleMarkCompleted() {
+    onSave({ bookChatId, rating: null, review: null })
+  }
+
+  if (isLoading)
+    return (
+      <section className="mt-8" aria-label="완독 현황">
+        <LoadingSpinner label="완독 현황을 불러오고 있어요." size="xs" />
+      </section>
+    )
+
+  return (
+    <section
+      className="border-ink/10 mt-8 rounded-lg border bg-white p-4"
+      aria-labelledby="completion-heading"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h2 className="text-ink text-base font-bold" id="completion-heading">
+            함께 읽은 기록
+          </h2>
+          <p className="text-ink-subtle mt-1 text-xs">{completions.length}명 완독</p>
+        </div>
+        {ownCompletion ? (
+          <button
+            className="border-primary text-primary min-h-11 cursor-pointer rounded-md border px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40"
+            disabled={isSaving}
+            onClick={onRemove}
+            type="button"
+          >
+            완독 취소
+          </button>
+        ) : (
+          <button
+            className="bg-primary min-h-11 cursor-pointer rounded-md px-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+            disabled={isSaving}
+            onClick={handleMarkCompleted}
+            type="button"
+          >
+            완독 기록하기
+          </button>
+        )}
+      </div>
+
+      {ownCompletion ? (
+        <CompletionReviewForm
+          bookChatId={bookChatId}
+          completion={ownCompletion}
+          isSaving={isSaving}
+          key={ownCompletion.completedAt}
+          onSave={onSave}
+        />
+      ) : null}
+
+      {errorMessage ? (
+        <p className="mt-3 text-sm text-red-600" role="alert">
+          {errorMessage}
+        </p>
+      ) : null}
+
+      {completions.length === 0 ? (
+        <p className="text-ink-subtle mt-4 text-sm">아직 완독한 멤버가 없어요.</p>
+      ) : (
+        <ul className="mt-4 space-y-3" aria-label="완독한 멤버">
+          {completions.map((completion) => (
+            <li
+              className="border-ink/10 border-t pt-3 first:border-t-0 first:pt-0"
+              key={completion.profileId}
+            >
+              <p className="text-ink text-sm font-semibold">
+                {completion.displayName}
+                {completion.isMe ? ' (나)' : ''}
+              </p>
+              {completion.rating ? (
+                <p className="text-primary mt-1 text-sm" aria-label={`${completion.rating}점`}>
+                  {'★'.repeat(completion.rating)}
+                </p>
+              ) : null}
+              <p className="text-ink-subtle mt-1 text-sm">{completion.review || '총평 작성 전'}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  )
+}
+
+/** 완독한 사용자가 별점과 총평을 작성하는 입력 폼을 렌더링한다. */
+function CompletionReviewForm({
+  bookChatId,
+  completion,
+  isSaving,
+  onSave,
+}: {
+  bookChatId: string
+  completion: BookChatCompletion
+  isSaving: boolean
+  onSave: (input: BookCompletionInput) => void
+}) {
+  const [rating, setRating] = useState<number | null>(completion.rating)
+  const [review, setReview] = useState(completion.review ?? '')
+
+  /** 총평 저장 요청이나 사용자 동작을 처리한다. */
+  function handleSaveReview() {
+    onSave({
+      bookChatId,
+      rating,
+      review: review || null,
+    })
+  }
+
+  return (
+    <div className="border-ink/10 mt-4 border-t pt-4">
+      <fieldset>
+        <legend className="text-ink text-sm font-medium">별점 (선택)</legend>
+        <div className="mt-2 flex gap-2" role="group" aria-label="별점 선택">
+          {[1, 2, 3, 4, 5].map((value) => (
+            <button
+              aria-label={`${value}점`}
+              aria-pressed={rating === value}
+              className={`min-h-11 min-w-11 cursor-pointer rounded-md text-lg font-bold ${
+                rating !== null && value <= rating
+                  ? 'bg-primary/10 text-primary'
+                  : 'border-ink/10 text-ink-subtle border'
+              }`}
+              key={value}
+              onClick={() => setRating(value)}
+              type="button"
+            >
+              ★
+            </button>
+          ))}
+        </div>
+      </fieldset>
+      <label className="text-ink mt-4 block text-sm font-medium" htmlFor="completion-review">
+        총평 (선택)
+      </label>
+      <textarea
+        className="border-ink/10 focus:border-primary mt-2 min-h-24 w-full resize-none rounded-md border px-3 py-2 text-sm outline-none"
+        id="completion-review"
+        maxLength={1000}
+        onChange={(event) => setReview(event.target.value)}
+        placeholder="이 책을 읽고 남은 생각을 적어 보세요."
+        value={review}
+      />
+      <button
+        className="bg-ink mt-3 min-h-11 w-full cursor-pointer rounded-md px-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+        disabled={isSaving}
+        onClick={handleSaveReview}
+        type="button"
+      >
+        총평 저장
+      </button>
+    </div>
   )
 }
 

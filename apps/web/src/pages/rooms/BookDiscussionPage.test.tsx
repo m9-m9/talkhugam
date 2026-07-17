@@ -5,20 +5,23 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { BookDiscussionPage } from './BookDiscussionPage'
 
-const { getPosts, getVideoPosts, parsePostForm, videoUploadState } = vi.hoisted(() => ({
-  getPosts: vi.fn().mockResolvedValue([]),
-  getVideoPosts: vi.fn().mockResolvedValue([]),
-  parsePostForm: vi.fn(
-    ({ body, labels }: { body: string; labels: Array<{ kind: string; value: string }> }) => {
-      const normalizedLabels = labels
-        .map((label) => ({ ...label, value: label.value.trim() }))
-        .filter((label) => label.value.length > 0)
-      if (body.trim().length === 0 && normalizedLabels.length === 0) throw new Error('invalid post')
-      return { body, labels: normalizedLabels }
-    },
-  ),
-  videoUploadState: { isUploadingVideo: false },
-}))
+const { getBookChatCompletions, getPosts, getVideoPosts, parsePostForm, videoUploadState } =
+  vi.hoisted(() => ({
+    getBookChatCompletions: vi.fn().mockResolvedValue([]),
+    getPosts: vi.fn().mockResolvedValue([]),
+    getVideoPosts: vi.fn().mockResolvedValue([]),
+    parsePostForm: vi.fn(
+      ({ body, labels }: { body: string; labels: Array<{ kind: string; value: string }> }) => {
+        const normalizedLabels = labels
+          .map((label) => ({ ...label, value: label.value.trim() }))
+          .filter((label) => label.value.length > 0)
+        if (body.trim().length === 0 && normalizedLabels.length === 0)
+          throw new Error('invalid post')
+        return { body, labels: normalizedLabels }
+      },
+    ),
+    videoUploadState: { isUploadingVideo: false },
+  }))
 
 vi.mock('../../entities/post', () => ({
   createPost: vi.fn(),
@@ -37,6 +40,17 @@ vi.mock('../../entities/video', () => ({
 
 vi.mock('../../entities/reading-room', () => ({
   readingRoomKeys: { all: ['reading-rooms'] },
+}))
+
+vi.mock('../../entities/book-completion', () => ({
+  bookCompletionKeys: { byChat: (bookChatId: string) => ['book-completions', bookChatId] },
+  getBookChatCompletions,
+  removeBookChatCompletion: vi.fn(),
+  upsertBookChatCompletion: vi.fn(),
+}))
+
+vi.mock('../../features/auth', () => ({
+  useAuthenticatedUser: () => ({ id: '00000000-0000-0000-0000-000000000001' }),
 }))
 
 vi.mock('../../features/video-upload', () => ({
@@ -66,6 +80,13 @@ describe('BookDiscussionPage', () => {
     const actionMenu = screen.getByText('페이지 라벨').closest('.talkhugam-chat-action-menu')
     expect(actionMenu).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '영상 올리기' })).toBeInTheDocument()
+  })
+
+  it('lets the signed-in member begin a personal completion record', async () => {
+    renderBookDiscussionPage()
+
+    expect(await screen.findByRole('button', { name: '완독 기록하기' })).toBeInTheDocument()
+    expect(screen.getByText('아직 완독한 멤버가 없어요.')).toBeInTheDocument()
   })
 
   it('closes the action bubble when the user taps outside it', () => {
