@@ -51,6 +51,26 @@ describe('account deletion', () => {
     })
   })
 
+  it('treats a legacy success response without completion status as completed', async () => {
+    const invoke = vi.fn().mockResolvedValue({
+      data: {
+        data: {
+          deleted: true,
+          requestId: '22222222-2222-4222-8222-222222222222',
+        },
+        ok: true,
+        requestId: '33333333-3333-4333-8333-333333333333',
+      },
+      error: null,
+    })
+
+    await expect(requestAccountDeletion({ functions: { invoke } }, 'anonymize')).resolves.toEqual({
+      completionPending: false,
+      deleted: true,
+      requestId: '22222222-2222-4222-8222-222222222222',
+    })
+  })
+
   it('keeps an owner-transfer failure distinguishable for the UI', async () => {
     const invoke = vi.fn().mockResolvedValue({
       data: null,

@@ -3,7 +3,7 @@ import { z } from 'zod'
 
 const accountDeletionModeSchema = z.enum(['anonymize', 'delete_content'])
 const accountDeletionSuccessSchema = z.object({
-  completionPending: z.boolean(),
+  completionPending: z.boolean().default(false),
   deleted: z.literal(true),
   requestId: z.string().uuid(),
 })
