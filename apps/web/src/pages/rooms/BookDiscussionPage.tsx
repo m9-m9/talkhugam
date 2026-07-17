@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import MuxPlayer from '@mux/mux-player-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type RefObject } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
 import {
@@ -105,6 +105,7 @@ export function BookDiscussionPage() {
       <ChatComposer
         errorMessage={errorMessage ?? videoErrorMessage}
         isReplying={Boolean(replyTo)}
+        key={bookChatId}
         labels={labels}
         onCancelReply={() => setReplyTo(null)}
         onChangeDraft={setDraft}
@@ -145,23 +146,35 @@ function ChatComposer({
   value: string
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const messageInputRef = useRef<HTMLTextAreaElement>(null)
   const actionMenuRef = useRef<HTMLDivElement>(null)
   const actionMenuButtonRef = useRef<HTMLButtonElement>(null)
+  const firstActionButtonRef = useRef<HTMLButtonElement>(null)
   const [isActionTrayOpen, setIsActionTrayOpen] = useState(false)
   const [labelKind, setLabelKind] = useState<LabelKind | null>(null)
-  const [labelValue, setLabelValue] = useState('')
+  const [labelDrafts, setLabelDrafts] = useState<Record<LabelKind, string>>({
+    chapter: '',
+    page: '',
+  })
 
   function handleAddLabel() {
     if (!labelKind) return
-    const nextLabel = createDraftLabel(labelKind, labelValue)
+    const nextLabel = createDraftLabel(labelKind, labelDrafts[labelKind])
     if (!nextLabel) return
     onChangeLabels([...labels, nextLabel])
+    setLabelDrafts((drafts) => ({ ...drafts, [labelKind]: '' }))
     setLabelKind(null)
-    setLabelValue('')
+    setIsActionTrayOpen(false)
+    messageInputRef.current?.focus()
   }
 
   function handleRemoveLabel(index: number) {
     onChangeLabels(labels.filter((_, labelIndex) => labelIndex !== index))
+  }
+
+  function handleReturnToLabelSelection() {
+    setLabelKind(null)
+    window.requestAnimationFrame(() => firstActionButtonRef.current?.focus())
   }
 
   useEffect(() => {
@@ -173,7 +186,9 @@ function ChatComposer({
     }
 
     function handleEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') setIsActionTrayOpen(false)
+      if (event.key !== 'Escape' || !isActionTrayOpen) return
+      setIsActionTrayOpen(false)
+      actionMenuButtonRef.current?.focus()
     }
 
     document.addEventListener('pointerdown', handleOutsidePointerDown)
@@ -220,51 +235,100 @@ function ChatComposer({
       ) : null}
       {isActionTrayOpen ? (
         <div
+          aria-labelledby="chat-action-menu-title"
           className="talkhugam-chat-action-menu border-ink/10 rounded-lg border bg-white p-3 shadow-lg"
           ref={actionMenuRef}
+          role="dialog"
         >
           {labelKind ? (
-            <div className="flex items-center gap-2">
-              <label className="sr-only" htmlFor="post-label-value">
-                {labelKind === 'page' ? '페이지 번호' : '챕터 이름 또는 번호'}
-              </label>
-              <input
-                autoFocus
-                className="border-ink/10 focus:border-primary min-h-11 min-w-0 flex-1 rounded-md border px-3 text-sm outline-none"
-                id="post-label-value"
-                onChange={(event) => setLabelValue(event.target.value)}
-                placeholder={labelKind === 'page' ? '예: 87' : '예: 3장 또는 고독'}
-                value={labelValue}
-              />
-              <button
-                className="bg-primary min-h-11 rounded-md px-3 text-sm font-medium text-white"
-                onClick={handleAddLabel}
-                type="button"
-              >
-                추가
-              </button>
+            <div>
+              <div className="mb-2 flex min-h-11 items-center gap-2">
+                <button
+                  aria-label="라벨 종류 선택으로 돌아가기"
+                  className="text-ink hover:bg-surface-muted flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-md"
+                  onClick={handleReturnToLabelSelection}
+                  type="button"
+                >
+                  <svg aria-hidden="true" className="size-5" fill="none" viewBox="0 0 24 24">
+                    <path
+                      d="m14.5 5-7 7 7 7"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeWidth="1.8"
+                    />
+                  </svg>
+                </button>
+                <h2 className="text-ink text-sm font-semibold" id="chat-action-menu-title">
+                  {labelKind === 'page' ? '페이지 라벨' : '챕터 라벨'}
+                </h2>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="sr-only" htmlFor="post-label-value">
+                  {labelKind === 'page' ? '페이지 번호' : '챕터 이름 또는 번호'}
+                </label>
+                <input
+                  autoFocus
+                  className="border-ink/10 focus:border-primary min-h-11 min-w-0 flex-1 rounded-md border px-3 text-sm outline-none"
+                  id="post-label-value"
+                  onChange={(event) =>
+                    setLabelDrafts((drafts) => ({
+                      ...drafts,
+                      [labelKind]: event.target.value,
+                    }))
+                  }
+                  placeholder={labelKind === 'page' ? '예: 87' : '예: 3장 또는 고독'}
+                  value={labelDrafts[labelKind]}
+                />
+                <button
+                  aria-label="라벨 추가"
+                  className="bg-primary text-ink min-h-11 cursor-pointer rounded-md px-3 text-sm font-medium"
+                  onClick={handleAddLabel}
+                  type="button"
+                >
+                  추가
+                </button>
+              </div>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-2">
-              <ActionButton
-                disabled={isReplying}
-                label="페이지 라벨"
-                onClick={() => setLabelKind('page')}
-              />
-              <ActionButton
-                disabled={isReplying}
-                label="챕터 라벨"
-                onClick={() => setLabelKind('chapter')}
-              />
-              <ActionButton label="영상 올리기" onClick={() => fileInputRef.current?.click()} />
-              <ActionButton label="영상 기록" onClick={onOpenVideoArchive} />
-            </div>
+            <>
+              <h2 className="sr-only" id="chat-action-menu-title">
+                메시지 추가 메뉴
+              </h2>
+              <div className="grid grid-cols-2 gap-2">
+                <ActionButton
+                  buttonRef={firstActionButtonRef}
+                  disabled={isReplying}
+                  label="페이지 라벨"
+                  onClick={() => setLabelKind('page')}
+                />
+                <ActionButton
+                  disabled={isReplying}
+                  label="챕터 라벨"
+                  onClick={() => setLabelKind('chapter')}
+                />
+                <ActionButton
+                  label="영상 올리기"
+                  onClick={() => {
+                    setIsActionTrayOpen(false)
+                    fileInputRef.current?.click()
+                  }}
+                />
+                <ActionButton
+                  label="영상 기록"
+                  onClick={() => {
+                    setIsActionTrayOpen(false)
+                    onOpenVideoArchive()
+                  }}
+                />
+              </div>
+            </>
           )}
         </div>
       ) : null}
       <div className="flex items-end gap-2">
         <input
           accept="video/mp4,video/quicktime"
+          aria-label="영상 파일 선택"
           className="sr-only"
           onChange={(event) => {
             onSelectVideo(event.target.files?.[0])
@@ -275,13 +339,23 @@ function ChatComposer({
         />
         <button
           aria-expanded={isActionTrayOpen}
-          aria-label="메시지 추가 메뉴"
-          className="border-ink/20 text-ink flex min-h-11 min-w-11 items-center justify-center rounded-full border text-2xl leading-none"
+          aria-label={isActionTrayOpen ? '메시지 추가 메뉴 닫기' : '메시지 추가 메뉴 열기'}
+          className="border-ink/20 text-ink flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-full border"
           onClick={() => setIsActionTrayOpen((isOpen) => !isOpen)}
           ref={actionMenuButtonRef}
           type="button"
         >
-          +
+          <svg aria-hidden="true" className="size-6" fill="none" viewBox="0 0 24 24">
+            <path
+              className={`origin-center transition-transform duration-300 motion-reduce:transition-none ${
+                isActionTrayOpen ? 'rotate-45' : ''
+              }`}
+              d="M12 5v14M5 12h14"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeWidth="2.4"
+            />
+          </svg>
         </button>
         <label className="sr-only" htmlFor="discussion-message">
           메시지 입력
@@ -296,6 +370,7 @@ function ChatComposer({
             onSubmit()
           }}
           placeholder={isReplying ? '답글을 입력하세요' : '메시지 입력'}
+          ref={messageInputRef}
           rows={1}
           value={value}
         />
@@ -321,19 +396,22 @@ function ChatComposer({
 }
 
 function ActionButton({
+  buttonRef,
   disabled = false,
   label,
   onClick,
 }: {
+  buttonRef?: RefObject<HTMLButtonElement | null>
   disabled?: boolean
   label: string
   onClick: () => void
 }) {
   return (
     <button
-      className="border-ink/10 text-ink min-h-11 rounded-md border px-3 text-left text-sm disabled:cursor-not-allowed disabled:opacity-40"
+      className="border-ink/10 text-ink min-h-11 cursor-pointer rounded-md border px-3 text-left text-sm disabled:cursor-not-allowed disabled:opacity-40"
       disabled={disabled}
       onClick={onClick}
+      ref={buttonRef}
       type="button"
     >
       {label}

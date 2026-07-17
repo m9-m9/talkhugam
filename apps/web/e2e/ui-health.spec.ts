@@ -26,15 +26,25 @@ test('has no automated accessibility violations on the sign-in screen', async ({
   expect(accessibilityScanResults.violations).toEqual([])
 })
 
-test('opens and dismisses the book-chat action bubble', async ({ page }) => {
+test('preserves a book-chat label draft while the action bubble is dismissed', async ({ page }) => {
   await authenticatePage(page)
   await page.goto(`/rooms/${roomId}/books/${bookChatId}`)
 
-  await page.getByRole('button', { name: '메시지 추가 메뉴' }).click()
-  await expect(page.getByRole('button', { name: '영상 올리기' })).toBeVisible()
+  await page.getByRole('button', { name: '메시지 추가 메뉴 열기' }).click()
+  await page.getByRole('button', { name: '페이지 라벨' }).click()
+  await page.getByRole('textbox', { name: '페이지 번호' }).fill('87')
 
   await page.getByRole('textbox', { name: '메시지 입력' }).click()
-  await expect(page.getByRole('button', { name: '영상 올리기' })).toBeHidden()
+  await expect(page.getByRole('textbox', { name: '페이지 번호' })).toBeHidden()
+
+  await page.getByRole('button', { name: '메시지 추가 메뉴 열기' }).click()
+  await expect(page.getByRole('textbox', { name: '페이지 번호' })).toHaveValue('87')
+
+  const accessibilityScanResults = await new AxeBuilder({ page }).analyze()
+  expect(accessibilityScanResults.violations).toEqual([])
+
+  await page.getByRole('button', { name: '메시지 추가 메뉴 닫기' }).click()
+  await expect(page.getByRole('textbox', { name: '페이지 번호' })).toBeHidden()
 })
 
 async function authenticatePage(page: import('@playwright/test').Page) {
