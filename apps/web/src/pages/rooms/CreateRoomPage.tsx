@@ -12,6 +12,7 @@ import {
   type CreateRoomForm,
 } from '../../entities/reading-room'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
+import { AppHeader } from '../../shared/ui/AppHeader'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 export function CreateRoomPage() {
@@ -53,15 +54,9 @@ export function CreateRoomPage() {
   }
 
   return (
-    <main className="app-page bg-surface px-6 py-8">
-      <button
-        className="text-ink-subtle -ml-3 min-h-11 px-3 text-sm"
-        onClick={() => void navigate(-1)}
-        type="button"
-      >
-        ← 뒤로
-      </button>
-      <header className="mt-3">
+    <main className="app-page bg-surface px-6 pb-8">
+      <AppHeader onBack={() => void navigate(-1)} title="독서방 만들기" />
+      <header className="mt-8">
         <h1 className="text-ink text-xl font-bold">독서방 만들기</h1>
         <p className="text-ink-subtle mt-1 text-sm">이름을 정하고 친구를 초대해 보세요.</p>
       </header>
@@ -125,8 +120,20 @@ function RoomCreatedPage({ invite, onClose }: { invite: CreatedRoomInvite; onClo
   }
 
   return (
-    <main className="app-page bg-surface flex flex-col px-6 py-8">
-      <header>
+    <main className="app-page bg-surface flex flex-col px-6 pb-8">
+      <AppHeader
+        action={
+          <button
+            className="text-primary min-h-11 px-3 text-sm font-medium"
+            onClick={onClose}
+            type="button"
+          >
+            나중에
+          </button>
+        }
+        title="독서방 만들기 완료"
+      />
+      <header className="mt-8">
         <h1 className="text-ink text-xl font-bold">독서방 만들기 완료</h1>
         <p className="text-ink-subtle mt-1 text-sm">새 독서방을 만들었어요.</p>
       </header>
@@ -147,9 +154,6 @@ function RoomCreatedPage({ invite, onClose }: { invite: CreatedRoomInvite; onClo
           {isCopied ? '초대 코드 복사 완료' : '초대 코드 복사하기'}
         </button>
       </div>
-      <button className="text-ink-subtle min-h-11 text-sm" onClick={onClose} type="button">
-        나중에 하기
-      </button>
     </main>
   )
 }

@@ -22,6 +22,7 @@ import {
   type VideoPost,
 } from '../../entities/video'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
+import { AppHeader } from '../../shared/ui/AppHeader'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 export function BookDiscussionPage() {
@@ -86,18 +87,9 @@ export function BookDiscussionPage() {
     uploadedVideo,
   )
   return (
-    <main className="app-page bg-surface flex flex-col px-6 py-8">
-      <button
-        className="text-ink-subtle -ml-3 min-h-11 px-3 text-sm"
-        onClick={() => void navigate(`/rooms/${roomId}`)}
-        type="button"
-      >
-        ← 독서방
-      </button>
-      <header className="mt-3">
-        <p className="text-primary text-sm font-medium">책 대화</p>
-        <div className="flex items-center justify-between">
-          <h1 className="text-ink mt-2 text-xl font-bold">읽고 느낀 걸 나눠요</h1>
+    <main className="app-page bg-surface flex flex-col px-6 pb-8">
+      <AppHeader
+        action={
           <button
             className="text-primary min-h-11 px-3 text-sm font-medium"
             onClick={() => void navigate(`/rooms/${roomId}/books/${bookChatId}/video`)}
@@ -105,7 +97,13 @@ export function BookDiscussionPage() {
           >
             영상 남기기
           </button>
-        </div>
+        }
+        onBack={() => void navigate(`/rooms/${roomId}`)}
+        title="책 대화"
+      />
+      <header className="mt-8">
+        <p className="text-primary text-sm font-medium">책 대화</p>
+        <h1 className="text-ink mt-2 text-xl font-bold">읽고 느낀 걸 나눠요</h1>
       </header>
       <section className="mt-8 flex-1">
         {postsQuery.isPending ? (

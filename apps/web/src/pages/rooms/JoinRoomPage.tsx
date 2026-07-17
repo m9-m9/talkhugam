@@ -11,6 +11,7 @@ import {
   type JoinRoomForm,
 } from '../../entities/reading-room'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
+import { AppHeader } from '../../shared/ui/AppHeader'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 export function JoinRoomPage() {
@@ -42,14 +43,8 @@ export function JoinRoomPage() {
   }
 
   return (
-    <main className="app-page bg-surface px-6 py-8">
-      <button
-        className="text-ink-subtle -ml-3 min-h-11 px-3 text-sm"
-        onClick={() => void navigate(-1)}
-        type="button"
-      >
-        ← 뒤로
-      </button>
+    <main className="app-page bg-surface px-6 pb-8">
+      <AppHeader onBack={() => void navigate(-1)} title="초대 코드" />
       <header className="mt-12 text-center">
         <p aria-hidden="true" className="text-primary text-2xl">
           ✦

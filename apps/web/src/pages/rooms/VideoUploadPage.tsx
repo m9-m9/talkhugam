@@ -8,6 +8,7 @@ import {
   validateVideoDuration,
 } from '../../entities/video'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
+import { AppHeader } from '../../shared/ui/AppHeader'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 export function VideoUploadPage() {
@@ -41,15 +42,9 @@ export function VideoUploadPage() {
   if (!roomId || !bookChatId) return <main className="bg-surface min-h-screen" />
 
   return (
-    <main className="app-page bg-surface px-6 py-8">
-      <button
-        className="text-ink-subtle -ml-3 min-h-11 px-3 text-sm"
-        onClick={() => void navigate(-1)}
-        type="button"
-      >
-        ← 뒤로
-      </button>
-      <h1 className="text-ink mt-3 text-xl font-bold">30초 순간 남기기</h1>
+    <main className="app-page bg-surface px-6 pb-8">
+      <AppHeader onBack={() => void navigate(-1)} title="영상 남기기" />
+      <h1 className="text-ink mt-8 text-xl font-bold">30초 순간 남기기</h1>
       <p className="text-ink-subtle mt-2 text-sm">짧은 영상으로 오늘의 책 순간을 남겨요.</p>
       <label className="border-ink/10 mt-12 flex min-h-40 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed bg-white p-6 text-center">
         <span className="text-primary text-2xl">＋</span>

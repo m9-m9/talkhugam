@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 
 import { getReadingRooms, readingRoomKeys, type ReadingRoom } from '../../entities/reading-room'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
+import { AppHeader } from '../../shared/ui/AppHeader'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 export function RoomsPage() {
@@ -37,20 +38,22 @@ export function RoomsPage() {
     )
 
   return (
-    <main className="app-page bg-surface flex flex-col">
-      <header className="flex items-center justify-between px-6 pt-6 pb-4">
-        <h1 className="text-ink text-lg font-bold">내 독서방</h1>
-        <button
-          aria-label="초대 코드로 독서방 참여하기"
-          className="text-primary min-h-11 px-3 text-sm font-medium"
-          onClick={() => void navigate('/rooms/join')}
-          type="button"
-        >
-          초대
-        </button>
-      </header>
+    <main className="app-page bg-surface flex flex-col px-6">
+      <AppHeader
+        action={
+          <button
+            aria-label="초대 코드로 독서방 참여하기"
+            className="text-primary min-h-11 px-3 text-sm font-medium"
+            onClick={() => void navigate('/rooms/join')}
+            type="button"
+          >
+            초대
+          </button>
+        }
+        title="내 독서방"
+      />
 
-      <nav aria-label="하위 메뉴" className="border-ink/10 flex border-b px-6">
+      <nav aria-label="하위 메뉴" className="border-ink/10 -mx-6 flex border-b px-6">
         <button
           aria-current="page"
           className="text-primary border-primary min-h-11 px-3 text-sm font-medium"
@@ -67,7 +70,7 @@ export function RoomsPage() {
         </button>
       </nav>
 
-      <section aria-labelledby="recent-rooms-heading" className="flex flex-1 flex-col px-6 py-8">
+      <section aria-labelledby="recent-rooms-heading" className="flex flex-1 flex-col py-8">
         <RoomsContent
           error={roomsQuery.error}
           isPending={roomsQuery.isPending}

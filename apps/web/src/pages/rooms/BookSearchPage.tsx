@@ -10,6 +10,7 @@ import {
   type BookSearchItem,
 } from '../../entities/book-chat'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
+import { AppHeader } from '../../shared/ui/AppHeader'
 import { BookCover } from '../../shared/ui/BookCover'
 
 const querySchema = z
@@ -94,15 +95,9 @@ export function BookSearchPage() {
   }
 
   return (
-    <main className="app-page bg-surface px-6 py-8">
-      <button
-        className="text-ink-subtle -ml-3 min-h-11 px-3 text-sm"
-        onClick={() => void navigate(-1)}
-        type="button"
-      >
-        ← 뒤로
-      </button>
-      <header className="mt-3">
+    <main className="app-page bg-surface px-6 pb-8">
+      <AppHeader onBack={() => void navigate(-1)} title="책 검색" />
+      <header className="mt-8">
         <h1 className="text-ink text-xl font-bold">무슨 책으로 이야기 나눌까요?</h1>
         <p className="text-ink-subtle mt-2 text-sm">책 제목이나 저자를 검색해 보세요.</p>
       </header>

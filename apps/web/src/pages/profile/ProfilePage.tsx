@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 
 import { getProfile } from '../../entities/profile'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
+import { AppHeader } from '../../shared/ui/AppHeader'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 export function ProfilePage() {
@@ -37,23 +38,20 @@ export function ProfilePage() {
   const profile = profileQuery.data
 
   return (
-    <main className="app-page bg-surface px-6 py-8">
-      <header className="flex items-center justify-between">
-        <button
-          className="text-ink-subtle -ml-3 min-h-11 px-3 text-sm"
-          onClick={() => void navigate('/rooms')}
-          type="button"
-        >
-          ← 내 독서방
-        </button>
-        <button
-          className="text-primary min-h-11 px-3 text-sm font-medium"
-          onClick={() => void navigate('/profile/settings')}
-          type="button"
-        >
-          설정
-        </button>
-      </header>
+    <main className="app-page bg-surface px-6 pb-8">
+      <AppHeader
+        action={
+          <button
+            className="text-primary min-h-11 px-3 text-sm font-medium"
+            onClick={() => void navigate('/profile/settings')}
+            type="button"
+          >
+            설정
+          </button>
+        }
+        onBack={() => void navigate('/rooms')}
+        title="내 정보"
+      />
 
       <section className="mt-8" aria-labelledby="profile-heading">
         <div className="flex items-start justify-between gap-4">

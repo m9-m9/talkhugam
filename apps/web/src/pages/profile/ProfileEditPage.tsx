@@ -11,6 +11,7 @@ import {
   updateProfile,
 } from '../../entities/profile'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
+import { AppHeader } from '../../shared/ui/AppHeader'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 const mbtiOptions = [
@@ -89,15 +90,9 @@ export function ProfileEditPage() {
   if (profileQuery.isError) return <ProfileEditState message="프로필 정보를 불러오지 못했어요." />
 
   return (
-    <main className="app-page bg-surface px-6 py-8">
-      <button
-        className="text-ink-subtle -ml-3 min-h-11 px-3 text-sm"
-        onClick={() => void navigate('/profile')}
-        type="button"
-      >
-        ← 내 정보
-      </button>
-      <header className="mt-3">
+    <main className="app-page bg-surface px-6 pb-8">
+      <AppHeader onBack={() => void navigate('/profile')} title="프로필 편집" />
+      <header className="mt-8">
         <p className="text-primary text-sm font-medium">프로필</p>
         <h1 className="text-ink mt-2 text-2xl font-bold">프로필 편집</h1>
         <p className="text-ink-subtle mt-2 text-sm">독서방에서 함께 읽는 사람들에게 보여요.</p>

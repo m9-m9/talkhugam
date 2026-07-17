@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 
 import { bookChatKeys, getBookChats, getReadingRoom } from '../../entities/book-chat'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
+import { AppHeader } from '../../shared/ui/AppHeader'
 import { BookCover } from '../../shared/ui/BookCover'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
@@ -37,15 +38,21 @@ export function RoomDetailPage() {
     return <RoomUnavailablePage onBack={() => void navigate('/rooms', { replace: true })} />
 
   return (
-    <main className="app-page bg-surface px-6 py-8">
-      <button
-        className="text-ink-subtle -ml-3 min-h-11 px-3 text-sm"
-        onClick={() => void navigate('/rooms')}
-        type="button"
-      >
-        ← 내 독서방
-      </button>
-      <header className="mt-3">
+    <main className="app-page bg-surface px-6 pb-8">
+      <AppHeader
+        action={
+          <button
+            className="text-primary min-h-11 px-3 text-sm font-medium"
+            onClick={() => void navigate(`/rooms/${roomId}/books/new`)}
+            type="button"
+          >
+            새 책
+          </button>
+        }
+        onBack={() => void navigate('/rooms')}
+        title="독서방"
+      />
+      <header className="mt-8">
         <p className="text-primary text-sm font-medium">독서방</p>
         <h1 className="text-ink mt-2 text-xl font-bold">{roomQuery.data.name}</h1>
         {roomQuery.data.description ? (
@@ -54,18 +61,9 @@ export function RoomDetailPage() {
       </header>
 
       <section className="mt-12" aria-labelledby="reading-books-heading">
-        <div className="flex items-center justify-between">
-          <h2 className="text-ink text-base font-bold" id="reading-books-heading">
-            지금 함께 읽는 책
-          </h2>
-          <button
-            className="text-primary min-h-11 px-3 text-sm font-medium"
-            onClick={() => void navigate(`/rooms/${roomId}/books/new`)}
-            type="button"
-          >
-            새 책
-          </button>
-        </div>
+        <h2 className="text-ink text-base font-bold" id="reading-books-heading">
+          지금 함께 읽는 책
+        </h2>
         <BookChatsContent
           isPending={chatsQuery.isPending}
           isError={chatsQuery.isError}
