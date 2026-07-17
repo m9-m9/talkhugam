@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 
 import {
   createVideoUpload,
+  getVideoUploadErrorMessage,
   getVideoAsset,
   uploadVideoFile,
   validateVideoDuration,
@@ -36,8 +37,8 @@ export function VideoUploadPage() {
       const upload = await createVideoUpload(createSupabaseClient(), bookChatId)
       await uploadVideoFile(upload.uploadUrl, file)
       setPostId(upload.postId)
-    } catch {
-      setErrorMessage('영상 업로드를 시작하지 못했어요. 잠시 후 다시 시도해 주세요.')
+    } catch (error) {
+      setErrorMessage(getVideoUploadErrorMessage(error))
     } finally {
       setIsUploading(false)
     }

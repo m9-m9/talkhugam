@@ -6,3 +6,4 @@ export {
   videoKeys,
   type VideoAsset,
 } from './videoUpload'
+export { getVideoUploadErrorMessage } from './videoUploadError'
