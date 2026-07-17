@@ -45,3 +45,177 @@
     font: inherit;
   }
 }
+
+@keyframes talkhugam-book-page-turn {
+  0% {
+    opacity: 0;
+    transform: perspective(700px) rotateY(0deg);
+  }
+
+  8% {
+    opacity: 1;
+    transform: perspective(700px) rotateY(-14deg);
+  }
+
+  76% {
+    opacity: 1;
+    transform: perspective(700px) rotateY(-172deg);
+  }
+
+  100% {
+    opacity: 0;
+    transform: perspective(700px) rotateY(-180deg);
+  }
+}
+
+@keyframes talkhugam-bubble-float {
+  0%,
+  100% {
+    opacity: 0.7;
+    transform: translateY(0);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+}
+
+.talkhugam-book-loader {
+  --book-loader-scale: 1;
+  height: calc(94px * var(--book-loader-scale));
+  width: calc(92px * var(--book-loader-scale));
+}
+
+.talkhugam-book-loader--xs {
+  --book-loader-scale: 0.25;
+}
+
+.talkhugam-book-loader--sm {
+  --book-loader-scale: 0.5;
+}
+
+.talkhugam-book-loader--lg {
+  --book-loader-scale: 1.33;
+}
+
+.talkhugam-book-loader__stage {
+  height: 94px;
+  position: relative;
+  transform: scale(var(--book-loader-scale));
+  transform-origin: top left;
+  width: 92px;
+}
+
+.talkhugam-book-loader__bubbles {
+  align-items: flex-end;
+  display: flex;
+  gap: 8px;
+  height: 26px;
+  justify-content: center;
+}
+
+.talkhugam-book-loader__page {
+  animation: talkhugam-book-page-turn 2.2s ease-in-out infinite;
+  background: var(--color-surface);
+  border: 3.5px solid var(--color-primary);
+  border-left: 0;
+  border-radius: 0 6px 6px 0;
+  box-sizing: border-box;
+  height: 64px;
+  left: 46px;
+  position: absolute;
+  top: 0;
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  width: 46px;
+}
+
+.talkhugam-book-loader__bubble {
+  animation: talkhugam-bubble-float 1.7s ease-in-out infinite;
+  background: var(--color-surface);
+  border: 3px solid var(--color-primary);
+  border-radius: 6px;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.talkhugam-book-loader__bubble::after {
+  background: var(--color-surface);
+  border-bottom: 3px solid var(--color-primary);
+  border-right: 3px solid var(--color-primary);
+  bottom: -6px;
+  content: '';
+  height: 8px;
+  position: absolute;
+  transform: rotate(45deg);
+  width: 8px;
+}
+
+.talkhugam-book-loader__bubble--left {
+  height: 19px;
+  width: 26px;
+}
+
+.talkhugam-book-loader__bubble--left::after {
+  left: 6px;
+}
+
+.talkhugam-book-loader__bubble--right {
+  animation-delay: 0.4s;
+  border-color: #ffb59c;
+  height: 16px;
+  width: 22px;
+}
+
+.talkhugam-book-loader__bubble--right::after {
+  border-color: #ffb59c;
+  right: 6px;
+}
+
+.talkhugam-book-loader__book {
+  height: 64px;
+  perspective: 700px;
+  position: absolute;
+  top: 30px;
+  width: 92px;
+}
+
+.talkhugam-book-loader__cover {
+  background: var(--color-surface);
+  border: 3.5px solid var(--color-primary);
+  box-sizing: border-box;
+  height: 64px;
+  position: absolute;
+  top: 0;
+  width: 46px;
+}
+
+.talkhugam-book-loader__cover--left {
+  border-radius: 6px 0 0 6px;
+  border-right: 0;
+  left: 0;
+}
+
+.talkhugam-book-loader__cover--right {
+  border-left: 0;
+  border-radius: 0 6px 6px 0;
+  left: 46px;
+}
+
+.talkhugam-book-loader__spine {
+  background: var(--color-primary);
+  height: 64px;
+  left: 44.5px;
+  position: absolute;
+  top: 0;
+  width: 3px;
+  z-index: 2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .talkhugam-book-loader__page,
+  .talkhugam-book-loader__bubble {
+    animation: none;
+  }
+}

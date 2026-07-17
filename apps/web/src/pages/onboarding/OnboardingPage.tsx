@@ -11,6 +11,7 @@ import {
   type ProfileForm,
 } from '../../entities/profile'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
+import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 const mbtiOptions = [
   'ISTJ',
@@ -152,7 +153,14 @@ export function OnboardingPage() {
           disabled={form.formState.isSubmitting}
           type="submit"
         >
-          {form.formState.isSubmitting ? '저장하고 있어요…' : '시작하기'}
+          {form.formState.isSubmitting ? (
+            <span className="flex items-center justify-center gap-2">
+              <LoadingSpinner label="프로필을 저장하고 있어요." showLabel={false} size="xs" />
+              저장하고 있어요…
+            </span>
+          ) : (
+            '시작하기'
+          )}
         </button>
       </form>
     </main>
@@ -184,9 +192,7 @@ function Field({
 function OnboardingState({ message }: { message: string }) {
   return (
     <main className="bg-surface mx-auto flex min-h-screen w-full max-w-md items-center justify-center px-6">
-      <p className="text-ink-subtle text-sm" role="status">
-        {message}
-      </p>
+      <LoadingSpinner label={message} />
     </main>
   )
 }

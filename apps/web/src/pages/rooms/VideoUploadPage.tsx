@@ -8,6 +8,7 @@ import {
   validateVideoDuration,
 } from '../../entities/video'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
+import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 export function VideoUploadPage() {
   const navigate = useNavigate()
@@ -68,9 +69,9 @@ export function VideoUploadPage() {
         </p>
       ) : null}
       {isUploading ? (
-        <p className="text-ink-subtle mt-6 text-sm" role="status">
-          영상을 독서방에 남기고 있어요…
-        </p>
+        <div className="mt-6">
+          <LoadingSpinner label="영상을 독서방에 남기고 있어요…" />
+        </div>
       ) : null}
     </main>
   )

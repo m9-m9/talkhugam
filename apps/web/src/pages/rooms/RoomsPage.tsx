@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 
 import { getReadingRooms, readingRoomKeys, type ReadingRoom } from '../../entities/reading-room'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
+import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 export function RoomsPage() {
   const navigate = useNavigate()
@@ -28,7 +29,12 @@ export function RoomsPage() {
     void protectRoute()
   }, [navigate])
 
-  if (isAuthenticating) return <main className="bg-surface min-h-screen" />
+  if (isAuthenticating)
+    return (
+      <main className="bg-surface flex min-h-screen items-center justify-center px-6">
+        <LoadingSpinner label="로그인 정보를 확인하고 있어요." />
+      </main>
+    )
 
   return (
     <main className="bg-surface mx-auto flex min-h-screen w-full max-w-md flex-col">
@@ -104,10 +110,8 @@ function RoomsContent({
 
 function RoomsLoadingState() {
   return (
-    <div aria-label="독서방을 불러오는 중" className="space-y-3" role="status">
-      <div className="bg-ink/10 h-4 w-20 animate-pulse rounded-sm" />
-      <div className="bg-ink/5 h-16 animate-pulse rounded-lg" />
-      <div className="bg-ink/5 h-16 animate-pulse rounded-lg" />
+    <div className="flex flex-1 items-center justify-center">
+      <LoadingSpinner label="독서방을 불러오고 있어요." />
     </div>
   )
 }

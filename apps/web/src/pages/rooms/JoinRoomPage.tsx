@@ -11,6 +11,7 @@ import {
   type JoinRoomForm,
 } from '../../entities/reading-room'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
+import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 export function JoinRoomPage() {
   const navigate = useNavigate()
@@ -88,7 +89,14 @@ export function JoinRoomPage() {
           disabled={form.formState.isSubmitting}
           type="submit"
         >
-          {form.formState.isSubmitting ? '입장하고 있어요…' : '함께 읽기 시작하기'}
+          {form.formState.isSubmitting ? (
+            <span className="flex items-center justify-center gap-2">
+              <LoadingSpinner label="독서방에 입장하고 있어요." showLabel={false} size="xs" />
+              입장하고 있어요…
+            </span>
+          ) : (
+            '함께 읽기 시작하기'
+          )}
         </button>
       </form>
 

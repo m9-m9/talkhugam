@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 
 import { getProfile } from '../../entities/profile'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
+import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 export function ProfilePage() {
   const navigate = useNavigate()
@@ -128,9 +129,7 @@ function ProfileDetail({ label, value }: { label: string; value: string }) {
 function ProfileState({ message }: { message: string }) {
   return (
     <main className="bg-surface mx-auto flex min-h-screen w-full max-w-md items-center justify-center px-6">
-      <p className="text-ink-subtle text-center text-sm" role="status">
-        {message}
-      </p>
+      <LoadingSpinner label={message} />
     </main>
   )
 }

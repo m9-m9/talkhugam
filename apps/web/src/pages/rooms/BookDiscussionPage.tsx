@@ -21,6 +21,7 @@ import {
   type VideoPost,
 } from '../../entities/video'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
+import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 export function BookDiscussionPage() {
   const navigate = useNavigate()
@@ -107,7 +108,7 @@ export function BookDiscussionPage() {
       </header>
       <section className="mt-8 flex-1">
         {postsQuery.isPending ? (
-          <p className="text-ink-subtle text-sm">감상을 불러오고 있어요.</p>
+          <LoadingSpinner label="감상을 불러오고 있어요." size="sm" />
         ) : (
           <PostList posts={roots} allPosts={postsQuery.data ?? []} onReply={setReplyTo} />
         )}
@@ -115,7 +116,9 @@ export function BookDiscussionPage() {
       <section className="mt-8">
         <h2 className="text-ink text-base font-bold">영상 기록</h2>
         {videoPostsQuery.isPending ? (
-          <p className="text-ink-subtle mt-4 text-sm">영상을 불러오고 있어요.</p>
+          <div className="mt-4">
+            <LoadingSpinner label="영상을 불러오고 있어요." size="sm" />
+          </div>
         ) : (
           <VideoFeed
             isDeleting={deleteVideoMutation.isPending}
@@ -148,7 +151,6 @@ export function BookDiscussionPage() {
       </section>
     </main>
   )
-
 }
 
 function VideoFeed({
@@ -237,9 +239,7 @@ function VideoPostCard({
 function VideoPlaceholder({ message }: { message: string }) {
   return (
     <div className="bg-ink flex aspect-video items-center justify-center px-6 text-center">
-      <p className="text-sm text-white" role="status">
-        {message}
-      </p>
+      <LoadingSpinner label={message} size="sm" tone="inverse" />
     </div>
   )
 }

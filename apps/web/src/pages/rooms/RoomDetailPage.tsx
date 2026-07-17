@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 
 import { bookChatKeys, getBookChats, getReadingRoom } from '../../entities/book-chat'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
+import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 export function RoomDetailPage() {
   const navigate = useNavigate()
@@ -89,9 +90,9 @@ function BookChatsContent({
   const navigate = useNavigate()
   if (isPending)
     return (
-      <p className="text-ink-subtle mt-6 text-sm" role="status">
-        책을 불러오고 있어요.
-      </p>
+      <div className="mt-6">
+        <LoadingSpinner label="책을 불러오고 있어요." size="sm" />
+      </div>
     )
   if (isError)
     return (
@@ -129,7 +130,11 @@ function EmptyBookChats() {
 }
 
 function RoomLoadingPage() {
-  return <main className="bg-surface min-h-screen" />
+  return (
+    <main className="bg-surface flex min-h-screen items-center justify-center px-6">
+      <LoadingSpinner label="독서방을 불러오고 있어요." />
+    </main>
+  )
 }
 
 function RoomUnavailablePage({ onBack }: { onBack: () => void }) {

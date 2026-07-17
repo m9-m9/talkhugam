@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 
 import { getProviderLabels } from '../../entities/profile'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
+import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 type AccountIdentity = {
   email: string
@@ -98,7 +99,14 @@ export function AccountSettingsPage() {
           onClick={() => void handleSignOut()}
           type="button"
         >
-          {isSigningOut ? '로그아웃하고 있어요…' : '로그아웃'}
+          {isSigningOut ? (
+            <span className="flex items-center justify-center gap-2">
+              <LoadingSpinner label="로그아웃하고 있어요." showLabel={false} size="xs" />
+              로그아웃하고 있어요…
+            </span>
+          ) : (
+            '로그아웃'
+          )}
         </button>
       </section>
     </main>
@@ -117,9 +125,7 @@ function AccountDetail({ label, value }: { label: string; value: string }) {
 function AccountSettingsState({ message }: { message: string }) {
   return (
     <main className="bg-surface mx-auto flex min-h-screen w-full max-w-md items-center justify-center px-6">
-      <p className="text-ink-subtle text-center text-sm" role="status">
-        {message}
-      </p>
+      <LoadingSpinner label={message} />
     </main>
   )
 }

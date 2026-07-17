@@ -12,6 +12,7 @@ import {
   type CreateRoomForm,
 } from '../../entities/reading-room'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
+import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 export function CreateRoomPage() {
   const navigate = useNavigate()
@@ -97,7 +98,14 @@ export function CreateRoomPage() {
           disabled={form.formState.isSubmitting}
           type="submit"
         >
-          {form.formState.isSubmitting ? '독서방을 만들고 있어요…' : '독서방 만들기'}
+          {form.formState.isSubmitting ? (
+            <span className="flex items-center justify-center gap-2">
+              <LoadingSpinner label="독서방을 만들고 있어요." showLabel={false} size="xs" />
+              독서방을 만들고 있어요…
+            </span>
+          ) : (
+            '독서방 만들기'
+          )}
         </button>
       </form>
     </main>
