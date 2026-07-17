@@ -236,7 +236,9 @@ function DiscussionTimeline({
 
   return (
     <div className="space-y-4">
-      {errorMessage ? <RetryState isRetrying={isRetrying} message={errorMessage} onRetry={onRetry} /> : null}
+      {errorMessage ? (
+        <RetryState isRetrying={isRetrying} message={errorMessage} onRetry={onRetry} />
+      ) : null}
       <ChatTimeline
         allPosts={allPosts}
         onReply={onReply}

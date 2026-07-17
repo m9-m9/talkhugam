@@ -309,7 +309,9 @@ describe('BookDiscussionPage', () => {
     const retryButton = await screen.findByRole('button', { name: '다시 시도' })
     fireEvent.click(retryButton)
 
-    expect(await screen.findByRole('status', { name: '대화를 다시 불러오고 있어요.' })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('status', { name: '대화를 다시 불러오고 있어요.' }),
+    ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '다시 시도' })).toBeDisabled()
 
     retryRequest.resolve([])
