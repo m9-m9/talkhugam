@@ -158,6 +158,69 @@ describe('VideoArchivePage', () => {
     expect(screen.queryByRole('button', { name: '수진님의 영상 보기' })).not.toBeInTheDocument()
   })
 
+  it('shows an error and retries when member filters cannot be loaded', async () => {
+    getVideoPosts.mockResolvedValueOnce([createFailedVideo('video-1', '민규')])
+    getVideoFilterMembers.mockRejectedValueOnce(new Error('network'))
+    renderArchivePage()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '멤버를 불러오지 못했어요. 다시 시도해 주세요.',
+    )
+    const retryButton = screen.getByRole('button', { name: '멤버 다시 시도' })
+    expect(retryButton).toHaveClass('min-h-11')
+    expect(screen.getByRole('button', { name: '멤버 필터: 모든 멤버' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: '내 영상' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: '전체' })).not.toBeDisabled()
+
+    fireEvent.click(retryButton)
+
+    await vi.waitFor(() => expect(getVideoFilterMembers).toHaveBeenCalledTimes(2))
+    await vi.waitFor(() => {
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: '멤버 필터: 모든 멤버' })).not.toBeDisabled()
+      expect(screen.getByRole('button', { name: '내 영상' })).not.toBeDisabled()
+    })
+  })
+
+  it('disables only 내 영상 while member filters are loading', async () => {
+    getVideoPosts.mockResolvedValueOnce([createFailedVideo('video-1', '민규')])
+    getVideoFilterMembers.mockImplementationOnce(() => new Promise(() => undefined))
+    renderArchivePage()
+
+    expect(await screen.findByRole('button', { name: '내 영상' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: '전체' })).not.toBeDisabled()
+    expect(screen.getByRole('button', { name: '멤버 필터: 모든 멤버' })).toBeDisabled()
+  })
+
+  it('shows an error and retries when member filters fail before any videos exist', async () => {
+    getVideoPosts.mockResolvedValueOnce([])
+    getVideoFilterMembers.mockRejectedValueOnce(new Error('network'))
+    renderArchivePage()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '멤버를 불러오지 못했어요. 다시 시도해 주세요.',
+    )
+    const retryButton = screen.getByRole('button', { name: '멤버 다시 시도' })
+    expect(retryButton).toHaveClass('min-h-11')
+
+    fireEvent.click(retryButton)
+
+    await vi.waitFor(() => expect(getVideoFilterMembers).toHaveBeenCalledTimes(2))
+  })
+
+  it('keeps the member filter available without an error when the member list is empty', async () => {
+    getVideoPosts.mockResolvedValueOnce([createFailedVideo('video-1', '민규')])
+    getVideoFilterMembers.mockResolvedValueOnce([])
+    renderArchivePage()
+
+    const memberFilterButton = await screen.findByRole('button', {
+      name: '멤버 필터: 모든 멤버',
+    })
+    expect(memberFilterButton).not.toBeDisabled()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '멤버 다시 시도' })).not.toBeInTheDocument()
+  })
+
   it('opens a member filter menu and filters the gallery by the chosen member', async () => {
     getVideoFilterMembers.mockResolvedValueOnce([
       { displayName: '민규', id: 'member-1', isCurrentUser: true },

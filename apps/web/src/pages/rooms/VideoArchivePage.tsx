@@ -61,6 +61,11 @@ export function VideoArchivePage() {
     filter.kind === 'mine' ? { kind: 'mine' as const, memberId: currentMemberId } : filter
   const filteredVideos = filterVideoPosts(videosQuery.data ?? [], resolvedFilter)
 
+  /** 실패한 멤버 필터 조회를 다시 요청하고 최신 상태를 반영한다. */
+  function handleRetryMembers() {
+    void membersQuery.refetch()
+  }
+
   return (
     <main className="app-page bg-surface px-4 pb-8">
       <AppHeader
@@ -105,9 +110,11 @@ export function VideoArchivePage() {
           <LoadingSpinner label="영상을 올리고 있어요…" size="sm" />
         </div>
       ) : null}
+      {membersQuery.isError ? <MemberFilterLoadError onRetry={handleRetryMembers} /> : null}
       {hasVideos ? (
         <VideoFilters
           filter={filter}
+          hasMemberLoadError={membersQuery.isError}
           isMemberFilterPending={membersQuery.isPending}
           members={membersQuery.data ?? []}
           onChange={setFilter}
@@ -162,52 +169,76 @@ export function VideoArchivePage() {
 /** 영상 필터 목록 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function VideoFilters({
   filter,
+  hasMemberLoadError,
   isMemberFilterPending,
   members,
   onChange,
 }: {
   filter: VideoPostFilter
+  hasMemberLoadError: boolean
   isMemberFilterPending: boolean
   members: readonly VideoFilterMember[]
   onChange: (filter: VideoPostFilter) => void
 }) {
   const selectedMemberId = filter.kind === 'member' ? filter.memberId : ''
 
+  const isMemberFilterDisabled = isMemberFilterPending || hasMemberLoadError
+  const containerClassName = hasMemberLoadError ? 'mt-3' : 'mt-6'
+
   return (
-    <div className="mt-6 flex items-center gap-2 pb-1">
+    <div className={containerClassName}>
+      <div className="flex items-center gap-2 pb-1">
+        <button
+          aria-pressed={filter.kind === 'all'}
+          className={getFilterButtonClassName(filter.kind === 'all')}
+          onClick={() => onChange({ kind: 'all' })}
+          type="button"
+        >
+          전체
+        </button>
+        <button
+          aria-pressed={filter.kind === 'mine'}
+          className={getFilterButtonClassName(filter.kind === 'mine')}
+          disabled={isMemberFilterDisabled}
+          onClick={() => onChange({ kind: 'mine', memberId: null })}
+          type="button"
+        >
+          내 영상
+        </button>
+        <SelectMenu
+          disabled={isMemberFilterDisabled}
+          label="멤버 필터"
+          menuTitle="누구의 영상?"
+          onChange={(memberId) => {
+            onChange(memberId ? { kind: 'member', memberId } : { kind: 'all' })
+          }}
+          options={[
+            { label: '모든 멤버', value: '' },
+            ...members.map((member) => ({
+              badge: member.displayName.slice(0, 1),
+              label: member.displayName,
+              value: member.id,
+            })),
+          ]}
+          value={selectedMemberId}
+        />
+      </div>
+    </div>
+  )
+}
+
+/** 멤버 필터를 불러오지 못했을 때 안내와 재시도 동작을 제공한다. */
+function MemberFilterLoadError({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="mt-6 flex items-center justify-between gap-2" role="alert">
+      <p className="text-sm text-red-600">멤버를 불러오지 못했어요. 다시 시도해 주세요.</p>
       <button
-        aria-pressed={filter.kind === 'all'}
-        className={getFilterButtonClassName(filter.kind === 'all')}
-        onClick={() => onChange({ kind: 'all' })}
+        className="text-primary min-h-11 shrink-0 cursor-pointer px-3 text-sm font-medium"
+        onClick={onRetry}
         type="button"
       >
-        전체
+        멤버 다시 시도
       </button>
-      <button
-        aria-pressed={filter.kind === 'mine'}
-        className={getFilterButtonClassName(filter.kind === 'mine')}
-        onClick={() => onChange({ kind: 'mine', memberId: null })}
-        type="button"
-      >
-        내 영상
-      </button>
-      <SelectMenu
-        disabled={isMemberFilterPending}
-        label="멤버 필터"
-        menuTitle="누구의 영상?"
-        onChange={(memberId) => {
-          onChange(memberId ? { kind: 'member', memberId } : { kind: 'all' })
-        }}
-        options={[
-          { label: '모든 멤버', value: '' },
-          ...members.map((member) => ({
-            badge: member.displayName.slice(0, 1),
-            label: member.displayName,
-            value: member.id,
-          })),
-        ]}
-        value={selectedMemberId}
-      />
     </div>
   )
 }
@@ -217,7 +248,7 @@ function getFilterButtonClassName(isActive: boolean): string {
   const colorClassName = isActive
     ? 'border-primary bg-primary text-ink'
     : 'border-ink/20 bg-surface text-ink-subtle'
-  return `${colorClassName} focus-visible:ring-primary min-h-11 shrink-0 cursor-pointer rounded-lg border px-3 text-sm font-medium focus-visible:ring-2 focus-visible:outline-none`
+  return `${colorClassName} focus-visible:ring-primary min-h-11 shrink-0 cursor-pointer rounded-lg border px-3 text-sm font-medium focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50`
 }
 
 /** 영상 갤러리 항목 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
