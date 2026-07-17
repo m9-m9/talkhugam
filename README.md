@@ -30,6 +30,10 @@ pnpm dev:web
 
 웹 앱은 `apps/web`에 있습니다. Supabase migration과 Edge Function은 저장소 루트의 `supabase`에서 관리합니다.
 
+로컬 브라우저 주소는 `http://localhost:5173`입니다. `.env.example`을 복사해 환경 파일을 만들 때도
+`ALLOWED_ORIGINS`, `ALLOWED_AUTH_REDIRECTS`, `TEST_ORIGIN`은 예시에 있는 5173 값을 그대로 유지하세요.
+`localhost`와 `127.0.0.1`을 오가며 접속해도 되도록 두 주소를 모두 허용 목록에 포함해 두었습니다.
+
 ## 품질 검증
 
 ```bash
