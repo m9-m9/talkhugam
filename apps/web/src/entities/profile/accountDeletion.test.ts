@@ -6,16 +6,48 @@ import { AccountDeletionError, requestAccountDeletion } from './accountDeletion'
 describe('account deletion', () => {
   it('sends the chosen deletion mode to the protected Edge Function', async () => {
     const invoke = vi.fn().mockResolvedValue({
-      data: { deleted: true, requestId: '22222222-2222-4222-8222-222222222222' },
+      data: {
+        data: {
+          completionPending: false,
+          deleted: true,
+          requestId: '22222222-2222-4222-8222-222222222222',
+        },
+        ok: true,
+        requestId: '33333333-3333-4333-8333-333333333333',
+      },
+      error: null,
+    })
+
+    await expect(requestAccountDeletion({ functions: { invoke } }, 'anonymize')).resolves.toEqual({
+      completionPending: false,
+      deleted: true,
+      requestId: '22222222-2222-4222-8222-222222222222',
+    })
+
+    expect(invoke).toHaveBeenCalledWith('account-delete', {
+      body: { mode: 'anonymize' },
+    })
+  })
+
+  it('keeps a pending completion as a successful account deletion result', async () => {
+    const invoke = vi.fn().mockResolvedValue({
+      data: {
+        data: {
+          completionPending: true,
+          deleted: true,
+          requestId: '22222222-2222-4222-8222-222222222222',
+        },
+        ok: true,
+        requestId: '33333333-3333-4333-8333-333333333333',
+      },
       error: null,
     })
 
     await expect(
-      requestAccountDeletion({ functions: { invoke } }, 'anonymize'),
-    ).resolves.toBeUndefined()
-
-    expect(invoke).toHaveBeenCalledWith('account-delete', {
-      body: { mode: 'anonymize' },
+      requestAccountDeletion({ functions: { invoke } }, 'delete_content'),
+    ).resolves.toMatchObject({
+      completionPending: true,
+      deleted: true,
     })
   })
 

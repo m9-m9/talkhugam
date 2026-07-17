@@ -87,6 +87,20 @@ describe('AccountSettingsPage', () => {
       expect(signOut).toHaveBeenCalledTimes(1)
     })
   })
+
+  it('returns to sign-in even when local session cleanup fails after server deletion', async () => {
+    signOut.mockRejectedValueOnce(new Error('local session unavailable'))
+    renderAccountSettingsPage()
+
+    fireEvent.click(screen.getByRole('button', { name: '계정 삭제' }))
+    fireEvent.click(screen.getByRole('radio', { name: '대화 기록은 남기고 탈퇴' }))
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: '선택한 방식으로 계정을 삭제하는 데 동의합니다.' }),
+    )
+    fireEvent.click(screen.getByRole('button', { name: '계정 삭제하기' }))
+
+    expect(await screen.findByText('로그인')).toBeInTheDocument()
+  })
 })
 
 /** 계정 설정 페이지에 필요한 라우터와 서버 상태 Provider를 구성해 렌더링한다. */

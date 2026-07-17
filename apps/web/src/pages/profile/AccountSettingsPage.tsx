@@ -50,8 +50,7 @@ export function AccountSettingsPage() {
   const accountDeletionMutation = useMutation({
     mutationFn: async (mode: AccountDeletionMode) => {
       await requestAccountDeletion(client, mode)
-      const response = await client.auth.signOut()
-      if (response.error) throw response.error
+      await clearLocalSession(client)
     },
     onSuccess: () => void navigate('/', { replace: true }),
   })
@@ -125,6 +124,15 @@ export function AccountSettingsPage() {
       ) : null}
     </main>
   )
+}
+
+/** 서버 계정 삭제 뒤 브라우저 세션을 정리하되 실패를 삭제 실패로 바꾸지 않는다. */
+async function clearLocalSession(client: ReturnType<typeof createSupabaseClient>): Promise<void> {
+  try {
+    await client.auth.signOut()
+  } catch {
+    return
+  }
 }
 
 /** 인증 사용자 데이터를 계정 화면용 정보로 변환한다. */
