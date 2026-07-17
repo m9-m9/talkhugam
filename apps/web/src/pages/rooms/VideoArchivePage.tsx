@@ -94,7 +94,9 @@ export function VideoArchivePage() {
           {errorMessage}
         </p>
       ) : null}
-      {isUploadingVideo ? <p className="text-ink-subtle mt-4 text-sm">영상을 올리고 있어요…</p> : null}
+      {isUploadingVideo ? (
+        <p className="text-ink-subtle mt-4 text-sm">영상을 올리고 있어요…</p>
+      ) : null}
       {videosQuery.isPending ? (
         <div className="mt-12">
           <LoadingSpinner label="영상을 불러오고 있어요." />

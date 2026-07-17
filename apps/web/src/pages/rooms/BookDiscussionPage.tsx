@@ -35,7 +35,11 @@ export function BookDiscussionPage() {
   const [labels, setLabels] = useState<PostForm['labels']>([])
   const [replyTo, setReplyTo] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const { errorMessage: videoErrorMessage, isUploadingVideo, uploadVideo } = useVideoUpload(bookChatId)
+  const {
+    errorMessage: videoErrorMessage,
+    isUploadingVideo,
+    uploadVideo,
+  } = useVideoUpload(bookChatId)
   const postsQuery = useQuery({
     enabled: Boolean(bookChatId),
     queryFn: () => getPosts(createSupabaseClient(), bookChatId ?? ''),

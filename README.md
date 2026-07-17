@@ -36,6 +36,9 @@ pnpm lint:web
 pnpm typecheck:web
 pnpm test:web
 pnpm build:web
+pnpm test:e2e:web
 ```
 
-PR에서는 Frontend CI가 위 웹 품질 검증을, Backend CI가 migration·RLS·Edge Function 검증을 자동 실행합니다.
+`test:e2e:web`는 실제 Chromium에서 320px와 1024px 화면 폭을 검사합니다. 캔버스 폭과 가로 넘침, 채팅 추가 메뉴의 열기·닫기, axe-core 접근성 검사를 포함합니다.
+
+PR에서는 Frontend CI가 위 웹 품질 검증과 브라우저 UI 검사를, Backend CI가 migration·RLS·Edge Function 검증을 자동 실행합니다.

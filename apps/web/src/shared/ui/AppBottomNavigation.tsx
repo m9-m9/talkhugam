@@ -75,7 +75,9 @@ export function AppBottomNavigation() {
             >
               <span className="text-primary text-sm font-bold">새로운 이야기</span>
               <span>
-                <span className="text-ink block text-base font-bold whitespace-nowrap">새 모임 만들기</span>
+                <span className="text-ink block text-base font-bold whitespace-nowrap">
+                  새 모임 만들기
+                </span>
                 <span className="text-ink-subtle mt-2 block text-xs">
                   친구를 초대해 함께 시작해요.
                 </span>
@@ -89,7 +91,9 @@ export function AppBottomNavigation() {
             >
               <span className="text-primary text-sm font-bold">함께 읽기</span>
               <span>
-                <span className="text-ink block text-base font-bold whitespace-nowrap">초대 코드로 참여</span>
+                <span className="text-ink block text-base font-bold whitespace-nowrap">
+                  초대 코드로 참여
+                </span>
                 <span className="text-ink-subtle mt-2 block text-xs">
                   친구가 보낸 6자리 코드를 입력해요.
                 </span>

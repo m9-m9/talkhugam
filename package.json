@@ -27,7 +27,8 @@
     "lint:web": "pnpm --filter @talkhugam/web lint",
     "format:web": "pnpm --filter @talkhugam/web format",
     "typecheck:web": "pnpm --filter @talkhugam/web typecheck",
-    "test:web": "pnpm --filter @talkhugam/web test"
+    "test:web": "pnpm --filter @talkhugam/web test",
+    "test:e2e:web": "pnpm --filter @talkhugam/web test:e2e"
   },
   "devDependencies": {
     "deno": "2.9.2",
