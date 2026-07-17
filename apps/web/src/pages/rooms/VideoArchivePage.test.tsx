@@ -39,13 +39,25 @@ describe('VideoArchivePage', () => {
     videoUploadState.isUploadingVideo = false
   })
 
-  it('opens the native video picker from its round upload button', () => {
+  it('opens the native video picker from its round upload button when videos exist', async () => {
+    getVideoPosts.mockResolvedValueOnce([createFailedVideo('video-1', '민규')])
     const inputClick = vi.spyOn(HTMLInputElement.prototype, 'click')
     renderArchivePage()
 
-    fireEvent.click(screen.getByRole('button', { name: '영상 올리기' }))
+    fireEvent.click(await screen.findByRole('button', { name: '영상 올리기' }))
 
     expect(inputClick).toHaveBeenCalledOnce()
+    inputClick.mockRestore()
+  })
+
+  it('opens the native video picker directly from the empty state', async () => {
+    const inputClick = vi.spyOn(HTMLInputElement.prototype, 'click')
+    renderArchivePage()
+
+    fireEvent.click(await screen.findByRole('button', { name: '첫 영상 올리기' }))
+
+    expect(inputClick).toHaveBeenCalledOnce()
+    expect(screen.queryByText('채팅창의 + 버튼에서 첫 영상을 남겨 보세요.')).not.toBeInTheDocument()
     inputClick.mockRestore()
   })
 
@@ -83,7 +95,29 @@ describe('VideoArchivePage', () => {
       screen.queryByRole('status', { name: '영상 처리에 실패했어요.' }),
     ).not.toBeInTheDocument()
   })
+
+  it('lays out saved videos in a two-column gallery', async () => {
+    getVideoPosts.mockResolvedValueOnce([
+      createFailedVideo('video-1', '민규'),
+      createFailedVideo('video-2', '수진'),
+    ])
+    renderArchivePage()
+
+    const gallery = await screen.findByRole('list', { name: '영상 기록' })
+    expect(gallery).toHaveClass('grid-cols-2')
+    expect(screen.getAllByRole('listitem')).toHaveLength(2)
+  })
 })
+
+function createFailedVideo(id: string, authorName: string) {
+  return {
+    authorName,
+    body: null,
+    createdAt: '2026-07-17T00:00:00.000Z',
+    id,
+    status: 'failed' as const,
+  }
+}
 
 function renderArchivePage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })

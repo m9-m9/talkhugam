@@ -57,6 +57,36 @@ test('shows global navigation outside the book chat and hides it inside', async 
   await expect(page.getByRole('navigation', { name: '주요 메뉴' })).toBeHidden()
 })
 
+test('opens the video picker directly from the archive empty state', async ({ page }) => {
+  await authenticatePage(page)
+  await mockVideoPosts(page, [])
+  await page.goto(`/rooms/${roomId}/books/${bookChatId}/videos`)
+
+  const fileChooserPromise = page.waitForEvent('filechooser')
+  await page.getByRole('button', { name: '첫 영상 올리기' }).click()
+  const fileChooser = await fileChooserPromise
+
+  expect(fileChooser.isMultiple()).toBe(false)
+  await expect(page.getByText('채팅창의 + 버튼에서 첫 영상을 남겨 보세요.')).toBeHidden()
+})
+
+test('keeps saved videos in a two-column archive gallery', async ({ page }) => {
+  await authenticatePage(page)
+  await mockVideoPosts(page, [
+    createVideoPostRow('4b7227b2-5350-4a61-9114-b2d0c915fd1b', '민규'),
+    createVideoPostRow('e45b7500-b6bd-43d6-8438-e5b643c84282', '수진'),
+  ])
+  await page.goto(`/rooms/${roomId}/books/${bookChatId}/videos`)
+
+  const gallery = page.getByRole('list', { name: '영상 기록' })
+  await expect(gallery.getByRole('listitem')).toHaveCount(2)
+  expect(
+    await gallery.evaluate((element) =>
+      window.getComputedStyle(element).gridTemplateColumns.split(' ').filter(Boolean),
+    ),
+  ).toHaveLength(2)
+})
+
 async function authenticatePage(page: import('@playwright/test').Page) {
   const user = {
     app_metadata: {},
@@ -86,4 +116,25 @@ async function authenticatePage(page: import('@playwright/test').Page) {
       status: 200,
     })
   })
+}
+
+async function mockVideoPosts(page: import('@playwright/test').Page, posts: unknown[]) {
+  await page.route('**/rest/v1/posts?*', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify(posts),
+      contentType: 'application/json',
+      headers: { 'content-range': `0-${Math.max(posts.length - 1, 0)}/${posts.length}` },
+      status: 200,
+    })
+  })
+}
+
+function createVideoPostRow(id: string, authorName: string) {
+  return {
+    author_name_snapshot: authorName,
+    body: null,
+    created_at: '2026-07-17T06:00:00+00:00',
+    id,
+    video_assets: { status: 'failed' },
+  }
 }

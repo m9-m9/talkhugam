@@ -48,7 +48,13 @@ export function VideoArchivePage() {
     void uploadVideo(file)
   }
 
+  function handleOpenVideoPicker() {
+    fileInputRef.current?.click()
+  }
+
   if (!roomId || !bookChatId) return <main className="app-page bg-surface min-h-screen" />
+
+  const hasVideos = Boolean(videosQuery.data?.length)
 
   return (
     <main className="app-page bg-surface px-4 pb-8">
@@ -72,22 +78,17 @@ export function VideoArchivePage() {
           ref={fileInputRef}
           type="file"
         />
-        <button
-          aria-label="영상 올리기"
-          className="bg-primary text-ink flex size-16 shrink-0 items-center justify-center rounded-full shadow-lg"
-          disabled={isUploadingVideo}
-          onClick={() => fileInputRef.current?.click()}
-          type="button"
-        >
-          <svg aria-hidden="true" className="size-8" fill="none" viewBox="0 0 24 24">
-            <path
-              d="M12 5v14M5 12h14"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeWidth="2.8"
-            />
-          </svg>
-        </button>
+        {hasVideos ? (
+          <button
+            aria-label="영상 올리기"
+            className="bg-primary text-ink focus-visible:ring-primary flex size-12 shrink-0 cursor-pointer items-center justify-center rounded-full shadow-md focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+            disabled={isUploadingVideo}
+            onClick={handleOpenVideoPicker}
+            type="button"
+          >
+            <PlusIcon className="size-6" />
+          </button>
+        ) : null}
       </header>
       {errorMessage ? (
         <p className="mt-4 text-sm text-red-600" role="alert">
@@ -104,9 +105,12 @@ export function VideoArchivePage() {
           <LoadingSpinner label="영상을 불러오고 있어요." />
         </div>
       ) : videosQuery.data?.length ? (
-        <ul className="mt-8 space-y-4">
+        <ul aria-label="영상 기록" className="mt-8 grid grid-cols-2 gap-3">
           {videosQuery.data.map((video) => (
-            <li className="border-ink/10 overflow-hidden rounded-lg border bg-white" key={video.id}>
+            <li
+              className="border-ink/10 flex min-w-0 flex-col overflow-hidden rounded-lg border bg-white"
+              key={video.id}
+            >
               <VideoCard
                 isDeleting={deleteMutation.isPending}
                 onDelete={handleDelete}
@@ -116,10 +120,21 @@ export function VideoArchivePage() {
           ))}
         </ul>
       ) : (
-        <div className="bg-surface-muted mt-12 rounded-lg p-6 text-center">
-          <p className="text-ink font-medium">아직 남겨진 영상이 없어요</p>
-          <p className="text-ink-subtle mt-2 text-sm">채팅창의 + 버튼에서 첫 영상을 남겨 보세요.</p>
-        </div>
+        <button
+          aria-label="첫 영상 올리기"
+          className="border-primary/50 bg-surface-muted hover:border-primary focus-visible:ring-primary mt-8 flex min-h-40 w-full cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border border-dashed transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+          disabled={isUploadingVideo}
+          onClick={handleOpenVideoPicker}
+          type="button"
+        >
+          <span
+            aria-hidden="true"
+            className="bg-primary text-ink flex size-12 items-center justify-center rounded-full shadow-sm"
+          >
+            <PlusIcon className="size-6" />
+          </span>
+          <span className="text-ink text-sm font-semibold">첫 영상 올리기</span>
+        </button>
       )}
     </main>
   )
@@ -168,13 +183,15 @@ function VideoCard({
           }
         />
       )}
-      <div className="flex items-start justify-between gap-4 p-4">
-        <div>
-          <p className="text-ink text-sm font-medium">{video.authorName}</p>
-          {video.body ? <p className="text-ink-subtle mt-2 text-sm">{video.body}</p> : null}
+      <div className="flex flex-1 flex-col p-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-ink truncate text-sm font-medium">{video.authorName}</p>
+          {video.body ? (
+            <p className="text-ink-subtle mt-1 line-clamp-2 text-xs">{video.body}</p>
+          ) : null}
         </div>
         <button
-          className="text-ink-subtle min-h-11 px-2 text-xs"
+          className="text-ink-subtle hover:text-ink focus-visible:ring-primary mt-1 min-h-11 cursor-pointer self-end px-2 text-xs focus-visible:ring-2 focus-visible:outline-none"
           disabled={isDeleting}
           onClick={() => onDelete(video.id)}
           type="button"
@@ -195,5 +212,13 @@ function VideoPlaceholder({ isLoading, message }: { isLoading: boolean; message:
         <p className="text-sm font-medium text-white">{message}</p>
       )}
     </div>
+  )
+}
+
+function PlusIcon({ className }: { className: string }) {
+  return (
+    <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 24 24">
+      <path d="M12 5v14M5 12h14" stroke="currentColor" strokeLinecap="round" strokeWidth="2.8" />
+    </svg>
   )
 }
