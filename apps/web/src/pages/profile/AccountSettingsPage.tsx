@@ -325,6 +325,7 @@ function AccountDeletionDialog({
   /** 배경을 눌렀을 때만 계정 삭제 확인창을 닫는다. */
   function handleBackdropMouseDown(event: React.MouseEvent<HTMLDivElement>) {
     if (event.currentTarget !== event.target) return
+    event.preventDefault()
     onClose()
   }
 

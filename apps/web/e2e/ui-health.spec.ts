@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 
 const roomId = '89544530-dd36-422b-aaff-b6a70180f521'
@@ -24,6 +24,81 @@ test('has no automated accessibility violations on the sign-in screen', async ({
   const accessibilityScanResults = await new AxeBuilder({ page }).analyze()
 
   expect(accessibilityScanResults.violations).toEqual([])
+})
+
+test('keeps core authenticated pages within the supported viewport', async ({ page }, testInfo) => {
+  await authenticatePage(page)
+  await mockAuthenticatedPageData(page)
+
+  for (const path of [
+    '/rooms',
+    '/rooms/create',
+    '/rooms/join',
+    '/profile',
+    '/profile/settings',
+    '/notifications',
+  ]) {
+    await page.goto(path)
+    await expect(page.locator('main')).toBeVisible()
+    await expectPageToFitViewport(page, testInfo.project.use.viewport?.width ?? 640)
+  }
+})
+
+test('has no automated accessibility violations on authenticated account screens', async ({
+  page,
+}) => {
+  await authenticatePage(page)
+  await mockAuthenticatedPageData(page)
+
+  for (const path of ['/profile', '/profile/settings', '/notifications']) {
+    await page.goto(path)
+    await expect(page.locator('main')).toBeVisible()
+    await expectNoAccessibilityViolations(page)
+  }
+})
+
+test('closes the action book by Escape and outside click while returning focus to its trigger', async ({
+  page,
+}) => {
+  await authenticatePage(page)
+  await mockAuthenticatedPageData(page)
+  await page.goto('/rooms')
+
+  const actionMenuButton = page.getByRole('button', { name: '모임 시작 메뉴 열기' })
+  await actionMenuButton.click()
+  await expect(page.getByRole('dialog', { name: '모임 시작 방식 선택' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '새 모임 만들기' })).toBeFocused()
+
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog', { name: '모임 시작 방식 선택' })).toBeHidden()
+  await expect(actionMenuButton).toBeFocused()
+
+  await actionMenuButton.click()
+  await page.getByRole('button', { name: '메뉴 바깥 영역을 눌러 닫기' }).click()
+  await expect(page.getByRole('dialog', { name: '모임 시작 방식 선택' })).toBeHidden()
+  await expect(actionMenuButton).toBeFocused()
+})
+
+test('closes the account deletion dialog by Escape and backdrop while restoring trigger focus', async ({
+  page,
+}) => {
+  await authenticatePage(page)
+  await mockAuthenticatedPageData(page)
+  await page.goto('/profile/settings')
+
+  const deletionTrigger = page.getByRole('button', { name: '계정 삭제', exact: true })
+  await deletionTrigger.click()
+  await expect(page.getByRole('dialog', { name: '계정 삭제' })).toBeVisible()
+  await expect(page.getByRole('radio', { name: '대화 기록은 남기고 탈퇴' })).toBeFocused()
+
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog', { name: '계정 삭제' })).toBeHidden()
+  await expect(deletionTrigger).toBeFocused()
+
+  await deletionTrigger.click()
+  await page.mouse.click(4, 4)
+  await expect(page.getByRole('dialog', { name: '계정 삭제' })).toBeHidden()
+  await expect(deletionTrigger).toBeFocused()
 })
 
 test('preserves a book-chat label draft while the action bubble is dismissed', async ({ page }) => {
@@ -153,7 +228,7 @@ test('returns to the video archive when the requested video no longer exists', a
 })
 
 /** E2E 실행 페이지에 인증된 Supabase 세션과 사용자 조회 응답을 설정한다. */
-async function authenticatePage(page: import('@playwright/test').Page) {
+async function authenticatePage(page: Page) {
   const user = {
     app_metadata: {},
     aud: 'authenticated',
@@ -185,7 +260,7 @@ async function authenticatePage(page: import('@playwright/test').Page) {
 }
 
 /** 지정한 영상 게시물 목록을 반환하도록 Supabase posts 요청을 가로챈다. */
-async function mockVideoPosts(page: import('@playwright/test').Page, posts: unknown[]) {
+async function mockVideoPosts(page: Page, posts: unknown[]) {
   await page.route('**/rest/v1/posts?*', async (route) => {
     await route.fulfill({
       body: JSON.stringify(posts),
@@ -197,7 +272,7 @@ async function mockVideoPosts(page: import('@playwright/test').Page, posts: unkn
 }
 
 /** 현재 사용자가 속한 독서방 멤버 목록을 반환하도록 Supabase 요청을 가로챈다. */
-async function mockVideoMembers(page: import('@playwright/test').Page) {
+async function mockVideoMembers(page: Page) {
   await page.route('**/rest/v1/room_members?*', async (route) => {
     await route.fulfill({
       body: JSON.stringify([
@@ -223,4 +298,59 @@ function createVideoPostRow(id: string, authorName: string, status = 'failed') {
     id,
     video_assets: { status },
   }
+}
+
+/** 인증 화면이 요청하는 프로필·알림·독서방 데이터를 안정적인 fixture로 반환한다. */
+async function mockAuthenticatedPageData(page: Page) {
+  await page.route('**/rest/v1/rpc/get_my_reading_room_summaries', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify([]),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+  await page.route('**/rest/v1/profiles?*', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({ bio: '함께 읽고 오래 남겨요.', display_name: '민규', mbti: 'INTP' }),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+  await page.route('**/rest/v1/book_chat_completions?*', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify([]),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+  await page.route('**/rest/v1/notification_preferences?*', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        mentions_enabled: true,
+        replies_enabled: true,
+        room_events_enabled: true,
+      }),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+  await page.route('**/rest/v1/notifications?*', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify([]),
+      contentType: 'application/json',
+      headers: { 'content-range': '0-0/0' },
+      status: 200,
+    })
+  })
+}
+
+/** 현재 페이지의 문서 가로 폭이 지원 viewport 폭을 넘지 않는지 검사한다. */
+async function expectPageToFitViewport(page: Page, viewportWidth: number) {
+  await expect(page.locator('html')).toHaveJSProperty('scrollWidth', viewportWidth)
+}
+
+/** 현재 페이지의 axe-core 자동 접근성 위반이 없는지 검사한다. */
+async function expectNoAccessibilityViolations(page: Page) {
+  const accessibilityScanResults = await new AxeBuilder({ page }).analyze()
+  expect(accessibilityScanResults.violations).toEqual([])
 }

@@ -59,6 +59,12 @@ export function AppBottomNavigation() {
     actionMenuButtonRef.current?.focus()
   }
 
+  /** 책자 배경의 포인터 입력이 배경 버튼으로 포커스를 옮기기 전에 메뉴를 닫는다. */
+  function handleActionBackdropPointerDown(event: React.PointerEvent<HTMLButtonElement>) {
+    event.preventDefault()
+    handleCloseActionBook()
+  }
+
   /** 중앙 + 버튼으로 모임 시작 선택지의 펼침 상태를 전환한다. */
   function handleToggleActionBook() {
     setIsActionBookOpen((isOpen) => !isOpen)
@@ -82,7 +88,7 @@ export function AppBottomNavigation() {
         <button
           aria-label="메뉴 바깥 영역을 눌러 닫기"
           className="talkhugam-action-backdrop"
-          onClick={handleCloseActionBook}
+          onPointerDown={handleActionBackdropPointerDown}
           type="button"
         />
       ) : null}
