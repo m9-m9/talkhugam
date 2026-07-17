@@ -57,6 +57,18 @@ test('has no automated accessibility violations on authenticated account screens
   }
 })
 
+test('recovers from an unknown authenticated route by returning to reading rooms', async ({
+  page,
+}) => {
+  await authenticatePage(page)
+  await mockAuthenticatedPageData(page)
+  await page.goto('/not-a-real-page')
+
+  await expect(page.getByRole('heading', { name: '페이지를 찾을 수 없어요' })).toBeVisible()
+  await page.getByRole('button', { name: '독서방으로 돌아가기' }).click()
+  await expect(page).toHaveURL('/rooms')
+})
+
 test('closes the action book by Escape and outside click while returning focus to its trigger', async ({
   page,
 }) => {
