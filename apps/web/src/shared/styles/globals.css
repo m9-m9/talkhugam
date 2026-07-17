@@ -79,10 +79,11 @@
 
   bottom: 0;
   height: var(--bottom-navigation-height);
-  left: 50%;
+  left: 0;
+  margin-inline: auto;
   max-width: 640px;
   position: fixed;
-  transform: translateX(-50%);
+  right: 0;
   width: 100%;
   z-index: 20;
 }
