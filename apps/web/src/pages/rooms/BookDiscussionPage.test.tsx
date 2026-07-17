@@ -103,7 +103,10 @@ describe('BookDiscussionPage', () => {
     cleanup()
     createPost.mockClear()
     createReply.mockClear()
+    getPosts.mockClear()
+    getPosts.mockResolvedValue([])
     getVideoFilterMembers.mockClear()
+    getVideoPosts.mockClear()
     getVideoPosts.mockResolvedValue([])
     videoUploadState.isUploadingVideo = false
   })
@@ -212,6 +215,105 @@ describe('BookDiscussionPage', () => {
     expect(await screen.findByText('멘션할 멤버가 없어요.')).toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: '다시 시도' })).not.toBeInTheDocument()
+  })
+
+  it('shows a post query error instead of the empty conversation state and retries', async () => {
+    getPosts.mockRejectedValueOnce(new Error('network'))
+    renderBookDiscussionPage()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '감상을 불러오지 못했어요. 다시 시도해 주세요.',
+    )
+    expect(screen.queryByText('첫 감상을 남겨 보세요')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '다시 시도' }))
+
+    await vi.waitFor(() => expect(getPosts).toHaveBeenCalledTimes(2))
+    expect(await screen.findByText('첫 감상을 남겨 보세요')).toBeInTheDocument()
+  })
+
+  it('shows a video query error instead of the empty conversation state and retries', async () => {
+    getVideoPosts.mockRejectedValueOnce(new Error('network'))
+    renderBookDiscussionPage()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '영상을 불러오지 못했어요. 다시 시도해 주세요.',
+    )
+    expect(screen.queryByText('첫 감상을 남겨 보세요')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '다시 시도' }))
+
+    await vi.waitFor(() => expect(getVideoPosts).toHaveBeenCalledTimes(2))
+    expect(await screen.findByText('첫 감상을 남겨 보세요')).toBeInTheDocument()
+  })
+
+  it('keeps loaded posts visible when the video query fails', async () => {
+    getPosts.mockResolvedValueOnce([
+      {
+        authorName: '서연',
+        body: '이 문장이 특히 좋았어요.',
+        createdAt: '2026-07-18T00:00:00.000Z',
+        depth: 0,
+        id: 'f17c0d6d-3e6e-4b7f-a1f1-5d652aa2a85e',
+        labels: [],
+        rootPostId: null,
+      },
+    ])
+    getVideoPosts.mockRejectedValueOnce(new Error('network'))
+    renderBookDiscussionPage()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '영상을 불러오지 못했어요. 다시 시도해 주세요.',
+    )
+    expect(screen.getByText('이 문장이 특히 좋았어요.')).toBeInTheDocument()
+  })
+
+  it('keeps loaded videos visible when the post query fails', async () => {
+    getPosts.mockRejectedValueOnce(new Error('network'))
+    getVideoPosts.mockResolvedValueOnce([
+      {
+        authorName: '민규',
+        body: null,
+        createdAt: '2026-07-17T00:00:00.000Z',
+        id: 'video-1',
+        status: 'processing',
+      },
+    ])
+    renderBookDiscussionPage()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '감상을 불러오지 못했어요. 다시 시도해 주세요.',
+    )
+    expect(screen.getByRole('status', { name: '영상 준비 중…' })).toBeInTheDocument()
+  })
+
+  it('shows a post query error while the video query is still loading', async () => {
+    const videoRequest = createDeferredValue<never[]>()
+    getPosts.mockRejectedValueOnce(new Error('network'))
+    getVideoPosts.mockReturnValueOnce(videoRequest.promise)
+    renderBookDiscussionPage()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '감상을 불러오지 못했어요. 다시 시도해 주세요.',
+    )
+
+    videoRequest.resolve([])
+  })
+
+  it('shows the book loader and disables retry while a failed query is retrying', async () => {
+    const retryRequest = createDeferredValue<never[]>()
+    getPosts.mockRejectedValueOnce(new Error('network'))
+    getPosts.mockReturnValueOnce(retryRequest.promise)
+    renderBookDiscussionPage()
+
+    const retryButton = await screen.findByRole('button', { name: '다시 시도' })
+    fireEvent.click(retryButton)
+
+    expect(await screen.findByRole('status', { name: '대화를 다시 불러오고 있어요.' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '다시 시도' })).toBeDisabled()
+
+    retryRequest.resolve([])
+    expect(await screen.findByText('첫 감상을 남겨 보세요')).toBeInTheDocument()
   })
 
   it('gives the mention removal action a 44px touch target', async () => {
@@ -504,4 +606,14 @@ function renderBookDiscussionPage() {
       </MemoryRouter>
     </QueryClientProvider>,
   )
+}
+
+/** 테스트에서 임의 시점에 완료할 비동기 값을 만든다. */
+function createDeferredValue<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise
+  })
+
+  return { promise, resolve }
 }

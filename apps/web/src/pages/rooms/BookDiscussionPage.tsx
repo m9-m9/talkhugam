@@ -35,6 +35,7 @@ import { readingRoomKeys } from '../../entities/reading-room'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { RetryState } from '../../shared/ui/RetryState'
 
 type LabelKind = 'page' | 'chapter'
 
@@ -49,6 +50,8 @@ export function BookDiscussionPage() {
   const [mentionedMemberIds, setMentionedMemberIds] = useState<PostForm['mentionedMemberIds']>([])
   const [replyTo, setReplyTo] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [isRetryingTimeline, setIsRetryingTimeline] = useState(false)
+  const [timelineRetryMessage, setTimelineRetryMessage] = useState<string | null>(null)
   const {
     errorMessage: videoErrorMessage,
     isUploadingVideo,
@@ -127,6 +130,18 @@ export function BookDiscussionPage() {
     }
   }
 
+  /** 실패한 감상과 영상 조회를 함께 다시 요청한다. */
+  function handleRetryTimeline() {
+    setTimelineRetryMessage(
+      getDiscussionTimelineErrorMessage(postsQuery.isError, videosQuery.isError),
+    )
+    setIsRetryingTimeline(true)
+    void Promise.all([postsQuery.refetch(), videosQuery.refetch()]).finally(() => {
+      setIsRetryingTimeline(false)
+      setTimelineRetryMessage(null)
+    })
+  }
+
   if (!roomId || !bookChatId) return <main className="bg-surface min-h-screen" />
   const roots = postsQuery.data?.filter((post) => post.depth === 0) ?? []
   return (
@@ -150,13 +165,19 @@ export function BookDiscussionPage() {
         onSave={(input) => completionMutation.mutate(input)}
       />
       <section className="mt-8 flex-1">
-        {postsQuery.isPending || videosQuery.isPending ? (
+        {postsQuery.isPending && videosQuery.isPending ? (
           <LoadingSpinner label="대화를 불러오고 있어요." size="sm" />
         ) : (
-          <ChatTimeline
+          <DiscussionTimeline
             allPosts={postsQuery.data ?? []}
+            hasPostError={postsQuery.isError}
+            hasPendingQuery={postsQuery.isPending || videosQuery.isPending}
+            hasVideoError={videosQuery.isError}
+            isRetrying={isRetryingTimeline}
             onReply={setReplyTo}
             posts={roots}
+            onRetry={handleRetryTimeline}
+            retryMessage={timelineRetryMessage}
             videos={videosQuery.data ?? []}
           />
         )}
@@ -182,6 +203,61 @@ export function BookDiscussionPage() {
       />
     </main>
   )
+}
+
+/** 감상과 영상 조회 상태에 따라 대화 또는 재시도 안내를 렌더링한다. */
+function DiscussionTimeline({
+  allPosts,
+  hasPostError,
+  hasPendingQuery,
+  hasVideoError,
+  isRetrying,
+  onReply,
+  onRetry,
+  posts,
+  retryMessage,
+  videos,
+}: {
+  allPosts: DiscussionPost[]
+  hasPostError: boolean
+  hasPendingQuery: boolean
+  hasVideoError: boolean
+  isRetrying: boolean
+  onReply: (id: string) => void
+  onRetry: () => void
+  posts: DiscussionPost[]
+  retryMessage: string | null
+  videos: VideoPost[]
+}) {
+  const errorMessage =
+    getDiscussionTimelineErrorMessage(hasPostError, hasVideoError) ?? retryMessage
+  const isShowingLoadingFeedback = hasPendingQuery || isRetrying
+  const loadingLabel = isRetrying ? '대화를 다시 불러오고 있어요.' : '대화를 불러오고 있어요.'
+
+  return (
+    <div className="space-y-4">
+      {errorMessage ? <RetryState isRetrying={isRetrying} message={errorMessage} onRetry={onRetry} /> : null}
+      <ChatTimeline
+        allPosts={allPosts}
+        onReply={onReply}
+        posts={posts}
+        showEmptyState={!errorMessage && !hasPendingQuery}
+        videos={videos}
+      />
+      {isShowingLoadingFeedback ? <LoadingSpinner label={loadingLabel} size="xs" /> : null}
+    </div>
+  )
+}
+
+/** 실패한 대화 조회 종류에 맞는 재시도 안내 문구를 반환한다. */
+function getDiscussionTimelineErrorMessage(
+  hasPostError: boolean,
+  hasVideoError: boolean,
+): string | null {
+  if (hasPostError && hasVideoError) return '대화를 불러오지 못했어요. 다시 시도해 주세요.'
+  if (hasPostError) return '감상을 불러오지 못했어요. 다시 시도해 주세요.'
+  if (hasVideoError) return '영상을 불러오지 못했어요. 다시 시도해 주세요.'
+  return null
 }
 
 /** 개인 완독 기록과 모임 멤버의 총평 현황을 렌더링한다. */
@@ -786,21 +862,24 @@ function ChatTimeline({
   allPosts,
   onReply,
   posts,
+  showEmptyState = true,
   videos,
 }: {
   allPosts: DiscussionPost[]
   onReply: (id: string) => void
   posts: DiscussionPost[]
+  showEmptyState?: boolean
   videos: VideoPost[]
 }) {
   const messages = createChatMessages(posts, videos)
-  if (messages.length === 0)
+  if (messages.length === 0 && showEmptyState)
     return (
       <div className="bg-surface-muted rounded-lg p-6 text-center">
         <p className="text-ink font-medium">첫 감상을 남겨 보세요</p>
         <p className="text-ink-subtle mt-2 text-sm">페이지나 챕터 라벨만 먼저 남겨도 괜찮아요.</p>
       </div>
     )
+  if (messages.length === 0) return null
   return (
     <ul className="space-y-4">
       {messages.map((message) =>
