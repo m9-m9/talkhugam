@@ -36,6 +36,9 @@ Edge Function용 Mux key는 `supabase/functions/.env.local` 또는 연결된 Sup
 pnpm backend:test:mux
 ```
 
+이 명령은 `.env`의 `RUN_MUX_INTEGRATION_TESTS=true`가 있어야 실제 외부 요청을 실행한다. PR 기본 CI에는
+비용과 외부 자산 생성을 피하기 위해 포함하지 않고, 격리된 Supabase·Mux 테스트 프로젝트에서만 명시적으로 실행한다.
+
 테스트는 다음 순서로 동작한다.
 
 1. 격리된 테스트 사용자, 독서방, 책 채팅을 만든다.
