@@ -366,7 +366,7 @@ function ChatTimeline({
         message.type === 'text' ? (
           <li className="flex" key={message.post.id}>
             <article className="border-ink/10 max-w-full rounded-lg border bg-white px-4 py-3">
-              <p className="text-ink text-sm font-medium">{message.post.author_name_snapshot}</p>
+              <p className="text-ink text-sm font-medium">{message.post.authorName}</p>
               <PostLabels labels={message.post.labels} />
               {message.post.body ? (
                 <p className="text-ink mt-2 text-sm whitespace-pre-wrap">{message.post.body}</p>
@@ -378,7 +378,7 @@ function ChatTimeline({
               >
                 답글 남기기
               </button>
-              <Replies posts={allPosts.filter((reply) => reply.root_post_id === message.post.id)} />
+              <Replies posts={allPosts.filter((reply) => reply.rootPostId === message.post.id)} />
             </article>
           </li>
         ) : (
@@ -447,7 +447,7 @@ function Replies({ posts }: { posts: DiscussionPost[] }) {
     <ul className="border-ink/10 mt-3 space-y-3 border-l pl-3">
       {posts.map((post) => (
         <li key={post.id}>
-          <p className="text-ink text-xs font-medium">{post.author_name_snapshot}</p>
+          <p className="text-ink text-xs font-medium">{post.authorName}</p>
           {post.body ? (
             <p className="text-ink-subtle mt-1 text-xs whitespace-pre-wrap">{post.body}</p>
           ) : null}
@@ -473,7 +473,7 @@ function formatLabel(label: PostForm['labels'][number]) {
 
 function createChatMessages(posts: DiscussionPost[], videos: VideoPost[]) {
   const textMessages = posts.map((post) => ({
-    createdAt: post.created_at,
+    createdAt: post.createdAt,
     post,
     type: 'text' as const,
   }))

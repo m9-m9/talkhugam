@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { parsePostForm, parsePosts } from './post'
+
 describe('post parser', () => {
   it('trims valid post content', () =>
     expect(parsePostForm({ body: ' 감상 ' })).toEqual({ body: '감상', labels: [] }))
@@ -8,7 +9,7 @@ describe('post parser', () => {
       body: '',
       labels: [{ kind: 'page', value: '87쪽' }],
     }))
-  it('parses Phase 1 root and reply posts', () =>
+  it('maps Supabase rows to discussion-post domain models', () =>
     expect(
       parsePosts([
         {
@@ -23,9 +24,19 @@ describe('post parser', () => {
           ],
           root_post_id: null,
         },
-      ])[0]?.labels,
+      ]),
     ).toEqual([
-      { kind: 'page', value: '87' },
-      { kind: 'chapter', value: '3장' },
+      {
+        authorName: '민규',
+        body: '감상',
+        createdAt: '2026-07-17T02:01:30.123+00:00',
+        depth: 0,
+        id: 'f17c0d6d-3e6e-4b7f-a1f1-5d652aa2a85e',
+        labels: [
+          { kind: 'page', value: '87' },
+          { kind: 'chapter', value: '3장' },
+        ],
+        rootPostId: null,
+      },
     ]))
 })

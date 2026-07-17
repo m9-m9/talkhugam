@@ -33,23 +33,21 @@ const postFormSchema = z
     message: '감상이나 라벨을 하나 이상 남겨 주세요.',
   })
 
-export type DiscussionPost = Omit<z.infer<typeof postRowSchema>, 'post_labels'> & {
+export type DiscussionPost = {
+  authorName: string
+  body: string | null
+  createdAt: string
+  depth: 0 | 1
+  id: string
   labels: z.infer<typeof postLabelSchema>[]
+  rootPostId: string | null
 }
 export type PostForm = z.infer<typeof postFormSchema>
 
 export const postKeys = { byBookChat: (bookChatId: string) => ['posts', bookChatId] as const }
 
 export function parsePosts(value: unknown): DiscussionPost[] {
-  return z
-    .array(postRowSchema)
-    .parse(value)
-    .map((post) => ({
-      ...post,
-      labels: [...post.post_labels]
-        .sort((first, second) => first.sort_order - second.sort_order)
-        .map(({ kind, value: labelValue }) => ({ kind, value: labelValue })),
-    }))
+  return z.array(postRowSchema).parse(value).map(mapDiscussionPost)
 }
 
 export async function getPosts(
@@ -102,4 +100,18 @@ export async function createReply(
 
 export function parsePostForm(value: unknown): PostForm {
   return postFormSchema.parse(value)
+}
+
+function mapDiscussionPost(row: z.infer<typeof postRowSchema>): DiscussionPost {
+  return {
+    authorName: row.author_name_snapshot,
+    body: row.body,
+    createdAt: row.created_at,
+    depth: row.depth,
+    id: row.id,
+    labels: [...row.post_labels]
+      .sort((first, second) => first.sort_order - second.sort_order)
+      .map(({ kind, value }) => ({ kind, value })),
+    rootPostId: row.root_post_id,
+  }
 }
