@@ -28,6 +28,7 @@ const postFormSchema = z
   .object({
     body: z.string().trim().max(500),
     labels: z.array(postLabelSchema).max(10).default([]),
+    mentionedMemberIds: z.array(z.string().uuid()).max(6).default([]),
   })
   .refine((value) => value.body.length > 0 || value.labels.length > 0, {
     message: '감상이나 라벨을 하나 이상 남겨 주세요.',
@@ -84,6 +85,7 @@ export async function createPost(
     p_book_chat_id: bookChatId,
     p_client_id: crypto.randomUUID(),
     p_labels: values.labels,
+    p_mentioned_member_ids: values.mentionedMemberIds,
     p_type: 'text',
   })
   if (response.error) throw response.error
@@ -99,6 +101,7 @@ export async function createReply(
   const response = await client.rpc('create_reply', {
     p_body: values.body,
     p_client_id: crypto.randomUUID(),
+    p_mentioned_member_ids: values.mentionedMemberIds,
     p_root_post_id: rootPostId,
   })
   if (response.error) throw response.error

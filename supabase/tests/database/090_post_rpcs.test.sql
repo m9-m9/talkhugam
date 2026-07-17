@@ -2,7 +2,7 @@ begin;
 
 \ir ../helpers/auth.inc
 
-select plan(23);
+select plan(25);
 
 select tests.create_supabase_user(
   '00000000-0000-0000-0000-000000000191',
@@ -190,6 +190,29 @@ select throws_ok(
   'MENTION_MEMBER_INVALID',
   'an invalid mention should fail the whole RPC'
 );
+select throws_ok(
+  $$
+    select public.create_post(
+      '50000000-0000-0000-0000-000000000091',
+      '70000000-0000-0000-0000-000000000099',
+      'text',
+      '멘션 상한 초과',
+      '[]'::jsonb,
+      array[
+        '20000000-0000-0000-0000-000000000101'::uuid,
+        '20000000-0000-0000-0000-000000000102'::uuid,
+        '20000000-0000-0000-0000-000000000103'::uuid,
+        '20000000-0000-0000-0000-000000000104'::uuid,
+        '20000000-0000-0000-0000-000000000105'::uuid,
+        '20000000-0000-0000-0000-000000000106'::uuid,
+        '20000000-0000-0000-0000-000000000107'::uuid
+      ]
+    )
+  $$,
+  'P0001',
+  'MENTION_LIMIT_EXCEEDED',
+  'create_post should reject seven distinct mention member ids before membership validation'
+);
 select is(
   (select count(*) from public.posts),
   1::bigint,
@@ -240,6 +263,26 @@ select is(
   (select count(*) from public.post_mentions where post_id = (select id from reply_result)),
   2::bigint,
   'create_reply should preserve valid mention links'
+);
+select throws_ok(
+  format(
+    'select public.create_reply(%L::uuid, %L::uuid, %L, %L::uuid[])',
+    (select id from root_result),
+    '70000000-0000-0000-0000-000000000100',
+    '답글 멘션 상한 초과',
+    array[
+      '20000000-0000-0000-0000-000000000101'::uuid,
+      '20000000-0000-0000-0000-000000000102'::uuid,
+      '20000000-0000-0000-0000-000000000103'::uuid,
+      '20000000-0000-0000-0000-000000000104'::uuid,
+      '20000000-0000-0000-0000-000000000105'::uuid,
+      '20000000-0000-0000-0000-000000000106'::uuid,
+      '20000000-0000-0000-0000-000000000107'::uuid
+    ]
+  ),
+  'P0001',
+  'MENTION_LIMIT_EXCEEDED',
+  'create_reply should reject seven distinct mention member ids before membership validation'
 );
 
 reset role;
