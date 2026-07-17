@@ -13,6 +13,7 @@ import {
 import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { RetryState } from '../../shared/ui/RetryState'
 
 const mbtiOptions = [
   'ISTJ',
@@ -38,6 +39,8 @@ export function OnboardingPage() {
   const navigate = useNavigate()
   const user = useAuthenticatedUser()
   const [isLoading, setIsLoading] = useState(true)
+  const [loadAttempt, setLoadAttempt] = useState(0)
+  const [profileErrorMessage, setProfileErrorMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const form = useForm<ProfileForm>({
     defaultValues: createInitialProfileForm(undefined),
@@ -48,6 +51,8 @@ export function OnboardingPage() {
     /** 현재 사용자의 프로필을 불러와 온보딩 입력값을 채운다. */
     async function loadProfile() {
       const client = createSupabaseClient()
+      setIsLoading(true)
+      setProfileErrorMessage(null)
 
       try {
         const profile = await getProfile(client, user.id)
@@ -57,14 +62,20 @@ export function OnboardingPage() {
           mbti: isMbti(profile.mbti) ? profile.mbti : null,
         })
       } catch {
-        setErrorMessage('프로필 정보를 불러오지 못했어요. 새로고침 후 다시 시도해 주세요.')
+        setProfileErrorMessage('프로필 정보를 불러오지 못했어요. 다시 시도해 주세요.')
       } finally {
         setIsLoading(false)
       }
     }
 
     void loadProfile()
-  }, [form, user.id])
+  }, [form, loadAttempt, user.id])
+
+  /** 초기 프로필 조회를 다시 요청한다. */
+  function handleRetryProfile() {
+    setIsLoading(true)
+    setLoadAttempt((attempt) => attempt + 1)
+  }
 
   /** 제출 요청이나 사용자 동작을 처리한다. */
   async function handleSubmit(values: ProfileForm) {
@@ -82,6 +93,8 @@ export function OnboardingPage() {
   }
 
   if (isLoading) return <OnboardingState message="프로필을 준비하고 있어요." />
+  if (profileErrorMessage)
+    return <OnboardingErrorState message={profileErrorMessage} onRetry={handleRetryProfile} />
 
   return (
     <main className="app-page bg-surface flex flex-col px-4 py-8">
@@ -190,6 +203,15 @@ function OnboardingState({ message }: { message: string }) {
   return (
     <main className="app-page bg-surface flex items-center justify-center px-4">
       <LoadingSpinner label={message} />
+    </main>
+  )
+}
+
+/** 온보딩 프로필 조회 오류와 재시도 동작을 렌더링한다. */
+function OnboardingErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <main className="app-page bg-surface flex items-center justify-center px-4">
+      <RetryState message={message} onRetry={onRetry} />
     </main>
   )
 }
