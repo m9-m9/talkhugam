@@ -11,6 +11,10 @@ export default defineConfig({
   },
   webServer: {
     command: 'pnpm dev --host 127.0.0.1 --port 4173',
+    env: {
+      VITE_SUPABASE_PUBLISHABLE_KEY: 'e2e-public-key',
+      VITE_SUPABASE_URL: 'https://gvuwtaxvoinelqdvrher.supabase.co',
+    },
     reuseExistingServer: !process.env.CI,
     url: 'http://127.0.0.1:4173',
   },
