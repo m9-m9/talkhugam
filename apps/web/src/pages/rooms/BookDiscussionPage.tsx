@@ -24,6 +24,7 @@ import {
   videoKeys,
   type VideoPost,
 } from '../../entities/video'
+import { readingRoomKeys } from '../../entities/reading-room'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
@@ -74,6 +75,7 @@ export function BookDiscussionPage() {
       setLabels([])
       setReplyTo(null)
       await queryClient.invalidateQueries({ queryKey: postKeys.byBookChat(bookChatId) })
+      await queryClient.invalidateQueries({ queryKey: readingRoomKeys.all })
     } catch {
       setErrorMessage('감상을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.')
     }
@@ -90,6 +92,7 @@ export function BookDiscussionPage() {
       }
       const upload = await createVideoUpload(createSupabaseClient(), bookChatId)
       await queryClient.invalidateQueries({ queryKey: videoKeys.byBookChat(bookChatId) })
+      await queryClient.invalidateQueries({ queryKey: readingRoomKeys.all })
       await uploadVideoFile(upload.uploadUrl, file)
       await queryClient.invalidateQueries({ queryKey: videoKeys.byBookChat(bookChatId) })
     } catch (error) {

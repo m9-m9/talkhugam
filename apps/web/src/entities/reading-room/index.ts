@@ -1,10 +1,14 @@
 export {
   getReadingRooms,
   formatRoomMemberSummary,
+  formatRoomMessagePreview,
+  formatRoomMessageTime,
   parseReadingRooms,
+  parseReadingRoomSummaries,
   readingRoomKeys,
   type ReadingRoom,
   type ReadingRoomMember,
+  type RoomLastMessage,
 } from './readingRoom'
 export {
   createRoomFormSchema,

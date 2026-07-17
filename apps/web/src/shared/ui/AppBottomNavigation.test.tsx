@@ -26,6 +26,21 @@ describe('AppBottomNavigation', () => {
     expect(screen.getByText('/rooms/create')).toBeInTheDocument()
   })
 
+  it('navigates to the reading-group main page from the Talk후감 logo', () => {
+    render(
+      <MemoryRouter initialEntries={['/profile']}>
+        <AppBottomNavigation />
+        <Routes>
+          <Route path="*" element={<CurrentPath />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Talk후감 메인으로' }))
+
+    expect(screen.getByText('/rooms')).toBeInTheDocument()
+  })
+
   it('marks the current top-level destination', () => {
     const { container } = render(
       <MemoryRouter initialEntries={['/profile']}>

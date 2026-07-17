@@ -17,9 +17,14 @@ export function AppBottomNavigation() {
         >
           독서방
         </button>
-        <div className="flex min-h-11 items-center justify-center" aria-label="Talk후감">
+        <button
+          aria-label="Talk후감 메인으로"
+          className="flex min-h-11 items-center justify-center"
+          onClick={() => void navigate('/rooms')}
+          type="button"
+        >
           <img alt="" className="size-10" src="/brand/talkhugam-symbol.svg" />
-        </div>
+        </button>
         <button
           aria-current={isProfileActive ? 'page' : undefined}
           className={`min-h-11 text-sm font-medium ${isProfileActive ? 'text-primary' : 'text-ink-subtle'}`}

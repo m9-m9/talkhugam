@@ -4,13 +4,14 @@ import { useNavigate } from 'react-router-dom'
 
 import {
   formatRoomMemberSummary,
+  formatRoomMessagePreview,
+  formatRoomMessageTime,
   getReadingRooms,
   readingRoomKeys,
   type ReadingRoom,
   type ReadingRoomMember,
 } from '../../entities/reading-room'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
-import { AppHeader } from '../../shared/ui/AppHeader'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 export function RoomsPage() {
@@ -45,19 +46,17 @@ export function RoomsPage() {
 
   return (
     <main className="app-page bg-surface flex flex-col px-6">
-      <AppHeader
-        action={
-          <button
-            aria-label="초대 코드로 독서방 참여하기"
-            className="text-primary min-h-11 px-3 text-sm font-medium"
-            onClick={() => void navigate('/rooms/join')}
-            type="button"
-          >
-            초대
-          </button>
-        }
-        title="내 독서방"
-      />
+      <header className="border-ink/10 -mx-6 flex min-h-20 items-center border-b px-6">
+        <img alt="Talk후감" className="h-12 w-auto" src="/brand/talkhugam-wordmark.svg" />
+        <button
+          aria-label="초대 코드로 독서방 참여하기"
+          className="text-primary ml-auto min-h-11 px-3 text-sm font-medium"
+          onClick={() => void navigate('/rooms/join')}
+          type="button"
+        >
+          초대
+        </button>
+      </header>
 
       <section aria-labelledby="recent-rooms-heading" className="flex flex-1 flex-col py-8">
         <RoomsContent
@@ -131,8 +130,9 @@ function RoomsList({ rooms }: { rooms: ReadingRoom[] }) {
   return (
     <div>
       <h2 className="text-ink text-base font-bold" id="recent-rooms-heading">
-        최근 대화
+        함께 읽는 모임
       </h2>
+      <p className="text-ink-subtle mt-1 text-xs">최근 이야기를 나눈 순서예요.</p>
       <ul className="mt-4 space-y-3">
         {rooms.map((room) => (
           <li key={room.id}>
@@ -146,14 +146,17 @@ function RoomsList({ rooms }: { rooms: ReadingRoom[] }) {
                 <span className="min-w-0 flex-1">
                   <span className="text-ink block text-sm font-bold">{room.name}</span>
                   <span className="text-ink-subtle mt-1 block truncate text-xs">
-                    {room.description ?? '아직 새 감상이 없어요'}
+                    {formatRoomMessagePreview(room)}
                   </span>
                   <span className="text-ink-subtle mt-3 block text-xs">
                     {formatRoomMemberSummary(room.members)}
                   </span>
                 </span>
-                <span aria-hidden="true" className="text-ink-subtle pt-4 text-lg">
-                  ›
+                <span className="text-ink-subtle flex flex-col items-end gap-2 pt-1 text-xs">
+                  {formatRoomMessageTime(room.lastMessage?.createdAt ?? null) ?? '새 모임'}
+                  <span aria-hidden="true" className="text-lg">
+                    ›
+                  </span>
                 </span>
               </span>
             </button>
