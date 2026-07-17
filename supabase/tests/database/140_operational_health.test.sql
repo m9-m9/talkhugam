@@ -1,6 +1,6 @@
 begin;
 
-select plan(5);
+select plan(6);
 
 insert into public.mux_events (
   event_id,
@@ -43,6 +43,21 @@ values (
   'AUTH_DELETE_FAILED'
 );
 
+insert into private.account_deletion_requests (
+  id,
+  profile_id,
+  mode,
+  status,
+  updated_at
+)
+values (
+  '80000000-0000-0000-0000-000000000142',
+  '00000000-0000-0000-0000-000000000142',
+  'anonymize',
+  'prepared',
+  now() - interval '6 minutes'
+);
+
 create temporary table health_result as
 select public.backend_operational_health() as value;
 
@@ -60,6 +75,11 @@ select is(
   ((select value from health_result) ->> 'accountDeletionFailed')::integer,
   1,
   'health should count failed Auth deletion handoffs'
+);
+select is(
+  ((select value from health_result) ->> 'accountDeletionCompletionPending')::integer,
+  1,
+  'health should count deletion records pending completion after Auth deletion'
 );
 select ok(
   (select value from health_result) ? 'checkedAt',

@@ -3,7 +3,13 @@ import { z } from 'zod'
 
 const accountDeletionModeSchema = z.enum(['anonymize', 'delete_content'])
 const accountDeletionSuccessSchema = z.object({
+  completionPending: z.boolean().default(false),
   deleted: z.literal(true),
+  requestId: z.string().uuid(),
+})
+const accountDeletionResponseSchema = z.object({
+  data: accountDeletionSuccessSchema,
+  ok: z.literal(true),
   requestId: z.string().uuid(),
 })
 const accountDeletionFailureSchema = z.object({
@@ -20,6 +26,7 @@ const accountDeletionFailureSchema = z.object({
 
 export type AccountDeletionMode = z.infer<typeof accountDeletionModeSchema>
 export type AccountDeletionErrorCode = z.infer<typeof accountDeletionFailureSchema>['error']['code']
+export type AccountDeletionResult = z.infer<typeof accountDeletionSuccessSchema>
 
 type AccountDeletionClient = {
   functions: {
@@ -46,14 +53,14 @@ export class AccountDeletionError extends Error {
 export async function requestAccountDeletion(
   client: AccountDeletionClient,
   mode: AccountDeletionMode,
-): Promise<void> {
+): Promise<AccountDeletionResult> {
   const selectedMode = accountDeletionModeSchema.parse(mode)
   const response = await client.functions.invoke('account-delete', {
     body: { mode: selectedMode },
   })
 
   if (response.error) throw await mapAccountDeletionError(response.error)
-  accountDeletionSuccessSchema.parse(response.data)
+  return accountDeletionResponseSchema.parse(response.data).data
 }
 
 /** Edge Function 응답 오류를 계정 삭제 도메인 오류로 변환한다. */

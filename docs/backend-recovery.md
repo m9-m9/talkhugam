@@ -115,6 +115,37 @@ psql \
 - Mux asset ID 표본 조회와 signed playback token 발급 성공
 - 로그에 email, token, 본문, 업로드 URL이 남지 않음
 
+## 계정 삭제 완료 기록 복구
+
+`backend_operational_health()`의 `accountDeletionCompletionPending`이 0보다 크면, 완료 기록을
+확정하지 못한 요청이 5분 이상 남아 있을 수 있다. Auth 삭제 성공 여부는 이 수치만으로 판단하지 않고,
+다음 절차로 확인한다.
+
+1. Supabase Dashboard의 SQL Editor에서 운영 프로젝트의 권한 있는 운영자만 대상 요청의 `profile_id`가
+   `auth.users`에 더 이상 없는지 확인한다. 이 확인 전에는 완료 처리하지 않는다.
+   Dashboard 왼쪽 메뉴에서 **SQL Editor → New query**를 연 뒤, 아래 SQL의 UUID만 대상 값으로 바꿔 실행한다.
+   ```sql
+   select request_id, profile_id
+   from private.account_deletion_requests
+   where status = 'prepared'
+     and updated_at < now() - interval '5 minutes';
+
+   select id
+   from auth.users
+   where id = '<위에서 확인한 profile_id>'::uuid;
+   ```
+2. 두 번째 조회가 행을 반환하지 않은 경우에만, 같은 SQL Editor에서 아래 SQL의 UUID를 대상 `request_id`로
+   바꿔 실행한다.
+   ```sql
+   select public.finish_account_deletion(
+     '<대상 request_id>'::uuid,
+     true,
+     null
+   );
+   ```
+3. `backend_operational_health()`을 다시 실행해 `accountDeletionCompletionPending`이 감소했는지 확인한다.
+4. 복구 시각, request ID, 확인 결과는 접근 제한된 운영 기록에만 남긴다. 사용자 이메일이나 토큰은 기록하지 않는다.
+
 ## 복구 훈련 기록
 
 실제 운영 연결 전과 이후 분기마다 최소 한 번 격리 복구를 수행한다.

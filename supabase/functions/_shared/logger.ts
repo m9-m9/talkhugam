@@ -1,6 +1,7 @@
 export type LogLevel = 'info' | 'warn' | 'error'
 
 export type OperationalEvent =
+  | 'account_delete_completion_pending'
   | 'account_delete_failed'
   | 'account_delete_succeeded'
   | 'book_search_failed'

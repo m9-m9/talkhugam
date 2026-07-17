@@ -4,12 +4,27 @@ import { parseJsonBody } from '../_shared/body.ts'
 import { createCorsHeaders, optionsResponse } from '../_shared/cors.ts'
 import { logOperationalEvent } from '../_shared/logger.ts'
 import { createAdminClient, getAuthenticatedContext } from '../_shared/supabase.ts'
+import { executeAccountDeletion, type AccountDeletionExecution } from './finalization.ts'
 import { accountDeleteInputSchema } from './schema.ts'
 
 const preparedRequestSchema = z.array(z.object({
   request_id: z.uuid(),
   profile_id: z.uuid(),
 })).min(1).max(1)
+
+/** 계정 삭제 결과를 표준 성공 응답으로 변환한다. */
+export function createAccountDeletionSuccessResponse(
+  deletion: AccountDeletionExecution,
+  deletionRequestId: string,
+  requestId: string,
+  headers: HeadersInit = {},
+): Response {
+  return successResponse(
+    { ...deletion, requestId: deletionRequestId },
+    requestId,
+    { ...headers, 'cache-control': 'no-store' },
+  )
+}
 
 /** 계정 삭제 요청이나 사용자 동작을 처리한다. */
 export async function handleAccountDelete(request: Request): Promise<Response> {
@@ -50,6 +65,7 @@ export async function handleAccountDelete(request: Request): Promise<Response> {
 
   const admin = createAdminClient()
   let deletionRequestId: string | null = null
+  let isAuthDeleted = false
 
   try {
     const prepareResponse = await auth.client.rpc('prepare_account_deletion', {
@@ -72,23 +88,39 @@ export async function handleAccountDelete(request: Request): Promise<Response> {
     if (!prepared) throw new Error('Prepared deletion request is required')
     deletionRequestId = prepared.request_id
 
-    const deleteResponse = await admin.auth.admin.deleteUser(auth.user.id)
-    if (deleteResponse.error) throw deleteResponse.error
-
-    const finishResponse = await admin.rpc('finish_account_deletion', {
-      p_request_id: prepared.request_id,
-      p_succeeded: true,
-      p_last_error: null,
-    })
-    if (finishResponse.error) throw finishResponse.error
-
-    logOperationalEvent('info', 'account_delete_succeeded', { requestId, status: body.value.mode })
-    return successResponse(
-      { requestId: prepared.request_id, deleted: true },
-      requestId,
-      { ...headers, 'cache-control': 'no-store' },
+    const deletion = await executeAccountDeletion(
+      async () => {
+        const deleteResponse = await admin.auth.admin.deleteUser(auth.user.id)
+        if (!deleteResponse.error) isAuthDeleted = true
+        return !deleteResponse.error
+      },
+      async () => {
+        const finishResponse = await admin.rpc('finish_account_deletion', {
+          p_request_id: prepared.request_id,
+          p_succeeded: true,
+          p_last_error: null,
+        })
+        return !finishResponse.error
+      },
     )
+
+    logOperationalEvent(
+      deletion.completionPending ? 'warn' : 'info',
+      deletion.completionPending ? 'account_delete_completion_pending' : 'account_delete_succeeded',
+      { requestId, status: body.value.mode },
+    )
+    return createAccountDeletionSuccessResponse(deletion, prepared.request_id, requestId, headers)
   } catch {
+    if (isAuthDeleted && deletionRequestId) {
+      logOperationalEvent('warn', 'account_delete_completion_pending', { requestId, status: body.value.mode })
+      return createAccountDeletionSuccessResponse(
+        { completionPending: true, deleted: true },
+        deletionRequestId,
+        requestId,
+        headers,
+      )
+    }
+
     if (deletionRequestId) {
       await admin.rpc('finish_account_deletion', {
         p_request_id: deletionRequestId,
