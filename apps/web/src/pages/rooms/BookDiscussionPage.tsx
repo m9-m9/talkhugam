@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import MuxPlayer from '@mux/mux-player-react'
 
 import {
@@ -15,6 +15,7 @@ import {
   getVideoPlaybackAuthorization,
   getVideoPosts,
   deleteVideoPost,
+  getUploadedVideoPostId,
   shouldRefreshVideoPosts,
   videoKeys,
   type VideoPost,
@@ -23,11 +24,13 @@ import { createSupabaseClient } from '../../shared/api/supabaseClient'
 
 export function BookDiscussionPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const queryClient = useQueryClient()
   const { bookChatId, roomId } = useParams()
   const [draft, setDraft] = useState('')
   const [replyTo, setReplyTo] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const uploadedVideoPostId = getUploadedVideoPostId(location.state)
   const postsQuery = useQuery({
     enabled: Boolean(bookChatId),
     queryFn: () => getPosts(createSupabaseClient(), bookChatId ?? ''),
@@ -37,7 +40,8 @@ export function BookDiscussionPage() {
     enabled: Boolean(bookChatId),
     queryFn: () => getVideoPosts(createSupabaseClient(), bookChatId ?? ''),
     queryKey: videoKeys.byBookChat(bookChatId ?? ''),
-    refetchInterval: (query) => (shouldRefreshVideoPosts(query.state.data) ? 3_000 : false),
+    refetchInterval: (query) =>
+      shouldRefreshVideoPosts(query.state.data, uploadedVideoPostId) ? 3_000 : false,
   })
   const deleteVideoMutation = useMutation({
     mutationFn: (postId: string) => deleteVideoPost(createSupabaseClient(), postId),
@@ -75,6 +79,10 @@ export function BookDiscussionPage() {
 
   if (!roomId || !bookChatId) return <main className="bg-surface min-h-screen" />
   const roots = postsQuery.data?.filter((post) => post.depth === 0) ?? []
+  const isWaitingForUploadedVideo = shouldRefreshVideoPosts(
+    videoPostsQuery.data,
+    uploadedVideoPostId,
+  )
   return (
     <main className="bg-surface mx-auto flex min-h-screen w-full max-w-md flex-col px-6 py-8">
       <button
@@ -111,6 +119,7 @@ export function BookDiscussionPage() {
         ) : (
           <VideoFeed
             isDeleting={deleteVideoMutation.isPending}
+            isWaitingForUploadedVideo={isWaitingForUploadedVideo}
             onDelete={(postId) => void handleDeleteVideo(postId)}
             posts={videoPostsQuery.data ?? []}
           />
@@ -144,17 +153,24 @@ export function BookDiscussionPage() {
 
 function VideoFeed({
   isDeleting,
+  isWaitingForUploadedVideo,
   onDelete,
   posts,
 }: {
   isDeleting: boolean
+  isWaitingForUploadedVideo: boolean
   onDelete: (postId: string) => void
   posts: VideoPost[]
 }) {
-  if (posts.length === 0)
+  if (posts.length === 0 && !isWaitingForUploadedVideo)
     return <p className="text-ink-subtle mt-4 text-sm">아직 남겨진 영상이 없어요.</p>
   return (
     <ul className="mt-4 space-y-4">
+      {isWaitingForUploadedVideo ? (
+        <li className="border-ink/10 overflow-hidden rounded-lg border bg-white">
+          <VideoPlaceholder message="업로드한 영상을 독서방에 추가하고 있어요…" />
+        </li>
+      ) : null}
       {posts.map((post) => (
         <li className="border-ink/10 overflow-hidden rounded-lg border bg-white" key={post.id}>
           <VideoPostCard isDeleting={isDeleting} onDelete={onDelete} post={post} />

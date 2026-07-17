@@ -16,6 +16,10 @@ const playbackAuthorizationSchema = z.object({
   ok: z.literal(true),
 })
 
+const uploadedVideoNavigationStateSchema = z.object({
+  uploadedVideoPostId: z.string().uuid(),
+})
+
 const videoAssetSchema = z.object({
   error_code: z.string().nullable(),
   post_id: z.string().uuid(),
@@ -120,12 +124,25 @@ export function parseVideoPlaybackAuthorization(value: unknown): VideoPlaybackAu
   return playbackAuthorizationSchema.parse(value).data
 }
 
+export function getUploadedVideoPostId(value: unknown): string | null {
+  const parsed = uploadedVideoNavigationStateSchema.safeParse(value)
+  return parsed.success ? parsed.data.uploadedVideoPostId : null
+}
+
 export function parseVideoPosts(value: unknown): VideoPost[] {
   return z.array(videoPostRowSchema).parse(value).map(mapVideoPost)
 }
 
-export function shouldRefreshVideoPosts(posts: VideoPost[] | undefined): boolean {
-  return posts?.some((post) => post.status === 'waiting_upload' || post.status === 'processing') ?? false
+export function shouldRefreshVideoPosts(
+  posts: VideoPost[] | undefined,
+  uploadedVideoPostId: string | null = null,
+): boolean {
+  const hasPendingVideo =
+    posts?.some((post) => post.status === 'waiting_upload' || post.status === 'processing') ?? false
+  const isUploadedVideoMissing =
+    uploadedVideoPostId !== null && !posts?.some((post) => post.id === uploadedVideoPostId)
+
+  return hasPendingVideo || isUploadedVideoMissing
 }
 
 export function validateVideoDuration(durationSeconds: number): boolean {

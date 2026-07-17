@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  getUploadedVideoPostId,
   parseVideoPlaybackAuthorization,
   parseVideoPosts,
   shouldRefreshVideoPosts,
@@ -75,5 +76,16 @@ describe('video feed state', () => {
         },
       ]),
     ).toBe(false)
+  })
+
+  it('keeps refreshing until a just-uploaded video is returned by the list query', () => {
+    expect(shouldRefreshVideoPosts([], '4b7227b2-5350-4a61-9114-b2d0c915fd1b')).toBe(true)
+  })
+
+  it('reads only a valid uploaded video id from navigation state', () => {
+    expect(
+      getUploadedVideoPostId({ uploadedVideoPostId: '4b7227b2-5350-4a61-9114-b2d0c915fd1b' }),
+    ).toBe('4b7227b2-5350-4a61-9114-b2d0c915fd1b')
+    expect(getUploadedVideoPostId({ uploadedVideoPostId: 'not-a-uuid' })).toBeNull()
   })
 })
