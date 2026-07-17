@@ -1,10 +1,16 @@
 import { useQuery } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
+import {
+  bookCompletionKeys,
+  getMyCompletedBooks,
+  type CompletedBook,
+} from '../../entities/book-completion'
 import { getProfile } from '../../entities/profile'
 import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
+import { BookCover } from '../../shared/ui/BookCover'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 /** 프로필 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
@@ -14,6 +20,10 @@ export function ProfilePage() {
   const profileQuery = useQuery({
     queryFn: () => getProfile(createSupabaseClient(), profileId),
     queryKey: ['profile', profileId],
+  })
+  const completedBooksQuery = useQuery({
+    queryFn: () => getMyCompletedBooks(createSupabaseClient(), profileId),
+    queryKey: bookCompletionKeys.myBooks(profileId),
   })
 
   if (profileQuery.isPending) return <ProfileState message="내 정보를 불러오고 있어요." />
@@ -76,6 +86,12 @@ export function ProfilePage() {
         </dl>
       </section>
 
+      <CompletedBooksSection
+        completedBooks={completedBooksQuery.data ?? []}
+        hasError={completedBooksQuery.isError}
+        isLoading={completedBooksQuery.isPending}
+      />
+
       <section className="mt-12" aria-labelledby="account-heading">
         <h2 className="text-ink text-base font-bold" id="account-heading">
           계정
@@ -97,6 +113,66 @@ export function ProfilePage() {
         </button>
       </section>
     </main>
+  )
+}
+
+/** 개인이 완독한 책과 선택 총평을 마이페이지에서 렌더링한다. */
+function CompletedBooksSection({
+  completedBooks,
+  hasError,
+  isLoading,
+}: {
+  completedBooks: CompletedBook[]
+  hasError: boolean
+  isLoading: boolean
+}) {
+  return (
+    <section className="mt-12" aria-labelledby="completed-books-heading">
+      <h2 className="text-ink text-base font-bold" id="completed-books-heading">
+        내가 완독한 책
+      </h2>
+      {isLoading ? <LoadingSpinner label="완독한 책을 불러오고 있어요." size="xs" /> : null}
+      {hasError ? (
+        <p className="text-ink-subtle mt-4 text-sm">
+          완독한 책을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.
+        </p>
+      ) : null}
+      {!isLoading && !hasError && completedBooks.length === 0 ? (
+        <p className="text-ink-subtle mt-4 text-sm">아직 완독한 책이 없어요.</p>
+      ) : null}
+      {completedBooks.length > 0 ? (
+        <ul className="mt-4 space-y-3" aria-label="완독한 책 목록">
+          {completedBooks.map((book) => (
+            <li key={book.bookChatId}>
+              <Link
+                aria-label={`${book.title} 책 대화로 이동`}
+                className="border-ink/10 flex min-h-20 items-center gap-3 rounded-lg border bg-white p-3"
+                to={`/rooms/${book.roomId}/books/${book.bookChatId}`}
+              >
+                <BookCover alt="" thumbnailUrl={book.thumbnailUrl} />
+                <span className="min-w-0 flex-1">
+                  <span className="text-ink block truncate text-sm font-semibold">
+                    {book.title}
+                  </span>
+                  <span className="text-ink-subtle mt-1 block truncate text-xs">
+                    {book.authors.join(', ')}
+                  </span>
+                  <span className="text-primary mt-1 block text-xs">
+                    {book.rating ? '★'.repeat(book.rating) : '별점 작성 전'}
+                  </span>
+                  <span className="text-ink-subtle mt-1 block truncate text-xs">
+                    {book.review || '총평 작성 전'}
+                  </span>
+                </span>
+                <span aria-hidden="true" className="text-ink-subtle text-lg">
+                  ›
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
   )
 }
 
