@@ -18,7 +18,7 @@ export function AppBottomNavigation() {
           독서방
         </button>
         <div className="flex min-h-11 items-center justify-center" aria-label="Talk후감">
-          <img alt="" className="size-10" src="/favicon.svg" />
+          <img alt="" className="size-10" src="/brand/talkhugam-symbol.svg" />
         </div>
         <button
           aria-current={isProfileActive ? 'page' : undefined}

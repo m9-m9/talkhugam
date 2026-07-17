@@ -27,12 +27,13 @@ describe('AppBottomNavigation', () => {
   })
 
   it('marks the current top-level destination', () => {
-    render(
+    const { container } = render(
       <MemoryRouter initialEntries={['/profile']}>
         <AppBottomNavigation />
       </MemoryRouter>,
     )
 
     expect(screen.getByRole('button', { name: '내 정보' })).toHaveAttribute('aria-current', 'page')
+    expect(container.querySelector('img')).toHaveAttribute('src', '/brand/talkhugam-symbol.svg')
   })
 })
