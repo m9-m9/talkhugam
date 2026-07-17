@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 export function AppBottomNavigation() {
   const location = useLocation()
   const navigate = useNavigate()
+  const actionBookRef = useRef<HTMLElement>(null)
+  const actionMenuButtonRef = useRef<HTMLButtonElement>(null)
   const [isActionBookOpen, setIsActionBookOpen] = useState(false)
   const isRoomsActive = location.pathname.startsWith('/rooms')
   const isProfileActive = location.pathname.startsWith('/profile')
@@ -13,9 +15,20 @@ export function AppBottomNavigation() {
       if (event.key === 'Escape') setIsActionBookOpen(false)
     }
 
+    function handleOutsidePointerDown(event: PointerEvent) {
+      if (!isActionBookOpen || !(event.target instanceof Node)) return
+      if (actionBookRef.current?.contains(event.target)) return
+      if (actionMenuButtonRef.current?.contains(event.target)) return
+      setIsActionBookOpen(false)
+    }
+
     window.addEventListener('keydown', handleEscape)
-    return () => window.removeEventListener('keydown', handleEscape)
-  }, [])
+    document.addEventListener('pointerdown', handleOutsidePointerDown)
+    return () => {
+      window.removeEventListener('keydown', handleEscape)
+      document.removeEventListener('pointerdown', handleOutsidePointerDown)
+    }
+  }, [isActionBookOpen])
 
   function handleCreateRoom() {
     setIsActionBookOpen(false)
@@ -41,6 +54,7 @@ export function AppBottomNavigation() {
         <section
           aria-labelledby="action-book-title"
           className="talkhugam-action-book absolute z-20"
+          ref={actionBookRef}
           role="dialog"
         >
           <h2 className="sr-only" id="action-book-title">
@@ -69,7 +83,7 @@ export function AppBottomNavigation() {
             </svg>
             <button
               aria-label="새 모임 만들기"
-              className="talkhugam-action-book__page talkhugam-action-book__page--left flex flex-1 flex-col items-start gap-6 text-left"
+              className="talkhugam-action-book__page talkhugam-action-book__page--left flex flex-1 flex-col items-start gap-2 text-left"
               onClick={handleCreateRoom}
               type="button"
             >
@@ -85,7 +99,7 @@ export function AppBottomNavigation() {
             </button>
             <button
               aria-label="초대 코드로 참여"
-              className="talkhugam-action-book__page talkhugam-action-book__page--right flex flex-1 flex-col items-start gap-6 text-left"
+              className="talkhugam-action-book__page talkhugam-action-book__page--right flex flex-1 flex-col items-start gap-2 text-left"
               onClick={handleJoinRoom}
               type="button"
             >
@@ -133,6 +147,7 @@ export function AppBottomNavigation() {
         aria-label={isActionBookOpen ? '모임 시작 메뉴 닫기' : '모임 시작 메뉴 열기'}
         className="bg-primary text-ink absolute top-0 left-1/2 z-20 flex size-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full shadow-lg"
         onClick={() => setIsActionBookOpen((isOpen) => !isOpen)}
+        ref={actionMenuButtonRef}
         type="button"
       >
         <svg aria-hidden="true" className="size-8" fill="none" viewBox="0 0 24 24">

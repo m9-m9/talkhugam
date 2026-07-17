@@ -44,6 +44,19 @@ describe('AppBottomNavigation', () => {
     expect(screen.getByText('/rooms/create')).toBeInTheDocument()
   })
 
+  it('closes the action book when the user taps outside it', () => {
+    render(
+      <MemoryRouter initialEntries={['/rooms']}>
+        <AppBottomNavigation />
+      </MemoryRouter>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '모임 시작 메뉴 열기' }))
+    fireEvent.pointerDown(document.body)
+
+    expect(screen.queryByRole('button', { name: '새 모임 만들기' })).not.toBeInTheDocument()
+  })
+
   it('navigates to invite-code participation from the right page of the action book', () => {
     render(
       <MemoryRouter initialEntries={['/rooms']}>
