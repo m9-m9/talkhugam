@@ -55,13 +55,13 @@ export function AppBottomNavigation() {
               viewBox="0 0 200 100"
             >
               <path
-                d="M1 1H100V94C75 88 26 88 1 94V1Z"
+                d="M7 1H100V94C75 88 26 88 1 94V7Q1 1 7 1Z"
                 fill="var(--color-surface)"
                 stroke="var(--color-primary)"
                 vectorEffect="non-scaling-stroke"
               />
               <path
-                d="M100 1H199V94C174 88 125 88 100 94V1Z"
+                d="M100 1H193Q199 1 199 7V94C174 88 125 88 100 94V1Z"
                 fill="var(--color-surface)"
                 stroke="var(--color-primary)"
                 vectorEffect="non-scaling-stroke"
