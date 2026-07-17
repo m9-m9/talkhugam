@@ -138,7 +138,7 @@ export async function getVideoPost(
   client: SupabaseClient,
   bookChatId: string,
   postId: string,
-): Promise<VideoPost> {
+): Promise<VideoPost | null> {
   const response = await client
     .from('posts')
     .select('id, body, author_member_id, author_name_snapshot, created_at, video_assets(status)')
@@ -146,8 +146,9 @@ export async function getVideoPost(
     .eq('book_chat_id', bookChatId)
     .eq('type', 'video')
     .is('deleted_at', null)
-    .single()
+    .maybeSingle()
   if (response.error) throw response.error
+  if (!response.data) return null
   return mapVideoPost(videoPostRowSchema.parse(response.data))
 }
 

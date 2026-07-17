@@ -139,6 +139,20 @@ test('opens a gallery thumbnail in the immersive video viewer', async ({ page })
   await expect(page.getByRole('navigation', { name: '주요 메뉴' })).toBeHidden()
 })
 
+test('returns to the video archive when the requested video no longer exists', async ({ page }) => {
+  const missingVideoId = '4b7227b2-5350-4a61-9114-b2d0c915fd1b'
+  await authenticatePage(page)
+  await mockVideoMembers(page)
+  await mockVideoPosts(page, [])
+  await page.goto(`/rooms/${roomId}/books/${bookChatId}/videos/${missingVideoId}`)
+
+  await expect(page.getByRole('alert')).toHaveText('이 영상을 찾을 수 없어요.')
+  await page.getByRole('button', { name: '영상 기록으로 가기' }).click()
+
+  await expect(page).toHaveURL(`/rooms/${roomId}/books/${bookChatId}/videos`)
+})
+
+/** E2E 실행 페이지에 인증된 Supabase 세션과 사용자 조회 응답을 설정한다. */
 async function authenticatePage(page: import('@playwright/test').Page) {
   const user = {
     app_metadata: {},
@@ -170,6 +184,7 @@ async function authenticatePage(page: import('@playwright/test').Page) {
   })
 }
 
+/** 지정한 영상 게시물 목록을 반환하도록 Supabase posts 요청을 가로챈다. */
 async function mockVideoPosts(page: import('@playwright/test').Page, posts: unknown[]) {
   await page.route('**/rest/v1/posts?*', async (route) => {
     await route.fulfill({
@@ -181,6 +196,7 @@ async function mockVideoPosts(page: import('@playwright/test').Page, posts: unkn
   })
 }
 
+/** 현재 사용자가 속한 독서방 멤버 목록을 반환하도록 Supabase 요청을 가로챈다. */
 async function mockVideoMembers(page: import('@playwright/test').Page) {
   await page.route('**/rest/v1/room_members?*', async (route) => {
     await route.fulfill({
@@ -197,6 +213,7 @@ async function mockVideoMembers(page: import('@playwright/test').Page) {
   })
 }
 
+/** E2E 영상 보관함에 사용할 Supabase posts 행을 생성한다. */
 function createVideoPostRow(id: string, authorName: string, status = 'failed') {
   return {
     author_member_id: '8fc963a4-da01-4696-995c-755fe145776f',
