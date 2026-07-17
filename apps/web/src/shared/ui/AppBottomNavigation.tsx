@@ -69,7 +69,7 @@ export function AppBottomNavigation() {
             </svg>
             <button
               aria-label="새 모임 만들기"
-              className="talkhugam-action-book__page talkhugam-action-book__page--left flex flex-1 flex-col items-start justify-between text-left"
+              className="talkhugam-action-book__page talkhugam-action-book__page--left flex flex-1 flex-col items-start gap-6 text-left"
               onClick={handleCreateRoom}
               type="button"
             >
@@ -83,7 +83,7 @@ export function AppBottomNavigation() {
             </button>
             <button
               aria-label="초대 코드로 참여"
-              className="talkhugam-action-book__page talkhugam-action-book__page--right flex flex-1 flex-col items-start justify-between text-left"
+              className="talkhugam-action-book__page talkhugam-action-book__page--right flex flex-1 flex-col items-start gap-6 text-left"
               onClick={handleJoinRoom}
               type="button"
             >
