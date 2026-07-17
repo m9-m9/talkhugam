@@ -11,7 +11,7 @@ import {
 } from './naver.ts'
 
 const STATE = '12345678901234567890123456789012'
-const RETURN_TO = 'http://127.0.0.1:3000/auth/callback'
+const RETURN_TO = 'http://localhost:5173/auth/callback'
 
 Deno.test('Naver authorize URL contains callback and unguessable state', () => {
   const url = createNaverAuthorizeUrl('client-id', 'https://api.example/callback', STATE)
