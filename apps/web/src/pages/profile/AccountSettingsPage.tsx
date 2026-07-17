@@ -15,6 +15,7 @@ import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { RetryState } from '../../shared/ui/RetryState'
 
 type AccountIdentity = {
   email: string
@@ -35,6 +36,7 @@ export function AccountSettingsPage() {
   const user = useAuthenticatedUser()
   const client = createSupabaseClient()
   const [isDeletionDialogOpen, setIsDeletionDialogOpen] = useState(false)
+  const [isRetryingNotificationPreferences, setIsRetryingNotificationPreferences] = useState(false)
   const account = createAccountIdentity(user.email, user.appMetadata)
   const notificationPreferencesQuery = useQuery({
     queryFn: () => getNotificationPreferences(client, user.id),
@@ -66,6 +68,14 @@ export function AccountSettingsPage() {
     })
   }
 
+  /** 실패한 알림 설정 조회를 다시 요청하고 재시도 피드백을 유지한다. */
+  function handleRetryNotificationPreferences() {
+    setIsRetryingNotificationPreferences(true)
+    void notificationPreferencesQuery
+      .refetch()
+      .finally(() => setIsRetryingNotificationPreferences(false))
+  }
+
   /** 계정 삭제 확인창을 연다. */
   function handleOpenDeletionDialog() {
     accountDeletionMutation.reset()
@@ -89,14 +99,21 @@ export function AccountSettingsPage() {
 
       <AccountInformation account={account} />
       <NotificationPreferencesSection
-        errorMessage={
-          notificationPreferencesQuery.isError || notificationPreferencesMutation.isError
+        queryErrorMessage={
+          notificationPreferencesQuery.isError || isRetryingNotificationPreferences
+            ? '알림 설정을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.'
+            : null
+        }
+        saveErrorMessage={
+          notificationPreferencesMutation.isError
             ? '알림 설정을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.'
             : null
         }
-        isLoading={notificationPreferencesQuery.isPending}
+        isLoading={notificationPreferencesQuery.isPending && !isRetryingNotificationPreferences}
+        isRetrying={isRetryingNotificationPreferences}
         isSaving={notificationPreferencesMutation.isPending}
         onChange={handlePreferenceChange}
+        onRetry={handleRetryNotificationPreferences}
         preferences={notificationPreferencesQuery.data ?? null}
       />
 
@@ -163,16 +180,22 @@ function AccountInformation({ account }: { account: AccountIdentity }) {
 
 /** 알림 수신 설정 목록을 렌더링한다. */
 function NotificationPreferencesSection({
-  errorMessage,
+  queryErrorMessage,
+  saveErrorMessage,
   isLoading,
+  isRetrying,
   isSaving,
   onChange,
+  onRetry,
   preferences,
 }: {
-  errorMessage: string | null
+  queryErrorMessage: string | null
+  saveErrorMessage: string | null
   isLoading: boolean
+  isRetrying: boolean
   isSaving: boolean
   onChange: (key: NotificationPreferenceKey) => void
+  onRetry: () => void
   preferences: NotificationPreferences | null
 }) {
   return (
@@ -199,9 +222,19 @@ function NotificationPreferencesSection({
           ))}
         </ul>
       ) : null}
-      {errorMessage ? (
+      {queryErrorMessage ? (
+        <div className="mt-4">
+          <RetryState isRetrying={isRetrying} message={queryErrorMessage} onRetry={onRetry} />
+          {isRetrying ? (
+            <div className="mt-4">
+              <LoadingSpinner label="알림 설정을 다시 불러오고 있어요." size="xs" />
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+      {saveErrorMessage ? (
         <p className="mt-3 text-sm text-red-600" role="alert">
-          {errorMessage}
+          {saveErrorMessage}
         </p>
       ) : null}
     </section>

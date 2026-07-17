@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import {
@@ -12,11 +13,14 @@ import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { BookCover } from '../../shared/ui/BookCover'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { RetryState } from '../../shared/ui/RetryState'
 
 /** 프로필 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 export function ProfilePage() {
   const navigate = useNavigate()
   const profileId = useAuthenticatedUser().id
+  const [isRetryingProfile, setIsRetryingProfile] = useState(false)
+  const [isRetryingCompletedBooks, setIsRetryingCompletedBooks] = useState(false)
   const profileQuery = useQuery({
     queryFn: () => getProfile(createSupabaseClient(), profileId),
     queryKey: ['profile', profileId],
@@ -26,9 +30,28 @@ export function ProfilePage() {
     queryKey: bookCompletionKeys.myBooks(profileId),
   })
 
-  if (profileQuery.isPending) return <ProfileState message="내 정보를 불러오고 있어요." />
+  /** 실패한 프로필 조회를 다시 요청하고 재시도 피드백을 유지한다. */
+  function handleRetryProfile() {
+    setIsRetryingProfile(true)
+    void profileQuery.refetch().finally(() => setIsRetryingProfile(false))
+  }
+
+  /** 실패한 완독 도서 조회를 다시 요청하고 재시도 피드백을 유지한다. */
+  function handleRetryCompletedBooks() {
+    setIsRetryingCompletedBooks(true)
+    void completedBooksQuery.refetch().finally(() => setIsRetryingCompletedBooks(false))
+  }
+
+  if (profileQuery.isPending && !isRetryingProfile)
+    return <ProfileState message="내 정보를 불러오고 있어요." />
   if (profileQuery.isError || !profileQuery.data)
-    return <ProfileState message="프로필 정보를 불러오지 못했어요. 잠시 후 다시 시도해 주세요." />
+    return (
+      <ProfileRetryState
+        isRetrying={isRetryingProfile}
+        onRetry={handleRetryProfile}
+        message="프로필 정보를 불러오지 못했어요. 잠시 후 다시 시도해 주세요."
+      />
+    )
 
   const profile = profileQuery.data
 
@@ -90,6 +113,8 @@ export function ProfilePage() {
         completedBooks={completedBooksQuery.data ?? []}
         hasError={completedBooksQuery.isError}
         isLoading={completedBooksQuery.isPending}
+        isRetrying={isRetryingCompletedBooks}
+        onRetry={handleRetryCompletedBooks}
       />
 
       <section className="mt-12" aria-labelledby="account-heading">
@@ -121,23 +146,38 @@ function CompletedBooksSection({
   completedBooks,
   hasError,
   isLoading,
+  isRetrying,
+  onRetry,
 }: {
   completedBooks: CompletedBook[]
   hasError: boolean
   isLoading: boolean
+  isRetrying: boolean
+  onRetry: () => void
 }) {
   return (
     <section className="mt-12" aria-labelledby="completed-books-heading">
       <h2 className="text-ink text-base font-bold" id="completed-books-heading">
         내가 완독한 책
       </h2>
-      {isLoading ? <LoadingSpinner label="완독한 책을 불러오고 있어요." size="xs" /> : null}
-      {hasError ? (
-        <p className="text-ink-subtle mt-4 text-sm">
-          완독한 책을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.
-        </p>
+      {isLoading && !isRetrying ? (
+        <LoadingSpinner label="완독한 책을 불러오고 있어요." size="xs" />
       ) : null}
-      {!isLoading && !hasError && completedBooks.length === 0 ? (
+      {hasError || isRetrying ? (
+        <div className="mt-4">
+          <RetryState
+            isRetrying={isRetrying}
+            message="완독한 책을 불러오지 못했어요. 잠시 후 다시 시도해 주세요."
+            onRetry={onRetry}
+          />
+          {isRetrying ? (
+            <div className="mt-4">
+              <LoadingSpinner label="완독한 책을 다시 불러오고 있어요." size="xs" />
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+      {!isLoading && !hasError && !isRetrying && completedBooks.length === 0 ? (
         <p className="text-ink-subtle mt-4 text-sm">아직 완독한 책이 없어요.</p>
       ) : null}
       {completedBooks.length > 0 ? (
@@ -191,6 +231,24 @@ function ProfileState({ message }: { message: string }) {
   return (
     <main className="app-page bg-surface flex items-center justify-center px-4">
       <LoadingSpinner label={message} />
+    </main>
+  )
+}
+
+/** 프로필 조회 실패를 재시도와 진행 상태로 안내한다. */
+function ProfileRetryState({
+  isRetrying,
+  message,
+  onRetry,
+}: {
+  isRetrying: boolean
+  message: string
+  onRetry: () => void
+}) {
+  return (
+    <main className="app-page bg-surface flex flex-col items-center justify-center gap-4 px-4">
+      <RetryState isRetrying={isRetrying} message={message} onRetry={onRetry} />
+      {isRetrying ? <LoadingSpinner label="내 정보를 다시 불러오고 있어요." /> : null}
     </main>
   )
 }
