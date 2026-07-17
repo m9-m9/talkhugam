@@ -3,6 +3,9 @@ import { createBrowserRouter } from 'react-router-dom'
 import { AuthCallbackPage } from '../../pages/auth/AuthCallbackPage'
 import { LoginPage } from '../../pages/auth/LoginPage'
 import { OnboardingPage } from '../../pages/onboarding/OnboardingPage'
+import { AccountSettingsPage } from '../../pages/profile/AccountSettingsPage'
+import { ProfileEditPage } from '../../pages/profile/ProfileEditPage'
+import { ProfilePage } from '../../pages/profile/ProfilePage'
 import { BookSearchPage } from '../../pages/rooms/BookSearchPage'
 import { BookDiscussionPage } from '../../pages/rooms/BookDiscussionPage'
 import { CreateRoomPage } from '../../pages/rooms/CreateRoomPage'
@@ -27,6 +30,18 @@ export const router = createBrowserRouter([
   {
     path: '/rooms',
     element: <RoomsPage />,
+  },
+  {
+    path: '/profile',
+    element: <ProfilePage />,
+  },
+  {
+    path: '/profile/edit',
+    element: <ProfileEditPage />,
+  },
+  {
+    path: '/profile/settings',
+    element: <AccountSettingsPage />,
   },
   {
     path: '/rooms/create',

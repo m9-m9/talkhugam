@@ -1,4 +1,6 @@
 export { completeOnboarding, createInitialProfileForm } from './completeOnboarding'
 export { getOnboardingCompletedAt } from './getOnboardingStatus'
 export { getProfile } from './getProfile'
+export { getProviderLabels } from './authIdentity'
 export { profileFormSchema, type ProfileForm } from './profileForm'
+export { updateProfile } from './updateProfile'

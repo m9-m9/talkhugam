@@ -52,9 +52,13 @@ export function RoomsPage() {
         >
           독서방
         </button>
-        <span className="text-ink-subtle ml-auto flex min-h-11 items-center px-3 text-sm">
+        <button
+          className="text-ink-subtle ml-auto min-h-11 px-3 text-sm"
+          onClick={() => void navigate('/profile')}
+          type="button"
+        >
           내 정보
-        </span>
+        </button>
       </nav>
 
       <section aria-labelledby="recent-rooms-heading" className="flex flex-1 flex-col px-6 py-8">
