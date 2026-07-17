@@ -85,7 +85,7 @@
 .talkhugam-action-book {
   bottom: calc(var(--bottom-navigation-height) + var(--spacing-6));
   left: 50%;
-  max-width: calc(var(--spacing-16) * 8 + var(--spacing-12));
+  max-width: 320px;
   perspective: 900px;
   transform: translateX(-50%);
   width: calc(100% - var(--spacing-8));
