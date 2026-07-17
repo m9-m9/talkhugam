@@ -3,6 +3,7 @@ import { createBrowserRouter } from 'react-router-dom'
 import { AuthenticatedRoute } from '../../features/auth'
 import { AuthCallbackPage } from '../../pages/auth/AuthCallbackPage'
 import { LoginPage } from '../../pages/auth/LoginPage'
+import { RouteRecoveryPage } from '../../pages/errors/RouteRecoveryPage'
 import { OnboardingPage } from '../../pages/onboarding/OnboardingPage'
 import { AccountSettingsPage } from '../../pages/profile/AccountSettingsPage'
 import { ProfileEditPage } from '../../pages/profile/ProfileEditPage'
@@ -32,6 +33,7 @@ export const router = createBrowserRouter([
       { path: '/onboarding', element: <OnboardingPage /> },
       {
         element: <AppNavigationLayout />,
+        errorElement: <RouteRecoveryPage kind="error" />,
         children: [
           { path: '/rooms', element: <RoomsPage /> },
           { path: '/notifications', element: <NotificationsPage /> },
@@ -48,6 +50,7 @@ export const router = createBrowserRouter([
             path: '/rooms/:roomId/books/:bookChatId/videos/:videoId',
             element: <LazyVideoPlayerRoute />,
           },
+          { path: '*', element: <RouteRecoveryPage kind="not-found" /> },
         ],
       },
     ],
