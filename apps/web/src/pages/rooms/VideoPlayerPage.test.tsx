@@ -66,8 +66,103 @@ describe('VideoPlayerPage', () => {
 
     expect(screen.getByText('영상 기록 화면')).toBeInTheDocument()
   })
+
+  it('shows an archive return CTA when the selected video no longer exists', async () => {
+    getVideoPost.mockResolvedValueOnce(null)
+    renderPlayerPage()
+
+    expect(await screen.findByText('이 영상을 찾을 수 없어요.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '삭제' })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '영상 기록으로 가기' }))
+
+    expect(screen.getByText('영상 기록 화면')).toBeInTheDocument()
+  })
+
+  it('does not keep a non-ready video in a loading state', async () => {
+    getVideoPost.mockResolvedValueOnce({
+      authorMemberId: 'member-1',
+      authorName: '민규',
+      body: null,
+      createdAt: '2026-07-17T00:00:00.000Z',
+      id: 'video-1',
+      status: 'failed',
+    })
+    renderPlayerPage()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('이 영상은 아직 재생할 수 없어요.')
+    expect(
+      screen.queryByRole('status', { name: '영상을 준비하고 있어요.' }),
+    ).not.toBeInTheDocument()
+    expect(getVideoPlaybackAuthorization).not.toHaveBeenCalled()
+  })
+
+  it('explains a video data lookup failure separately and retries that lookup', async () => {
+    getVideoPost.mockRejectedValueOnce(new Error('network'))
+    renderPlayerPage()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '영상을 불러오지 못했어요. 다시 시도해 주세요.',
+    )
+    expect(
+      screen.queryByText('재생 정보를 불러오지 못했어요. 다시 시도해 주세요.'),
+    ).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '다시 시도' }))
+
+    await vi.waitFor(() => expect(getVideoPost).toHaveBeenCalledTimes(2))
+    expect(await screen.findByTestId('mux-player')).toBeInTheDocument()
+  })
+
+  it('explains a playback token failure separately and retries that authorization', async () => {
+    getVideoPlaybackAuthorization.mockRejectedValueOnce(new Error('token'))
+    renderPlayerPage()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '재생 정보를 불러오지 못했어요. 다시 시도해 주세요.',
+    )
+    expect(
+      screen.queryByText('영상을 불러오지 못했어요. 다시 시도해 주세요.'),
+    ).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '다시 시도' }))
+
+    await vi.waitFor(() => expect(getVideoPlaybackAuthorization).toHaveBeenCalledTimes(2))
+    expect(await screen.findByTestId('mux-player')).toBeInTheDocument()
+  })
+
+  it('keeps a playback retry visible with a book loader and blocks duplicate clicks', async () => {
+    const authorization = createDeferredValue<{
+      expiresAt: number
+      playbackId: string
+      thumbnailToken: string
+      token: string
+    }>()
+    getVideoPlaybackAuthorization
+      .mockRejectedValueOnce(new Error('token'))
+      .mockImplementationOnce(() => authorization.promise)
+    renderPlayerPage()
+
+    const retryButton = await screen.findByRole('button', { name: '다시 시도' })
+    fireEvent.click(retryButton)
+
+    expect(retryButton).toBeDisabled()
+    expect(
+      screen.getByRole('status', { name: '재생 정보를 다시 불러오고 있어요.' }),
+    ).toBeInTheDocument()
+
+    authorization.resolve({
+      expiresAt: 1_784_269_999,
+      playbackId: 'playback-id',
+      thumbnailToken: 'thumbnail-token',
+      token: 'playback-token',
+    })
+
+    expect(await screen.findByTestId('mux-player')).toBeInTheDocument()
+  })
 })
 
+/** 영상 재생 라우트와 QueryClient를 포함한 테스트 화면을 렌더링한다. */
 function renderPlayerPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
@@ -83,4 +178,13 @@ function renderPlayerPage() {
       </MemoryRouter>
     </QueryClientProvider>,
   )
+}
+
+/** 비동기 작업의 완료 시점을 테스트 코드에서 직접 제어할 Promise를 만든다. */
+function createDeferredValue<T>() {
+  let resolvePromise: (value: T) => void = () => undefined
+  const promise = new Promise<T>((resolve) => {
+    resolvePromise = resolve
+  })
+  return { promise, resolve: resolvePromise }
 }
