@@ -33,14 +33,19 @@ function createBasicAuthorization(credentials: MuxCredentials): string {
 
 function decodeSigningPrivateKey(value: string): string {
   const normalized = value.trim().replaceAll('\\n', '\n')
-  if (normalized.includes('BEGIN')) return normalized
+  if (normalized.includes('BEGIN')) return normalizeSigningPem(normalized)
 
   const decoded = decodeBase64Pem(normalized)
-  if (decoded.includes('BEGIN')) return decoded
+  if (decoded.includes('BEGIN')) return normalizeSigningPem(decoded)
 
   const twiceDecoded = decodeBase64Pem(decoded)
   if (!twiceDecoded.includes('BEGIN')) throw new Error('Mux signing key is not a PEM value')
-  return twiceDecoded
+  return normalizeSigningPem(twiceDecoded)
+}
+
+function normalizeSigningPem(pem: string): string {
+  if (pem.includes('BEGIN RSA PRIVATE KEY')) return convertPkcs1PemToPkcs8(pem)
+  return pem
 }
 
 function decodeBase64Pem(value: string): string {
@@ -49,6 +54,69 @@ function decodeBase64Pem(value: string): string {
   return new TextDecoder().decode(
     Uint8Array.from(atob(`${base64}${padding}`), (character) => character.charCodeAt(0)),
   )
+}
+
+function convertPkcs1PemToPkcs8(pem: string): string {
+  const pkcs1 = decodePem(pem)
+  const algorithmIdentifier = new Uint8Array([
+    0x30,
+    0x0d,
+    0x06,
+    0x09,
+    0x2a,
+    0x86,
+    0x48,
+    0x86,
+    0xf7,
+    0x0d,
+    0x01,
+    0x01,
+    0x01,
+    0x05,
+    0x00,
+  ])
+  const version = new Uint8Array([0x02, 0x01, 0x00])
+  const octetString = encodeDerValue(0x04, pkcs1)
+  const content = concatenateBytes(version, algorithmIdentifier, octetString)
+  return encodePem('PRIVATE KEY', encodeDerValue(0x30, content))
+}
+
+function decodePem(pem: string): Uint8Array {
+  const body = pem.replace(/-----BEGIN [A-Z ]+-----|-----END [A-Z ]+-----|\s/g, '')
+  return Uint8Array.from(atob(body), (character) => character.charCodeAt(0))
+}
+
+function encodeDerValue(tag: number, value: Uint8Array): Uint8Array {
+  return concatenateBytes(new Uint8Array([tag]), encodeDerLength(value.length), value)
+}
+
+function encodeDerLength(length: number): Uint8Array {
+  if (length < 128) return new Uint8Array([length])
+
+  const bytes: number[] = []
+  let remaining = length
+  while (remaining > 0) {
+    bytes.unshift(remaining & 0xff)
+    remaining >>= 8
+  }
+  return new Uint8Array([0x80 | bytes.length, ...bytes])
+}
+
+function concatenateBytes(...values: Uint8Array[]): Uint8Array {
+  const length = values.reduce((total, value) => total + value.length, 0)
+  const result = new Uint8Array(length)
+  let offset = 0
+  for (const value of values) {
+    result.set(value, offset)
+    offset += value.length
+  }
+  return result
+}
+
+function encodePem(label: string, value: Uint8Array): string {
+  const binary = Array.from(value, (byte) => String.fromCharCode(byte)).join('')
+  const base64 = btoa(binary).match(/.{1,64}/g)?.join('\n') ?? ''
+  return `-----BEGIN ${label}-----\n${base64}\n-----END ${label}-----`
 }
 
 function parseSignatureHeader(header: string): { timestamp: string; signatures: string[] } | null {

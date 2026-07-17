@@ -5,6 +5,7 @@ import {
   importSPKI,
   jwtVerify,
 } from 'npm:jose@6.2.3'
+import { generateKeyPairSync } from 'node:crypto'
 import { assert, assertEquals } from 'jsr:@std/assert@1.0.14'
 import {
   createDirectUpload,
@@ -115,6 +116,39 @@ Deno.test('signPlaybackToken accepts a URL-safe base64 PEM value', async () => {
   const privatePem = await exportPKCS8(privateKey)
   const publicPem = await exportSPKI(publicKey)
   const encodedPrivateKey = btoa(privatePem).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '')
+  const now = 1_700_000_000
+
+  const token = await signPlaybackToken('playback-1', 'key-1', encodedPrivateKey, now, 300)
+  const verificationKey = await importSPKI(publicPem, 'RS256')
+  const { payload } = await jwtVerify(token, verificationKey, {
+    audience: 'v',
+    currentDate: new Date(now * 1000),
+  })
+
+  assertEquals(payload.sub, 'playback-1')
+})
+
+Deno.test('signPlaybackToken accepts a PKCS#1 RSA PEM value', async () => {
+  const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 })
+  const pkcs1Pem = privateKey.export({ format: 'pem', type: 'pkcs1' }).toString()
+  const publicPem = publicKey.export({ format: 'pem', type: 'spki' }).toString()
+  const now = 1_700_000_000
+
+  const token = await signPlaybackToken('playback-1', 'key-1', pkcs1Pem, now, 300)
+  const verificationKey = await importSPKI(publicPem, 'RS256')
+  const { payload } = await jwtVerify(token, verificationKey, {
+    audience: 'v',
+    currentDate: new Date(now * 1000),
+  })
+
+  assertEquals(payload.sub, 'playback-1')
+})
+
+Deno.test('signPlaybackToken accepts a base64-encoded PKCS#1 RSA PEM value', async () => {
+  const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 })
+  const pkcs1Pem = privateKey.export({ format: 'pem', type: 'pkcs1' }).toString()
+  const publicPem = publicKey.export({ format: 'pem', type: 'spki' }).toString()
+  const encodedPrivateKey = btoa(pkcs1Pem)
   const now = 1_700_000_000
 
   const token = await signPlaybackToken('playback-1', 'key-1', encodedPrivateKey, now, 300)
