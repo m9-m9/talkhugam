@@ -6,12 +6,14 @@ import {
   createMuxThumbnailUrl,
   filterVideoPosts,
   getVideoFilterMembers,
-  getVideoPlaybackAuthorization,
   getVideoPosts,
+  getVideoThumbnailAuthorizations,
+  mapVideoThumbnailAuthorizations,
   videoKeys,
   type VideoFilterMember,
   type VideoPost,
   type VideoPostFilter,
+  type VideoThumbnailAuthorization,
 } from '../../entities/video'
 import { useVideoUpload } from '../../features/video-upload'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
@@ -44,6 +46,16 @@ export function VideoArchivePage() {
     queryFn: () => getVideoFilterMembers(createSupabaseClient(), roomId ?? ''),
     queryKey: videoKeys.members(roomId ?? ''),
   })
+  const readyVideoPostIds = (videosQuery.data ?? [])
+    .filter((video) => video.status === 'ready')
+    .map((video) => video.id)
+  const thumbnailsQuery = useQuery({
+    enabled: readyVideoPostIds.length > 0,
+    queryFn: () => getVideoThumbnailAuthorizations(createSupabaseClient(), readyVideoPostIds),
+    queryKey: videoKeys.thumbnails(readyVideoPostIds),
+    staleTime: 4 * 60 * 1_000,
+  })
+  const thumbnailsByPostId = mapVideoThumbnailAuthorizations(thumbnailsQuery.data ?? [])
 
   /** Select 영상 요청이나 사용자 동작을 처리한다. */
   function handleSelectVideo(file: File | undefined) {
@@ -144,7 +156,12 @@ export function VideoArchivePage() {
           <ul aria-label="영상 기록" className="bg-ink/10 -mx-4 mt-6 grid grid-cols-2 gap-px">
             {filteredVideos.map((video) => (
               <li className="bg-ink min-w-0" key={video.id}>
-                <VideoGalleryItem onOpen={() => void navigate(`${video.id}`)} video={video} />
+                <VideoGalleryItem
+                  isThumbnailLoading={thumbnailsQuery.isLoading}
+                  onOpen={() => void navigate(`${video.id}`)}
+                  thumbnailAuthorization={thumbnailsByPostId.get(video.id)}
+                  video={video}
+                />
               </li>
             ))}
           </ul>
@@ -294,14 +311,19 @@ function getFilterButtonClassName(isActive: boolean): string {
 }
 
 /** 영상 갤러리 항목 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
-function VideoGalleryItem({ onOpen, video }: { onOpen: () => void; video: VideoPost }) {
-  const playbackQuery = useQuery({
-    enabled: video.status === 'ready',
-    queryFn: () => getVideoPlaybackAuthorization(createSupabaseClient(), video.id),
-    queryKey: videoKeys.playback(video.id),
-    staleTime: 4 * 60 * 1_000,
-  })
-  const isReady = video.status === 'ready' && Boolean(playbackQuery.data)
+function VideoGalleryItem({
+  isThumbnailLoading,
+  onOpen,
+  thumbnailAuthorization,
+  video,
+}: {
+  isThumbnailLoading: boolean
+  onOpen: () => void
+  thumbnailAuthorization: VideoThumbnailAuthorization | undefined
+  video: VideoPost
+}) {
+  const isReady = video.status === 'ready'
+  const placeholderMessage = getThumbnailPlaceholderMessage(video.status, isThumbnailLoading)
 
   return (
     <button
@@ -314,17 +336,14 @@ function VideoGalleryItem({ onOpen, video }: { onOpen: () => void; video: VideoP
       type="button"
     >
       <div className="bg-ink relative aspect-square overflow-hidden">
-        {playbackQuery.data ? (
+        {thumbnailAuthorization ? (
           <img
             alt=""
             className="absolute inset-0 size-full object-cover"
-            src={createMuxThumbnailUrl(playbackQuery.data)}
+            src={createMuxThumbnailUrl(thumbnailAuthorization)}
           />
         ) : (
-          <VideoPlaceholder
-            isLoading={video.status !== 'failed' && !playbackQuery.isError}
-            message={video.status === 'failed' ? '처리 실패' : '준비 중'}
-          />
+          <VideoPlaceholder isLoading={isThumbnailLoading} message={placeholderMessage} />
         )}
         {isReady ? <PlayBadge /> : null}
         <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-3 pt-8 pb-3 text-left text-xs font-medium text-white">
@@ -333,6 +352,16 @@ function VideoGalleryItem({ onOpen, video }: { onOpen: () => void; video: VideoP
       </div>
     </button>
   )
+}
+
+/** 영상 상태와 썸네일 조회 상태를 조합해 갤러리 안내 문구를 반환한다. */
+function getThumbnailPlaceholderMessage(
+  status: VideoPost['status'],
+  isThumbnailLoading: boolean,
+): string {
+  if (status === 'failed') return '처리 실패'
+  if (status !== 'ready') return '준비 중'
+  return isThumbnailLoading ? '미리보기 준비 중' : '미리보기를 불러오지 못했어요'
 }
 
 /** 재생 배지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */

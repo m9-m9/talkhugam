@@ -16,6 +16,20 @@ const playbackAuthorizationSchema = z.object({
   ok: z.literal(true),
 })
 
+const thumbnailAuthorizationResponseSchema = z.object({
+  data: z.object({
+    thumbnails: z.array(
+      z.object({
+        expiresAt: z.number().int().positive(),
+        playbackId: z.string().min(1),
+        postId: z.string().uuid(),
+        thumbnailToken: z.string().min(1),
+      }),
+    ),
+  }),
+  ok: z.literal(true),
+})
+
 const uploadedVideoNavigationStateSchema = z.object({
   uploadedVideoPostId: z.string().uuid(),
   uploadedVideoStartedAt: z.number().int().positive(),
@@ -57,6 +71,9 @@ export type VideoAsset = {
   status: z.infer<typeof videoAssetSchema>['status']
 }
 export type VideoPlaybackAuthorization = z.infer<typeof playbackAuthorizationSchema>['data']
+export type VideoThumbnailAuthorization = z.infer<
+  typeof thumbnailAuthorizationResponseSchema
+>['data']['thumbnails'][number]
 export type UploadedVideoNavigationState = z.infer<typeof uploadedVideoNavigationStateSchema>
 export type VideoPost = {
   authorMemberId: string | null
@@ -89,6 +106,8 @@ export const videoKeys = {
   byPost: (postId: string) => ['video-asset', postId] as const,
   /** 메시지 식별자로 영상 재생 query key를 생성한다. */
   playback: (postId: string) => ['video-playback', postId] as const,
+  /** 메시지 식별자 목록으로 영상 썸네일 query key를 생성한다. */
+  thumbnails: (postIds: readonly string[]) => ['video-thumbnails', ...postIds] as const,
   /** 독서방과 작성자 식별자로 영상 삭제 권한 query key를 생성한다. */
   deletePermission: (roomId: string, authorMemberId: string | null) =>
     ['video-delete-permission', roomId, authorMemberId] as const,
@@ -251,9 +270,26 @@ export async function getVideoPlaybackAuthorization(
   return parseVideoPlaybackAuthorization(response.data)
 }
 
+/** 영상 목록에 표시할 Mux 썸네일 권한 데이터를 한 번에 조회한다. */
+export async function getVideoThumbnailAuthorizations(
+  client: SupabaseClient,
+  postIds: readonly string[],
+): Promise<VideoThumbnailAuthorization[]> {
+  const response = await client.functions.invoke('mux-thumbnail-tokens', {
+    body: { postIds: [...new Set(postIds)] },
+  })
+  if (response.error) throw response.error
+  return parseVideoThumbnailAuthorizations(response.data)
+}
+
 /** 외부 입력을 검증해 영상 재생 권한 형식으로 변환한다. */
 export function parseVideoPlaybackAuthorization(value: unknown): VideoPlaybackAuthorization {
   return playbackAuthorizationSchema.parse(value).data
+}
+
+/** 외부 입력을 검증해 영상 썸네일 권한 목록 형식으로 변환한다. */
+export function parseVideoThumbnailAuthorizations(value: unknown): VideoThumbnailAuthorization[] {
+  return thumbnailAuthorizationResponseSchema.parse(value).data.thumbnails
 }
 
 /** 업로드 완료 영상 이동 상태 데이터를 조회하거나 계산해 반환한다. */
@@ -295,10 +331,19 @@ export function filterVideoPosts(
 }
 
 /** Mux 썸네일 URL 데이터를 생성해 반환한다. */
-export function createMuxThumbnailUrl(authorization: VideoPlaybackAuthorization): string {
+export function createMuxThumbnailUrl(
+  authorization: VideoPlaybackAuthorization | VideoThumbnailAuthorization,
+): string {
   const playbackId = encodeURIComponent(authorization.playbackId)
   const token = encodeURIComponent(authorization.thumbnailToken)
   return `https://image.mux.com/${playbackId}/thumbnail.webp?token=${token}`
+}
+
+/** 메시지 식별자를 키로 썸네일 권한 데이터를 빠르게 찾을 수 있게 변환한다. */
+export function mapVideoThumbnailAuthorizations(
+  authorizations: readonly VideoThumbnailAuthorization[],
+): ReadonlyMap<string, VideoThumbnailAuthorization> {
+  return new Map(authorizations.map((authorization) => [authorization.postId, authorization]))
 }
 
 /** Refresh 영상 메시지 목록 조건을 충족하는지 판별한다. */

@@ -4,8 +4,10 @@ import {
   createMuxThumbnailUrl,
   filterVideoPosts,
   getUploadedVideoNavigationState,
+  mapVideoThumbnailAuthorizations,
   parseVideoFilterMembers,
   parseVideoPlaybackAuthorization,
+  parseVideoThumbnailAuthorizations,
   parseVideoPosts,
   shouldRefreshVideoPosts,
   shouldShowUploadedVideoPlaceholder,
@@ -38,6 +40,50 @@ describe('parseVideoPlaybackAuthorization', () => {
           expiresAt: 1_784_269_999,
           playbackId: 'playback-id',
           thumbnailToken: 'signed-thumbnail-token',
+        },
+        ok: true,
+      }),
+    ).toThrow()
+  })
+})
+
+describe('parseVideoThumbnailAuthorizations', () => {
+  it('parses a batch thumbnail response and maps it by video post', () => {
+    const authorizations = parseVideoThumbnailAuthorizations({
+      data: {
+        thumbnails: [
+          {
+            expiresAt: 1_784_269_999,
+            playbackId: 'playback-id',
+            postId: '4b7227b2-5350-4a61-9114-b2d0c915fd1b',
+            thumbnailToken: 'signed-thumbnail-token',
+          },
+        ],
+      },
+      ok: true,
+    })
+
+    expect(
+      mapVideoThumbnailAuthorizations(authorizations).get('4b7227b2-5350-4a61-9114-b2d0c915fd1b'),
+    ).toEqual({
+      expiresAt: 1_784_269_999,
+      playbackId: 'playback-id',
+      postId: '4b7227b2-5350-4a61-9114-b2d0c915fd1b',
+      thumbnailToken: 'signed-thumbnail-token',
+    })
+  })
+
+  it('rejects a thumbnail response without a source post identifier', () => {
+    expect(() =>
+      parseVideoThumbnailAuthorizations({
+        data: {
+          thumbnails: [
+            {
+              expiresAt: 1_784_269_999,
+              playbackId: 'playback-id',
+              thumbnailToken: 'signed-thumbnail-token',
+            },
+          ],
         },
         ok: true,
       }),

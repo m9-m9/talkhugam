@@ -94,6 +94,9 @@ verify_jwt = false
 [functions.mux-playback-token]
 verify_jwt = false
 
+[functions.mux-thumbnail-tokens]
+verify_jwt = false
+
 [functions.mux-webhook]
 verify_jwt = false
 
