@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 
 export type SelectMenuOption = {
   badge?: string
@@ -26,9 +26,21 @@ export function SelectMenu({
 }: SelectMenuProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
+  const optionRefs = useRef(new Map<string, HTMLButtonElement>())
   const listboxId = useId()
   const [isOpen, setIsOpen] = useState(false)
   const selectedOption = options.find((option) => option.value === value) ?? options[0]
+
+  /** 열린 선택 메뉴를 닫고 메뉴를 연 트리거에 키보드 포커스를 복귀시킨다. */
+  const closeMenuAndRestoreFocus = useCallback(() => {
+    setIsOpen(false)
+    triggerRef.current?.focus()
+  }, [])
+
+  useEffect(() => {
+    if (!isOpen) return
+    optionRefs.current.get(selectedOption?.value ?? '')?.focus()
+  }, [isOpen, selectedOption?.value])
 
   useEffect(() => {
     if (!isOpen) return
@@ -37,14 +49,14 @@ export function SelectMenu({
     function handleOutsidePointerDown(event: PointerEvent) {
       if (!(event.target instanceof Node)) return
       if (containerRef.current?.contains(event.target)) return
-      setIsOpen(false)
+      closeMenuAndRestoreFocus()
     }
 
     /** Escape 키 요청이나 사용자 동작을 처리한다. */
     function handleEscape(event: KeyboardEvent) {
       if (event.key !== 'Escape') return
-      setIsOpen(false)
-      triggerRef.current?.focus()
+      event.preventDefault()
+      closeMenuAndRestoreFocus()
     }
 
     document.addEventListener('pointerdown', handleOutsidePointerDown)
@@ -53,12 +65,77 @@ export function SelectMenu({
       document.removeEventListener('pointerdown', handleOutsidePointerDown)
       window.removeEventListener('keydown', handleEscape)
     }
-  }, [isOpen])
+  }, [closeMenuAndRestoreFocus, isOpen])
 
   /** Select 요청이나 사용자 동작을 처리한다. */
   function handleSelect(nextValue: string) {
     onChange(nextValue)
-    setIsOpen(false)
+    closeMenuAndRestoreFocus()
+  }
+
+  /** 선택 메뉴 트리거의 클릭으로 펼침 상태를 전환한다. */
+  function handleToggleMenu() {
+    setIsOpen((open) => !open)
+  }
+
+  /** 트리거의 화살표 키 입력으로 선택 메뉴를 열고 현재 항목에 포커스를 둔다. */
+  function handleTriggerKeyDown(event: React.KeyboardEvent<HTMLButtonElement>) {
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
+    event.preventDefault()
+    setIsOpen(true)
+  }
+
+  /** 옵션 요소 참조를 값별로 저장하거나 해제해 키보드 이동에 사용한다. */
+  function handleOptionRef(value: string, element: HTMLButtonElement | null) {
+    if (!element) {
+      optionRefs.current.delete(value)
+      return
+    }
+    optionRefs.current.set(value, element)
+  }
+
+  /** 현재 옵션 위치를 기준으로 다음 키보드 포커스 대상에 이동한다. */
+  function focusOptionAt(index: number) {
+    const optionValue = options[index]?.value
+    if (!optionValue) return
+    optionRefs.current.get(optionValue)?.focus()
+  }
+
+  /** 옵션 키보드 입력으로 항목 이동, 선택 또는 메뉴 닫기를 처리한다. */
+  function handleOptionKeyDown(
+    event: React.KeyboardEvent<HTMLButtonElement>,
+    option: SelectMenuOption,
+    optionIndex: number,
+  ) {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault()
+      focusOptionAt((optionIndex + 1) % options.length)
+      return
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault()
+      focusOptionAt((optionIndex - 1 + options.length) % options.length)
+      return
+    }
+    if (event.key === 'Home') {
+      event.preventDefault()
+      focusOptionAt(0)
+      return
+    }
+    if (event.key === 'End') {
+      event.preventDefault()
+      focusOptionAt(options.length - 1)
+      return
+    }
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      handleSelect(option.value)
+      return
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      closeMenuAndRestoreFocus()
+    }
   }
 
   return (
@@ -70,7 +147,8 @@ export function SelectMenu({
         aria-label={`${label}: ${selectedOption?.label ?? ''}`}
         className="border-ink/20 bg-surface text-ink hover:border-primary/60 focus-visible:ring-primary flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
         disabled={disabled}
-        onClick={() => setIsOpen((open) => !open)}
+        onClick={handleToggleMenu}
+        onKeyDown={handleTriggerKeyDown}
         ref={triggerRef}
         type="button"
       >
@@ -87,7 +165,7 @@ export function SelectMenu({
           {menuTitle ? (
             <p className="text-ink-subtle px-2 pt-1 pb-2 text-xs font-semibold">{menuTitle}</p>
           ) : null}
-          {options.map((option) => {
+          {options.map((option, optionIndex) => {
             const isSelected = option.value === value
             return (
               <button
@@ -99,6 +177,8 @@ export function SelectMenu({
                 }`}
                 key={option.value}
                 onClick={() => handleSelect(option.value)}
+                onKeyDown={(event) => handleOptionKeyDown(event, option, optionIndex)}
+                ref={(element) => handleOptionRef(option.value, element)}
                 role="option"
                 type="button"
               >

@@ -7,14 +7,23 @@ export function AppBottomNavigation() {
   const navigate = useNavigate()
   const actionBookRef = useRef<HTMLElement>(null)
   const actionMenuButtonRef = useRef<HTMLButtonElement>(null)
+  const firstActionButtonRef = useRef<HTMLButtonElement>(null)
   const [isActionBookOpen, setIsActionBookOpen] = useState(false)
   const isRoomsActive = location.pathname.startsWith('/rooms')
   const isProfileActive = location.pathname.startsWith('/profile')
 
   useEffect(() => {
+    if (!isActionBookOpen) return
+    firstActionButtonRef.current?.focus()
+  }, [isActionBookOpen])
+
+  useEffect(() => {
     /** Escape 키 요청이나 사용자 동작을 처리한다. */
     function handleEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') setIsActionBookOpen(false)
+      if (event.key !== 'Escape' || !isActionBookOpen) return
+      event.preventDefault()
+      setIsActionBookOpen(false)
+      actionMenuButtonRef.current?.focus()
     }
 
     /** 외부 포인터 Down 요청이나 사용자 동작을 처리한다. */
@@ -23,15 +32,37 @@ export function AppBottomNavigation() {
       if (actionBookRef.current?.contains(event.target)) return
       if (actionMenuButtonRef.current?.contains(event.target)) return
       setIsActionBookOpen(false)
+      actionMenuButtonRef.current?.focus()
+    }
+
+    /** 메뉴 밖 조작 요소로 키보드 포커스가 이동하면 책자만 닫고 이동한 포커스는 유지한다. */
+    function handleOutsideFocus(event: FocusEvent) {
+      if (!isActionBookOpen || !(event.target instanceof Node)) return
+      if (actionBookRef.current?.contains(event.target)) return
+      if (actionMenuButtonRef.current?.contains(event.target)) return
+      setIsActionBookOpen(false)
     }
 
     window.addEventListener('keydown', handleEscape)
     document.addEventListener('pointerdown', handleOutsidePointerDown)
+    document.addEventListener('focusin', handleOutsideFocus)
     return () => {
       window.removeEventListener('keydown', handleEscape)
       document.removeEventListener('pointerdown', handleOutsidePointerDown)
+      document.removeEventListener('focusin', handleOutsideFocus)
     }
   }, [isActionBookOpen])
+
+  /** 책자 바깥 영역을 눌러 모임 시작 선택지를 닫고 + 버튼에 포커스를 돌린다. */
+  function handleCloseActionBook() {
+    setIsActionBookOpen(false)
+    actionMenuButtonRef.current?.focus()
+  }
+
+  /** 중앙 + 버튼으로 모임 시작 선택지의 펼침 상태를 전환한다. */
+  function handleToggleActionBook() {
+    setIsActionBookOpen((isOpen) => !isOpen)
+  }
 
   /** 생성 독서방 요청이나 사용자 동작을 처리한다. */
   function handleCreateRoom() {
@@ -51,7 +82,7 @@ export function AppBottomNavigation() {
         <button
           aria-label="메뉴 바깥 영역을 눌러 닫기"
           className="talkhugam-action-backdrop"
-          onClick={() => setIsActionBookOpen(false)}
+          onClick={handleCloseActionBook}
           type="button"
         />
       ) : null}
@@ -90,6 +121,7 @@ export function AppBottomNavigation() {
               aria-label="새 모임 만들기"
               className="talkhugam-action-book__page talkhugam-action-book__page--left flex flex-1 flex-col items-start gap-2 text-left"
               onClick={handleCreateRoom}
+              ref={firstActionButtonRef}
               type="button"
             >
               <span className="text-primary text-sm font-bold">새로운 이야기</span>
@@ -151,7 +183,7 @@ export function AppBottomNavigation() {
         aria-expanded={isActionBookOpen}
         aria-label={isActionBookOpen ? '모임 시작 메뉴 닫기' : '모임 시작 메뉴 열기'}
         className="bg-primary text-ink absolute top-0 left-1/2 z-20 flex size-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full shadow-lg"
-        onClick={() => setIsActionBookOpen((isOpen) => !isOpen)}
+        onClick={handleToggleActionBook}
         ref={actionMenuButtonRef}
         type="button"
       >

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import {
@@ -35,6 +35,7 @@ export function AccountSettingsPage() {
   const queryClient = useQueryClient()
   const user = useAuthenticatedUser()
   const client = createSupabaseClient()
+  const deletionTriggerRef = useRef<HTMLButtonElement>(null)
   const [isDeletionDialogOpen, setIsDeletionDialogOpen] = useState(false)
   const [isRetryingNotificationPreferences, setIsRetryingNotificationPreferences] = useState(false)
   const account = createAccountIdentity(user.email, user.appMetadata)
@@ -86,6 +87,12 @@ export function AccountSettingsPage() {
   function handleCloseDeletionDialog() {
     if (accountDeletionMutation.isPending) return
     setIsDeletionDialogOpen(false)
+    deletionTriggerRef.current?.focus()
+  }
+
+  /** 계정 삭제 방식을 서버에 요청한다. */
+  function handleConfirmDeletion(mode: AccountDeletionMode) {
+    accountDeletionMutation.mutate(mode)
   }
 
   return (
@@ -125,6 +132,7 @@ export function AccountSettingsPage() {
         <button
           className="border-danger text-danger mt-4 min-h-11 w-full cursor-pointer rounded-md border bg-white px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
           onClick={handleOpenDeletionDialog}
+          ref={deletionTriggerRef}
           type="button"
         >
           계정 삭제
@@ -136,7 +144,7 @@ export function AccountSettingsPage() {
           error={accountDeletionMutation.error}
           isDeleting={accountDeletionMutation.isPending}
           onClose={handleCloseDeletionDialog}
-          onConfirm={(mode) => accountDeletionMutation.mutate(mode)}
+          onConfirm={handleConfirmDeletion}
         />
       ) : null}
     </main>
@@ -288,11 +296,20 @@ function AccountDeletionDialog({
 }) {
   const [hasConfirmed, setHasConfirmed] = useState(false)
   const [mode, setMode] = useState<AccountDeletionMode | null>(null)
+  const dialogRef = useRef<HTMLElement>(null)
+  const firstModeRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
+    firstModeRef.current?.focus()
+
     /** Escape 키 입력으로 삭제 확인창을 닫는다. */
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') onClose()
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        onClose()
+        return
+      }
+      if (event.key === 'Tab') trapDialogFocus(event, dialogRef.current)
     }
 
     window.addEventListener('keydown', handleKeyDown)
@@ -305,18 +322,23 @@ function AccountDeletionDialog({
     onConfirm(mode)
   }
 
+  /** 배경을 눌렀을 때만 계정 삭제 확인창을 닫는다. */
+  function handleBackdropMouseDown(event: React.MouseEvent<HTMLDivElement>) {
+    if (event.currentTarget !== event.target) return
+    onClose()
+  }
+
   return (
     <div
       aria-hidden="false"
       className="bg-ink/40 fixed inset-0 z-50 flex items-end justify-center px-4 pb-4 sm:items-center"
-      onMouseDown={(event) => {
-        if (event.currentTarget === event.target) onClose()
-      }}
+      onMouseDown={handleBackdropMouseDown}
     >
       <section
         aria-labelledby="account-deletion-dialog-heading"
         aria-modal="true"
         className="bg-surface w-full max-w-md rounded-lg p-6 shadow-xl"
+        ref={dialogRef}
         role="dialog"
       >
         <p className="text-danger text-sm font-semibold">되돌릴 수 없는 작업</p>
@@ -334,6 +356,7 @@ function AccountDeletionDialog({
             disabled={isDeleting}
             label="대화 기록은 남기고 탈퇴"
             onChange={() => setMode('anonymize')}
+            inputRef={firstModeRef}
             value="anonymize"
           />
           <DeletionModeOption
@@ -391,6 +414,7 @@ function DeletionModeOption({
   disabled,
   label,
   onChange,
+  inputRef,
   value,
 }: {
   checked: boolean
@@ -398,6 +422,7 @@ function DeletionModeOption({
   disabled: boolean
   label: string
   onChange: () => void
+  inputRef?: React.RefObject<HTMLInputElement | null>
   value: AccountDeletionMode
 }) {
   return (
@@ -409,6 +434,7 @@ function DeletionModeOption({
         disabled={disabled}
         name="account-deletion-mode"
         onChange={onChange}
+        ref={inputRef}
         type="radio"
         value={value}
       />
@@ -418,6 +444,29 @@ function DeletionModeOption({
       </span>
     </label>
   )
+}
+
+/** 대화상자 안에서 Tab 키가 첫·마지막 조작 요소를 벗어나지 않도록 순환시킨다. */
+function trapDialogFocus(event: KeyboardEvent, dialog: HTMLElement | null) {
+  if (!dialog) return
+  const focusableElements = Array.from(
+    dialog.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    ),
+  )
+  const firstElement = focusableElements[0]
+  const lastElement = focusableElements.at(-1)
+  if (!firstElement || !lastElement) return
+
+  if (event.shiftKey && document.activeElement === firstElement) {
+    event.preventDefault()
+    lastElement.focus()
+    return
+  }
+  if (!event.shiftKey && document.activeElement === lastElement) {
+    event.preventDefault()
+    firstElement.focus()
+  }
 }
 
 /** 계정 삭제 오류를 사용자 행동이 가능한 문구로 변환한다. */
