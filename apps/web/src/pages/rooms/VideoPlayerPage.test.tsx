@@ -134,12 +134,46 @@ describe('VideoPlayerPage', () => {
     expect(screen.queryByRole('button', { name: '삭제' })).not.toBeInTheDocument()
   })
 
-  it('shows a retryable error when video deletion fails', async () => {
-    deleteVideoPost.mockRejectedValueOnce(new Error('delete failed'))
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
+  it('requires confirmation before deleting an authorized video', async () => {
     renderPlayerPage()
 
     fireEvent.click(await screen.findByRole('button', { name: '삭제' }))
+
+    expect(screen.getByRole('dialog', { name: '영상 삭제' })).toBeInTheDocument()
+    expect(deleteVideoPost).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: '영상 삭제하기' }))
+
+    await vi.waitFor(() => expect(deleteVideoPost).toHaveBeenCalledTimes(1))
+    expect(await screen.findByText('영상 기록 화면')).toBeInTheDocument()
+  })
+
+  it('dismisses the video deletion dialog by Escape or its backdrop without deleting', async () => {
+    renderPlayerPage()
+
+    const trigger = await screen.findByRole('button', { name: '삭제' })
+    fireEvent.click(trigger)
+    fireEvent.keyDown(window, { key: 'Escape' })
+
+    expect(screen.queryByRole('dialog', { name: '영상 삭제' })).not.toBeInTheDocument()
+    expect(trigger).toHaveFocus()
+
+    fireEvent.click(trigger)
+    const dialog = screen.getByRole('dialog', { name: '영상 삭제' })
+    const backdrop = dialog.parentElement
+    if (!backdrop) throw new Error('영상 삭제 확인창의 배경을 찾지 못했습니다.')
+    fireEvent.mouseDown(backdrop)
+
+    expect(screen.queryByRole('dialog', { name: '영상 삭제' })).not.toBeInTheDocument()
+    expect(deleteVideoPost).not.toHaveBeenCalled()
+  })
+
+  it('shows a retryable error when video deletion fails', async () => {
+    deleteVideoPost.mockRejectedValueOnce(new Error('delete failed'))
+    renderPlayerPage()
+
+    fireEvent.click(await screen.findByRole('button', { name: '삭제' }))
+    fireEvent.click(await screen.findByRole('button', { name: '영상 삭제하기' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       '영상을 삭제하지 못했어요. 다시 시도해 주세요.',

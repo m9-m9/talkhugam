@@ -226,6 +226,42 @@ test('opens a gallery thumbnail in the immersive video viewer', async ({ page })
   await expect(page.getByRole('navigation', { name: '주요 메뉴' })).toBeHidden()
 })
 
+test('dismisses the video deletion confirmation without deleting', async ({ page }) => {
+  const videoId = '4b7227b2-5350-4a61-9114-b2d0c915fd1b'
+  await authenticatePage(page)
+  await mockVideoMembers(page)
+  await mockVideoPosts(page, [createVideoPostRow(videoId, '민규', 'ready')])
+  await page.route('**/functions/v1/mux-playback-token', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        data: {
+          expiresAt: 1_784_269_999,
+          playbackId: 'playback-id',
+          thumbnailToken: 'thumbnail-token',
+          token: 'playback-token',
+        },
+        ok: true,
+      }),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+  await page.goto(`/rooms/${roomId}/books/${bookChatId}/videos/${videoId}`)
+
+  const deleteButton = page.getByRole('button', { name: '삭제', exact: true })
+  await deleteButton.click()
+  await expect(page.getByRole('dialog', { name: '영상 삭제' })).toBeVisible()
+
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog', { name: '영상 삭제' })).toBeHidden()
+  await expect(deleteButton).toBeFocused()
+
+  await deleteButton.click()
+  const backdrop = page.getByRole('dialog', { name: '영상 삭제' }).locator('..')
+  await backdrop.click({ position: { x: 1, y: 1 } })
+  await expect(page.getByRole('dialog', { name: '영상 삭제' })).toBeHidden()
+})
+
 test('returns to the video archive when the requested video no longer exists', async ({ page }) => {
   const missingVideoId = '4b7227b2-5350-4a61-9114-b2d0c915fd1b'
   await authenticatePage(page)
@@ -291,6 +327,7 @@ async function mockVideoMembers(page: Page) {
         {
           id: '8fc963a4-da01-4696-995c-755fe145776f',
           profile_id: '00000000-0000-4000-8000-000000000001',
+          role: 'member',
           room_display_name: '민규',
         },
       ]),
