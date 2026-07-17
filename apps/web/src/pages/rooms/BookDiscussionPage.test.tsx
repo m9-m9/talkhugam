@@ -49,6 +49,24 @@ describe('BookDiscussionPage', () => {
     expect(actionMenu).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '영상 올리기' })).toBeInTheDocument()
   })
+
+  it('closes the action bubble when the user taps outside it', () => {
+    renderBookDiscussionPage()
+    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴' }))
+
+    fireEvent.pointerDown(document.body)
+
+    expect(screen.queryByText('페이지 라벨')).not.toBeInTheDocument()
+  })
+
+  it('closes the action bubble with Escape', () => {
+    renderBookDiscussionPage()
+    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴' }))
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+
+    expect(screen.queryByText('페이지 라벨')).not.toBeInTheDocument()
+  })
 })
 
 function renderBookDiscussionPage() {

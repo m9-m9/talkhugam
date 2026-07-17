@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import MuxPlayer from '@mux/mux-player-react'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
 import {
@@ -141,6 +141,8 @@ function ChatComposer({
   value: string
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const actionMenuRef = useRef<HTMLDivElement>(null)
+  const actionMenuButtonRef = useRef<HTMLButtonElement>(null)
   const [isActionTrayOpen, setIsActionTrayOpen] = useState(false)
   const [labelKind, setLabelKind] = useState<LabelKind | null>(null)
   const [labelValue, setLabelValue] = useState('')
@@ -157,6 +159,26 @@ function ChatComposer({
   function handleRemoveLabel(index: number) {
     onChangeLabels(labels.filter((_, labelIndex) => labelIndex !== index))
   }
+
+  useEffect(() => {
+    function handleOutsidePointerDown(event: PointerEvent) {
+      if (!isActionTrayOpen || !(event.target instanceof Node)) return
+      if (actionMenuRef.current?.contains(event.target)) return
+      if (actionMenuButtonRef.current?.contains(event.target)) return
+      setIsActionTrayOpen(false)
+    }
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') setIsActionTrayOpen(false)
+    }
+
+    document.addEventListener('pointerdown', handleOutsidePointerDown)
+    window.addEventListener('keydown', handleEscape)
+    return () => {
+      document.removeEventListener('pointerdown', handleOutsidePointerDown)
+      window.removeEventListener('keydown', handleEscape)
+    }
+  }, [isActionTrayOpen])
 
   return (
     <section className="border-ink/10 relative mt-6 border-t pt-4">
@@ -193,7 +215,10 @@ function ChatComposer({
         </ul>
       ) : null}
       {isActionTrayOpen ? (
-        <div className="talkhugam-chat-action-menu border-ink/10 rounded-lg border bg-white p-3 shadow-lg">
+        <div
+          className="talkhugam-chat-action-menu border-ink/10 rounded-lg border bg-white p-3 shadow-lg"
+          ref={actionMenuRef}
+        >
           {labelKind ? (
             <div className="flex items-center gap-2">
               <label className="sr-only" htmlFor="post-label-value">
@@ -249,6 +274,7 @@ function ChatComposer({
           aria-label="메시지 추가 메뉴"
           className="border-ink/20 text-ink flex min-h-11 min-w-11 items-center justify-center rounded-full border text-2xl leading-none"
           onClick={() => setIsActionTrayOpen((isOpen) => !isOpen)}
+          ref={actionMenuButtonRef}
           type="button"
         >
           +
