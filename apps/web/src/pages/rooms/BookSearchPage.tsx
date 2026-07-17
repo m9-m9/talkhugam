@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { z } from 'zod'
@@ -9,7 +10,7 @@ import {
   type BookSearchItem,
 } from '../../entities/book-chat'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
-import { useQueryClient } from '@tanstack/react-query'
+import { BookCover } from '../../shared/ui/BookCover'
 
 const querySchema = z
   .string()
@@ -166,19 +167,22 @@ function BookResults({
       {items.map((book) => (
         <li key={`${book.title}-${book.isbn13 ?? book.isbn10 ?? book.externalUrl ?? ''}`}>
           <button
-            className="border-ink/10 min-h-16 w-full rounded-lg border bg-white p-4 text-left"
+            className="border-ink/10 flex min-h-24 w-full items-center gap-3 rounded-lg border bg-white p-4 text-left"
             disabled={isCreatingId !== null}
             onClick={() => void onSelect(book)}
             type="button"
           >
-            <span className="text-ink block text-sm font-bold">{book.title}</span>
-            <span className="text-ink-subtle mt-1 block text-xs">
-              {book.authors.join(', ')}
-              {book.publisher ? ` · ${book.publisher}` : ''}
+            <BookCover alt={`${book.title} 표지`} thumbnailUrl={book.thumbnailUrl} />
+            <span className="min-w-0">
+              <span className="text-ink block text-sm font-bold">{book.title}</span>
+              <span className="text-ink-subtle mt-1 block text-xs">
+                {book.authors.join(', ')}
+                {book.publisher ? ` · ${book.publisher}` : ''}
+              </span>
+              {isCreatingId === book.title ? (
+                <span className="text-primary mt-2 block text-xs">책 채팅방을 만들고 있어요…</span>
+              ) : null}
             </span>
-            {isCreatingId === book.title ? (
-              <span className="text-primary mt-2 block text-xs">책 채팅방을 만들고 있어요…</span>
-            ) : null}
           </button>
         </li>
       ))}

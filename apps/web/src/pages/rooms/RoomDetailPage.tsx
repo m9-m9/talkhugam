@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 
 import { bookChatKeys, getBookChats, getReadingRoom } from '../../entities/book-chat'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
+import { BookCover } from '../../shared/ui/BookCover'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 export function RoomDetailPage() {
@@ -107,12 +108,17 @@ function BookChatsContent({
       {chats.map((chat) => (
         <li key={chat.id}>
           <button
-            className="border-ink/10 hover:border-primary min-h-16 w-full rounded-lg border bg-white p-4 text-left"
+            className="border-ink/10 hover:border-primary flex min-h-24 w-full items-center gap-3 rounded-lg border bg-white p-4 text-left"
             onClick={() => void navigate(`/rooms/${roomId}/books/${chat.id}`)}
             type="button"
           >
-            <p className="text-ink text-sm font-bold">{chat.title}</p>
-            <p className="text-ink-subtle mt-1 text-xs">{chat.authors.join(', ') || chat.name}</p>
+            <BookCover alt={`${chat.title} 표지`} thumbnailUrl={chat.thumbnailUrl} />
+            <span className="min-w-0">
+              <span className="text-ink block text-sm font-bold">{chat.title}</span>
+              <span className="text-ink-subtle mt-1 block text-xs">
+                {chat.authors.join(', ') || chat.name}
+              </span>
+            </span>
           </button>
         </li>
       ))}
