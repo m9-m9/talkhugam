@@ -53,6 +53,9 @@ jobs:
       - name: 백엔드 보안 정책 검사
         run: pnpm backend:check:security
 
+      - name: 로컬 origin 구성 검사
+        run: pnpm backend:check:local-origin
+
       - name: Edge Function 타입 검사
         run: pnpm backend:check:functions
 

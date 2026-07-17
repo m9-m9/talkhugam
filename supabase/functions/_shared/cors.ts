@@ -3,7 +3,6 @@ import { readOptionalEnv } from './env.ts'
 const DEFAULT_ALLOWED_ORIGINS = [
   'http://localhost:5173',
   'http://127.0.0.1:5173',
-  'http://127.0.0.1:3000',
 ]
 
 /** 외부 입력을 검증해 허용된 Origins 형식으로 변환한다. */
