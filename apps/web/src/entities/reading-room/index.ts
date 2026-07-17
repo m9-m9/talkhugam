@@ -1,8 +1,10 @@
 export {
   getReadingRooms,
+  formatRoomMemberSummary,
   parseReadingRooms,
   readingRoomKeys,
   type ReadingRoom,
+  type ReadingRoomMember,
 } from './readingRoom'
 export {
   createRoomFormSchema,

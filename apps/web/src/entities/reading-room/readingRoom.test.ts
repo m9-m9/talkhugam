@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { parseReadingRooms, readingRoomKeys } from './readingRoom'
+import { formatRoomMemberSummary, parseReadingRooms, readingRoomKeys } from './readingRoom'
 
 describe('parseReadingRooms', () => {
   it('maps Supabase rows to reading-room domain models', () => {
@@ -19,6 +19,7 @@ describe('parseReadingRooms', () => {
         createdAt: '2026-07-17T02:01:30.123+00:00',
         description: null,
         id: 'f17c0d6d-3e6e-4b7f-a1f1-5d652aa2a85e',
+        members: [],
         name: '금요일 아침 독서방',
         updatedAt: '2026-07-17T02:01:30.123+00:00',
       },
@@ -27,6 +28,24 @@ describe('parseReadingRooms', () => {
 
   it('rejects rows that are not a valid domain shape', () => {
     expect(() => parseReadingRooms([{ id: 'not-a-uuid' }])).toThrow()
+  })
+})
+
+describe('formatRoomMemberSummary', () => {
+  it('shows the first two member names and the total member count', () => {
+    expect(
+      formatRoomMemberSummary([
+        { displayName: '민규', joinedAt: '2026-07-17T02:01:30.123+00:00' },
+        { displayName: '수진', joinedAt: '2026-07-17T02:02:30.123+00:00' },
+        { displayName: '명준', joinedAt: '2026-07-17T02:03:30.123+00:00' },
+      ]),
+    ).toBe('민규 · 수진 외 1명 · 3명')
+  })
+
+  it('keeps the summary useful for a one-person room', () => {
+    expect(
+      formatRoomMemberSummary([{ displayName: '민규', joinedAt: '2026-07-17T02:01:30.123+00:00' }]),
+    ).toBe('민규 · 1명')
   })
 })
 

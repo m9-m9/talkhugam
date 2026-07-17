@@ -33,8 +33,8 @@ export const createRoomFormSchema = z.object({
   name: z
     .string()
     .trim()
-    .min(1, '독서방 이름을 입력해 주세요.')
-    .max(40, '독서방 이름은 40자 이내로 작성해 주세요.'),
+    .min(1, '모임 이름을 입력해 주세요.')
+    .max(40, '모임 이름은 40자 이내로 작성해 주세요.'),
 })
 
 export const joinRoomFormSchema = z.object({

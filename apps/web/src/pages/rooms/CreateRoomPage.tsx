@@ -58,15 +58,15 @@ export function CreateRoomPage() {
       <AppHeader onBack={() => void navigate(-1)} title="독서방 만들기" />
       <header className="mt-8">
         <h1 className="text-ink text-xl font-bold">독서방 만들기</h1>
-        <p className="text-ink-subtle mt-1 text-sm">이름을 정하고 친구를 초대해 보세요.</p>
+        <p className="text-ink-subtle mt-1 text-sm">모임 이름을 정하고 친구를 초대해 보세요.</p>
       </header>
 
       <form className="mt-12 space-y-6" onSubmit={form.handleSubmit(handleSubmit)}>
-        <FormField errorMessage={form.formState.errors.name?.message} label="독서방 이름">
+        <FormField errorMessage={form.formState.errors.name?.message} label="모임 이름">
           <input
             aria-invalid={Boolean(form.formState.errors.name)}
             className="border-ink/10 focus:border-primary min-h-12 w-full rounded-md border bg-white px-4 text-sm outline-none"
-            placeholder="예: 금요일 아침 독서방"
+            placeholder="예: 금요일 아침 독서 모임"
             {...form.register('name')}
           />
         </FormField>

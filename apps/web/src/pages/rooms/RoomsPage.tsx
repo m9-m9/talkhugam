@@ -2,7 +2,13 @@ import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
-import { getReadingRooms, readingRoomKeys, type ReadingRoom } from '../../entities/reading-room'
+import {
+  formatRoomMemberSummary,
+  getReadingRooms,
+  readingRoomKeys,
+  type ReadingRoom,
+  type ReadingRoomMember,
+} from '../../entities/reading-room'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
@@ -131,18 +137,52 @@ function RoomsList({ rooms }: { rooms: ReadingRoom[] }) {
         {rooms.map((room) => (
           <li key={room.id}>
             <button
-              className="border-ink/10 hover:border-primary focus-visible:outline-primary min-h-16 w-full rounded-lg border bg-white p-4 text-left"
+              className="border-ink/10 hover:border-primary focus-visible:outline-primary min-h-32 w-full rounded-lg border bg-white p-4 text-left"
               onClick={() => void navigate(`/rooms/${room.id}`)}
               type="button"
             >
-              <span className="text-ink block text-sm font-bold">{room.name}</span>
-              <span className="text-ink-subtle mt-1 block text-xs">
-                {room.description ?? '아직 새 감상이 없어요'}
+              <span className="flex items-start gap-3">
+                <RoomMemberAvatars members={room.members} />
+                <span className="min-w-0 flex-1">
+                  <span className="text-ink block text-sm font-bold">{room.name}</span>
+                  <span className="text-ink-subtle mt-1 block truncate text-xs">
+                    {room.description ?? '아직 새 감상이 없어요'}
+                  </span>
+                  <span className="text-ink-subtle mt-3 block text-xs">
+                    {formatRoomMemberSummary(room.members)}
+                  </span>
+                </span>
+                <span aria-hidden="true" className="text-ink-subtle pt-4 text-lg">
+                  ›
+                </span>
               </span>
             </button>
           </li>
         ))}
       </ul>
     </div>
+  )
+}
+
+function RoomMemberAvatars({ members }: { members: readonly ReadingRoomMember[] }) {
+  const visibleMembers = members.slice(0, 3)
+  const remainingCount = members.length - visibleMembers.length
+
+  return (
+    <span aria-hidden="true" className="flex shrink-0 -space-x-2 pt-1">
+      {visibleMembers.map((member) => (
+        <span
+          className="border-surface bg-surface-muted text-ink-subtle flex size-8 items-center justify-center rounded-full border-2 text-xs font-semibold"
+          key={member.joinedAt}
+        >
+          {member.displayName.slice(0, 1)}
+        </span>
+      ))}
+      {remainingCount > 0 ? (
+        <span className="border-surface bg-primary text-ink flex size-8 items-center justify-center rounded-full border-2 text-xs font-semibold">
+          +{remainingCount}
+        </span>
+      ) : null}
+    </span>
   )
 }
