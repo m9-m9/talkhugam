@@ -53,23 +53,6 @@ export function RoomsPage() {
         title="내 독서방"
       />
 
-      <nav aria-label="하위 메뉴" className="border-ink/10 -mx-6 flex border-b px-6">
-        <button
-          aria-current="page"
-          className="text-primary border-primary min-h-11 px-3 text-sm font-medium"
-          type="button"
-        >
-          독서방
-        </button>
-        <button
-          className="text-ink-subtle ml-auto min-h-11 px-3 text-sm"
-          onClick={() => void navigate('/profile')}
-          type="button"
-        >
-          내 정보
-        </button>
-      </nav>
-
       <section aria-labelledby="recent-rooms-heading" className="flex flex-1 flex-col py-8">
         <RoomsContent
           error={roomsQuery.error}
@@ -78,15 +61,6 @@ export function RoomsPage() {
           rooms={roomsQuery.data}
         />
       </section>
-
-      <button
-        aria-label="새 독서방 만들기"
-        className="bg-primary fixed right-6 bottom-6 flex size-12 items-center justify-center rounded-full text-3xl font-light text-white shadow-lg"
-        onClick={() => void navigate('/rooms/create')}
-        type="button"
-      >
-        <span aria-hidden="true">+</span>
-      </button>
     </main>
   )
 }

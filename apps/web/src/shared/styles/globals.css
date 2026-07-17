@@ -55,6 +55,28 @@
   width: 100%;
 }
 
+.app-with-bottom-navigation {
+  min-height: 100vh;
+  padding-bottom: 100px;
+}
+
+.app-bottom-navigation {
+  bottom: 0;
+  height: 100px;
+  left: 50%;
+  max-width: 640px;
+  position: fixed;
+  transform: translateX(-50%);
+  width: 100%;
+  z-index: 20;
+}
+
+@media (min-width: 768px) {
+  .app-bottom-navigation {
+    border-inline: 1px solid var(--color-border);
+  }
+}
+
 @media (min-width: 768px) {
   .app-page {
     border-inline: 1px solid var(--color-border);
