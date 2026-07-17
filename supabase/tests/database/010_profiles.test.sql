@@ -2,7 +2,7 @@ begin;
 
 \ir ../helpers/auth.inc
 
-select plan(15);
+select plan(16);
 
 select has_table('public', 'profiles', 'profiles table should exist');
 select has_table(
