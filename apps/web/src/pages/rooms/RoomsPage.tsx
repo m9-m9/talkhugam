@@ -135,6 +135,8 @@ function EmptyRoomsState() {
 }
 
 function RoomsList({ rooms }: { rooms: ReadingRoom[] }) {
+  const navigate = useNavigate()
+
   return (
     <div>
       <h2 className="text-ink text-base font-bold" id="recent-rooms-heading">
@@ -143,12 +145,16 @@ function RoomsList({ rooms }: { rooms: ReadingRoom[] }) {
       <ul className="mt-4 space-y-3">
         {rooms.map((room) => (
           <li key={room.id}>
-            <article className="border-ink/10 min-h-16 w-full rounded-lg border bg-white p-4 text-left">
+            <button
+              className="border-ink/10 hover:border-primary focus-visible:outline-primary min-h-16 w-full rounded-lg border bg-white p-4 text-left"
+              onClick={() => void navigate(`/rooms/${room.id}`)}
+              type="button"
+            >
               <span className="text-ink block text-sm font-bold">{room.name}</span>
               <span className="text-ink-subtle mt-1 block text-xs">
                 {room.description ?? '아직 새 감상이 없어요'}
               </span>
-            </article>
+            </button>
           </li>
         ))}
       </ul>
