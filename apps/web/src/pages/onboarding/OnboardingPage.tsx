@@ -90,7 +90,7 @@ export function OnboardingPage() {
   if (isLoading) return <OnboardingState message="프로필을 준비하고 있어요." />
 
   return (
-    <main className="app-page bg-surface flex flex-col px-6 py-8">
+    <main className="app-page bg-surface flex flex-col px-4 py-8">
       <header className="space-y-3">
         <p className="text-primary text-sm font-medium">Talk후감</p>
         <h1 className="text-ink text-3xl font-semibold">나를 간단히 소개해 주세요</h1>
@@ -191,7 +191,7 @@ function Field({
 
 function OnboardingState({ message }: { message: string }) {
   return (
-    <main className="app-page bg-surface flex items-center justify-center px-6">
+    <main className="app-page bg-surface flex items-center justify-center px-4">
       <LoadingSpinner label={message} />
     </main>
   )

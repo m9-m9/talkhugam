@@ -54,7 +54,7 @@ export function CreateRoomPage() {
   }
 
   return (
-    <main className="app-page bg-surface px-6 pb-8">
+    <main className="app-page bg-surface px-4 pb-8">
       <AppHeader onBack={() => void navigate(-1)} title="독서방 만들기" />
       <header className="mt-8">
         <h1 className="text-ink text-xl font-bold">독서방 만들기</h1>
@@ -120,7 +120,7 @@ function RoomCreatedPage({ invite, onClose }: { invite: CreatedRoomInvite; onClo
   }
 
   return (
-    <main className="app-page bg-surface flex flex-col px-6 pb-8">
+    <main className="app-page bg-surface flex flex-col px-4 pb-8">
       <AppHeader
         action={
           <button

@@ -38,7 +38,7 @@ export function RoomDetailPage() {
     return <RoomUnavailablePage onBack={() => void navigate('/rooms', { replace: true })} />
 
   return (
-    <main className="app-page bg-surface px-6 pb-8">
+    <main className="app-page bg-surface px-4 pb-8">
       <AppHeader
         action={
           <button
@@ -135,7 +135,7 @@ function EmptyBookChats() {
 
 function RoomLoadingPage() {
   return (
-    <main className="bg-surface flex min-h-screen items-center justify-center px-6">
+    <main className="bg-surface flex min-h-screen items-center justify-center px-4">
       <LoadingSpinner label="독서방을 불러오고 있어요." />
     </main>
   )
@@ -143,7 +143,7 @@ function RoomLoadingPage() {
 
 function RoomUnavailablePage({ onBack }: { onBack: () => void }) {
   return (
-    <main className="bg-surface flex min-h-screen flex-col items-center justify-center px-6 text-center">
+    <main className="bg-surface flex min-h-screen flex-col items-center justify-center px-4 text-center">
       <p className="text-ink text-lg font-medium">이 독서방을 찾을 수 없어요</p>
       <p className="text-ink-subtle mt-2 text-sm">참여 중인 독서방인지 확인해 주세요.</p>
       <button

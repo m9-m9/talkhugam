@@ -69,13 +69,13 @@ export function AppBottomNavigation() {
             </svg>
             <button
               aria-label="새 모임 만들기"
-              className="talkhugam-action-book__page talkhugam-action-book__page--left flex min-h-40 flex-1 flex-col items-start justify-between p-6 text-left"
+              className="talkhugam-action-book__page talkhugam-action-book__page--left flex flex-1 flex-col items-start justify-between text-left"
               onClick={handleCreateRoom}
               type="button"
             >
               <span className="text-primary text-sm font-bold">새로운 이야기</span>
               <span>
-                <span className="text-ink block text-lg font-bold">새 모임 만들기</span>
+                <span className="text-ink block text-base font-bold whitespace-nowrap">새 모임 만들기</span>
                 <span className="text-ink-subtle mt-2 block text-xs">
                   친구를 초대해 함께 시작해요.
                 </span>
@@ -83,13 +83,13 @@ export function AppBottomNavigation() {
             </button>
             <button
               aria-label="초대 코드로 참여"
-              className="talkhugam-action-book__page talkhugam-action-book__page--right flex min-h-40 flex-1 flex-col items-start justify-between p-6 text-left"
+              className="talkhugam-action-book__page talkhugam-action-book__page--right flex flex-1 flex-col items-start justify-between text-left"
               onClick={handleJoinRoom}
               type="button"
             >
               <span className="text-primary text-sm font-bold">함께 읽기</span>
               <span>
-                <span className="text-ink block text-lg font-bold">초대 코드로 참여</span>
+                <span className="text-ink block text-base font-bold whitespace-nowrap">초대 코드로 참여</span>
                 <span className="text-ink-subtle mt-2 block text-xs">
                   친구가 보낸 6자리 코드를 입력해요.
                 </span>
@@ -98,7 +98,7 @@ export function AppBottomNavigation() {
           </div>
         </section>
       ) : null}
-      <div className="relative z-10 grid h-full grid-cols-3 items-end px-6 pb-4">
+      <div className="relative z-10 grid h-full grid-cols-3 items-end px-4 pb-4">
         <button
           aria-current={isRoomsActive ? 'page' : undefined}
           className={`min-h-11 text-sm font-medium ${isRoomsActive ? 'text-primary' : 'text-ink-subtle'}`}

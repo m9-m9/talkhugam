@@ -95,7 +95,7 @@ export function BookSearchPage() {
   }
 
   return (
-    <main className="app-page bg-surface px-6 pb-8">
+    <main className="app-page bg-surface px-4 pb-8">
       <AppHeader onBack={() => void navigate(-1)} title="책 검색" />
       <header className="mt-8">
         <h1 className="text-ink text-xl font-bold">무슨 책으로 이야기 나눌까요?</h1>

@@ -56,7 +56,7 @@ export function AccountSettingsPage() {
     return <AccountSettingsState message="계정 정보를 불러오고 있어요." />
 
   return (
-    <main className="app-page bg-surface px-6 pb-8">
+    <main className="app-page bg-surface px-4 pb-8">
       <AppHeader onBack={() => void navigate('/profile')} title="계정 설정" />
       <header className="mt-8">
         <p className="text-primary text-sm font-medium">계정</p>
@@ -119,7 +119,7 @@ function AccountDetail({ label, value }: { label: string; value: string }) {
 
 function AccountSettingsState({ message }: { message: string }) {
   return (
-    <main className="app-page bg-surface flex items-center justify-center px-6">
+    <main className="app-page bg-surface flex items-center justify-center px-4">
       <LoadingSpinner label={message} />
     </main>
   )

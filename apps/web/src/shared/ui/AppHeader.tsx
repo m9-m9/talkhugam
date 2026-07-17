@@ -8,7 +8,7 @@ type AppHeaderProps = {
 
 export function AppHeader({ action, onBack, title }: AppHeaderProps) {
   return (
-    <header className="border-ink/10 -mx-6 flex min-h-16 items-center gap-2 border-b px-6">
+    <header className="border-ink/10 -mx-4 flex min-h-16 items-center gap-2 border-b px-4">
       {onBack ? (
         <button
           aria-label="이전 화면으로"

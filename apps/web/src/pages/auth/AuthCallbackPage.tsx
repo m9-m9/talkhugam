@@ -36,7 +36,7 @@ export function AuthCallbackPage() {
   }, [navigate, searchParams])
 
   return (
-    <main className="app-page bg-surface flex items-center justify-center px-6">
+    <main className="app-page bg-surface flex items-center justify-center px-4">
       <p className="text-ink-subtle text-sm" role={errorMessage ? 'alert' : 'status'}>
         {errorMessage ?? '로그인 정보를 확인하고 있어요.'}
       </p>

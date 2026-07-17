@@ -43,7 +43,7 @@ export function JoinRoomPage() {
   }
 
   return (
-    <main className="app-page bg-surface px-6 pb-8">
+    <main className="app-page bg-surface px-4 pb-8">
       <AppHeader onBack={() => void navigate(-1)} title="초대 코드" />
       <header className="mt-12 text-center">
         <p aria-hidden="true" className="text-primary text-2xl">

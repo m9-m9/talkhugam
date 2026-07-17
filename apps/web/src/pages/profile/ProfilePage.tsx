@@ -38,7 +38,7 @@ export function ProfilePage() {
   const profile = profileQuery.data
 
   return (
-    <main className="app-page bg-surface px-6 pb-8">
+    <main className="app-page bg-surface px-4 pb-8">
       <AppHeader
         action={
           <button
@@ -126,7 +126,7 @@ function ProfileDetail({ label, value }: { label: string; value: string }) {
 
 function ProfileState({ message }: { message: string }) {
   return (
-    <main className="app-page bg-surface flex items-center justify-center px-6">
+    <main className="app-page bg-surface flex items-center justify-center px-4">
       <LoadingSpinner label={message} />
     </main>
   )

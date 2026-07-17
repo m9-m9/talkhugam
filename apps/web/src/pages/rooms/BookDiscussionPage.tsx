@@ -80,7 +80,7 @@ export function BookDiscussionPage() {
   if (!roomId || !bookChatId) return <main className="bg-surface min-h-screen" />
   const roots = postsQuery.data?.filter((post) => post.depth === 0) ?? []
   return (
-    <main className="app-page bg-surface flex min-h-screen flex-col px-6 pb-6">
+    <main className="app-page bg-surface flex min-h-screen flex-col px-4 pb-6">
       <AppHeader onBack={() => void navigate(`/rooms/${roomId}`)} title="책 대화" />
       <header className="mt-8">
         <p className="text-primary text-sm font-medium">책 대화</p>
@@ -386,7 +386,7 @@ function VideoMessage({ video }: { video: VideoPost }) {
       </article>
     )
   return (
-    <article className="border-ink/10 bg-ink flex aspect-video w-full max-w-full flex-col items-center justify-center rounded-lg border px-6 text-center">
+    <article className="border-ink/10 bg-ink flex aspect-video w-full max-w-full flex-col items-center justify-center rounded-lg border px-4 text-center">
       <p className="text-sm font-medium text-white">
         {getVideoMessageLabel(video, playbackQuery.isError)}
       </p>

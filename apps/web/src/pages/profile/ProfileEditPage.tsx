@@ -90,7 +90,7 @@ export function ProfileEditPage() {
   if (profileQuery.isError) return <ProfileEditState message="프로필 정보를 불러오지 못했어요." />
 
   return (
-    <main className="app-page bg-surface px-6 pb-8">
+    <main className="app-page bg-surface px-4 pb-8">
       <AppHeader onBack={() => void navigate('/profile')} title="프로필 편집" />
       <header className="mt-8">
         <p className="text-primary text-sm font-medium">프로필</p>
@@ -190,7 +190,7 @@ function EditField({
 
 function ProfileEditState({ message }: { message: string }) {
   return (
-    <main className="app-page bg-surface flex items-center justify-center px-6">
+    <main className="app-page bg-surface flex items-center justify-center px-4">
       <LoadingSpinner label={message} />
     </main>
   )

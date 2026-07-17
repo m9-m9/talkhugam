@@ -51,7 +51,7 @@ export function VideoArchivePage() {
   if (!roomId || !bookChatId) return <main className="app-page bg-surface min-h-screen" />
 
   return (
-    <main className="app-page bg-surface px-6 pb-8">
+    <main className="app-page bg-surface px-4 pb-8">
       <AppHeader
         onBack={() => void navigate(`/rooms/${roomId}/books/${bookChatId}`)}
         title="영상 기록"
@@ -182,7 +182,7 @@ function VideoCard({
 
 function VideoPlaceholder({ message }: { message: string }) {
   return (
-    <div className="bg-ink flex aspect-video items-center justify-center px-6 text-center">
+    <div className="bg-ink flex aspect-video items-center justify-center px-4 text-center">
       <LoadingSpinner label={message} size="sm" tone="inverse" />
     </div>
   )

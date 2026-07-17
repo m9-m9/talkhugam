@@ -39,15 +39,15 @@ export function RoomsPage() {
 
   if (isAuthenticating)
     return (
-      <main className="bg-surface flex min-h-screen items-center justify-center px-6">
+      <main className="bg-surface flex min-h-screen items-center justify-center px-4">
         <LoadingSpinner label="로그인 정보를 확인하고 있어요." />
       </main>
     )
 
   return (
-    <main className="app-page bg-surface flex flex-col px-6">
-      <header className="border-ink/10 -mx-6 flex min-h-16 items-center border-b px-6">
-        <img alt="Talk후감" className="h-12 w-auto" src="/brand/talkhugam-wordmark.svg" />
+    <main className="app-page bg-surface flex flex-col px-4">
+      <header className="border-ink/10 -mx-4 flex min-h-16 items-center border-b px-4">
+        <img alt="Talk후감" className="h-10 w-auto" src="/brand/talkhugam-wordmark.svg" />
       </header>
 
       <section aria-labelledby="recent-rooms-heading" className="flex flex-1 flex-col py-8">
@@ -128,7 +128,7 @@ function RoomsList({ rooms }: { rooms: ReadingRoom[] }) {
         {rooms.map((room) => (
           <li key={room.id}>
             <button
-              className="border-ink/10 hover:border-primary focus-visible:outline-primary min-h-32 w-full rounded-lg border bg-white p-4 text-left"
+              className="border-ink/10 hover:border-primary focus-visible:outline-primary min-h-24 w-full rounded-lg border bg-white p-4 text-left"
               onClick={() => void navigate(`/rooms/${room.id}`)}
               type="button"
             >
