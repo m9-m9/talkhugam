@@ -7,8 +7,11 @@ const bookChatId = '00000000-0000-4000-8000-000000000002'
 test('keeps the app canvas within the supported viewport', async ({ page }, testInfo) => {
   await page.goto('/')
 
-  const expectedCanvasWidth = testInfo.project.name === 'mobile-320' ? 320 : 640
-  await expect(page.locator('main')).toHaveCSS('max-width', `${expectedCanvasWidth}px`)
+  const expectedCanvasWidth = Math.min(testInfo.project.use.viewport?.width ?? 640, 640)
+  await expect(page.locator('main')).toHaveCSS('max-width', '640px')
+  expect(
+    await page.locator('main').evaluate((element) => element.getBoundingClientRect().width),
+  ).toBe(expectedCanvasWidth)
   await expect(page.locator('html')).toHaveJSProperty(
     'scrollWidth',
     testInfo.project.use.viewport?.width,
@@ -24,6 +27,7 @@ test('has no automated accessibility violations on the sign-in screen', async ({
 })
 
 test('opens and dismisses the book-chat action bubble', async ({ page }) => {
+  await authenticatePage(page)
   await page.goto(`/rooms/${roomId}/books/${bookChatId}`)
 
   await page.getByRole('button', { name: '메시지 추가 메뉴' }).click()
@@ -32,3 +36,34 @@ test('opens and dismisses the book-chat action bubble', async ({ page }) => {
   await page.getByRole('textbox', { name: '메시지 입력' }).click()
   await expect(page.getByRole('button', { name: '영상 올리기' })).toBeHidden()
 })
+
+async function authenticatePage(page: import('@playwright/test').Page) {
+  const user = {
+    app_metadata: {},
+    aud: 'authenticated',
+    created_at: '2026-07-17T00:00:00.000Z',
+    email: 'e2e@example.com',
+    id: '00000000-0000-4000-8000-000000000001',
+    user_metadata: {},
+  }
+  await page.addInitScript((authenticatedUser) => {
+    window.localStorage.setItem(
+      'sb-gvuwtaxvoinelqdvrher-auth-token',
+      JSON.stringify({
+        access_token: 'e2e-access-token',
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+        expires_in: 3600,
+        refresh_token: 'e2e-refresh-token',
+        token_type: 'bearer',
+        user: authenticatedUser,
+      }),
+    )
+  }, user)
+  await page.route('**/auth/v1/user', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify(user),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+}
