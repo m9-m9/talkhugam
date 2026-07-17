@@ -28,7 +28,10 @@ export function RoomsPage() {
         <NotificationInboxButton />
       </header>
 
-      <section aria-labelledby="recent-rooms-heading" className="flex flex-1 flex-col py-8">
+      <section aria-labelledby="recent-rooms-heading" className="flex flex-1 flex-col gap-4 py-8">
+        <h2 className="text-ink text-base font-bold" id="recent-rooms-heading">
+          함께 읽는 모임
+        </h2>
         <RoomsContent
           error={roomsQuery.error}
           isPending={roomsQuery.isPending}
@@ -153,41 +156,36 @@ function RoomsList({ rooms }: { rooms: ReadingRoom[] }) {
   const navigate = useNavigate()
 
   return (
-    <div>
-      <h2 className="text-ink text-base font-bold" id="recent-rooms-heading">
-        함께 읽는 모임
-      </h2>
-      <ul className="mt-4 space-y-3">
-        {rooms.map((room) => (
-          <li key={room.id}>
-            <button
-              className="border-ink/10 hover:border-primary focus-visible:outline-primary min-h-24 w-full rounded-lg border bg-white p-4 text-left"
-              onClick={() => void navigate(`/rooms/${room.id}`)}
-              type="button"
-            >
-              <span className="flex items-start gap-3">
-                <RoomMemberAvatars members={room.members} />
-                <span className="min-w-0 flex-1">
-                  <span className="text-ink block text-sm font-bold">{room.name}</span>
-                  <span className="text-ink-subtle mt-1 block truncate text-xs">
-                    {formatRoomMessagePreview(room)}
-                  </span>
-                  <span className="text-ink-subtle mt-3 block text-xs">
-                    {formatRoomMemberSummary(room.members)}
-                  </span>
+    <ul className="space-y-3">
+      {rooms.map((room) => (
+        <li key={room.id}>
+          <button
+            className="border-ink/10 hover:border-primary focus-visible:outline-primary min-h-24 w-full rounded-lg border bg-white p-4 text-left"
+            onClick={() => void navigate(`/rooms/${room.id}`)}
+            type="button"
+          >
+            <span className="flex items-start gap-3">
+              <RoomMemberAvatars members={room.members} />
+              <span className="min-w-0 flex-1">
+                <span className="text-ink block text-sm font-bold">{room.name}</span>
+                <span className="text-ink-subtle mt-1 block truncate text-xs">
+                  {formatRoomMessagePreview(room)}
                 </span>
-                <span className="text-ink-subtle flex flex-col items-end gap-2 pt-1 text-xs">
-                  {formatRoomMessageTime(room.lastMessage?.createdAt ?? null) ?? '새 모임'}
-                  <span aria-hidden="true" className="text-lg">
-                    ›
-                  </span>
+                <span className="text-ink-subtle mt-3 block text-xs">
+                  {formatRoomMemberSummary(room.members)}
                 </span>
               </span>
-            </button>
-          </li>
-        ))}
-      </ul>
-    </div>
+              <span className="text-ink-subtle flex flex-col items-end gap-2 pt-1 text-xs">
+                {formatRoomMessageTime(room.lastMessage?.createdAt ?? null) ?? '새 모임'}
+                <span aria-hidden="true" className="text-lg">
+                  ›
+                </span>
+              </span>
+            </span>
+          </button>
+        </li>
+      ))}
+    </ul>
   )
 }
 

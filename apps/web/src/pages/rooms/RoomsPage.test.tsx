@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { RoomsPage } from './RoomsPage'
 
@@ -24,6 +24,15 @@ vi.mock('../../entities/notification', () => ({
 }))
 
 describe('RoomsPage', () => {
+  afterEach(() => {
+    cleanup()
+  })
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    getUnreadNotificationCount.mockResolvedValue(0)
+  })
+
   it('renders the rooms returned by the room repository', async () => {
     getReadingRooms.mockResolvedValue([
       {
@@ -52,11 +61,34 @@ describe('RoomsPage', () => {
 
     expect(await screen.findByText('알림함 화면')).toBeInTheDocument()
   })
+
+  it('keeps the reading room heading when the member has no rooms yet', async () => {
+    getReadingRooms.mockResolvedValue([])
+    const { findByRole } = renderRoomsPage()
+
+    expect(await findByRole('heading', { level: 2, name: '함께 읽는 모임' })).toBeInTheDocument()
+  })
+
+  it('keeps the reading room heading while the room list is loading', () => {
+    getReadingRooms.mockReturnValue(new Promise<never>(() => undefined))
+    const { getByRole } = renderRoomsPage()
+
+    expect(getByRole('heading', { level: 2, name: '함께 읽는 모임' })).toBeInTheDocument()
+  })
+
+  it('keeps the reading room heading when the room list cannot be loaded', async () => {
+    getReadingRooms.mockRejectedValue(new Error('독서방 조회 실패'))
+    const { findByRole, findByText } = renderRoomsPage()
+
+    expect(await findByText('독서방을 불러오지 못했어요')).toBeInTheDocument()
+    expect(await findByRole('heading', { level: 2, name: '함께 읽는 모임' })).toBeInTheDocument()
+  })
 })
 
+/** 독서방 목록 테스트에 필요한 Query와 라우터 경계를 렌더링한다. */
 function renderRoomsPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  render(
+  return render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={['/rooms']}>
         <Routes>
