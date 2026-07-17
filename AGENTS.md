@@ -23,6 +23,13 @@
 ## TypeScript와 함수
 
 - TypeScript strict 설정을 유지한다.
+- 모든 함수 선언, 함수 표현식, React 컴포넌트, hook, mapper, repository, event handler 바로 위에는
+  **무엇을 입력받아 어떤 책임을 수행하고 무엇을 반환하는지** 설명하는 짧은 한글 JSDoc을 작성한다.
+  구현 코드를 그대로 읽어 주는 주석이나 함수 이름을 반복하는 주석은 작성하지 않는다.
+- 인라인 callback도 독립적인 업무 규칙이나 분기 책임을 가지면 이름 있는 함수로 추출하고 한글 JSDoc을
+  작성한다. 단순 배열 변환처럼 문맥만으로 책임이 완전히 드러나는 callback은 예외로 한다.
+- PostgreSQL 함수와 Edge Function의 주요 handler에도 같은 기준의 한글 설명을 남기고, 공개 DB 함수는
+  migration의 `comment on function`으로 호출 목적과 권한 경계를 기록한다.
 - 가능한 한 순수 함수를 우선한다. 입력과 출력이 같은 함수 안에서 네트워크, 저장소, 시간, 전역 상태 같은 부수 효과를 섞지 않는다.
 - 부수 효과는 API adapter, repository, mutation, event handler 같은 경계에 모은다.
 - 제어 흐름의 중첩 depth는 최대 2로 제한한다. `if`, 반복문, `try`가 깊어지면 guard clause, 조기 반환, 함수 추출을 사용한다.
@@ -87,7 +94,11 @@
 
 ## Git
 
-- 브랜치는 `<type>/talk-<ticket-number>-<description>` 형식을 사용한다.
-- 커밋은 Conventional Commits 형식인 `<type>(<scope>): <summary>`를 사용한다.
+- 브랜치는 URL과 도구 호환성을 위해 `<type>/talk-<ticket-number>-<english-kebab-description>` 형식을 사용한다.
+- 커밋은 Conventional Commits 형식인 `<type>(<scope>): <한글 요약>`을 사용한다.
+- `feat`, `fix`, `chore`, `ci`, `docs`, `test`, `refactor`, `style` 같은 type과 영문 scope는 유지하되,
+  콜론 뒤의 요약은 한글로 작성한다. 예: `feat(video): 영상 기록 필터 추가`.
+- PR 제목도 `<type>(<scope>): <한글 요약>` 형식을 사용하고, PR 본문·체크리스트·리뷰 답변은 한글로 작성한다.
+- 코드 식별자, 명령어, 파일명, 라이브러리·서비스 고유명사는 정확성을 위해 원문 표기를 허용한다.
 - `main`에 직접 push하지 않고 PR에서 Squash and merge한다. 단, 원격 저장소의 최초 부트스트랩 커밋은 예외로 한다.
 - 비밀값, 로컬 환경파일, 실제 사용자 데이터는 커밋하지 않는다.
