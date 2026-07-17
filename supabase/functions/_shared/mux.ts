@@ -35,11 +35,20 @@ function decodeSigningPrivateKey(value: string): string {
   const normalized = value.trim().replaceAll('\\n', '\n')
   if (normalized.includes('BEGIN')) return normalized
 
-  const decoded = new TextDecoder().decode(
-    Uint8Array.from(atob(normalized), (character) => character.charCodeAt(0)),
+  const decoded = decodeBase64Pem(normalized)
+  if (decoded.includes('BEGIN')) return decoded
+
+  const twiceDecoded = decodeBase64Pem(decoded)
+  if (!twiceDecoded.includes('BEGIN')) throw new Error('Mux signing key is not a PEM value')
+  return twiceDecoded
+}
+
+function decodeBase64Pem(value: string): string {
+  const base64 = value.replaceAll('-', '+').replaceAll('_', '/')
+  const padding = '='.repeat((4 - (base64.length % 4)) % 4)
+  return new TextDecoder().decode(
+    Uint8Array.from(atob(`${base64}${padding}`), (character) => character.charCodeAt(0)),
   )
-  if (!decoded.includes('BEGIN')) throw new Error('Mux signing key is not a PEM value')
-  return decoded
 }
 
 function parseSignatureHeader(header: string): { timestamp: string; signatures: string[] } | null {

@@ -109,3 +109,20 @@ Deno.test('signPlaybackToken accepts a PEM value stored with escaped line breaks
 
   assertEquals(payload.sub, 'playback-1')
 })
+
+Deno.test('signPlaybackToken accepts a URL-safe base64 PEM value', async () => {
+  const { privateKey, publicKey } = await generateKeyPair('RS256', { extractable: true })
+  const privatePem = await exportPKCS8(privateKey)
+  const publicPem = await exportSPKI(publicKey)
+  const encodedPrivateKey = btoa(privatePem).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '')
+  const now = 1_700_000_000
+
+  const token = await signPlaybackToken('playback-1', 'key-1', encodedPrivateKey, now, 300)
+  const verificationKey = await importSPKI(publicPem, 'RS256')
+  const { payload } = await jwtVerify(token, verificationKey, {
+    audience: 'v',
+    currentDate: new Date(now * 1000),
+  })
+
+  assertEquals(payload.sub, 'playback-1')
+})
