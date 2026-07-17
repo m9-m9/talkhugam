@@ -19,6 +19,7 @@ select ok(
 );
 select has_index(
   'public',
+  'book_chat_completions',
   'book_chat_completions_profile_completed_at_idx',
   'my completed books should have an ordered profile index'
 );
@@ -98,7 +99,7 @@ select lives_ok(
   $$
     select public.upsert_book_chat_completion(
       '40000000-0000-0000-0000-000000000181',
-      5,
+      5::smallint,
       '오래 남는 책이었어요.'
     )
   $$,
@@ -128,7 +129,7 @@ select throws_ok(
   $$
     select public.upsert_book_chat_completion(
       '40000000-0000-0000-0000-000000000181',
-      6,
+      6::smallint,
       null
     )
   $$,
