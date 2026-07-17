@@ -46,6 +46,11 @@ const videoFilterMemberRowSchema = z.object({
   room_display_name: z.string().min(1).max(30),
 })
 
+const currentRoomMemberRowSchema = z.object({
+  id: z.string().uuid(),
+  role: z.enum(['owner', 'member']),
+})
+
 export type VideoAsset = {
   errorCode: string | null
   postId: string
@@ -66,6 +71,13 @@ export type VideoFilterMember = {
   id: string
   isCurrentUser: boolean
 }
+export type VideoDeletePermission = {
+  canDelete: boolean
+}
+type CurrentRoomMemberPermission = {
+  currentMemberId: string
+  isRoomOwner: boolean
+}
 export type VideoPostFilter =
   { kind: 'all' } | { kind: 'member'; memberId: string } | { kind: 'mine'; memberId: string | null }
 export const videoKeys = {
@@ -77,6 +89,9 @@ export const videoKeys = {
   byPost: (postId: string) => ['video-asset', postId] as const,
   /** 메시지 식별자로 영상 재생 query key를 생성한다. */
   playback: (postId: string) => ['video-playback', postId] as const,
+  /** 독서방과 작성자 식별자로 영상 삭제 권한 query key를 생성한다. */
+  deletePermission: (roomId: string, authorMemberId: string | null) =>
+    ['video-delete-permission', roomId, authorMemberId] as const,
 }
 
 /** 영상 업로드 데이터를 생성해 반환한다. */
@@ -169,6 +184,55 @@ export async function getVideoFilterMembers(
   if (membersResponse.error) throw membersResponse.error
   if (userResponse.error) throw userResponse.error
   return parseVideoFilterMembers(membersResponse.data, userResponse.data.user.id)
+}
+
+/** 현재 로그인 멤버의 역할과 영상 작성자를 비교해 삭제 가능 여부를 조회한다. */
+export async function getVideoDeletePermission(
+  client: SupabaseClient,
+  roomId: string,
+  authorMemberId: string | null,
+): Promise<VideoDeletePermission> {
+  const userResponse = await client.auth.getUser()
+  if (userResponse.error) throw userResponse.error
+
+  const profileId = userResponse.data.user?.id
+  if (profileId === undefined) return { canDelete: false }
+
+  const memberResponse = await client
+    .from('room_members')
+    .select('id, role')
+    .eq('room_id', roomId)
+    .eq('profile_id', profileId)
+    .eq('status', 'active')
+    .maybeSingle()
+
+  if (memberResponse.error) throw memberResponse.error
+  return parseVideoDeletePermission(memberResponse.data, authorMemberId)
+}
+
+/** 외부 멤버 행과 영상 작성자를 검증해 화면용 삭제 권한 모델로 변환한다. */
+export function parseVideoDeletePermission(
+  value: unknown,
+  authorMemberId: string | null,
+): VideoDeletePermission {
+  if (value === null) return { canDelete: false }
+
+  const member = currentRoomMemberRowSchema.parse(value)
+  return {
+    canDelete: canDeleteVideoPost(
+      { currentMemberId: member.id, isRoomOwner: member.role === 'owner' },
+      authorMemberId,
+    ),
+  }
+}
+
+/** 현재 멤버의 역할과 작성자 식별자를 비교해 영상 삭제 허용 여부를 반환한다. */
+export function canDeleteVideoPost(
+  currentMember: CurrentRoomMemberPermission,
+  authorMemberId: string | null,
+): boolean {
+  if (currentMember.isRoomOwner) return true
+  return authorMemberId !== null && currentMember.currentMemberId === authorMemberId
 }
 
 /** 영상 메시지 관련 데이터를 안전하게 삭제한다. */
