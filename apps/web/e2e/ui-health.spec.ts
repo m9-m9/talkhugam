@@ -208,27 +208,14 @@ test('opens a gallery thumbnail in the immersive video viewer', async ({ page })
   await mockVideoMembers(page)
   await mockVideoPosts(page, [createVideoPostRow(videoId, '민규', 'ready')])
   await mockMuxThumbnailTokens(page)
-  await page.route('**/functions/v1/mux-playback-token', async (route) => {
-    await route.fulfill({
-      body: JSON.stringify({
-        data: {
-          expiresAt: 1_784_269_999,
-          playbackId: 'playback-id',
-          thumbnailToken: 'thumbnail-token',
-          token: 'playback-token',
-        },
-        ok: true,
-      }),
-      contentType: 'application/json',
-      status: 200,
-    })
-  })
+  await mockMuxPlaybackAuthorizationFailure(page)
   await page.goto(`/rooms/${roomId}/books/${bookChatId}/videos`)
 
   await page.getByRole('button', { name: '민규님의 영상 보기' }).click()
 
   await expect(page).toHaveURL(`/rooms/${roomId}/books/${bookChatId}/videos/${videoId}`)
   await expect(page.getByRole('heading', { name: '영상 보기' })).toBeVisible()
+  await expect(page.getByRole('alert')).toContainText('재생 정보를 불러오지 못했어요.')
   await expect(page.getByRole('navigation', { name: '주요 메뉴' })).toBeHidden()
 })
 
@@ -237,21 +224,7 @@ test('dismisses the video deletion confirmation without deleting', async ({ page
   await authenticatePage(page)
   await mockVideoMembers(page)
   await mockVideoPosts(page, [createVideoPostRow(videoId, '민규', 'ready')])
-  await page.route('**/functions/v1/mux-playback-token', async (route) => {
-    await route.fulfill({
-      body: JSON.stringify({
-        data: {
-          expiresAt: 1_784_269_999,
-          playbackId: 'playback-id',
-          thumbnailToken: 'thumbnail-token',
-          token: 'playback-token',
-        },
-        ok: true,
-      }),
-      contentType: 'application/json',
-      status: 200,
-    })
-  })
+  await mockMuxPlaybackAuthorizationFailure(page)
   await page.goto(`/rooms/${roomId}/books/${bookChatId}/videos/${videoId}`)
 
   const deleteButton = page.getByRole('button', { name: '삭제', exact: true })
@@ -357,6 +330,20 @@ async function mockMuxThumbnailTokens(page: Page, onRequest?: () => void) {
       body: JSON.stringify({ data: { thumbnails }, ok: true }),
       contentType: 'application/json',
       status: 200,
+    })
+  })
+}
+
+/** 실제 Mux 네트워크를 열지 않도록 재생 권한 조회 실패를 테스트 응답으로 대체한다. */
+async function mockMuxPlaybackAuthorizationFailure(page: Page) {
+  await page.route('**/functions/v1/mux-playback-token', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        code: 'PLAYBACK_UNAVAILABLE',
+        message: '재생 권한을 준비하지 못했어요.',
+      }),
+      contentType: 'application/json',
+      status: 500,
     })
   })
 }

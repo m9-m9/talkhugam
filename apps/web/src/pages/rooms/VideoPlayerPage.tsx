@@ -25,6 +25,7 @@ export function VideoPlayerPage() {
   const archivePath = `/rooms/${roomId ?? ''}/books/${bookChatId ?? ''}/videos`
   const deleteTriggerRef = useRef<HTMLButtonElement>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [hasPlaybackMediaError, setHasPlaybackMediaError] = useState(false)
   const [retryTarget, setRetryTarget] = useState<RetryTarget>(null)
   const videoQuery = useQuery({
     enabled: Boolean(bookChatId && videoId),
@@ -109,6 +110,17 @@ export function VideoPlayerPage() {
     void playbackQuery.refetch().finally(() => setRetryTarget(null))
   }
 
+  /** 실제 Mux 재생 실패 안내를 닫고 최신 재생 권한으로 다시 시도한다. */
+  function handleRetryPlaybackMedia() {
+    setHasPlaybackMediaError(false)
+    void playbackQuery.refetch()
+  }
+
+  /** Mux 재생기에서 전달한 미디어 오류를 별도 사용자 상태로 표시한다. */
+  function handlePlaybackMediaError() {
+    setHasPlaybackMediaError(true)
+  }
+
   /** 영상 기록 화면으로 돌아가도록 라우트를 교체한다. */
   function handleReturnToArchive() {
     void navigate(archivePath, { replace: true })
@@ -188,12 +200,18 @@ export function VideoPlayerPage() {
               onRetry={handleRetryPlayback}
               onReturn={handleReturnToArchive}
             />
+          ) : hasPlaybackMediaError ? (
+            <PlaybackMediaErrorState
+              onRetry={handleRetryPlaybackMedia}
+              onReturn={handleReturnToArchive}
+            />
           ) : isVideoLoading ? (
             <LoadingSpinner label="영상을 준비하고 있어요." tone="inverse" />
           ) : playbackQuery.data ? (
             <LazyMuxVideoPlayer
               className="absolute inset-0 size-full"
               metadata={{ videoId, videoTitle: 'Talk후감 영상' }}
+              onPlaybackError={handlePlaybackMediaError}
               playbackId={playbackQuery.data.playbackId}
               tone="inverse"
               tokens={{
@@ -221,6 +239,26 @@ export function VideoPlayerPage() {
         />
       ) : null}
     </>
+  )
+}
+
+/** Mux 미디어 자체가 재생되지 않을 때 재시도·보관함 복귀 흐름을 렌더링한다. */
+function PlaybackMediaErrorState({
+  onRetry,
+  onReturn,
+}: {
+  onRetry: () => void
+  onReturn: () => void
+}) {
+  return (
+    <PlayerLookupErrorState
+      isRetrying={false}
+      loadingLabel=""
+      message="영상을 재생하지 못했어요. 다시 시도해 주세요."
+      onRetry={onRetry}
+      onReturn={onReturn}
+      retryLabel="재생 다시 시도"
+    />
   )
 }
 
@@ -313,16 +351,23 @@ function PlayerLookupErrorState({
   message,
   onRetry,
   onReturn,
+  retryLabel,
 }: {
   isRetrying: boolean
   loadingLabel: string
   message: string
   onRetry: () => void
   onReturn: () => void
+  retryLabel?: string
 }) {
   return (
     <div className="flex flex-col items-center gap-4 px-6 text-center">
-      <RetryState isRetrying={isRetrying} message={message} onRetry={onRetry} />
+      <RetryState
+        isRetrying={isRetrying}
+        message={message}
+        onRetry={onRetry}
+        {...(retryLabel === undefined ? {} : { retryLabel })}
+      />
       {isRetrying ? <LoadingSpinner label={loadingLabel} size="sm" tone="inverse" /> : null}
       <button
         className="min-h-11 cursor-pointer px-3 text-sm font-medium text-white/80"

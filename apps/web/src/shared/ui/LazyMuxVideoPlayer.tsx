@@ -11,6 +11,7 @@ type LazyMuxVideoPlayerProps = {
     videoTitle: string
   }
   playbackId: string
+  onPlaybackError?: () => void
   thumbnailTime?: number
   tokens: {
     playback: string
@@ -23,6 +24,7 @@ type LazyMuxVideoPlayerProps = {
 export function LazyMuxVideoPlayer({
   className,
   metadata,
+  onPlaybackError,
   playbackId,
   thumbnailTime,
   tokens,
@@ -41,6 +43,7 @@ export function LazyMuxVideoPlayer({
         metadata={metadata}
         playbackId={playbackId}
         tokens={tokens}
+        {...(onPlaybackError === undefined ? {} : { onPlaybackError })}
         {...(thumbnailTime === undefined ? {} : { thumbnailTime })}
       />
     </Suspense>
