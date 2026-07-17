@@ -1,0 +1,65 @@
+name: 격리 Supabase 통합 테스트
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_run:
+        description: "분리된 integration Supabase 프로젝트만 사용했는지 확인합니다."
+        required: true
+        type: choice
+        options:
+          - "아니요"
+          - "네, 분리된 integration 프로젝트입니다"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: integration-tests-${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  integration-tests:
+    name: Supabase Auth와 데이터 흐름 검사
+    if: inputs.confirm_run == '네, 분리된 integration 프로젝트입니다'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: integration
+    env:
+      RUN_INTEGRATION_TESTS: true
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+      SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+
+    steps:
+      - name: 저장소 내려받기
+        uses: actions/checkout@v7
+
+      - name: pnpm 설정
+        uses: pnpm/action-setup@v6
+
+      - name: Node.js 설정
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: 잠금 파일 기준 의존성 설치
+        run: pnpm install --frozen-lockfile
+
+      - name: 통합 테스트 대상 확인
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$SUPABASE_URL"
+          test -n "$SUPABASE_PUBLISHABLE_KEY"
+          test -n "$SUPABASE_SECRET_KEY"
+          test -n "$TEST_USER_PASSWORD"
+          if [[ "$SUPABASE_URL" == *"gvuwtaxvoinelqdvrher"* ]]; then
+            echo "운영 Supabase 프로젝트는 통합 테스트 대상으로 사용할 수 없습니다." >&2
+            exit 1
+          fi
+
+      - name: Supabase 통합 테스트
+        run: pnpm backend:test:integration

@@ -56,6 +56,9 @@ jobs:
       - name: 로컬 origin 구성 검사
         run: pnpm backend:check:local-origin
 
+      - name: 격리 통합 테스트 워크플로 구성 검사
+        run: pnpm backend:check:integration-workflow
+
       - name: Edge Function 타입 검사
         run: pnpm backend:check:functions
 
