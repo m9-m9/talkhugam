@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import MuxPlayer from '@mux/mux-player-react'
+import { useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
 import {
@@ -8,9 +9,21 @@ import {
   getPosts,
   parsePostForm,
   postKeys,
+  shouldSubmitMessage,
   type DiscussionPost,
   type PostForm,
 } from '../../entities/post'
+import {
+  createVideoUpload,
+  getVideoDuration,
+  getVideoPlaybackAuthorization,
+  getVideoPosts,
+  getVideoUploadErrorMessage,
+  uploadVideoFile,
+  validateVideoDuration,
+  videoKeys,
+  type VideoPost,
+} from '../../entities/video'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
@@ -25,10 +38,22 @@ export function BookDiscussionPage() {
   const [labels, setLabels] = useState<PostForm['labels']>([])
   const [replyTo, setReplyTo] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false)
   const postsQuery = useQuery({
     enabled: Boolean(bookChatId),
     queryFn: () => getPosts(createSupabaseClient(), bookChatId ?? ''),
     queryKey: postKeys.byBookChat(bookChatId ?? ''),
+  })
+  const videosQuery = useQuery({
+    enabled: Boolean(bookChatId),
+    queryFn: () => getVideoPosts(createSupabaseClient(), bookChatId ?? ''),
+    queryKey: videoKeys.byBookChat(bookChatId ?? ''),
+    refetchInterval: (query) =>
+      query.state.data?.some(
+        (video) => video.status === 'waiting_upload' || video.status === 'processing',
+      )
+        ? 3_000
+        : false,
   })
 
   async function handleSubmit() {
@@ -54,6 +79,26 @@ export function BookDiscussionPage() {
     }
   }
 
+  async function handleVideoFile(file: File | undefined) {
+    if (!file || !bookChatId) return
+    setErrorMessage(null)
+    setIsUploadingVideo(true)
+    try {
+      if (!validateVideoDuration(await getVideoDuration(file))) {
+        setErrorMessage('30초 이하의 영상만 올릴 수 있어요.')
+        return
+      }
+      const upload = await createVideoUpload(createSupabaseClient(), bookChatId)
+      await queryClient.invalidateQueries({ queryKey: videoKeys.byBookChat(bookChatId) })
+      await uploadVideoFile(upload.uploadUrl, file)
+      await queryClient.invalidateQueries({ queryKey: videoKeys.byBookChat(bookChatId) })
+    } catch (error) {
+      setErrorMessage(getVideoUploadErrorMessage(error))
+    } finally {
+      setIsUploadingVideo(false)
+    }
+  }
+
   if (!roomId || !bookChatId) return <main className="bg-surface min-h-screen" />
   const roots = postsQuery.data?.filter((post) => post.depth === 0) ?? []
   return (
@@ -64,10 +109,15 @@ export function BookDiscussionPage() {
         <h1 className="text-ink mt-2 text-xl font-bold">읽고 느낀 걸 나눠요</h1>
       </header>
       <section className="mt-8 flex-1">
-        {postsQuery.isPending ? (
-          <LoadingSpinner label="감상을 불러오고 있어요." size="sm" />
+        {postsQuery.isPending || videosQuery.isPending ? (
+          <LoadingSpinner label="대화를 불러오고 있어요." size="sm" />
         ) : (
-          <PostList posts={roots} allPosts={postsQuery.data ?? []} onReply={setReplyTo} />
+          <ChatTimeline
+            allPosts={postsQuery.data ?? []}
+            onReply={setReplyTo}
+            posts={roots}
+            videos={videosQuery.data ?? []}
+          />
         )}
       </section>
       <ChatComposer
@@ -78,8 +128,9 @@ export function BookDiscussionPage() {
         onChangeDraft={setDraft}
         onChangeLabels={setLabels}
         onOpenVideoArchive={() => void navigate(`/rooms/${roomId}/books/${bookChatId}/videos`)}
-        onOpenVideoUpload={() => void navigate(`/rooms/${roomId}/books/${bookChatId}/video`)}
+        onSelectVideo={handleVideoFile}
         onSubmit={() => void handleSubmit()}
+        isUploadingVideo={isUploadingVideo}
         value={draft}
       />
     </main>
@@ -89,26 +140,29 @@ export function BookDiscussionPage() {
 function ChatComposer({
   errorMessage,
   isReplying,
+  isUploadingVideo,
   labels,
   onCancelReply,
   onChangeDraft,
   onChangeLabels,
   onOpenVideoArchive,
-  onOpenVideoUpload,
+  onSelectVideo,
   onSubmit,
   value,
 }: {
   errorMessage: string | null
   isReplying: boolean
+  isUploadingVideo: boolean
   labels: PostForm['labels']
   onCancelReply: () => void
   onChangeDraft: (value: string) => void
   onChangeLabels: (labels: PostForm['labels']) => void
   onOpenVideoArchive: () => void
-  onOpenVideoUpload: () => void
+  onSelectVideo: (file: File | undefined) => void
   onSubmit: () => void
   value: string
 }) {
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [isActionTrayOpen, setIsActionTrayOpen] = useState(false)
   const [labelKind, setLabelKind] = useState<LabelKind | null>(null)
   const [labelValue, setLabelValue] = useState('')
@@ -195,13 +249,23 @@ function ChatComposer({
                 label="챕터 라벨"
                 onClick={() => setLabelKind('chapter')}
               />
-              <ActionButton label="영상 올리기" onClick={onOpenVideoUpload} />
+              <ActionButton label="영상 올리기" onClick={() => fileInputRef.current?.click()} />
               <ActionButton label="영상 기록" onClick={onOpenVideoArchive} />
             </div>
           )}
         </div>
       ) : null}
       <div className="flex items-end gap-2">
+        <input
+          accept="video/mp4,video/quicktime"
+          className="sr-only"
+          onChange={(event) => {
+            onSelectVideo(event.target.files?.[0])
+            event.target.value = ''
+          }}
+          ref={fileInputRef}
+          type="file"
+        />
         <button
           aria-expanded={isActionTrayOpen}
           aria-label="메시지 추가 메뉴"
@@ -218,6 +282,11 @@ function ChatComposer({
           className="border-ink/10 focus:border-primary min-h-11 flex-1 resize-none rounded-md border bg-white px-3 py-2 text-sm outline-none"
           id="discussion-message"
           onChange={(event) => onChangeDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if (!shouldSubmitMessage(event.key, event.shiftKey)) return
+            event.preventDefault()
+            onSubmit()
+          }}
           placeholder={isReplying ? '답글을 입력하세요' : '메시지 입력'}
           rows={1}
           value={value}
@@ -235,6 +304,9 @@ function ChatComposer({
         <p className="mt-2 text-sm text-red-600" role="alert">
           {errorMessage}
         </p>
+      ) : null}
+      {isUploadingVideo ? (
+        <p className="text-ink-subtle mt-2 text-xs">영상을 채팅에 올리고 있어요…</p>
       ) : null}
     </section>
   )
@@ -261,16 +333,19 @@ function ActionButton({
   )
 }
 
-function PostList({
+function ChatTimeline({
   allPosts,
   onReply,
   posts,
+  videos,
 }: {
   allPosts: DiscussionPost[]
   onReply: (id: string) => void
   posts: DiscussionPost[]
+  videos: VideoPost[]
 }) {
-  if (posts.length === 0)
+  const messages = createChatMessages(posts, videos)
+  if (messages.length === 0)
     return (
       <div className="bg-surface-muted rounded-lg p-6 text-center">
         <p className="text-ink font-medium">첫 감상을 남겨 보세요</p>
@@ -279,26 +354,66 @@ function PostList({
     )
   return (
     <ul className="space-y-4">
-      {posts.map((post) => (
-        <li className="flex" key={post.id}>
-          <article className="border-ink/10 max-w-full rounded-lg border bg-white px-4 py-3">
-            <p className="text-ink text-sm font-medium">{post.author_name_snapshot}</p>
-            <PostLabels labels={post.labels} />
-            {post.body ? (
-              <p className="text-ink mt-2 text-sm whitespace-pre-wrap">{post.body}</p>
-            ) : null}
-            <button
-              className="text-primary mt-2 min-h-11 text-xs"
-              onClick={() => onReply(post.id)}
-              type="button"
-            >
-              답글 남기기
-            </button>
-            <Replies posts={allPosts.filter((reply) => reply.root_post_id === post.id)} />
-          </article>
-        </li>
-      ))}
+      {messages.map((message) =>
+        message.type === 'text' ? (
+          <li className="flex" key={message.post.id}>
+            <article className="border-ink/10 max-w-full rounded-lg border bg-white px-4 py-3">
+              <p className="text-ink text-sm font-medium">{message.post.author_name_snapshot}</p>
+              <PostLabels labels={message.post.labels} />
+              {message.post.body ? (
+                <p className="text-ink mt-2 text-sm whitespace-pre-wrap">{message.post.body}</p>
+              ) : null}
+              <button
+                className="text-primary mt-2 min-h-11 text-xs"
+                onClick={() => onReply(message.post.id)}
+                type="button"
+              >
+                답글 남기기
+              </button>
+              <Replies posts={allPosts.filter((reply) => reply.root_post_id === message.post.id)} />
+            </article>
+          </li>
+        ) : (
+          <li className="flex" key={message.video.id}>
+            <VideoMessage video={message.video} />
+          </li>
+        ),
+      )}
     </ul>
+  )
+}
+
+function VideoMessage({ video }: { video: VideoPost }) {
+  const playbackQuery = useQuery({
+    enabled: video.status === 'ready',
+    queryFn: () => getVideoPlaybackAuthorization(createSupabaseClient(), video.id),
+    queryKey: ['video-playback', video.id],
+    staleTime: 4 * 60 * 1_000,
+  })
+  if (video.status === 'ready' && playbackQuery.data)
+    return (
+      <article className="border-ink/10 w-full max-w-full overflow-hidden rounded-lg border bg-white">
+        <MuxPlayer
+          className="aspect-video w-full"
+          metadata={{ video_id: video.id, video_title: 'Talk후감 영상' }}
+          playbackId={playbackQuery.data.playbackId}
+          streamType="on-demand"
+          thumbnailTime={0}
+          tokens={{
+            playback: playbackQuery.data.token,
+            thumbnail: playbackQuery.data.thumbnailToken,
+          }}
+        />
+        <p className="text-ink p-3 text-sm font-medium">{video.authorName}의 영상</p>
+      </article>
+    )
+  return (
+    <article className="border-ink/10 bg-ink flex aspect-video w-full max-w-full flex-col items-center justify-center rounded-lg border px-6 text-center">
+      <p className="text-sm font-medium text-white">
+        {getVideoMessageLabel(video, playbackQuery.isError)}
+      </p>
+      <p className="mt-2 text-xs text-white/70">채팅은 계속할 수 있어요.</p>
+    </article>
   )
 }
 
@@ -346,6 +461,29 @@ function formatLabel(label: PostForm['labels'][number]) {
   if (label.kind === 'page') return `페이지 ${label.value}`
   if (label.kind === 'chapter') return `챕터 ${label.value}`
   return label.value
+}
+
+function createChatMessages(posts: DiscussionPost[], videos: VideoPost[]) {
+  const textMessages = posts.map((post) => ({
+    createdAt: post.created_at,
+    post,
+    type: 'text' as const,
+  }))
+  const videoMessages = videos.map((video) => ({
+    createdAt: video.createdAt,
+    type: 'video' as const,
+    video,
+  }))
+  return [...textMessages, ...videoMessages].sort((first, second) =>
+    first.createdAt.localeCompare(second.createdAt),
+  )
+}
+
+function getVideoMessageLabel(video: VideoPost, hasPlaybackError: boolean) {
+  if (video.status === 'failed') return '영상 처리에 실패했어요.'
+  if (hasPlaybackError) return '재생 정보를 불러오지 못했어요.'
+  if (video.status === 'waiting_upload') return '영상을 올리고 있어요…'
+  return '영상 준비 중…'
 }
 
 function postInput(body: string, labels: PostForm['labels']) {

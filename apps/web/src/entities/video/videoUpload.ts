@@ -161,6 +161,20 @@ export function validateVideoDuration(durationSeconds: number): boolean {
   return Number.isFinite(durationSeconds) && durationSeconds > 0 && durationSeconds <= 30
 }
 
+export async function getVideoDuration(file: File): Promise<number> {
+  const url = URL.createObjectURL(file)
+  try {
+    return await new Promise((resolve, reject) => {
+      const video = document.createElement('video')
+      video.onloadedmetadata = () => resolve(video.duration)
+      video.onerror = () => reject(new Error('metadata'))
+      video.src = url
+    })
+  } finally {
+    URL.revokeObjectURL(url)
+  }
+}
+
 function mapVideoPost(row: z.infer<typeof videoPostRowSchema>): VideoPost {
   const asset = Array.isArray(row.video_assets) ? row.video_assets[0] : row.video_assets
   return {

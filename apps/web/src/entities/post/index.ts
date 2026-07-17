@@ -1,3 +1,4 @@
+export { shouldSubmitMessage } from './chatInput'
 export {
   createPost,
   createReply,

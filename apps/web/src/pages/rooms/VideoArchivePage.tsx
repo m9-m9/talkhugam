@@ -45,15 +45,6 @@ export function VideoArchivePage() {
   return (
     <main className="app-page bg-surface px-6 pb-8">
       <AppHeader
-        action={
-          <button
-            className="text-primary min-h-11 px-3 text-sm font-medium"
-            onClick={() => void navigate(`/rooms/${roomId}/books/${bookChatId}/video`)}
-            type="button"
-          >
-            영상 올리기
-          </button>
-        }
         onBack={() => void navigate(`/rooms/${roomId}/books/${bookChatId}`)}
         title="영상 기록"
       />

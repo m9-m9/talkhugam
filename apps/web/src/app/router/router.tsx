@@ -11,7 +11,6 @@ import { BookDiscussionPage } from '../../pages/rooms/BookDiscussionPage'
 import { CreateRoomPage } from '../../pages/rooms/CreateRoomPage'
 import { JoinRoomPage } from '../../pages/rooms/JoinRoomPage'
 import { RoomDetailPage } from '../../pages/rooms/RoomDetailPage'
-import { VideoUploadPage } from '../../pages/rooms/VideoUploadPage'
 import { VideoArchivePage } from '../../pages/rooms/VideoArchivePage'
 import { RoomsPage } from '../../pages/rooms/RoomsPage'
 
@@ -61,6 +60,5 @@ export const router = createBrowserRouter([
     element: <BookSearchPage />,
   },
   { path: '/rooms/:roomId/books/:bookChatId', element: <BookDiscussionPage /> },
-  { path: '/rooms/:roomId/books/:bookChatId/video', element: <VideoUploadPage /> },
   { path: '/rooms/:roomId/books/:bookChatId/videos', element: <VideoArchivePage /> },
 ])
