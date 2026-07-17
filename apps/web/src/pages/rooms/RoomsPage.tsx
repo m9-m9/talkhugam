@@ -10,6 +10,7 @@ import {
   type ReadingRoom,
   type ReadingRoomMember,
 } from '../../entities/reading-room'
+import { getUnreadNotificationCount, notificationKeys } from '../../entities/notification'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
@@ -22,8 +23,9 @@ export function RoomsPage() {
 
   return (
     <main className="app-page bg-surface flex flex-col px-4">
-      <header className="border-ink/10 -mx-4 flex min-h-16 items-center border-b px-4">
+      <header className="border-ink/10 -mx-4 flex min-h-16 items-center justify-between border-b px-4">
         <img alt="Talk후감" className="h-10 w-auto" src="/brand/talkhugam-wordmark.svg" />
+        <NotificationInboxButton />
       </header>
 
       <section aria-labelledby="recent-rooms-heading" className="flex flex-1 flex-col py-8">
@@ -35,6 +37,56 @@ export function RoomsPage() {
         />
       </section>
     </main>
+  )
+}
+
+/** 읽지 않은 알림 수를 반영한 알림함 이동 버튼을 렌더링한다. */
+function NotificationInboxButton() {
+  const navigate = useNavigate()
+  const unreadCountQuery = useQuery({
+    queryFn: () => getUnreadNotificationCount(createSupabaseClient()),
+    queryKey: notificationKeys.unreadCount,
+  })
+  const unreadCount = unreadCountQuery.data ?? 0
+
+  return (
+    <button
+      aria-label={formatNotificationInboxLabel(unreadCount)}
+      className="text-ink hover:bg-surface-muted focus-visible:ring-primary relative flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-full focus-visible:ring-2 focus-visible:outline-none"
+      onClick={() => void navigate('/notifications')}
+      type="button"
+    >
+      <NotificationBellIcon />
+      {unreadCount > 0 ? (
+        <span
+          aria-hidden="true"
+          className="bg-primary text-ink absolute top-1 right-1 flex min-w-4 items-center justify-center rounded-full px-1 text-xs font-bold"
+        >
+          {unreadCount > 99 ? '99+' : unreadCount}
+        </span>
+      ) : null}
+    </button>
+  )
+}
+
+/** 읽지 않은 알림 개수를 스크린 리더가 이해할 수 있는 버튼 이름으로 변환한다. */
+function formatNotificationInboxLabel(unreadCount: number): string {
+  if (unreadCount === 0) return '알림함'
+  return `알림함, 읽지 않은 알림 ${unreadCount}개`
+}
+
+/** 알림함으로 이동하는 버튼에 사용할 종 모양 아이콘을 렌더링한다. */
+function NotificationBellIcon() {
+  return (
+    <svg aria-hidden="true" className="size-5" fill="none" viewBox="0 0 24 24">
+      <path
+        d="M18 10a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+    </svg>
   )
 }
 
