@@ -47,6 +47,16 @@ test('preserves a book-chat label draft while the action bubble is dismissed', a
   await expect(page.getByRole('textbox', { name: '페이지 번호' })).toBeHidden()
 })
 
+test('shows global navigation outside the book chat and hides it inside', async ({ page }) => {
+  await authenticatePage(page)
+
+  await page.goto('/rooms/create')
+  await expect(page.getByRole('navigation', { name: '주요 메뉴' })).toBeVisible()
+
+  await page.goto(`/rooms/${roomId}/books/${bookChatId}`)
+  await expect(page.getByRole('navigation', { name: '주요 메뉴' })).toBeHidden()
+})
+
 async function authenticatePage(page: import('@playwright/test').Page) {
   const user = {
     app_metadata: {},
