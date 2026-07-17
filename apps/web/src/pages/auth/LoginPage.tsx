@@ -2,6 +2,7 @@ import { useState } from 'react'
 
 import { getClientEnv } from '../../app/env'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
+import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 type Provider = 'google' | 'kakao' | 'naver'
 function createNaverBridgeStartUrl(supabaseUrl: string, origin: string): string {
@@ -150,6 +151,7 @@ export function LoginPage() {
           />
         ))}
       </div>
+      {isPending ? <LoadingSpinner label="로그인을 연결하고 있어요." size="sm" /> : null}
       {errorMessage ? (
         <p role="alert" className="text-sm text-red-600">
           {errorMessage}

@@ -389,7 +389,9 @@ function ChatComposer({
         </p>
       ) : null}
       {isUploadingVideo ? (
-        <p className="text-ink-subtle mt-2 text-xs">영상을 채팅에 올리고 있어요…</p>
+        <div className="mt-3">
+          <LoadingSpinner label="영상을 채팅에 올리고 있어요…" size="xs" />
+        </div>
       ) : null}
     </section>
   )
@@ -493,12 +495,15 @@ function VideoMessage({ video }: { video: VideoPost }) {
         <p className="text-ink p-3 text-sm font-medium">{video.authorName}의 영상</p>
       </article>
     )
+  const message = getVideoMessageLabel(video, playbackQuery.isError)
+  const isLoading = video.status !== 'failed' && !playbackQuery.isError
   return (
     <article className="border-ink/10 bg-ink flex aspect-video w-full max-w-full flex-col items-center justify-center rounded-lg border px-4 text-center">
-      <p className="text-sm font-medium text-white">
-        {getVideoMessageLabel(video, playbackQuery.isError)}
-      </p>
-      <p className="mt-2 text-xs text-white/70">채팅은 계속할 수 있어요.</p>
+      {isLoading ? (
+        <LoadingSpinner label={message} size="sm" tone="inverse" />
+      ) : (
+        <p className="text-sm font-medium text-white">{message}</p>
+      )}
     </article>
   )
 }

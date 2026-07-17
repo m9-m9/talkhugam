@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { getOnboardingCompletedAt } from '../../entities/profile'
 import { resolveAuthDestination } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
+import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 export function AuthCallbackPage() {
   const navigate = useNavigate()
@@ -37,9 +38,13 @@ export function AuthCallbackPage() {
 
   return (
     <main className="app-page bg-surface flex items-center justify-center px-4">
-      <p className="text-ink-subtle text-sm" role={errorMessage ? 'alert' : 'status'}>
-        {errorMessage ?? '로그인 정보를 확인하고 있어요.'}
-      </p>
+      {errorMessage ? (
+        <p className="text-ink-subtle text-sm" role="alert">
+          {errorMessage}
+        </p>
+      ) : (
+        <LoadingSpinner label="로그인 정보를 확인하고 있어요." />
+      )}
     </main>
   )
 }

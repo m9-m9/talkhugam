@@ -95,7 +95,9 @@ export function VideoArchivePage() {
         </p>
       ) : null}
       {isUploadingVideo ? (
-        <p className="text-ink-subtle mt-4 text-sm">영상을 올리고 있어요…</p>
+        <div className="mt-4">
+          <LoadingSpinner label="영상을 올리고 있어요…" size="sm" />
+        </div>
       ) : null}
       {videosQuery.isPending ? (
         <div className="mt-12">
@@ -138,6 +140,7 @@ function VideoCard({
     queryKey: ['video-playback', video.id],
     staleTime: 4 * 60 * 1_000,
   })
+  const hasVideoError = video.status === 'failed' || playbackQuery.isError
 
   return (
     <>
@@ -155,12 +158,13 @@ function VideoCard({
         />
       ) : (
         <VideoPlaceholder
+          isLoading={!hasVideoError}
           message={
             video.status === 'failed'
               ? '영상 처리에 실패했어요.'
               : playbackQuery.isError
                 ? '재생 정보를 불러오지 못했어요.'
-                : '영상 준비 중 · 대화는 계속할 수 있어요'
+                : '영상 준비 중…'
           }
         />
       )}
@@ -182,10 +186,14 @@ function VideoCard({
   )
 }
 
-function VideoPlaceholder({ message }: { message: string }) {
+function VideoPlaceholder({ isLoading, message }: { isLoading: boolean; message: string }) {
   return (
     <div className="bg-ink flex aspect-video items-center justify-center px-4 text-center">
-      <LoadingSpinner label={message} size="sm" tone="inverse" />
+      {isLoading ? (
+        <LoadingSpinner label={message} size="sm" tone="inverse" />
+      ) : (
+        <p className="text-sm font-medium text-white">{message}</p>
+      )}
     </div>
   )
 }

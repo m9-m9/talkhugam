@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { BookDiscussionPage } from './BookDiscussionPage'
 
-const { getPosts, getVideoPosts, parsePostForm } = vi.hoisted(() => ({
+const { getPosts, getVideoPosts, parsePostForm, videoUploadState } = vi.hoisted(() => ({
   getPosts: vi.fn().mockResolvedValue([]),
   getVideoPosts: vi.fn().mockResolvedValue([]),
   parsePostForm: vi.fn(
@@ -17,6 +17,7 @@ const { getPosts, getVideoPosts, parsePostForm } = vi.hoisted(() => ({
       return { body, labels: normalizedLabels }
     },
   ),
+  videoUploadState: { isUploadingVideo: false },
 }))
 
 vi.mock('../../entities/post', () => ({
@@ -39,7 +40,11 @@ vi.mock('../../entities/reading-room', () => ({
 }))
 
 vi.mock('../../features/video-upload', () => ({
-  useVideoUpload: () => ({ errorMessage: null, isUploadingVideo: false, uploadVideo: vi.fn() }),
+  useVideoUpload: () => ({
+    errorMessage: null,
+    isUploadingVideo: videoUploadState.isUploadingVideo,
+    uploadVideo: vi.fn(),
+  }),
 }))
 
 vi.mock('../../shared/api/supabaseClient', () => ({
@@ -47,7 +52,11 @@ vi.mock('../../shared/api/supabaseClient', () => ({
 }))
 
 describe('BookDiscussionPage', () => {
-  afterEach(cleanup)
+  afterEach(() => {
+    cleanup()
+    getVideoPosts.mockResolvedValue([])
+    videoUploadState.isUploadingVideo = false
+  })
 
   it('opens the message actions as a speech bubble above the composer', () => {
     renderBookDiscussionPage()
@@ -153,6 +162,30 @@ describe('BookDiscussionPage', () => {
       'aria-expanded',
       'true',
     )
+  })
+
+  it('uses the book loader while the selected video is uploading', () => {
+    videoUploadState.isUploadingVideo = true
+    renderBookDiscussionPage()
+
+    const status = screen.getByRole('status', { name: '영상을 채팅에 올리고 있어요…' })
+    expect(status.querySelector('.talkhugam-book-loader')).toBeInTheDocument()
+  })
+
+  it('uses the book loader while a video message is being prepared', async () => {
+    getVideoPosts.mockResolvedValueOnce([
+      {
+        authorName: '민규',
+        body: null,
+        createdAt: '2026-07-17T00:00:00.000Z',
+        id: 'video-1',
+        status: 'processing',
+      },
+    ])
+    renderBookDiscussionPage()
+
+    const status = await screen.findByRole('status', { name: '영상 준비 중…' })
+    expect(status.querySelector('.talkhugam-book-loader')).toBeInTheDocument()
   })
 })
 

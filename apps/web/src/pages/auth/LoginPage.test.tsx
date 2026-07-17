@@ -35,4 +35,14 @@ describe('LoginPage', () => {
       await screen.findByText('로그인을 시작하지 못했어요. 잠시 후 다시 시도해 주세요.'),
     ).toBeInTheDocument()
   })
+
+  it('uses the book loader while the provider is opening', () => {
+    signInWithOAuth.mockReturnValue(new Promise(() => undefined))
+    render(<LoginPage />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Google로 계속하기' }))
+
+    const status = screen.getByRole('status', { name: '로그인을 연결하고 있어요.' })
+    expect(status.querySelector('.talkhugam-book-loader')).toBeInTheDocument()
+  })
 })

@@ -5,9 +5,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { VideoArchivePage } from './VideoArchivePage'
 
-const { getVideoPosts, uploadVideo } = vi.hoisted(() => ({
+const { getVideoPosts, uploadVideo, videoUploadState } = vi.hoisted(() => ({
   getVideoPosts: vi.fn().mockResolvedValue([]),
   uploadVideo: vi.fn(),
+  videoUploadState: { isUploadingVideo: false },
 }))
 
 vi.mock('../../entities/video', () => ({
@@ -18,7 +19,11 @@ vi.mock('../../entities/video', () => ({
 }))
 
 vi.mock('../../features/video-upload', () => ({
-  useVideoUpload: () => ({ errorMessage: null, isUploadingVideo: false, uploadVideo }),
+  useVideoUpload: () => ({
+    errorMessage: null,
+    isUploadingVideo: videoUploadState.isUploadingVideo,
+    uploadVideo,
+  }),
 }))
 
 vi.mock('../../shared/api/supabaseClient', () => ({
@@ -29,7 +34,9 @@ describe('VideoArchivePage', () => {
   afterEach(() => {
     cleanup()
     getVideoPosts.mockClear()
+    getVideoPosts.mockResolvedValue([])
     uploadVideo.mockClear()
+    videoUploadState.isUploadingVideo = false
   })
 
   it('opens the native video picker from its round upload button', () => {
@@ -49,6 +56,32 @@ describe('VideoArchivePage', () => {
     fireEvent.change(screen.getByLabelText('영상 파일 선택'), { target: { files: [file] } })
 
     expect(uploadVideo).toHaveBeenCalledWith(file)
+  })
+
+  it('uses the book loader while a selected video is uploading', () => {
+    videoUploadState.isUploadingVideo = true
+    renderArchivePage()
+
+    const status = screen.getByRole('status', { name: '영상을 올리고 있어요…' })
+    expect(status.querySelector('.talkhugam-book-loader')).toBeInTheDocument()
+  })
+
+  it('does not keep the book loader running after video processing fails', async () => {
+    getVideoPosts.mockResolvedValueOnce([
+      {
+        authorName: '민규',
+        body: null,
+        createdAt: '2026-07-17T00:00:00.000Z',
+        id: 'video-1',
+        status: 'failed',
+      },
+    ])
+    renderArchivePage()
+
+    expect(await screen.findByText('영상 처리에 실패했어요.')).toBeInTheDocument()
+    expect(
+      screen.queryByRole('status', { name: '영상 처리에 실패했어요.' }),
+    ).not.toBeInTheDocument()
   })
 })
 

@@ -12,6 +12,7 @@ import {
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { BookCover } from '../../shared/ui/BookCover'
+import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 const querySchema = z
   .string()
@@ -137,7 +138,11 @@ function BookResults({
   onSelect: (book: BookSearchItem) => void
 }) {
   if (isSearching)
-    return <p className="text-ink-subtle mt-12 text-center text-sm">책을 찾고 있어요…</p>
+    return (
+      <div className="mt-12">
+        <LoadingSpinner label="책을 찾고 있어요…" size="sm" />
+      </div>
+    )
 
   if (items.length === 0 && hasQuery)
     return <p className="text-ink-subtle mt-12 text-center text-sm">검색 결과가 없어요.</p>
@@ -166,7 +171,9 @@ function BookResults({
                 {book.publisher ? ` · ${book.publisher}` : ''}
               </span>
               {isCreatingId === book.title ? (
-                <span className="text-primary mt-2 block text-xs">책 채팅방을 만들고 있어요…</span>
+                <div className="mt-2">
+                  <LoadingSpinner label="책 채팅방을 만들고 있어요…" size="xs" />
+                </div>
               ) : null}
             </span>
           </button>
