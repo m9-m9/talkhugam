@@ -1,5 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom'
 
+import { AuthenticatedRoute } from '../../features/auth'
 import { AuthCallbackPage } from '../../pages/auth/AuthCallbackPage'
 import { LoginPage } from '../../pages/auth/LoginPage'
 import { OnboardingPage } from '../../pages/onboarding/OnboardingPage'
@@ -25,22 +26,24 @@ export const router = createBrowserRouter([
     element: <AuthCallbackPage />,
   },
   {
-    path: '/onboarding',
-    element: <OnboardingPage />,
-  },
-  {
-    element: <AppNavigationLayout />,
+    element: <AuthenticatedRoute />,
     children: [
-      { path: '/rooms', element: <RoomsPage /> },
-      { path: '/profile', element: <ProfilePage /> },
+      { path: '/onboarding', element: <OnboardingPage /> },
+      {
+        element: <AppNavigationLayout />,
+        children: [
+          { path: '/rooms', element: <RoomsPage /> },
+          { path: '/profile', element: <ProfilePage /> },
+        ],
+      },
+      { path: '/profile/edit', element: <ProfileEditPage /> },
+      { path: '/profile/settings', element: <AccountSettingsPage /> },
+      { path: '/rooms/create', element: <CreateRoomPage /> },
+      { path: '/rooms/join', element: <JoinRoomPage /> },
+      { path: '/rooms/:roomId', element: <RoomDetailPage /> },
+      { path: '/rooms/:roomId/books/new', element: <BookSearchPage /> },
+      { path: '/rooms/:roomId/books/:bookChatId', element: <BookDiscussionPage /> },
+      { path: '/rooms/:roomId/books/:bookChatId/videos', element: <VideoArchivePage /> },
     ],
   },
-  { path: '/profile/edit', element: <ProfileEditPage /> },
-  { path: '/profile/settings', element: <AccountSettingsPage /> },
-  { path: '/rooms/create', element: <CreateRoomPage /> },
-  { path: '/rooms/join', element: <JoinRoomPage /> },
-  { path: '/rooms/:roomId', element: <RoomDetailPage /> },
-  { path: '/rooms/:roomId/books/new', element: <BookSearchPage /> },
-  { path: '/rooms/:roomId/books/:bookChatId', element: <BookDiscussionPage /> },
-  { path: '/rooms/:roomId/books/:bookChatId/videos', element: <VideoArchivePage /> },
 ])

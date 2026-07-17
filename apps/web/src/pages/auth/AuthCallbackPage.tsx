@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
-import { resolveAuthDestination } from '../../features/auth/resolveAuthDestination'
-import { getOnboardingCompletedAt } from '../../entities/profile/getOnboardingStatus'
+import { getOnboardingCompletedAt } from '../../entities/profile'
+import { resolveAuthDestination } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 
 export function AuthCallbackPage() {

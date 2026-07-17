@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import {
@@ -15,34 +14,10 @@ import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 export function RoomsPage() {
-  const navigate = useNavigate()
-  const [isAuthenticating, setIsAuthenticating] = useState(true)
   const roomsQuery = useQuery({
-    enabled: !isAuthenticating,
     queryFn: () => getReadingRooms(createSupabaseClient()),
     queryKey: readingRoomKeys.all,
   })
-
-  useEffect(() => {
-    async function protectRoute() {
-      const response = await createSupabaseClient().auth.getUser()
-      if (response.error || !response.data.user) {
-        void navigate('/', { replace: true })
-        return
-      }
-
-      setIsAuthenticating(false)
-    }
-
-    void protectRoute()
-  }, [navigate])
-
-  if (isAuthenticating)
-    return (
-      <main className="bg-surface flex min-h-screen items-center justify-center px-4">
-        <LoadingSpinner label="로그인 정보를 확인하고 있어요." />
-      </main>
-    )
 
   return (
     <main className="app-page bg-surface flex flex-col px-4">

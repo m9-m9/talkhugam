@@ -11,6 +11,7 @@ import {
   type CreatedRoomInvite,
   type CreateRoomForm,
 } from '../../entities/reading-room'
+import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
@@ -18,6 +19,7 @@ import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 export function CreateRoomPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const user = useAuthenticatedUser()
   const [createdRoom, setCreatedRoom] = useState<CreatedRoomInvite | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const form = useForm<CreateRoomForm>({
@@ -28,15 +30,9 @@ export function CreateRoomPage() {
   async function handleSubmit(values: CreateRoomForm) {
     setErrorMessage(null)
     const client = createSupabaseClient()
-    const session = await client.auth.getUser()
-
-    if (session.error || !session.data.user) {
-      void navigate('/', { replace: true })
-      return
-    }
 
     try {
-      const invite = await createRoomWithInvite(client, session.data.user.id, values)
+      const invite = await createRoomWithInvite(client, user.id, values)
       await queryClient.invalidateQueries({ queryKey: readingRoomKeys.all })
       setCreatedRoom(invite)
     } catch {

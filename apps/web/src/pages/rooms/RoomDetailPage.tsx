@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query'
-import { useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
 import { bookChatKeys, getBookChats, getReadingRoom } from '../../entities/book-chat'
@@ -21,15 +20,6 @@ export function RoomDetailPage() {
     queryFn: () => getBookChats(createSupabaseClient(), roomId ?? ''),
     queryKey: bookChatKeys.byRoom(roomId ?? ''),
   })
-
-  useEffect(() => {
-    async function protectRoute() {
-      const response = await createSupabaseClient().auth.getUser()
-      if (response.error || !response.data.user) void navigate('/', { replace: true })
-    }
-
-    void protectRoute()
-  }, [navigate])
 
   if (!roomId)
     return <RoomUnavailablePage onBack={() => void navigate('/rooms', { replace: true })} />

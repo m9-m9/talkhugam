@@ -10,6 +10,7 @@ import {
   readingRoomKeys,
   type JoinRoomForm,
 } from '../../entities/reading-room'
+import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
@@ -17,6 +18,7 @@ import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 export function JoinRoomPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const user = useAuthenticatedUser()
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const form = useForm<JoinRoomForm>({
     defaultValues: { code: '' },
@@ -26,15 +28,9 @@ export function JoinRoomPage() {
   async function handleSubmit(values: JoinRoomForm) {
     setErrorMessage(null)
     const client = createSupabaseClient()
-    const session = await client.auth.getUser()
-
-    if (session.error || !session.data.user) {
-      void navigate('/', { replace: true })
-      return
-    }
 
     try {
-      await joinRoomByCode(client, session.data.user.id, values)
+      await joinRoomByCode(client, user.id, values)
       await queryClient.invalidateQueries({ queryKey: readingRoomKeys.all })
       void navigate('/rooms', { replace: true })
     } catch {

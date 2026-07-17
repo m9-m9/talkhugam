@@ -31,15 +31,6 @@ export function BookSearchPage() {
   const [selectedBookId, setSelectedBookId] = useState<string | null>(null)
 
   useEffect(() => {
-    async function protectRoute() {
-      const response = await createSupabaseClient().auth.getUser()
-      if (response.error || !response.data.user) void navigate('/', { replace: true })
-    }
-
-    void protectRoute()
-  }, [navigate])
-
-  useEffect(() => {
     const parsed = querySchema.safeParse(query)
     if (!parsed.success) return
 

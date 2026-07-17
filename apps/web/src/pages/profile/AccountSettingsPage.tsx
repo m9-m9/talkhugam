@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { getProviderLabels } from '../../entities/profile'
+import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
@@ -13,30 +14,25 @@ type AccountIdentity = {
 
 export function AccountSettingsPage() {
   const navigate = useNavigate()
+  const user = useAuthenticatedUser()
   const [account, setAccount] = useState<AccountIdentity | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isSigningOut, setIsSigningOut] = useState(false)
 
   useEffect(() => {
-    async function loadAccount() {
-      const response = await createSupabaseClient().auth.getUser()
-      if (response.error || !response.data.user) {
-        void navigate('/', { replace: true })
-        return
-      }
-
+    function loadAccount() {
       try {
         setAccount({
-          email: response.data.user.email ?? '이메일 정보를 찾을 수 없어요',
-          providers: getProviderLabels(response.data.user.app_metadata),
+          email: user.email ?? '이메일 정보를 찾을 수 없어요',
+          providers: getProviderLabels(user.appMetadata),
         })
       } catch {
         setErrorMessage('계정 정보를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.')
       }
     }
 
-    void loadAccount()
-  }, [navigate])
+    loadAccount()
+  }, [user])
 
   async function handleSignOut() {
     setErrorMessage(null)

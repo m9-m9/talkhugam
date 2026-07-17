@@ -10,6 +10,7 @@ import {
   profileFormSchema,
   type ProfileForm,
 } from '../../entities/profile'
+import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
@@ -34,6 +35,7 @@ const mbtiOptions = [
 
 export function OnboardingPage() {
   const navigate = useNavigate()
+  const user = useAuthenticatedUser()
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const form = useForm<ProfileForm>({
@@ -44,15 +46,9 @@ export function OnboardingPage() {
   useEffect(() => {
     async function loadProfile() {
       const client = createSupabaseClient()
-      const session = await client.auth.getUser()
-
-      if (session.error || !session.data.user) {
-        void navigate('/', { replace: true })
-        return
-      }
 
       try {
-        const profile = await getProfile(client, session.data.user.id)
+        const profile = await getProfile(client, user.id)
         form.reset({
           displayName: profile.displayName,
           bio: profile.bio ?? '',
@@ -66,21 +62,16 @@ export function OnboardingPage() {
     }
 
     void loadProfile()
-  }, [form, navigate])
+  }, [form, user.id])
 
   async function handleSubmit(values: ProfileForm) {
     setErrorMessage(null)
     form.clearErrors()
 
     const client = createSupabaseClient()
-    const session = await client.auth.getUser()
-    if (session.error || !session.data.user) {
-      void navigate('/', { replace: true })
-      return
-    }
 
     try {
-      await completeOnboarding(client, session.data.user.id, values)
+      await completeOnboarding(client, user.id, values)
       void navigate('/rooms', { replace: true })
     } catch {
       setErrorMessage('저장하지 못했어요. 잠시 후 다시 시도해 주세요.')

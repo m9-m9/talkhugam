@@ -1,37 +1,21 @@
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { getProfile } from '../../entities/profile'
+import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 export function ProfilePage() {
   const navigate = useNavigate()
-  const [profileId, setProfileId] = useState<string | null>(null)
+  const profileId = useAuthenticatedUser().id
   const profileQuery = useQuery({
-    enabled: Boolean(profileId),
-    queryFn: () => getProfile(createSupabaseClient(), profileId ?? ''),
+    queryFn: () => getProfile(createSupabaseClient(), profileId),
     queryKey: ['profile', profileId],
   })
 
-  useEffect(() => {
-    async function loadSession() {
-      const response = await createSupabaseClient().auth.getUser()
-      if (response.error || !response.data.user) {
-        void navigate('/', { replace: true })
-        return
-      }
-
-      setProfileId(response.data.user.id)
-    }
-
-    void loadSession()
-  }, [navigate])
-
-  if (!profileId || profileQuery.isPending)
-    return <ProfileState message="내 정보를 불러오고 있어요." />
+  if (profileQuery.isPending) return <ProfileState message="내 정보를 불러오고 있어요." />
   if (profileQuery.isError || !profileQuery.data)
     return <ProfileState message="프로필 정보를 불러오지 못했어요. 잠시 후 다시 시도해 주세요." />
 

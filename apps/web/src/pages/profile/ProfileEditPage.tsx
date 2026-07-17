@@ -10,6 +10,7 @@ import {
   type ProfileForm,
   updateProfile,
 } from '../../entities/profile'
+import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
@@ -36,31 +37,16 @@ const mbtiOptions = [
 export function ProfileEditPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const [profileId, setProfileId] = useState<string | null>(null)
+  const profileId = useAuthenticatedUser().id
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const form = useForm<ProfileForm>({
     defaultValues: { displayName: '', bio: '', mbti: null },
     resolver: zodResolver(profileFormSchema),
   })
   const profileQuery = useQuery({
-    enabled: Boolean(profileId),
-    queryFn: () => getProfile(createSupabaseClient(), profileId ?? ''),
+    queryFn: () => getProfile(createSupabaseClient(), profileId),
     queryKey: ['profile', profileId],
   })
-
-  useEffect(() => {
-    async function loadSession() {
-      const response = await createSupabaseClient().auth.getUser()
-      if (response.error || !response.data.user) {
-        void navigate('/', { replace: true })
-        return
-      }
-
-      setProfileId(response.data.user.id)
-    }
-
-    void loadSession()
-  }, [navigate])
 
   useEffect(() => {
     if (!profileQuery.data) return
@@ -73,8 +59,6 @@ export function ProfileEditPage() {
   }, [form, profileQuery.data])
 
   async function handleSubmit(values: ProfileForm) {
-    if (!profileId) return
-
     setErrorMessage(null)
     try {
       await updateProfile(createSupabaseClient(), profileId, values)
@@ -85,8 +69,7 @@ export function ProfileEditPage() {
     }
   }
 
-  if (!profileId || profileQuery.isPending)
-    return <ProfileEditState message="프로필을 준비하고 있어요." />
+  if (profileQuery.isPending) return <ProfileEditState message="프로필을 준비하고 있어요." />
   if (profileQuery.isError) return <ProfileEditState message="프로필 정보를 불러오지 못했어요." />
 
   return (
