@@ -5,22 +5,25 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { VideoPlayerPage } from './VideoPlayerPage'
 
-const { getVideoPlaybackAuthorization, getVideoPost } = vi.hoisted(() => ({
-  getVideoPlaybackAuthorization: vi.fn().mockResolvedValue({
-    expiresAt: 1_784_269_999,
-    playbackId: 'playback-id',
-    thumbnailToken: 'thumbnail-token',
-    token: 'playback-token',
-  }),
-  getVideoPost: vi.fn().mockResolvedValue({
-    authorMemberId: 'member-1',
-    authorName: '민규',
-    body: null,
-    createdAt: '2026-07-17T00:00:00.000Z',
-    id: 'video-1',
-    status: 'ready',
-  }),
-}))
+const { deleteVideoPost, getVideoDeletePermission, getVideoPlaybackAuthorization, getVideoPost } =
+  vi.hoisted(() => ({
+    deleteVideoPost: vi.fn().mockResolvedValue(undefined),
+    getVideoDeletePermission: vi.fn().mockResolvedValue({ canDelete: true }),
+    getVideoPlaybackAuthorization: vi.fn().mockResolvedValue({
+      expiresAt: 1_784_269_999,
+      playbackId: 'playback-id',
+      thumbnailToken: 'thumbnail-token',
+      token: 'playback-token',
+    }),
+    getVideoPost: vi.fn().mockResolvedValue({
+      authorMemberId: 'member-1',
+      authorName: '민규',
+      body: null,
+      createdAt: '2026-07-17T00:00:00.000Z',
+      id: 'video-1',
+      status: 'ready',
+    }),
+  }))
 
 vi.mock('@mux/mux-player-react', () => ({
   default: ({ playbackId }: { playbackId: string }) => (
@@ -29,10 +32,18 @@ vi.mock('@mux/mux-player-react', () => ({
 }))
 
 vi.mock('../../entities/video', () => ({
+  deleteVideoPost,
+  getVideoDeletePermission,
   getVideoPlaybackAuthorization,
   getVideoPost,
   videoKeys: {
+    byBookChat: (bookChatId: string) => ['video-posts', bookChatId],
     byPost: (postId: string) => ['video-post', postId],
+    deletePermission: (roomId: string, authorMemberId: string | null) => [
+      'video-delete-permission',
+      roomId,
+      authorMemberId,
+    ],
     playback: (postId: string) => ['video-playback', postId],
   },
 }))
@@ -46,6 +57,8 @@ describe('VideoPlayerPage', () => {
     cleanup()
     getVideoPost.mockClear()
     getVideoPlaybackAuthorization.mockClear()
+    getVideoDeletePermission.mockClear()
+    deleteVideoPost.mockClear()
   })
 
   it('plays the selected video in an immersive edge-to-edge viewer', async () => {
@@ -95,6 +108,47 @@ describe('VideoPlayerPage', () => {
       screen.queryByRole('status', { name: '영상을 준비하고 있어요.' }),
     ).not.toBeInTheDocument()
     expect(getVideoPlaybackAuthorization).not.toHaveBeenCalled()
+  })
+
+  it('hides the delete control from a member who is neither the author nor room owner', async () => {
+    getVideoDeletePermission.mockResolvedValueOnce({ canDelete: false })
+    renderPlayerPage()
+
+    expect(await screen.findByTestId('mux-player')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '삭제' })).not.toBeInTheDocument()
+  })
+
+  it('checks deletion permission with the current room and video author identifiers', async () => {
+    renderPlayerPage()
+
+    await screen.findByTestId('mux-player')
+
+    expect(getVideoDeletePermission).toHaveBeenCalledWith(undefined, 'room-1', 'member-1')
+  })
+
+  it('keeps the delete control hidden when permission lookup fails', async () => {
+    getVideoDeletePermission.mockRejectedValueOnce(new Error('permission unavailable'))
+    renderPlayerPage()
+
+    expect(await screen.findByTestId('mux-player')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '삭제' })).not.toBeInTheDocument()
+  })
+
+  it('shows a retryable error when video deletion fails', async () => {
+    deleteVideoPost.mockRejectedValueOnce(new Error('delete failed'))
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    renderPlayerPage()
+
+    fireEvent.click(await screen.findByRole('button', { name: '삭제' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '영상을 삭제하지 못했어요. 다시 시도해 주세요.',
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '삭제 다시 시도' }))
+
+    await vi.waitFor(() => expect(deleteVideoPost).toHaveBeenCalledTimes(2))
+    expect(await screen.findByText('영상 기록 화면')).toBeInTheDocument()
   })
 
   it('explains a video data lookup failure separately and retries that lookup', async () => {

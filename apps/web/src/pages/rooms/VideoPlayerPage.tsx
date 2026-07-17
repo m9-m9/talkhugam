@@ -5,6 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 
 import {
   deleteVideoPost,
+  getVideoDeletePermission,
   getVideoPlaybackAuthorization,
   getVideoPost,
   videoKeys,
@@ -33,6 +34,11 @@ export function VideoPlayerPage() {
     queryKey: videoKeys.playback(videoId ?? ''),
     staleTime: 4 * 60 * 1_000,
   })
+  const deletePermissionQuery = useQuery({
+    enabled: Boolean(roomId && videoQuery.data),
+    queryFn: fetchVideoDeletePermission,
+    queryKey: videoKeys.deletePermission(roomId ?? '', videoQuery.data?.authorMemberId ?? null),
+  })
   const deleteMutation = useMutation({
     mutationFn: () => deleteVideoPost(createSupabaseClient(), videoId ?? ''),
     onSuccess: handleVideoDeleteSuccess,
@@ -48,6 +54,15 @@ export function VideoPlayerPage() {
     return getVideoPlaybackAuthorization(createSupabaseClient(), videoId ?? '')
   }
 
+  /** 현재 사용자가 이 영상을 삭제할 수 있는지 독서방 멤버 역할로 확인해 반환한다. */
+  function fetchVideoDeletePermission() {
+    return getVideoDeletePermission(
+      createSupabaseClient(),
+      roomId ?? '',
+      videoQuery.data?.authorMemberId ?? null,
+    )
+  }
+
   /** 삭제된 영상 목록 캐시를 무효화한 뒤 사용자를 해당 영상 기록 화면으로 이동시킨다. */
   async function handleVideoDeleteSuccess() {
     await queryClient.invalidateQueries({ queryKey: videoKeys.byBookChat(bookChatId ?? '') })
@@ -57,6 +72,11 @@ export function VideoPlayerPage() {
   /** 사용자의 확인을 받은 뒤 현재 영상 게시물 삭제 mutation을 시작한다. */
   function handleDelete() {
     if (!window.confirm('이 영상을 삭제할까요? 삭제 후 복구할 수 없어요.')) return
+    deleteMutation.mutate()
+  }
+
+  /** 이전에 실패한 영상 삭제 요청을 사용자 확인 없이 같은 게시물에 다시 실행한다. */
+  function handleRetryDelete() {
     deleteMutation.mutate()
   }
 
@@ -101,6 +121,7 @@ export function VideoPlayerPage() {
   const isVideoUnavailable = videoQuery.data !== undefined && videoQuery.data?.status !== 'ready'
   const isVideoLoading =
     videoQuery.isPending || (videoQuery.data?.status === 'ready' && playbackQuery.isPending)
+  const canDeleteVideo = deletePermissionQuery.data?.canDelete === true
 
   return (
     <main className="app-page bg-ink flex min-h-dvh flex-col px-0">
@@ -114,7 +135,7 @@ export function VideoPlayerPage() {
           <BackIcon />
         </button>
         <h1 className="flex-1 text-center text-base font-bold">영상 보기</h1>
-        {videoQuery.data ? (
+        {videoQuery.data && canDeleteVideo ? (
           <button
             className="focus-visible:ring-primary min-h-11 cursor-pointer rounded-lg px-2 text-sm text-white/80 focus-visible:ring-2 focus-visible:outline-none"
             disabled={deleteMutation.isPending}
@@ -167,6 +188,7 @@ export function VideoPlayerPage() {
             onReturn={handleReturnToArchive}
           />
         ) : null}
+        {deleteMutation.isError ? <VideoDeleteErrorState onRetry={handleRetryDelete} /> : null}
       </section>
     </main>
   )
@@ -238,6 +260,19 @@ function PlaybackLookupErrorState({
       onRetry={onRetry}
       onReturn={onReturn}
     />
+  )
+}
+
+/** 영상 삭제 실패를 안내하고 같은 삭제 요청을 다시 보낼 수 있는 제어를 렌더링한다. */
+function VideoDeleteErrorState({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="absolute inset-x-0 bottom-6 z-10">
+      <RetryState
+        message="영상을 삭제하지 못했어요. 다시 시도해 주세요."
+        onRetry={onRetry}
+        retryLabel="삭제 다시 시도"
+      />
+    </div>
   )
 }
 
