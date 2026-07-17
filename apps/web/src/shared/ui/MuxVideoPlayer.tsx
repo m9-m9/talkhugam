@@ -7,6 +7,7 @@ type MuxVideoPlayerProps = {
     videoTitle: string
   }
   playbackId: string
+  onPlaybackError?: () => void
   thumbnailTime?: number
   tokens: {
     playback: string
@@ -18,10 +19,16 @@ type MuxVideoPlayerProps = {
 export default function MuxVideoPlayer({
   className,
   metadata,
+  onPlaybackError,
   playbackId,
   thumbnailTime,
   tokens,
 }: MuxVideoPlayerProps) {
+  /** Mux가 전달한 미디어 오류 이벤트를 화면 단위 오류 처리로 변환한다. */
+  function handlePlaybackError() {
+    onPlaybackError?.()
+  }
+
   return (
     <MuxPlayer
       className={className}
@@ -29,6 +36,7 @@ export default function MuxVideoPlayer({
       playbackId={playbackId}
       streamType="on-demand"
       tokens={tokens}
+      {...(onPlaybackError === undefined ? {} : { onError: handlePlaybackError })}
       {...(thumbnailTime === undefined ? {} : { thumbnailTime })}
     />
   )

@@ -58,7 +58,11 @@ const {
 
 vi.mock('@mux/mux-player-react', () => {
   loadMuxPlayer()
-  return { default: () => <div data-testid="mux-player" /> }
+  return {
+    default: ({ onError }: { onError?: () => void }) => (
+      <button data-testid="mux-player" onClick={onError} type="button" />
+    ),
+  }
 })
 
 vi.mock('../../entities/post', () => ({
@@ -149,6 +153,35 @@ describe('BookDiscussionPage', () => {
 
     expect(await screen.findByTestId('mux-player')).toBeInTheDocument()
     expect(loadMuxPlayer).toHaveBeenCalledOnce()
+  })
+
+  it('retries only the failed video message playback without replacing the chat screen', async () => {
+    getVideoPosts.mockResolvedValueOnce([
+      {
+        authorName: '민규',
+        body: null,
+        createdAt: '2026-07-18T00:00:00.000Z',
+        id: 'video-1',
+        status: 'ready',
+      },
+    ])
+    getVideoPlaybackAuthorization.mockResolvedValue({
+      playbackId: 'playback-id',
+      thumbnailToken: 'thumbnail-token',
+      token: 'playback-token',
+    })
+    renderBookDiscussionPage()
+
+    fireEvent.click(await screen.findByTestId('mux-player'))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '영상을 재생하지 못했어요. 다시 시도해 주세요.',
+    )
+    expect(screen.getByRole('heading', { name: '읽고 느낀 걸 나눠요' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '재생 다시 시도' }))
+
+    await vi.waitFor(() => expect(getVideoPlaybackAuthorization).toHaveBeenCalledTimes(2))
+    expect(await screen.findByTestId('mux-player')).toBeInTheDocument()
   })
 
   it('opens the message actions as a speech bubble above the composer', () => {

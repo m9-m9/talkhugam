@@ -26,8 +26,13 @@ const { deleteVideoPost, getVideoDeletePermission, getVideoPlaybackAuthorization
   }))
 
 vi.mock('@mux/mux-player-react', () => ({
-  default: ({ playbackId }: { playbackId: string }) => (
-    <div data-playback-id={playbackId} data-testid="mux-player" />
+  default: ({ onError, playbackId }: { onError?: () => void; playbackId: string }) => (
+    <button
+      data-playback-id={playbackId}
+      data-testid="mux-player"
+      onClick={onError}
+      type="button"
+    />
   ),
 }))
 
@@ -214,6 +219,20 @@ describe('VideoPlayerPage', () => {
     ).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: '다시 시도' }))
+
+    await vi.waitFor(() => expect(getVideoPlaybackAuthorization).toHaveBeenCalledTimes(2))
+    expect(await screen.findByTestId('mux-player')).toBeInTheDocument()
+  })
+
+  it('explains a Mux media playback failure separately and retries its authorization', async () => {
+    renderPlayerPage()
+
+    fireEvent.click(await screen.findByTestId('mux-player'))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '영상을 재생하지 못했어요. 다시 시도해 주세요.',
+    )
+    fireEvent.click(screen.getByRole('button', { name: '재생 다시 시도' }))
 
     await vi.waitFor(() => expect(getVideoPlaybackAuthorization).toHaveBeenCalledTimes(2))
     expect(await screen.findByTestId('mux-player')).toBeInTheDocument()

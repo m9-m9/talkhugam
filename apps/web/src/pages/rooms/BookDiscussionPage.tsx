@@ -915,18 +915,31 @@ function ChatTimeline({
 
 /** 영상 메시지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function VideoMessage({ video }: { video: VideoPost }) {
+  const [hasPlaybackMediaError, setHasPlaybackMediaError] = useState(false)
   const playbackQuery = useQuery({
     enabled: video.status === 'ready',
     queryFn: () => getVideoPlaybackAuthorization(createSupabaseClient(), video.id),
     queryKey: ['video-playback', video.id],
     staleTime: 4 * 60 * 1_000,
   })
-  if (video.status === 'ready' && playbackQuery.data)
+  /** Mux 재생기 오류를 현재 영상 카드의 재시도 상태로 전환한다. */
+  function handlePlaybackMediaError() {
+    setHasPlaybackMediaError(true)
+  }
+
+  /** 실패 안내를 닫고 해당 영상의 재생 권한만 다시 요청한다. */
+  function handleRetryPlaybackMedia() {
+    setHasPlaybackMediaError(false)
+    void playbackQuery.refetch()
+  }
+
+  if (video.status === 'ready' && playbackQuery.data && !hasPlaybackMediaError)
     return (
       <article className="border-ink/10 w-full max-w-full overflow-hidden rounded-lg border bg-white">
         <LazyMuxVideoPlayer
           className="aspect-video w-full"
           metadata={{ videoId: video.id, videoTitle: 'Talk후감 영상' }}
+          onPlaybackError={handlePlaybackMediaError}
           playbackId={playbackQuery.data.playbackId}
           thumbnailTime={0}
           tokens={{
@@ -937,6 +950,8 @@ function VideoMessage({ video }: { video: VideoPost }) {
         <p className="text-ink p-3 text-sm font-medium">{video.authorName}의 영상</p>
       </article>
     )
+  if (video.status === 'ready' && playbackQuery.data && hasPlaybackMediaError)
+    return <VideoMessagePlaybackError onRetry={handleRetryPlaybackMedia} />
   const message = getVideoMessageLabel(video, playbackQuery.isError)
   const isLoading = video.status !== 'failed' && !playbackQuery.isError
   return (
@@ -946,6 +961,24 @@ function VideoMessage({ video }: { video: VideoPost }) {
       ) : (
         <p className="text-sm font-medium text-white">{message}</p>
       )}
+    </article>
+  )
+}
+
+/** 채팅을 유지한 채 영상 카드 하나의 재생 실패와 재시도 제어를 렌더링한다. */
+function VideoMessagePlaybackError({ onRetry }: { onRetry: () => void }) {
+  return (
+    <article className="border-ink/10 bg-ink flex aspect-video w-full max-w-full flex-col items-center justify-center gap-3 rounded-lg border px-4 text-center">
+      <p className="text-sm font-medium text-white" role="alert">
+        영상을 재생하지 못했어요. 다시 시도해 주세요.
+      </p>
+      <button
+        className="border-primary text-primary min-h-11 cursor-pointer rounded-md border px-3 text-sm font-semibold"
+        onClick={onRetry}
+        type="button"
+      >
+        재생 다시 시도
+      </button>
     </article>
   )
 }
