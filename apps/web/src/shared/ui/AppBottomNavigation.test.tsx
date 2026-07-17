@@ -28,6 +28,24 @@ describe('AppBottomNavigation', () => {
     expect(container.querySelector('path')?.getAttribute('d')).toContain('C31 1 75 1')
   })
 
+  it('moves focus into the action book and returns it to the trigger after Escape', async () => {
+    render(
+      <MemoryRouter initialEntries={['/rooms']}>
+        <AppBottomNavigation />
+      </MemoryRouter>,
+    )
+
+    const trigger = screen.getByRole('button', { name: '모임 시작 메뉴 열기' })
+    fireEvent.click(trigger)
+
+    await expect(screen.getByRole('button', { name: '새 모임 만들기' })).toHaveFocus()
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+
+    await expect(trigger).toHaveFocus()
+    expect(screen.queryByRole('button', { name: '새 모임 만들기' })).not.toBeInTheDocument()
+  })
+
   it('navigates to room creation from the left page of the action book', () => {
     render(
       <MemoryRouter initialEntries={['/rooms']}>
@@ -51,10 +69,28 @@ describe('AppBottomNavigation', () => {
       </MemoryRouter>,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: '모임 시작 메뉴 열기' }))
+    const trigger = screen.getByRole('button', { name: '모임 시작 메뉴 열기' })
+    fireEvent.click(trigger)
     fireEvent.pointerDown(document.body)
 
     expect(screen.queryByRole('button', { name: '새 모임 만들기' })).not.toBeInTheDocument()
+    expect(trigger).toHaveFocus()
+  })
+
+  it('closes the action book when keyboard focus moves to another navigation control', () => {
+    render(
+      <MemoryRouter initialEntries={['/rooms']}>
+        <AppBottomNavigation />
+      </MemoryRouter>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '모임 시작 메뉴 열기' }))
+    const profileButton = screen.getByRole('button', { name: '내 정보' })
+    profileButton.focus()
+    fireEvent.focusIn(profileButton)
+
+    expect(screen.queryByRole('button', { name: '새 모임 만들기' })).not.toBeInTheDocument()
+    expect(profileButton).toHaveFocus()
   })
 
   it('navigates to invite-code participation from the right page of the action book', () => {

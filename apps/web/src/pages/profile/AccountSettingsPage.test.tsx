@@ -155,6 +155,42 @@ describe('AccountSettingsPage', () => {
     })
   })
 
+  it('focuses the first deletion option, traps focus, and restores the trigger after dismissal', async () => {
+    renderAccountSettingsPage()
+
+    const trigger = screen.getByRole('button', { name: '계정 삭제' })
+    fireEvent.click(trigger)
+
+    const firstMode = screen.getByRole('radio', { name: '대화 기록은 남기고 탈퇴' })
+    await waitFor(() => expect(firstMode).toHaveFocus())
+
+    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true })
+    expect(screen.getByRole('button', { name: '취소' })).toHaveFocus()
+
+    fireEvent.keyDown(document, { key: 'Tab' })
+    expect(firstMode).toHaveFocus()
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+
+    await waitFor(() => expect(trigger).toHaveFocus())
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('restores the deletion trigger focus after clicking the modal backdrop', async () => {
+    renderAccountSettingsPage()
+
+    const trigger = screen.getByRole('button', { name: '계정 삭제' })
+    fireEvent.click(trigger)
+    const dialog = screen.getByRole('dialog')
+    const backdrop = dialog.parentElement
+    if (!backdrop) throw new Error('계정 삭제 확인창의 배경을 찾지 못했습니다.')
+
+    fireEvent.mouseDown(backdrop)
+
+    await waitFor(() => expect(trigger).toHaveFocus())
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
   it('returns to sign-in even when local session cleanup fails after server deletion', async () => {
     signOut.mockRejectedValueOnce(new Error('local session unavailable'))
     renderAccountSettingsPage()
