@@ -47,9 +47,29 @@ export function AppBottomNavigation() {
             모임 시작 방식 선택
           </h2>
           <div className="talkhugam-action-book__pages flex">
+            <svg
+              aria-hidden="true"
+              className="talkhugam-action-book__shape"
+              fill="none"
+              preserveAspectRatio="none"
+              viewBox="0 0 200 100"
+            >
+              <path
+                d="M1 1H100V94C75 88 26 88 1 94V1Z"
+                fill="var(--color-surface)"
+                stroke="var(--color-primary)"
+                vectorEffect="non-scaling-stroke"
+              />
+              <path
+                d="M100 1H199V94C174 88 125 88 100 94V1Z"
+                fill="var(--color-surface)"
+                stroke="var(--color-primary)"
+                vectorEffect="non-scaling-stroke"
+              />
+            </svg>
             <button
               aria-label="새 모임 만들기"
-              className="talkhugam-action-book__page talkhugam-action-book__page--left flex min-h-40 flex-1 flex-col items-start justify-between rounded-l-lg p-6 text-left"
+              className="talkhugam-action-book__page talkhugam-action-book__page--left flex min-h-40 flex-1 flex-col items-start justify-between p-6 text-left"
               onClick={handleCreateRoom}
               type="button"
             >
@@ -63,7 +83,7 @@ export function AppBottomNavigation() {
             </button>
             <button
               aria-label="초대 코드로 참여"
-              className="talkhugam-action-book__page talkhugam-action-book__page--right flex min-h-40 flex-1 flex-col items-start justify-between rounded-r-lg p-6 text-left"
+              className="talkhugam-action-book__page talkhugam-action-book__page--right flex min-h-40 flex-1 flex-col items-start justify-between p-6 text-left"
               onClick={handleJoinRoom}
               type="button"
             >
