@@ -140,6 +140,39 @@
   transform-origin: left bottom;
 }
 
+.talkhugam-chat-action-menu {
+  bottom: calc(100% + var(--spacing-4));
+  left: 0;
+  position: absolute;
+  right: 0;
+  z-index: 10;
+}
+
+.talkhugam-chat-action-menu::after {
+  border-left: 12px solid transparent;
+  border-right: 12px solid transparent;
+  border-top: 12px solid var(--color-border);
+  bottom: -13px;
+  content: '';
+  height: 0;
+  left: 10px;
+  position: absolute;
+  width: 0;
+}
+
+.talkhugam-chat-action-menu::before {
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 10px solid var(--color-surface);
+  bottom: -10px;
+  content: '';
+  height: 0;
+  left: 12px;
+  position: absolute;
+  width: 0;
+  z-index: 1;
+}
+
 @keyframes talkhugam-action-book-open-left {
   0% {
     opacity: 0;

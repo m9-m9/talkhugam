@@ -159,7 +159,7 @@ function ChatComposer({
   }
 
   return (
-    <section className="border-ink/10 mt-6 border-t pt-4">
+    <section className="border-ink/10 relative mt-6 border-t pt-4">
       {isReplying ? (
         <div className="mb-3 flex items-center justify-between gap-3">
           <p className="text-ink-subtle text-xs">답글 남기기</p>
@@ -193,7 +193,7 @@ function ChatComposer({
         </ul>
       ) : null}
       {isActionTrayOpen ? (
-        <div className="border-ink/10 mb-3 rounded-lg border bg-white p-3">
+        <div className="talkhugam-chat-action-menu border-ink/10 rounded-lg border bg-white p-3 shadow-lg">
           {labelKind ? (
             <div className="flex items-center gap-2">
               <label className="sr-only" htmlFor="post-label-value">
