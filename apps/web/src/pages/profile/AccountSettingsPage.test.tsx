@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AccountSettingsPage } from './AccountSettingsPage'
 
@@ -42,9 +42,24 @@ vi.mock('../../shared/api/supabaseClient', () => ({
 }))
 
 describe('AccountSettingsPage', () => {
+  beforeEach(() => {
+    getNotificationPreferences.mockResolvedValue({
+      mentionsEnabled: true,
+      repliesEnabled: true,
+      roomEventsEnabled: true,
+    })
+    requestAccountDeletion.mockResolvedValue(undefined)
+    updateNotificationPreferences.mockResolvedValue({
+      mentionsEnabled: false,
+      repliesEnabled: true,
+      roomEventsEnabled: true,
+    })
+    signOut.mockResolvedValue({ error: null })
+  })
+
   afterEach(() => {
     cleanup()
-    vi.clearAllMocks()
+    vi.resetAllMocks()
   })
 
   it('stores a changed notification preference for the signed-in user', async () => {
@@ -64,6 +79,58 @@ describe('AccountSettingsPage', () => {
         },
       )
     })
+  })
+
+  it('shows a separate retry state when notification preferences cannot be loaded', async () => {
+    getNotificationPreferences.mockRejectedValueOnce(new Error('network'))
+    renderAccountSettingsPage()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '알림 설정을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.',
+    )
+    expect(screen.getByRole('button', { name: '다시 시도' })).toBeInTheDocument()
+    expect(
+      screen.queryByText('알림 설정을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.'),
+    ).not.toBeInTheDocument()
+  })
+
+  it('shows the book loader and disables retry while notification preference lookup retries', async () => {
+    const deferredPreferences = createDeferredValue<{
+      mentionsEnabled: boolean
+      repliesEnabled: boolean
+      roomEventsEnabled: boolean
+    }>()
+    getNotificationPreferences
+      .mockRejectedValueOnce(new Error('network'))
+      .mockReturnValueOnce(deferredPreferences.promise)
+    renderAccountSettingsPage()
+
+    fireEvent.click(await screen.findByRole('button', { name: '다시 시도' }))
+
+    expect(
+      await screen.findByRole('status', { name: '알림 설정을 다시 불러오고 있어요.' }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '다시 시도' })).toBeDisabled()
+
+    deferredPreferences.resolve({
+      mentionsEnabled: true,
+      repliesEnabled: true,
+      roomEventsEnabled: true,
+    })
+
+    expect(await screen.findByRole('checkbox', { name: '멘션 알림' })).toBeInTheDocument()
+  })
+
+  it('shows a save error without offering the query retry action', async () => {
+    updateNotificationPreferences.mockRejectedValueOnce(new Error('network'))
+    renderAccountSettingsPage()
+
+    fireEvent.click(await screen.findByRole('checkbox', { name: '멘션 알림' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '알림 설정을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.',
+    )
+    expect(screen.queryByRole('button', { name: '다시 시도' })).not.toBeInTheDocument()
   })
 
   it('requires a deletion mode and confirmation before deleting the account', async () => {
@@ -116,4 +183,14 @@ function renderAccountSettingsPage() {
       </MemoryRouter>
     </QueryClientProvider>,
   )
+}
+
+/** 테스트에서 수동으로 완료 시점을 제어할 비동기 값을 만든다. */
+function createDeferredValue<Value>() {
+  let resolve: (resolvedValue: Value) => void = () => undefined
+  const promise = new Promise<Value>((resolvePromise) => {
+    resolve = resolvePromise
+  })
+
+  return { promise, resolve }
 }
