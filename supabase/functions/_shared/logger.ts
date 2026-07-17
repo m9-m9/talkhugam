@@ -24,6 +24,7 @@ const ALLOWED_METADATA_KEYS = new Set([
   'durationMs',
 ])
 
+/** 운영 로그 metadata에서 허용된 필드만 남긴다. */
 function sanitizeMetadata(metadata: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return Object.fromEntries(
     Object.entries(metadata).filter(([key, value]) =>
@@ -33,6 +34,7 @@ function sanitizeMetadata(metadata: Readonly<Record<string, unknown>>): Record<s
   )
 }
 
+/** 운영 로그 level과 message를 구조화된 기록으로 만든다. */
 export function createLogRecord(
   level: LogLevel,
   event: OperationalEvent,
@@ -47,6 +49,7 @@ export function createLogRecord(
   }
 }
 
+/** Operational 이벤트 운영 정보를 민감값 없이 기록한다. */
 export function logOperationalEvent(
   level: LogLevel,
   event: OperationalEvent,

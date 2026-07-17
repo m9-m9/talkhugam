@@ -1,0 +1,209 @@
+import { expect, test } from '@playwright/test'
+import AxeBuilder from '@axe-core/playwright'
+
+const roomId = '89544530-dd36-422b-aaff-b6a70180f521'
+const bookChatId = '00000000-0000-4000-8000-000000000002'
+
+test('keeps the app canvas within the supported viewport', async ({ page }, testInfo) => {
+  await page.goto('/')
+
+  const expectedCanvasWidth = Math.min(testInfo.project.use.viewport?.width ?? 640, 640)
+  await expect(page.locator('main')).toHaveCSS('max-width', '640px')
+  expect(
+    await page.locator('main').evaluate((element) => element.getBoundingClientRect().width),
+  ).toBe(expectedCanvasWidth)
+  await expect(page.locator('html')).toHaveJSProperty(
+    'scrollWidth',
+    testInfo.project.use.viewport?.width,
+  )
+})
+
+test('has no automated accessibility violations on the sign-in screen', async ({ page }) => {
+  await page.goto('/')
+
+  const accessibilityScanResults = await new AxeBuilder({ page }).analyze()
+
+  expect(accessibilityScanResults.violations).toEqual([])
+})
+
+test('preserves a book-chat label draft while the action bubble is dismissed', async ({ page }) => {
+  await authenticatePage(page)
+  await page.goto(`/rooms/${roomId}/books/${bookChatId}`)
+
+  await page.getByRole('button', { name: '메시지 추가 메뉴 열기' }).click()
+  await page.getByRole('button', { name: '페이지 라벨' }).click()
+  await page.getByRole('textbox', { name: '페이지 번호' }).fill('87')
+
+  await page.getByRole('textbox', { name: '메시지 입력' }).click()
+  await expect(page.getByRole('textbox', { name: '페이지 번호' })).toBeHidden()
+
+  await page.getByRole('button', { name: '메시지 추가 메뉴 열기' }).click()
+  await expect(page.getByRole('textbox', { name: '페이지 번호' })).toHaveValue('87')
+
+  const accessibilityScanResults = await new AxeBuilder({ page }).analyze()
+  expect(accessibilityScanResults.violations).toEqual([])
+
+  await page.getByRole('button', { name: '메시지 추가 메뉴 닫기' }).click()
+  await expect(page.getByRole('textbox', { name: '페이지 번호' })).toBeHidden()
+})
+
+test('shows global navigation outside the book chat and hides it inside', async ({ page }) => {
+  await authenticatePage(page)
+
+  await page.goto('/rooms/create')
+  await expect(page.getByRole('navigation', { name: '주요 메뉴' })).toBeVisible()
+
+  await page.goto(`/rooms/${roomId}/books/${bookChatId}`)
+  await expect(page.getByRole('navigation', { name: '주요 메뉴' })).toBeHidden()
+})
+
+test('opens the video picker directly from the archive empty state', async ({ page }) => {
+  await authenticatePage(page)
+  await mockVideoMembers(page)
+  await mockVideoPosts(page, [])
+  await page.goto(`/rooms/${roomId}/books/${bookChatId}/videos`)
+
+  const fileChooserPromise = page.waitForEvent('filechooser')
+  await page.getByRole('button', { name: '첫 영상 올리기' }).click()
+  const fileChooser = await fileChooserPromise
+
+  expect(fileChooser.isMultiple()).toBe(false)
+  await expect(page.getByText('채팅창의 + 버튼에서 첫 영상을 남겨 보세요.')).toBeHidden()
+})
+
+test('keeps saved videos in a two-column archive gallery', async ({ page }) => {
+  await authenticatePage(page)
+  await mockVideoMembers(page)
+  await mockVideoPosts(page, [
+    createVideoPostRow('4b7227b2-5350-4a61-9114-b2d0c915fd1b', '민규'),
+    createVideoPostRow('e45b7500-b6bd-43d6-8438-e5b643c84282', '수진'),
+  ])
+  await page.goto(`/rooms/${roomId}/books/${bookChatId}/videos`)
+
+  const gallery = page.getByRole('list', { name: '영상 기록' })
+  await expect(gallery.getByRole('listitem')).toHaveCount(2)
+  expect(
+    await gallery.evaluate((element) =>
+      window.getComputedStyle(element).gridTemplateColumns.split(' ').filter(Boolean),
+    ),
+  ).toHaveLength(2)
+})
+
+test('filters saved videos with the custom member selection menu', async ({ page }) => {
+  await authenticatePage(page)
+  await mockVideoMembers(page)
+  await mockVideoPosts(page, [
+    createVideoPostRow('4b7227b2-5350-4a61-9114-b2d0c915fd1b', '민규'),
+    {
+      ...createVideoPostRow('e45b7500-b6bd-43d6-8438-e5b643c84282', '수진'),
+      author_member_id: 'b21f0060-cd1d-40db-a6ae-fd2eb3e9f862',
+    },
+  ])
+  await page.goto(`/rooms/${roomId}/books/${bookChatId}/videos`)
+
+  await page.getByRole('button', { name: '멤버 필터: 모든 멤버' }).click()
+  await expect(page.getByRole('listbox', { name: '멤버 필터' })).toBeVisible()
+  await expect(page.getByText('누구의 영상?')).toBeVisible()
+  await page.getByRole('option', { name: '민규' }).click()
+
+  await expect(page.getByRole('list', { name: '영상 기록' }).getByRole('listitem')).toHaveCount(1)
+  await expect(page.getByRole('button', { name: '멤버 필터: 민규' })).toBeVisible()
+})
+
+test('opens a gallery thumbnail in the immersive video viewer', async ({ page }) => {
+  const videoId = '4b7227b2-5350-4a61-9114-b2d0c915fd1b'
+  await authenticatePage(page)
+  await mockVideoMembers(page)
+  await mockVideoPosts(page, [createVideoPostRow(videoId, '민규', 'ready')])
+  await page.route('**/functions/v1/mux-playback-token', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        data: {
+          expiresAt: 1_784_269_999,
+          playbackId: 'playback-id',
+          thumbnailToken: 'thumbnail-token',
+          token: 'playback-token',
+        },
+        ok: true,
+      }),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+  await page.goto(`/rooms/${roomId}/books/${bookChatId}/videos`)
+
+  await page.getByRole('button', { name: '민규님의 영상 보기' }).click()
+
+  await expect(page).toHaveURL(`/rooms/${roomId}/books/${bookChatId}/videos/${videoId}`)
+  await expect(page.getByRole('heading', { name: '영상 보기' })).toBeVisible()
+  await expect(page.getByRole('navigation', { name: '주요 메뉴' })).toBeHidden()
+})
+
+async function authenticatePage(page: import('@playwright/test').Page) {
+  const user = {
+    app_metadata: {},
+    aud: 'authenticated',
+    created_at: '2026-07-17T00:00:00.000Z',
+    email: 'e2e@example.com',
+    id: '00000000-0000-4000-8000-000000000001',
+    user_metadata: {},
+  }
+  await page.addInitScript((authenticatedUser) => {
+    window.localStorage.setItem(
+      'sb-gvuwtaxvoinelqdvrher-auth-token',
+      JSON.stringify({
+        access_token: 'e2e-access-token',
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+        expires_in: 3600,
+        refresh_token: 'e2e-refresh-token',
+        token_type: 'bearer',
+        user: authenticatedUser,
+      }),
+    )
+  }, user)
+  await page.route('**/auth/v1/user', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify(user),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+}
+
+async function mockVideoPosts(page: import('@playwright/test').Page, posts: unknown[]) {
+  await page.route('**/rest/v1/posts?*', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify(posts),
+      contentType: 'application/json',
+      headers: { 'content-range': `0-${Math.max(posts.length - 1, 0)}/${posts.length}` },
+      status: 200,
+    })
+  })
+}
+
+async function mockVideoMembers(page: import('@playwright/test').Page) {
+  await page.route('**/rest/v1/room_members?*', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify([
+        {
+          id: '8fc963a4-da01-4696-995c-755fe145776f',
+          profile_id: '00000000-0000-4000-8000-000000000001',
+          room_display_name: '민규',
+        },
+      ]),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+}
+
+function createVideoPostRow(id: string, authorName: string, status = 'failed') {
+  return {
+    author_member_id: '8fc963a4-da01-4696-995c-755fe145776f',
+    author_name_snapshot: authorName,
+    body: null,
+    created_at: '2026-07-17T06:00:00+00:00',
+    id,
+    video_assets: { status },
+  }
+}

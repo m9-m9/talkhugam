@@ -9,6 +9,7 @@ import {
 } from '../_shared/naver.ts'
 import { consumeRequestRateLimit } from '../_shared/rate-limit.ts'
 
+/** 허용하지 않는 HTTP method 요청에 405 응답을 반환한다. */
 function methodNotAllowed(): Response {
   return new Response('Method Not Allowed', {
     status: 405,
@@ -16,6 +17,7 @@ function methodNotAllowed(): Response {
   })
 }
 
+/** Naver OAuth 시작 요청이나 사용자 동작을 처리한다. */
 export async function handleNaverOauthStart(request: Request): Promise<Response> {
   if (request.method !== 'GET') return methodNotAllowed()
 

@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from 'npm:zod@4.4.3'
 
 const playbackIdSchema = z.object({
   id: z.string().min(1),
@@ -36,6 +36,7 @@ export type NormalizedMuxEvent = {
   errorCode?: string
 }
 
+/** Mux 이벤트을 내부 표준 형식으로 정규화한다. */
 export function normalizeMuxEvent(event: MuxWebhookEvent): NormalizedMuxEvent | null {
   const base = {
     eventId: event.id,

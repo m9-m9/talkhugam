@@ -3,9 +3,11 @@
 @theme {
   --color-surface: #fffaf8;
   --color-surface-muted: #fff1ec;
+  --color-border: #e7ded7;
   --color-ink: #272320;
-  --color-ink-subtle: #7b746d;
+  --color-ink-subtle: #706a64;
   --color-primary: #ff835f;
+  --color-primary-text: #ad3d22;
   --spacing-0: 0px;
   --spacing-1: 4px;
   --spacing-2: 8px;
@@ -21,6 +23,10 @@
   --radius-lg: 16px;
 }
 
+.text-primary {
+  color: var(--color-primary-text);
+}
+
 @layer base {
   :root {
     color: var(--color-ink);
@@ -34,6 +40,7 @@
   }
 
   body {
+    background: var(--color-surface-muted);
     min-width: 320px;
     min-height: 100vh;
     margin: 0;
@@ -43,5 +50,342 @@
   input,
   textarea {
     font: inherit;
+  }
+
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']) {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+}
+
+.app-page {
+  margin-inline: auto;
+  max-width: 640px;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.app-with-bottom-navigation {
+  min-height: 100vh;
+  padding-bottom: 100px;
+}
+
+.app-bottom-navigation {
+  --bottom-navigation-height: calc(var(--spacing-16) + var(--spacing-8));
+
+  bottom: 0;
+  height: var(--bottom-navigation-height);
+  left: 50%;
+  max-width: 640px;
+  position: fixed;
+  transform: translateX(-50%);
+  width: 100%;
+  z-index: 20;
+}
+
+.talkhugam-action-book {
+  bottom: calc(var(--bottom-navigation-height) + var(--spacing-6));
+  left: 50%;
+  max-width: 320px;
+  perspective: 900px;
+  transform: translateX(-50%);
+  width: calc(100% - var(--spacing-8));
+}
+
+.talkhugam-action-backdrop {
+  background: rgb(39 35 32 / 15%);
+  border: 0;
+  bottom: var(--bottom-navigation-height);
+  left: 50%;
+  max-width: 640px;
+  padding: 0;
+  position: fixed;
+  top: 0;
+  transform: translateX(-50%);
+  width: 100%;
+  z-index: 0;
+}
+
+.talkhugam-action-book__pages {
+  filter: drop-shadow(0 12px 24px rgb(39 35 32 / 18%));
+  position: relative;
+  transform-style: preserve-3d;
+}
+
+.talkhugam-action-book__shape {
+  height: 100%;
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  width: 100%;
+}
+
+.talkhugam-action-book__shape path {
+  stroke-width: 2px;
+}
+
+.talkhugam-action-book__page {
+  min-height: calc(var(--spacing-16) * 2 + var(--spacing-4));
+  padding: var(--spacing-4);
+  position: relative;
+  z-index: 1;
+}
+
+.talkhugam-action-book__page--left {
+  animation: talkhugam-action-book-open-left 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  transform-origin: right bottom;
+}
+
+.talkhugam-action-book__page--right {
+  animation: talkhugam-action-book-open-right 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  transform-origin: left bottom;
+}
+
+.talkhugam-chat-action-menu {
+  bottom: calc(100% + var(--spacing-4));
+  left: 0;
+  position: absolute;
+  right: 0;
+  z-index: 10;
+}
+
+.talkhugam-chat-action-menu::after {
+  border-left: 12px solid transparent;
+  border-right: 12px solid transparent;
+  border-top: 12px solid var(--color-border);
+  bottom: -13px;
+  content: '';
+  height: 0;
+  left: 10px;
+  position: absolute;
+  width: 0;
+}
+
+.talkhugam-chat-action-menu::before {
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 10px solid var(--color-surface);
+  bottom: -10px;
+  content: '';
+  height: 0;
+  left: 12px;
+  position: absolute;
+  width: 0;
+  z-index: 1;
+}
+
+@keyframes talkhugam-action-book-open-left {
+  0% {
+    opacity: 0;
+    transform: rotateY(82deg) translateY(var(--spacing-10));
+  }
+
+  100% {
+    opacity: 1;
+    transform: rotateY(0) translateY(0);
+  }
+}
+
+@keyframes talkhugam-action-book-open-right {
+  0% {
+    opacity: 0;
+    transform: rotateY(-82deg) translateY(var(--spacing-10));
+  }
+
+  100% {
+    opacity: 1;
+    transform: rotateY(0) translateY(0);
+  }
+}
+
+@media (min-width: 768px) {
+  .app-bottom-navigation {
+    border-inline: 1px solid var(--color-border);
+  }
+}
+
+@media (min-width: 768px) {
+  .app-page {
+    border-inline: 1px solid var(--color-border);
+  }
+}
+
+@keyframes talkhugam-book-page-turn {
+  0% {
+    opacity: 0;
+    transform: perspective(700px) rotateY(0deg);
+  }
+
+  8% {
+    opacity: 1;
+    transform: perspective(700px) rotateY(-14deg);
+  }
+
+  76% {
+    opacity: 1;
+    transform: perspective(700px) rotateY(-172deg);
+  }
+
+  100% {
+    opacity: 0;
+    transform: perspective(700px) rotateY(-180deg);
+  }
+}
+
+@keyframes talkhugam-bubble-float {
+  0%,
+  100% {
+    opacity: 0.7;
+    transform: translateY(0);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+}
+
+.talkhugam-book-loader {
+  --book-loader-scale: 1;
+  height: calc(94px * var(--book-loader-scale));
+  width: calc(92px * var(--book-loader-scale));
+}
+
+.talkhugam-book-loader--xs {
+  --book-loader-scale: 0.25;
+}
+
+.talkhugam-book-loader--sm {
+  --book-loader-scale: 0.5;
+}
+
+.talkhugam-book-loader--lg {
+  --book-loader-scale: 1.33;
+}
+
+.talkhugam-book-loader__stage {
+  height: 94px;
+  position: relative;
+  transform: scale(var(--book-loader-scale));
+  transform-origin: top left;
+  width: 92px;
+}
+
+.talkhugam-book-loader__bubbles {
+  align-items: flex-end;
+  display: flex;
+  gap: 8px;
+  height: 26px;
+  justify-content: center;
+}
+
+.talkhugam-book-loader__page {
+  animation: talkhugam-book-page-turn 2.2s ease-in-out infinite;
+  background: var(--color-surface);
+  border: 3.5px solid var(--color-primary);
+  border-left: 0;
+  border-radius: 0 6px 6px 0;
+  box-sizing: border-box;
+  height: 64px;
+  left: 46px;
+  position: absolute;
+  top: 0;
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  width: 46px;
+}
+
+.talkhugam-book-loader__bubble {
+  animation: talkhugam-bubble-float 1.7s ease-in-out infinite;
+  background: var(--color-surface);
+  border: 3px solid var(--color-primary);
+  border-radius: 6px;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.talkhugam-book-loader__bubble::after {
+  background: var(--color-surface);
+  border-bottom: 3px solid var(--color-primary);
+  border-right: 3px solid var(--color-primary);
+  bottom: -6px;
+  content: '';
+  height: 8px;
+  position: absolute;
+  transform: rotate(45deg);
+  width: 8px;
+}
+
+.talkhugam-book-loader__bubble--left {
+  height: 19px;
+  width: 26px;
+}
+
+.talkhugam-book-loader__bubble--left::after {
+  left: 6px;
+}
+
+.talkhugam-book-loader__bubble--right {
+  animation-delay: 0.4s;
+  border-color: #ffb59c;
+  height: 16px;
+  width: 22px;
+}
+
+.talkhugam-book-loader__bubble--right::after {
+  border-color: #ffb59c;
+  right: 6px;
+}
+
+.talkhugam-book-loader__book {
+  height: 64px;
+  perspective: 700px;
+  position: absolute;
+  top: 30px;
+  width: 92px;
+}
+
+.talkhugam-book-loader__cover {
+  background: var(--color-surface);
+  border: 3.5px solid var(--color-primary);
+  box-sizing: border-box;
+  height: 64px;
+  position: absolute;
+  top: 0;
+  width: 46px;
+}
+
+.talkhugam-book-loader__cover--left {
+  border-radius: 6px 0 0 6px;
+  border-right: 0;
+  left: 0;
+}
+
+.talkhugam-book-loader__cover--right {
+  border-left: 0;
+  border-radius: 0 6px 6px 0;
+  left: 46px;
+}
+
+.talkhugam-book-loader__spine {
+  background: var(--color-primary);
+  height: 64px;
+  left: 44.5px;
+  position: absolute;
+  top: 0;
+  width: 3px;
+  z-index: 2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .talkhugam-book-loader__page,
+  .talkhugam-book-loader__bubble,
+  .talkhugam-action-book__page--left,
+  .talkhugam-action-book__page--right {
+    animation: none;
   }
 }

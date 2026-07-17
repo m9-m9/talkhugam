@@ -1,5 +1,6 @@
 const encoder = new TextEncoder()
 
+/** Hmac Sha 256 데이터를 생성해 반환한다. */
 export async function createHmacSha256(value: string, secret: string): Promise<Uint8Array> {
   const key = await crypto.subtle.importKey(
     'raw',
@@ -12,6 +13,7 @@ export async function createHmacSha256(value: string, secret: string): Promise<U
   return new Uint8Array(signature)
 }
 
+/** 두 문자열을 일정한 실행 시간으로 비교해 timing attack을 방지한다. */
 export function secureEqual(left: string, right: string): boolean {
   const leftBytes = encoder.encode(left)
   const rightBytes = encoder.encode(right)

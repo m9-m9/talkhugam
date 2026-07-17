@@ -1,5 +1,5 @@
 import { assertEquals } from 'jsr:@std/assert@1.0.14'
-import { z } from 'zod'
+import { z } from 'npm:zod@4.4.3'
 import { createJsonRequest } from '../_test/request.ts'
 import { parseJsonBody } from './body.ts'
 

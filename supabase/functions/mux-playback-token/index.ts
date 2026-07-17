@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from 'npm:zod@4.4.3'
 import { createRequestId, failureResponse, successResponse } from '../_shared/api.ts'
 import { parseJsonBody } from '../_shared/body.ts'
 import { createCorsHeaders, optionsResponse } from '../_shared/cors.ts'
@@ -13,6 +13,7 @@ const videoAssetSchema = z.object({
   status: z.literal('ready'),
 })
 
+/** Mux Playback 토큰 요청이나 사용자 동작을 처리한다. */
 export async function handleMuxPlaybackToken(request: Request): Promise<Response> {
   const preflight = optionsResponse(request)
   if (preflight) return preflight
@@ -52,23 +53,23 @@ export async function handleMuxPlaybackToken(request: Request): Promise<Response
     )
   }
 
+  const assetResponse = await auth.client
+    .from('video_assets')
+    .select('playback_id, status')
+    .eq('post_id', body.value.postId)
+    .eq('status', 'ready')
+    .single()
+
+  if (assetResponse.error) {
+    return failureResponse(
+      { code: 'POST_NOT_FOUND', message: '재생 가능한 영상을 찾지 못했습니다.' },
+      requestId,
+      404,
+      headers,
+    )
+  }
+
   try {
-    const assetResponse = await auth.client
-      .from('video_assets')
-      .select('playback_id, status')
-      .eq('post_id', body.value.postId)
-      .eq('status', 'ready')
-      .single()
-
-    if (assetResponse.error) {
-      return failureResponse(
-        { code: 'POST_NOT_FOUND', message: '재생 가능한 영상을 찾지 못했습니다.' },
-        requestId,
-        404,
-        headers,
-      )
-    }
-
     const asset = videoAssetSchema.parse(assetResponse.data)
     const nowSeconds = Math.floor(Date.now() / 1000)
     const expiresAt = nowSeconds + 300
@@ -79,14 +80,24 @@ export async function handleMuxPlaybackToken(request: Request): Promise<Response
       nowSeconds,
       300,
     )
+    const thumbnailToken = await signPlaybackToken(
+      asset.playback_id,
+      readRequiredEnv('MUX_SIGNING_KEY_ID'),
+      readRequiredEnv('MUX_SIGNING_PRIVATE_KEY'),
+      nowSeconds,
+      300,
+      't',
+      { time: 0 },
+    )
 
     return successResponse(
-      { playbackId: asset.playback_id, token, expiresAt },
+      { playbackId: asset.playback_id, thumbnailToken, token, expiresAt },
       requestId,
       headers,
     )
-  } catch {
-    logOperationalEvent('error', 'mux_playback_token_failed', { requestId, retryable: true })
+  } catch (error) {
+    const code = getPlaybackSigningErrorCode(error)
+    logOperationalEvent('error', 'mux_playback_token_failed', { requestId, code, retryable: true })
     return failureResponse(
       { code: 'INTERNAL_ERROR', message: '재생 권한을 만들지 못했습니다.', retryable: true },
       requestId,
@@ -94,6 +105,14 @@ export async function handleMuxPlaybackToken(request: Request): Promise<Response
       headers,
     )
   }
+}
+
+/** 영상 재생 서명 오류를 사용자용 오류 코드로 변환한다. */
+function getPlaybackSigningErrorCode(error: unknown): string {
+  if (!(error instanceof Error)) return 'PLAYBACK_TOKEN_UNKNOWN'
+  if (error.message.startsWith('Missing required environment variable')) return 'PLAYBACK_TOKEN_SECRET_MISSING'
+  if (error.message.includes('PEM') || error.message.includes('PKCS')) return 'PLAYBACK_TOKEN_KEY_INVALID'
+  return 'PLAYBACK_TOKEN_SIGNING_FAILED'
 }
 
 if (import.meta.main) Deno.serve(handleMuxPlaybackToken)

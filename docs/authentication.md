@@ -4,7 +4,7 @@
 
 | 공급자 | 구현 방식 | 백엔드 callback | 사용자 매핑 |
 | --- | --- | --- | --- |
-| Kakao | Supabase Auth 기본 OAuth provider | Supabase Auth callback | 공급자 identity가 `auth.users`에 연결됨 |
+| Kakao | Supabase Auth 기본 OAuth provider | Supabase Auth callback | Kakao 비즈앱의 필수 이메일 동의 후 공급자 identity가 `auth.users`에 연결됨 |
 | Google | Supabase Auth 기본 OAuth provider | Supabase Auth callback | 공급자 identity가 `auth.users`에 연결됨 |
 | Naver | Talk후감 Edge Function bridge | `naver-oauth-callback` | 네이버 subject의 HMAC 결과를 내부 전용 이메일로 사용 |
 
@@ -24,6 +24,8 @@ Phase 1에서는 서로 다른 공급자 계정을 자동 병합하지 않는다
 8. 브라우저는 Supabase action link를 거쳐 허용된 `return_to`로 돌아간다.
 
 네이버 이메일, 전화번호, 생일, 성별은 Phase 1 로그인에 필요하지 않으므로 요청·저장하지 않는다.
+카카오는 Supabase Auth provider가 처리한다. Kakao 비즈앱에서 카카오계정 이메일을 필수 동의로 설정하고,
+Supabase Auth의 Kakao provider에 REST API key와 Client Secret을 등록한다.
 로그에는 state, code, access token, subject, 내부 이메일을 남기지 않는다.
 
 ## 환경변수
@@ -45,13 +47,15 @@ Phase 1에서는 서로 다른 공급자 계정을 자동 병합하지 않는다
 
 ## 실제 연결 체크리스트
 
-- [ ] Supabase 프로젝트의 Kakao provider client ID/secret 등록
+- [ ] Supabase 프로젝트의 Kakao provider REST API key/client secret 등록
 - [ ] Supabase 프로젝트의 Google provider client ID/secret 등록
-- [ ] Kakao·Google callback URL을 각 개발자 콘솔에 등록
+- [ ] Kakao 비즈앱의 카카오계정 이메일을 필수 동의로 설정
+- [ ] Kakao 개발자 콘솔에 Supabase Auth Kakao callback URL을 등록
+- [ ] Google callback URL을 개발자 콘솔에 등록
 - [ ] Naver 애플리케이션 callback URL과 `NAVER_REDIRECT_URI` 일치
 - [ ] Naver 제공 정보는 식별자와 표시 이름에 필요한 최소 항목만 동의 요청
 - [ ] 운영 `ALLOWED_AUTH_REDIRECTS`에 배포 도메인 callback만 등록
-- [ ] 여섯 secret을 로컬 파일이나 Git이 아닌 Supabase secret에 등록
+- [ ] 필요한 Naver·공통 secret을 로컬 파일이나 Git이 아닌 Supabase secret에 등록
 - [ ] 신규 사용자별 `auth.users`, `profiles`, `notification_preferences` 생성 확인
 - [ ] 기존 사용자 재로그인 시 새 계정이 생기지 않는지 확인
 - [ ] 변조 state, 만료 state, 허용되지 않은 `return_to`, 공급자 거부 흐름 확인

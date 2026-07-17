@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from 'npm:zod@4.4.3'
 import { createRequestId, failureResponse, successResponse } from '../_shared/api.ts'
 import { parseJsonBody } from '../_shared/body.ts'
 import { createCorsHeaders, optionsResponse } from '../_shared/cors.ts'
@@ -11,6 +11,7 @@ const preparedRequestSchema = z.array(z.object({
   profile_id: z.uuid(),
 })).min(1).max(1)
 
+/** 계정 삭제 요청이나 사용자 동작을 처리한다. */
 export async function handleAccountDelete(request: Request): Promise<Response> {
   const preflight = optionsResponse(request)
   if (preflight) return preflight

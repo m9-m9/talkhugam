@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from 'npm:zod@4.4.3'
 import { readRequiredEnv } from '../_shared/env.ts'
 import { logOperationalEvent } from '../_shared/logger.ts'
 import { deleteMuxAsset } from '../_shared/mux.ts'
@@ -16,11 +16,13 @@ const jobSchema = z.object({
 const jobsSchema = z.array(jobSchema)
 const assetIdsSchema = z.array(z.object({ mux_asset_id: z.string().min(1) }))
 
+/** 삭제 작업의 재시도 횟수에 맞는 다음 실행 시각을 계산한다. */
 function retryAt(attempts: number): string {
   const delaySeconds = Math.min(3600, 30 * (2 ** Math.max(0, attempts - 1)))
   return new Date(Date.now() + delaySeconds * 1000).toISOString()
 }
 
+/** Deletion 작업자 요청이나 사용자 동작을 처리한다. */
 export async function handleDeletionWorker(request: Request): Promise<Response> {
   if (request.method !== 'POST') return new Response('Method Not Allowed', { status: 405 })
 

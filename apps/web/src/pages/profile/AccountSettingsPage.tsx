@@ -1,0 +1,127 @@
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+
+import { getProviderLabels } from '../../entities/profile'
+import { useAuthenticatedUser } from '../../features/auth'
+import { createSupabaseClient } from '../../shared/api/supabaseClient'
+import { AppHeader } from '../../shared/ui/AppHeader'
+import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+
+type AccountIdentity = {
+  email: string
+  providers: string[]
+}
+
+/** 계정 설정 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
+export function AccountSettingsPage() {
+  const navigate = useNavigate()
+  const user = useAuthenticatedUser()
+  const [account, setAccount] = useState<AccountIdentity | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [isSigningOut, setIsSigningOut] = useState(false)
+
+  useEffect(() => {
+    /** 현재 로그인 사용자와 연결된 provider 정보를 불러온다. */
+    function loadAccount() {
+      try {
+        setAccount({
+          email: user.email ?? '이메일 정보를 찾을 수 없어요',
+          providers: getProviderLabels(user.appMetadata),
+        })
+      } catch {
+        setErrorMessage('계정 정보를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.')
+      }
+    }
+
+    loadAccount()
+  }, [user])
+
+  /** Sign Out 요청이나 사용자 동작을 처리한다. */
+  async function handleSignOut() {
+    setErrorMessage(null)
+    setIsSigningOut(true)
+
+    const response = await createSupabaseClient().auth.signOut()
+    if (response.error) {
+      setErrorMessage('로그아웃하지 못했어요. 잠시 후 다시 시도해 주세요.')
+      setIsSigningOut(false)
+      return
+    }
+
+    void navigate('/', { replace: true })
+  }
+
+  if (!account && !errorMessage)
+    return <AccountSettingsState message="계정 정보를 불러오고 있어요." />
+
+  return (
+    <main className="app-page bg-surface px-4 pb-8">
+      <AppHeader onBack={() => void navigate('/profile')} title="계정 설정" />
+      <header className="mt-8">
+        <p className="text-primary text-sm font-medium">계정</p>
+        <h1 className="text-ink mt-2 text-2xl font-bold">계정 설정</h1>
+        <p className="text-ink-subtle mt-2 text-sm">로그인에 사용하는 계정 정보를 확인해요.</p>
+      </header>
+
+      {account ? (
+        <section className="mt-8" aria-label="계정 정보">
+          <dl className="border-ink/10 overflow-hidden rounded-lg border bg-white">
+            <AccountDetail label="이메일" value={account.email} />
+            <AccountDetail
+              label="로그인 수단"
+              value={
+                account.providers.length > 0 ? account.providers.join(', ') : '확인할 수 없어요'
+              }
+            />
+          </dl>
+        </section>
+      ) : null}
+
+      {errorMessage ? (
+        <p className="mt-6 text-sm text-red-600" role="alert">
+          {errorMessage}
+        </p>
+      ) : null}
+
+      <section className="mt-12" aria-labelledby="sign-out-heading">
+        <h2 className="text-ink text-base font-bold" id="sign-out-heading">
+          로그인 관리
+        </h2>
+        <button
+          className="border-ink/10 text-ink mt-4 min-h-11 w-full rounded-md border bg-white px-4 text-sm font-semibold disabled:opacity-50"
+          disabled={isSigningOut}
+          onClick={() => void handleSignOut()}
+          type="button"
+        >
+          {isSigningOut ? (
+            <span className="flex items-center justify-center gap-2">
+              <LoadingSpinner label="로그아웃하고 있어요." showLabel={false} size="xs" />
+              로그아웃하고 있어요…
+            </span>
+          ) : (
+            '로그아웃'
+          )}
+        </button>
+      </section>
+    </main>
+  )
+}
+
+/** 계정 상세 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
+function AccountDetail({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="border-ink/10 flex flex-col gap-2 border-b px-4 py-4 last:border-b-0">
+      <dt className="text-ink-subtle text-sm">{label}</dt>
+      <dd className="text-ink text-sm break-all">{value}</dd>
+    </div>
+  )
+}
+
+/** 계정 설정 상태 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
+function AccountSettingsState({ message }: { message: string }) {
+  return (
+    <main className="app-page bg-surface flex items-center justify-center px-4">
+      <LoadingSpinner label={message} />
+    </main>
+  )
+}

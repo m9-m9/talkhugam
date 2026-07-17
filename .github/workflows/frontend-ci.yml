@@ -1,4 +1,4 @@
-name: Frontend CI
+name: 프론트엔드 CI
 
 on:
   pull_request:
@@ -31,37 +31,46 @@ concurrency:
 
 jobs:
   web:
-    name: Web quality gate
+    name: 웹 품질 검사
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
     steps:
-      - name: Checkout repository
+      - name: 저장소 내려받기
         uses: actions/checkout@v7
 
-      - name: Set up pnpm
+      - name: pnpm 설정
         uses: pnpm/action-setup@v6
 
-      - name: Set up Node.js
+      - name: Node.js 설정
         uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
 
-      - name: Install locked dependencies
+      - name: 잠금 파일 기준 의존성 설치
         run: pnpm install --frozen-lockfile
 
-      - name: Check formatting
+      - name: 코드 형식 검사
         run: pnpm format:web
 
-      - name: Lint web app
+      - name: 함수 책임 문서 검사
+        run: pnpm docs:functions:web
+
+      - name: 웹 코드 정적 검사
         run: pnpm lint:web
 
-      - name: Type-check web app
+      - name: TypeScript 타입 검사
         run: pnpm typecheck:web
 
-      - name: Test web app
+      - name: 웹 단위·컴포넌트 테스트
         run: pnpm test:web
 
-      - name: Build web app
+      - name: 웹 production build
         run: pnpm build:web
+
+      - name: Playwright Chromium 설치
+        run: pnpm --filter @talkhugam/web exec playwright install --with-deps chromium
+
+      - name: 브라우저 UI 검사
+        run: pnpm --filter @talkhugam/web test:e2e

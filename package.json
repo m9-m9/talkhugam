@@ -23,11 +23,14 @@
     "backend:functions:serve": "supabase functions serve --env-file supabase/functions/.env.local",
     "backend:types": "supabase gen types typescript --local > supabase/types/database.types.ts",
     "dev:web": "pnpm --filter @talkhugam/web dev",
+    "docs:functions:web": "pnpm --filter @talkhugam/web docs:functions",
+    "docs:functions:write:web": "pnpm --filter @talkhugam/web docs:functions:write",
     "build:web": "pnpm --filter @talkhugam/web build",
     "lint:web": "pnpm --filter @talkhugam/web lint",
     "format:web": "pnpm --filter @talkhugam/web format",
     "typecheck:web": "pnpm --filter @talkhugam/web typecheck",
-    "test:web": "pnpm --filter @talkhugam/web test"
+    "test:web": "pnpm --filter @talkhugam/web test",
+    "test:e2e:web": "pnpm --filter @talkhugam/web test:e2e"
   },
   "devDependencies": {
     "deno": "2.9.2",
