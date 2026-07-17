@@ -9,6 +9,6 @@
     <circle cx="61" cy="29" fill="#FFF9F6" r="2"/><circle cx="66" cy="29" fill="#FFF9F6" r="2"/><circle cx="71" cy="29" fill="#FFF9F6" r="2"/>
   </g>
   <text fill="#272320" font-family="Pretendard, Arial, sans-serif" font-size="64" font-weight="400" x="90" y="62">Talk</text>
-  <text fill="#FF835F" font-family="Pretendard, Arial, sans-serif" font-size="64" font-weight="400" x="230" y="62">후감</text>
-  <text fill="#7B746D" font-family="Pretendard, Arial, sans-serif" font-size="14" font-weight="400" x="92" y="80">함께 읽고, 함께 나누는</text>
+  <text fill="#FF835F" font-family="Pretendard, Arial, sans-serif" font-size="56" font-weight="400" x="210" y="60">후감</text>
+  <text fill="#7B746D" font-family="Pretendard, Arial, sans-serif" font-size="16" font-weight="400" x="92" y="80">함께 읽고, 함께 나누는</text>
 </svg>
