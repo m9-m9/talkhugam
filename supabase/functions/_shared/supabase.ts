@@ -25,9 +25,12 @@ export function createAdminClient(): SupabaseClient {
 }
 
 export function createUserClient(request: Request): SupabaseClient {
+  const publishableKey = readOptionalEnv('SUPABASE_PUBLISHABLE_KEY')
+    ?? readRequiredEnv('SUPABASE_ANON_KEY')
+
   return createClient(
     readRequiredEnv('SUPABASE_URL'),
-    readRequiredEnv('SUPABASE_PUBLISHABLE_KEY'),
+    publishableKey,
     {
       auth: { autoRefreshToken: false, persistSession: false },
       global: { headers: { Authorization: request.headers.get('authorization') ?? '' } },
