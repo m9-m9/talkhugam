@@ -14,16 +14,12 @@ import {
   type PostForm,
 } from '../../entities/post'
 import {
-  createVideoUpload,
-  getVideoDuration,
   getVideoPlaybackAuthorization,
   getVideoPosts,
-  getVideoUploadErrorMessage,
-  uploadVideoFile,
-  validateVideoDuration,
   videoKeys,
   type VideoPost,
 } from '../../entities/video'
+import { useVideoUpload } from '../../features/video-upload'
 import { readingRoomKeys } from '../../entities/reading-room'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
@@ -39,7 +35,7 @@ export function BookDiscussionPage() {
   const [labels, setLabels] = useState<PostForm['labels']>([])
   const [replyTo, setReplyTo] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [isUploadingVideo, setIsUploadingVideo] = useState(false)
+  const { errorMessage: videoErrorMessage, isUploadingVideo, uploadVideo } = useVideoUpload(bookChatId)
   const postsQuery = useQuery({
     enabled: Boolean(bookChatId),
     queryFn: () => getPosts(createSupabaseClient(), bookChatId ?? ''),
@@ -81,27 +77,6 @@ export function BookDiscussionPage() {
     }
   }
 
-  async function handleVideoFile(file: File | undefined) {
-    if (!file || !bookChatId) return
-    setErrorMessage(null)
-    setIsUploadingVideo(true)
-    try {
-      if (!validateVideoDuration(await getVideoDuration(file))) {
-        setErrorMessage('30초 이하의 영상만 올릴 수 있어요.')
-        return
-      }
-      const upload = await createVideoUpload(createSupabaseClient(), bookChatId)
-      await queryClient.invalidateQueries({ queryKey: videoKeys.byBookChat(bookChatId) })
-      await queryClient.invalidateQueries({ queryKey: readingRoomKeys.all })
-      await uploadVideoFile(upload.uploadUrl, file)
-      await queryClient.invalidateQueries({ queryKey: videoKeys.byBookChat(bookChatId) })
-    } catch (error) {
-      setErrorMessage(getVideoUploadErrorMessage(error))
-    } finally {
-      setIsUploadingVideo(false)
-    }
-  }
-
   if (!roomId || !bookChatId) return <main className="bg-surface min-h-screen" />
   const roots = postsQuery.data?.filter((post) => post.depth === 0) ?? []
   return (
@@ -124,14 +99,14 @@ export function BookDiscussionPage() {
         )}
       </section>
       <ChatComposer
-        errorMessage={errorMessage}
+        errorMessage={errorMessage ?? videoErrorMessage}
         isReplying={Boolean(replyTo)}
         labels={labels}
         onCancelReply={() => setReplyTo(null)}
         onChangeDraft={setDraft}
         onChangeLabels={setLabels}
         onOpenVideoArchive={() => void navigate(`/rooms/${roomId}/books/${bookChatId}/videos`)}
-        onSelectVideo={handleVideoFile}
+        onSelectVideo={uploadVideo}
         onSubmit={() => void handleSubmit()}
         isUploadingVideo={isUploadingVideo}
         value={draft}
