@@ -46,16 +46,8 @@ export function RoomsPage() {
 
   return (
     <main className="app-page bg-surface flex flex-col px-6">
-      <header className="border-ink/10 -mx-6 flex min-h-20 items-center border-b px-6">
-        <img alt="Talk후감" className="h-12 w-auto" src="/brand/talkhugam-wordmark.svg" />
-        <button
-          aria-label="초대 코드로 독서방 참여하기"
-          className="text-primary ml-auto min-h-11 px-3 text-sm font-medium"
-          onClick={() => void navigate('/rooms/join')}
-          type="button"
-        >
-          초대
-        </button>
+      <header className="border-ink/10 -mx-6 flex min-h-24 items-center border-b px-6">
+        <img alt="Talk후감" className="h-16 w-auto" src="/brand/talkhugam-wordmark.svg" />
       </header>
 
       <section aria-labelledby="recent-rooms-heading" className="flex flex-1 flex-col py-8">
@@ -132,7 +124,6 @@ function RoomsList({ rooms }: { rooms: ReadingRoom[] }) {
       <h2 className="text-ink text-base font-bold" id="recent-rooms-heading">
         함께 읽는 모임
       </h2>
-      <p className="text-ink-subtle mt-1 text-xs">최근 이야기를 나눈 순서예요.</p>
       <ul className="mt-4 space-y-3">
         {rooms.map((room) => (
           <li key={room.id}>

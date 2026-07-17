@@ -11,7 +11,7 @@ function CurrentPath() {
 describe('AppBottomNavigation', () => {
   afterEach(cleanup)
 
-  it('navigates to the room creation flow from the centered plus button', async () => {
+  it('opens a two-page action book from the centered plus button', () => {
     render(
       <MemoryRouter initialEntries={['/rooms']}>
         <AppBottomNavigation />
@@ -21,9 +21,42 @@ describe('AppBottomNavigation', () => {
       </MemoryRouter>,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: '새 독서방 만들기' }))
+    fireEvent.click(screen.getByRole('button', { name: '모임 시작 메뉴 열기' }))
+
+    expect(screen.getByRole('button', { name: '새 모임 만들기' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '초대 코드로 참여' })).toBeInTheDocument()
+  })
+
+  it('navigates to room creation from the left page of the action book', () => {
+    render(
+      <MemoryRouter initialEntries={['/rooms']}>
+        <AppBottomNavigation />
+        <Routes>
+          <Route path="*" element={<CurrentPath />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '모임 시작 메뉴 열기' }))
+    fireEvent.click(screen.getByRole('button', { name: '새 모임 만들기' }))
 
     expect(screen.getByText('/rooms/create')).toBeInTheDocument()
+  })
+
+  it('navigates to invite-code participation from the right page of the action book', () => {
+    render(
+      <MemoryRouter initialEntries={['/rooms']}>
+        <AppBottomNavigation />
+        <Routes>
+          <Route path="*" element={<CurrentPath />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '모임 시작 메뉴 열기' }))
+    fireEvent.click(screen.getByRole('button', { name: '초대 코드로 참여' }))
+
+    expect(screen.getByText('/rooms/join')).toBeInTheDocument()
   })
 
   it('navigates to the reading-group main page from the Talk후감 logo', () => {
