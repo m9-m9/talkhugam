@@ -55,3 +55,4 @@ grant execute on function public.delete_video_post(uuid) to authenticated;
 
 comment on function public.delete_video_post(uuid)
 is 'Allows a video author or room owner to soft-delete a video and enqueue its Mux asset deletion.';
+
