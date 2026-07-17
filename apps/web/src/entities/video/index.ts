@@ -1,12 +1,17 @@
 export {
+  createMuxThumbnailUrl,
   createVideoUpload,
   deleteVideoPost,
+  filterVideoPosts,
   getVideoAsset,
   getVideoDuration,
+  getVideoFilterMembers,
+  getVideoPost,
   getUploadedVideoNavigationState,
   getVideoPlaybackAuthorization,
   getVideoPosts,
   parseVideoPlaybackAuthorization,
+  parseVideoFilterMembers,
   parseVideoPosts,
   shouldRefreshVideoPosts,
   shouldShowUploadedVideoPlaceholder,
@@ -14,7 +19,9 @@ export {
   validateVideoDuration,
   videoKeys,
   type VideoAsset,
+  type VideoFilterMember,
   type VideoPlaybackAuthorization,
   type VideoPost,
+  type VideoPostFilter,
 } from './videoUpload'
 export { getVideoUploadErrorMessage } from './videoUploadError'

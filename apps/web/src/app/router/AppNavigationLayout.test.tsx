@@ -20,12 +20,15 @@ describe('AppNavigationLayout', () => {
     expect(screen.getByRole('navigation', { name: '주요 메뉴' })).toBeInTheDocument()
   })
 
-  it('hides the global bottom navigation only in the book chat', () => {
-    renderLayout('/rooms/room-1/books/book-1')
+  it.each(['/rooms/room-1/books/book-1', '/rooms/room-1/books/book-1/videos/video-1'])(
+    'hides the global bottom navigation on immersive detail path %s',
+    (initialEntry) => {
+      renderLayout(initialEntry)
 
-    expect(screen.queryByRole('navigation', { name: '주요 메뉴' })).not.toBeInTheDocument()
-    expect(screen.getByText('현재 화면')).toBeInTheDocument()
-  })
+      expect(screen.queryByRole('navigation', { name: '주요 메뉴' })).not.toBeInTheDocument()
+      expect(screen.getByText('현재 화면')).toBeInTheDocument()
+    },
+  )
 })
 
 function renderLayout(initialEntry: string) {

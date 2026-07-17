@@ -250,10 +250,11 @@ export async function signPlaybackToken(
   nowSeconds = Math.floor(Date.now() / 1000),
   lifetimeSeconds = 300,
   audience: 't' | 'v' = 'v',
+  claims: { time?: number } = {},
 ): Promise<string> {
   const privateKey = await importPKCS8(decodeSigningPrivateKey(encodedPrivateKey), 'RS256')
 
-  return new SignJWT({})
+  return new SignJWT(claims)
     .setProtectedHeader({ alg: 'RS256', kid: keyId, typ: 'JWT' })
     .setSubject(playbackId)
     .setAudience(audience)

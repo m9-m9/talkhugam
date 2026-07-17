@@ -59,6 +59,7 @@ test('shows global navigation outside the book chat and hides it inside', async 
 
 test('opens the video picker directly from the archive empty state', async ({ page }) => {
   await authenticatePage(page)
+  await mockVideoMembers(page)
   await mockVideoPosts(page, [])
   await page.goto(`/rooms/${roomId}/books/${bookChatId}/videos`)
 
@@ -72,6 +73,7 @@ test('opens the video picker directly from the archive empty state', async ({ pa
 
 test('keeps saved videos in a two-column archive gallery', async ({ page }) => {
   await authenticatePage(page)
+  await mockVideoMembers(page)
   await mockVideoPosts(page, [
     createVideoPostRow('4b7227b2-5350-4a61-9114-b2d0c915fd1b', '민규'),
     createVideoPostRow('e45b7500-b6bd-43d6-8438-e5b643c84282', '수진'),
@@ -85,6 +87,35 @@ test('keeps saved videos in a two-column archive gallery', async ({ page }) => {
       window.getComputedStyle(element).gridTemplateColumns.split(' ').filter(Boolean),
     ),
   ).toHaveLength(2)
+})
+
+test('opens a gallery thumbnail in the immersive video viewer', async ({ page }) => {
+  const videoId = '4b7227b2-5350-4a61-9114-b2d0c915fd1b'
+  await authenticatePage(page)
+  await mockVideoMembers(page)
+  await mockVideoPosts(page, [createVideoPostRow(videoId, '민규', 'ready')])
+  await page.route('**/functions/v1/mux-playback-token', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        data: {
+          expiresAt: 1_784_269_999,
+          playbackId: 'playback-id',
+          thumbnailToken: 'thumbnail-token',
+          token: 'playback-token',
+        },
+        ok: true,
+      }),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+  await page.goto(`/rooms/${roomId}/books/${bookChatId}/videos`)
+
+  await page.getByRole('button', { name: '민규님의 영상 보기' }).click()
+
+  await expect(page).toHaveURL(`/rooms/${roomId}/books/${bookChatId}/videos/${videoId}`)
+  await expect(page.getByRole('heading', { name: '영상 보기' })).toBeVisible()
+  await expect(page.getByRole('navigation', { name: '주요 메뉴' })).toBeHidden()
 })
 
 async function authenticatePage(page: import('@playwright/test').Page) {
@@ -129,12 +160,29 @@ async function mockVideoPosts(page: import('@playwright/test').Page, posts: unkn
   })
 }
 
-function createVideoPostRow(id: string, authorName: string) {
+async function mockVideoMembers(page: import('@playwright/test').Page) {
+  await page.route('**/rest/v1/room_members?*', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify([
+        {
+          id: '8fc963a4-da01-4696-995c-755fe145776f',
+          profile_id: '00000000-0000-4000-8000-000000000001',
+          room_display_name: '민규',
+        },
+      ]),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+}
+
+function createVideoPostRow(id: string, authorName: string, status = 'failed') {
   return {
+    author_member_id: '8fc963a4-da01-4696-995c-755fe145776f',
     author_name_snapshot: authorName,
     body: null,
     created_at: '2026-07-17T06:00:00+00:00',
     id,
-    video_assets: { status: 'failed' },
+    video_assets: { status },
   }
 }

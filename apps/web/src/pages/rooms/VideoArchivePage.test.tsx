@@ -5,7 +5,24 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { VideoArchivePage } from './VideoArchivePage'
 
-const { getVideoPosts, uploadVideo, videoUploadState } = vi.hoisted(() => ({
+vi.mock('@mux/mux-player-react', () => ({
+  default: () => <div data-testid="mux-player" />,
+}))
+
+const {
+  getVideoFilterMembers,
+  getVideoPlaybackAuthorization,
+  getVideoPosts,
+  uploadVideo,
+  videoUploadState,
+} = vi.hoisted(() => ({
+  getVideoFilterMembers: vi.fn().mockResolvedValue([]),
+  getVideoPlaybackAuthorization: vi.fn().mockResolvedValue({
+    expiresAt: 1_784_269_999,
+    playbackId: 'playback-id',
+    thumbnailToken: 'thumbnail-token',
+    token: 'playback-token',
+  }),
   getVideoPosts: vi.fn().mockResolvedValue([]),
   uploadVideo: vi.fn(),
   videoUploadState: { isUploadingVideo: false },
@@ -13,9 +30,22 @@ const { getVideoPosts, uploadVideo, videoUploadState } = vi.hoisted(() => ({
 
 vi.mock('../../entities/video', () => ({
   deleteVideoPost: vi.fn(),
-  getVideoPlaybackAuthorization: vi.fn(),
+  createMuxThumbnailUrl: () => 'https://image.mux.com/playback-id/thumbnail.webp?token=token',
+  filterVideoPosts: (videos: unknown[], filter: { kind: string; memberId?: string | null }) => {
+    if (filter.kind === 'all') return videos
+    return videos.filter(
+      (video) => (video as { authorMemberId: string | null }).authorMemberId === filter.memberId,
+    )
+  },
+  getVideoFilterMembers,
+  getVideoPost: vi.fn(),
+  getVideoPlaybackAuthorization,
   getVideoPosts,
-  videoKeys: { byBookChat: (bookChatId: string) => ['video-posts', bookChatId] },
+  videoKeys: {
+    byBookChat: (bookChatId: string) => ['video-posts', bookChatId],
+    members: (roomId: string) => ['video-filter-members', roomId],
+    playback: (postId: string) => ['video-playback', postId],
+  },
 }))
 
 vi.mock('../../features/video-upload', () => ({
@@ -35,16 +65,19 @@ describe('VideoArchivePage', () => {
     cleanup()
     getVideoPosts.mockClear()
     getVideoPosts.mockResolvedValue([])
+    getVideoFilterMembers.mockClear()
+    getVideoFilterMembers.mockResolvedValue([])
+    getVideoPlaybackAuthorization.mockClear()
     uploadVideo.mockClear()
     videoUploadState.isUploadingVideo = false
   })
 
-  it('opens the native video picker from its round upload button when videos exist', async () => {
+  it('opens the native video picker from its labeled upload button when videos exist', async () => {
     getVideoPosts.mockResolvedValueOnce([createFailedVideo('video-1', '민규')])
     const inputClick = vi.spyOn(HTMLInputElement.prototype, 'click')
     renderArchivePage()
 
-    fireEvent.click(await screen.findByRole('button', { name: '영상 올리기' }))
+    fireEvent.click(await screen.findByRole('button', { name: '영상 추가' }))
 
     expect(inputClick).toHaveBeenCalledOnce()
     inputClick.mockRestore()
@@ -90,10 +123,8 @@ describe('VideoArchivePage', () => {
     ])
     renderArchivePage()
 
-    expect(await screen.findByText('영상 처리에 실패했어요.')).toBeInTheDocument()
-    expect(
-      screen.queryByRole('status', { name: '영상 처리에 실패했어요.' }),
-    ).not.toBeInTheDocument()
+    expect(await screen.findByText('처리 실패')).toBeInTheDocument()
+    expect(screen.queryByRole('status', { name: '처리 실패' })).not.toBeInTheDocument()
   })
 
   it('lays out saved videos in a two-column gallery', async () => {
@@ -105,17 +136,78 @@ describe('VideoArchivePage', () => {
 
     const gallery = await screen.findByRole('list', { name: '영상 기록' })
     expect(gallery).toHaveClass('grid-cols-2')
+    expect(gallery).toHaveClass('-mx-4')
     expect(screen.getAllByRole('listitem')).toHaveLength(2)
+  })
+
+  it('shows only the signed-in member videos when 내 영상 is selected', async () => {
+    getVideoFilterMembers.mockResolvedValueOnce([
+      { displayName: '민규', id: 'member-1', isCurrentUser: true },
+      { displayName: '수진', id: 'member-2', isCurrentUser: false },
+    ])
+    getVideoPosts.mockResolvedValueOnce([
+      createReadyVideo('video-1', 'member-1', '민규'),
+      createReadyVideo('video-2', 'member-2', '수진'),
+    ])
+    renderArchivePage()
+
+    fireEvent.click(await screen.findByRole('button', { name: '내 영상' }))
+
+    expect(screen.getAllByRole('listitem')).toHaveLength(1)
+    expect(screen.getByRole('button', { name: '민규님의 영상 보기' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '수진님의 영상 보기' })).not.toBeInTheDocument()
+  })
+
+  it('filters the gallery by a selected room member', async () => {
+    getVideoFilterMembers.mockResolvedValueOnce([
+      { displayName: '민규', id: 'member-1', isCurrentUser: true },
+      { displayName: '수진', id: 'member-2', isCurrentUser: false },
+    ])
+    getVideoPosts.mockResolvedValueOnce([
+      createReadyVideo('video-1', 'member-1', '민규'),
+      createReadyVideo('video-2', 'member-2', '수진'),
+    ])
+    renderArchivePage()
+
+    fireEvent.change(await screen.findByRole('combobox', { name: '멤버별 영상 보기' }), {
+      target: { value: 'member-2' },
+    })
+
+    expect(screen.getAllByRole('listitem')).toHaveLength(1)
+    expect(screen.getByRole('button', { name: '수진님의 영상 보기' })).toBeInTheDocument()
+  })
+
+  it('opens a ready video from a square gallery thumbnail', async () => {
+    getVideoPosts.mockResolvedValueOnce([createReadyVideo('video-1', 'member-1', '민규')])
+    renderArchivePage()
+
+    const videoButton = await screen.findByRole('button', { name: '민규님의 영상 보기' })
+    expect(videoButton.querySelector('.aspect-square')).toBeInTheDocument()
+    fireEvent.click(videoButton)
+
+    expect(screen.getByText('영상 상세 화면')).toBeInTheDocument()
   })
 })
 
 function createFailedVideo(id: string, authorName: string) {
   return {
+    authorMemberId: 'member-1',
     authorName,
     body: null,
     createdAt: '2026-07-17T00:00:00.000Z',
     id,
     status: 'failed' as const,
+  }
+}
+
+function createReadyVideo(id: string, authorMemberId: string, authorName: string) {
+  return {
+    authorMemberId,
+    authorName,
+    body: null,
+    createdAt: '2026-07-17T00:00:00.000Z',
+    id,
+    status: 'ready' as const,
   }
 }
 
@@ -126,6 +218,10 @@ function renderArchivePage() {
       <MemoryRouter initialEntries={['/rooms/room-1/books/book-1/videos']}>
         <Routes>
           <Route path="/rooms/:roomId/books/:bookChatId/videos" element={<VideoArchivePage />} />
+          <Route
+            path="/rooms/:roomId/books/:bookChatId/videos/:videoId"
+            element={<p>영상 상세 화면</p>}
+          />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,

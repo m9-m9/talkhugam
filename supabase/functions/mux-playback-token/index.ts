@@ -86,6 +86,7 @@ export async function handleMuxPlaybackToken(request: Request): Promise<Response
       nowSeconds,
       300,
       't',
+      { time: 0 },
     )
 
     return successResponse(

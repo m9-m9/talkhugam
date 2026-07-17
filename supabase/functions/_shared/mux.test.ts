@@ -89,6 +89,30 @@ Deno.test('signPlaybackToken creates a short-lived Mux video JWT', async () => {
   assertEquals(protectedHeader.kid, 'key-1')
 })
 
+Deno.test('signPlaybackToken embeds the first-frame time in a thumbnail JWT', async () => {
+  const { privateKey, publicKey } = await generateKeyPair('RS256', { extractable: true })
+  const privatePem = await exportPKCS8(privateKey)
+  const publicPem = await exportSPKI(publicKey)
+  const now = 1_700_000_000
+
+  const token = await signPlaybackToken(
+    'playback-1',
+    'key-1',
+    btoa(privatePem),
+    now,
+    300,
+    't',
+    { time: 0 },
+  )
+  const verificationKey = await importSPKI(publicPem, 'RS256')
+  const { payload } = await jwtVerify(token, verificationKey, {
+    audience: 't',
+    currentDate: new Date(now * 1000),
+  })
+
+  assertEquals(payload.time, 0)
+})
+
 Deno.test('signPlaybackToken accepts a PEM value stored with escaped line breaks', async () => {
   const { privateKey, publicKey } = await generateKeyPair('RS256', { extractable: true })
   const privatePem = await exportPKCS8(privateKey)

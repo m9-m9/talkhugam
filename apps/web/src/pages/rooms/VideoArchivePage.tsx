@@ -1,14 +1,17 @@
-import MuxPlayer from '@mux/mux-player-react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useRef } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
 import {
-  deleteVideoPost,
+  createMuxThumbnailUrl,
+  filterVideoPosts,
+  getVideoFilterMembers,
   getVideoPlaybackAuthorization,
   getVideoPosts,
   videoKeys,
+  type VideoFilterMember,
   type VideoPost,
+  type VideoPostFilter,
 } from '../../entities/video'
 import { useVideoUpload } from '../../features/video-upload'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
@@ -17,9 +20,9 @@ import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 export function VideoArchivePage() {
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
   const { bookChatId, roomId } = useParams()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [filter, setFilter] = useState<VideoPostFilter>({ kind: 'all' })
   const { errorMessage, isUploadingVideo, uploadVideo } = useVideoUpload(bookChatId)
   const videosQuery = useQuery({
     enabled: Boolean(bookChatId),
@@ -32,17 +35,11 @@ export function VideoArchivePage() {
         ? 3_000
         : false,
   })
-  const deleteMutation = useMutation({
-    mutationFn: (postId: string) => deleteVideoPost(createSupabaseClient(), postId),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: videoKeys.byBookChat(bookChatId ?? '') })
-    },
+  const membersQuery = useQuery({
+    enabled: Boolean(roomId),
+    queryFn: () => getVideoFilterMembers(createSupabaseClient(), roomId ?? ''),
+    queryKey: videoKeys.members(roomId ?? ''),
   })
-
-  function handleDelete(postId: string) {
-    if (!window.confirm('이 영상을 삭제할까요? 삭제 후 복구할 수 없어요.')) return
-    void deleteMutation.mutate(postId)
-  }
 
   function handleSelectVideo(file: File | undefined) {
     void uploadVideo(file)
@@ -55,6 +52,10 @@ export function VideoArchivePage() {
   if (!roomId || !bookChatId) return <main className="app-page bg-surface min-h-screen" />
 
   const hasVideos = Boolean(videosQuery.data?.length)
+  const currentMemberId = membersQuery.data?.find((member) => member.isCurrentUser)?.id ?? null
+  const resolvedFilter =
+    filter.kind === 'mine' ? { kind: 'mine' as const, memberId: currentMemberId } : filter
+  const filteredVideos = filterVideoPosts(videosQuery.data ?? [], resolvedFilter)
 
   return (
     <main className="app-page bg-surface px-4 pb-8">
@@ -80,13 +81,13 @@ export function VideoArchivePage() {
         />
         {hasVideos ? (
           <button
-            aria-label="영상 올리기"
-            className="bg-primary text-ink focus-visible:ring-primary flex size-12 shrink-0 cursor-pointer items-center justify-center rounded-full shadow-md focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+            className="border-primary/50 bg-surface-muted text-ink hover:border-primary focus-visible:ring-primary flex min-h-11 shrink-0 cursor-pointer items-center gap-2 rounded-lg border px-3 text-sm font-medium focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
             disabled={isUploadingVideo}
             onClick={handleOpenVideoPicker}
             type="button"
           >
-            <PlusIcon className="size-6" />
+            <VideoCameraIcon />
+            영상 추가
           </button>
         ) : null}
       </header>
@@ -100,25 +101,39 @@ export function VideoArchivePage() {
           <LoadingSpinner label="영상을 올리고 있어요…" size="sm" />
         </div>
       ) : null}
+      {hasVideos ? (
+        <VideoFilters
+          filter={filter}
+          isMemberFilterPending={membersQuery.isPending}
+          members={membersQuery.data ?? []}
+          onChange={setFilter}
+        />
+      ) : null}
       {videosQuery.isPending ? (
         <div className="mt-12">
           <LoadingSpinner label="영상을 불러오고 있어요." />
         </div>
-      ) : videosQuery.data?.length ? (
-        <ul aria-label="영상 기록" className="mt-8 grid grid-cols-2 gap-3">
-          {videosQuery.data.map((video) => (
-            <li
-              className="border-ink/10 flex min-w-0 flex-col overflow-hidden rounded-lg border bg-white"
-              key={video.id}
+      ) : hasVideos ? (
+        filteredVideos.length > 0 ? (
+          <ul aria-label="영상 기록" className="bg-ink/10 -mx-4 mt-6 grid grid-cols-2 gap-px">
+            {filteredVideos.map((video) => (
+              <li className="bg-ink min-w-0" key={video.id}>
+                <VideoGalleryItem onOpen={() => void navigate(`${video.id}`)} video={video} />
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="mt-8 flex flex-col items-center gap-3 py-8 text-center">
+            <p className="text-ink-subtle text-sm">선택한 멤버의 영상이 없어요.</p>
+            <button
+              className="text-primary min-h-11 cursor-pointer px-3 text-sm font-medium"
+              onClick={() => setFilter({ kind: 'all' })}
+              type="button"
             >
-              <VideoCard
-                isDeleting={deleteMutation.isPending}
-                onDelete={handleDelete}
-                video={video}
-              />
-            </li>
-          ))}
-        </ul>
+              전체 영상 보기
+            </button>
+          </div>
+        )
       ) : (
         <button
           aria-label="첫 영상 올리기"
@@ -140,72 +155,139 @@ export function VideoArchivePage() {
   )
 }
 
-function VideoCard({
-  isDeleting,
-  onDelete,
-  video,
+function VideoFilters({
+  filter,
+  isMemberFilterPending,
+  members,
+  onChange,
 }: {
-  isDeleting: boolean
-  onDelete: (postId: string) => void
-  video: VideoPost
+  filter: VideoPostFilter
+  isMemberFilterPending: boolean
+  members: readonly VideoFilterMember[]
+  onChange: (filter: VideoPostFilter) => void
 }) {
+  const selectedMemberId = filter.kind === 'member' ? filter.memberId : ''
+
+  return (
+    <div className="mt-6 flex items-center gap-2 overflow-x-auto pb-1">
+      <button
+        aria-pressed={filter.kind === 'all'}
+        className={getFilterButtonClassName(filter.kind === 'all')}
+        onClick={() => onChange({ kind: 'all' })}
+        type="button"
+      >
+        전체
+      </button>
+      <button
+        aria-pressed={filter.kind === 'mine'}
+        className={getFilterButtonClassName(filter.kind === 'mine')}
+        onClick={() => onChange({ kind: 'mine', memberId: null })}
+        type="button"
+      >
+        내 영상
+      </button>
+      <label className="sr-only" htmlFor="video-member-filter">
+        멤버별 영상 보기
+      </label>
+      <select
+        className="border-ink/20 bg-surface text-ink focus-visible:ring-primary min-h-11 cursor-pointer rounded-lg border py-2 pr-8 pl-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
+        disabled={isMemberFilterPending}
+        id="video-member-filter"
+        onChange={(event) => {
+          const memberId = event.target.value
+          onChange(memberId ? { kind: 'member', memberId } : { kind: 'all' })
+        }}
+        value={selectedMemberId}
+      >
+        <option value="">모든 멤버</option>
+        {members.map((member) => (
+          <option key={member.id} value={member.id}>
+            {member.displayName}
+          </option>
+        ))}
+      </select>
+    </div>
+  )
+}
+
+function getFilterButtonClassName(isActive: boolean): string {
+  const colorClassName = isActive
+    ? 'border-primary bg-primary text-ink'
+    : 'border-ink/20 bg-surface text-ink-subtle'
+  return `${colorClassName} focus-visible:ring-primary min-h-11 shrink-0 cursor-pointer rounded-lg border px-3 text-sm font-medium focus-visible:ring-2 focus-visible:outline-none`
+}
+
+function VideoGalleryItem({ onOpen, video }: { onOpen: () => void; video: VideoPost }) {
   const playbackQuery = useQuery({
     enabled: video.status === 'ready',
     queryFn: () => getVideoPlaybackAuthorization(createSupabaseClient(), video.id),
-    queryKey: ['video-playback', video.id],
+    queryKey: videoKeys.playback(video.id),
     staleTime: 4 * 60 * 1_000,
   })
-  const hasVideoError = video.status === 'failed' || playbackQuery.isError
+  const isReady = video.status === 'ready' && Boolean(playbackQuery.data)
 
   return (
-    <>
-      {video.status === 'ready' && playbackQuery.data ? (
-        <MuxPlayer
-          className="aspect-video w-full"
-          metadata={{ video_id: video.id, video_title: 'Talk후감 영상' }}
-          playbackId={playbackQuery.data.playbackId}
-          streamType="on-demand"
-          thumbnailTime={0}
-          tokens={{
-            playback: playbackQuery.data.token,
-            thumbnail: playbackQuery.data.thumbnailToken,
-          }}
-        />
-      ) : (
-        <VideoPlaceholder
-          isLoading={!hasVideoError}
-          message={
-            video.status === 'failed'
-              ? '영상 처리에 실패했어요.'
-              : playbackQuery.isError
-                ? '재생 정보를 불러오지 못했어요.'
-                : '영상 준비 중…'
-          }
-        />
-      )}
-      <div className="flex flex-1 flex-col p-3">
-        <div className="min-w-0 flex-1">
-          <p className="text-ink truncate text-sm font-medium">{video.authorName}</p>
-          {video.body ? (
-            <p className="text-ink-subtle mt-1 line-clamp-2 text-xs">{video.body}</p>
-          ) : null}
-        </div>
-        <button
-          className="text-ink-subtle hover:text-ink focus-visible:ring-primary mt-1 min-h-11 cursor-pointer self-end px-2 text-xs focus-visible:ring-2 focus-visible:outline-none"
-          disabled={isDeleting}
-          onClick={() => onDelete(video.id)}
-          type="button"
-        >
-          삭제
-        </button>
+    <button
+      aria-label={
+        isReady ? `${video.authorName}님의 영상 보기` : `${video.authorName}님의 영상 상태`
+      }
+      className="focus-visible:ring-primary relative block w-full cursor-pointer focus-visible:z-10 focus-visible:ring-2 focus-visible:outline-none disabled:cursor-default"
+      disabled={!isReady}
+      onClick={onOpen}
+      type="button"
+    >
+      <div className="bg-ink relative aspect-square overflow-hidden">
+        {playbackQuery.data ? (
+          <img
+            alt=""
+            className="absolute inset-0 size-full object-cover"
+            src={createMuxThumbnailUrl(playbackQuery.data)}
+          />
+        ) : (
+          <VideoPlaceholder
+            isLoading={video.status !== 'failed' && !playbackQuery.isError}
+            message={video.status === 'failed' ? '처리 실패' : '준비 중'}
+          />
+        )}
+        {isReady ? <PlayBadge /> : null}
+        <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-3 pt-8 pb-3 text-left text-xs font-medium text-white">
+          {video.authorName}
+        </span>
       </div>
-    </>
+    </button>
+  )
+}
+
+function PlayBadge() {
+  return (
+    <span
+      aria-hidden="true"
+      className="absolute top-1/2 left-1/2 flex size-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-black shadow-sm"
+    >
+      <svg className="ml-0.5 size-5" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M8 5.7v12.6L18 12 8 5.7Z" />
+      </svg>
+    </span>
+  )
+}
+
+function VideoCameraIcon() {
+  return (
+    <svg aria-hidden="true" className="size-5" fill="none" viewBox="0 0 24 24">
+      <rect height="12" rx="2" stroke="currentColor" strokeWidth="1.8" width="14" x="3" y="6" />
+      <path
+        d="m17 10 3.5-2v8L17 14v-4Z"
+        stroke="currentColor"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+    </svg>
   )
 }
 
 function VideoPlaceholder({ isLoading, message }: { isLoading: boolean; message: string }) {
   return (
-    <div className="bg-ink flex aspect-video items-center justify-center px-4 text-center">
+    <div className="bg-ink absolute inset-0 flex items-center justify-center px-4 text-center">
       {isLoading ? (
         <LoadingSpinner label={message} size="sm" tone="inverse" />
       ) : (

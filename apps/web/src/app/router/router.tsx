@@ -13,6 +13,7 @@ import { CreateRoomPage } from '../../pages/rooms/CreateRoomPage'
 import { JoinRoomPage } from '../../pages/rooms/JoinRoomPage'
 import { RoomDetailPage } from '../../pages/rooms/RoomDetailPage'
 import { VideoArchivePage } from '../../pages/rooms/VideoArchivePage'
+import { VideoPlayerPage } from '../../pages/rooms/VideoPlayerPage'
 import { RoomsPage } from '../../pages/rooms/RoomsPage'
 import { AppNavigationLayout } from './AppNavigationLayout'
 
@@ -42,6 +43,10 @@ export const router = createBrowserRouter([
           { path: '/rooms/:roomId/books/new', element: <BookSearchPage /> },
           { path: '/rooms/:roomId/books/:bookChatId', element: <BookDiscussionPage /> },
           { path: '/rooms/:roomId/books/:bookChatId/videos', element: <VideoArchivePage /> },
+          {
+            path: '/rooms/:roomId/books/:bookChatId/videos/:videoId',
+            element: <VideoPlayerPage />,
+          },
         ],
       },
     ],

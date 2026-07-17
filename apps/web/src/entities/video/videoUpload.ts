@@ -32,11 +32,18 @@ const videoPostAssetSchema = z.object({
 })
 
 const videoPostRowSchema = z.object({
+  author_member_id: z.string().uuid().nullable(),
   author_name_snapshot: z.string(),
   body: z.string().nullable(),
   created_at: z.string().datetime({ offset: true }),
   id: z.string().uuid(),
   video_assets: z.union([videoPostAssetSchema, z.array(videoPostAssetSchema).max(1)]).nullable(),
+})
+
+const videoFilterMemberRowSchema = z.object({
+  id: z.string().uuid(),
+  profile_id: z.string().uuid().nullable(),
+  room_display_name: z.string().min(1).max(30),
 })
 
 export type VideoAsset = {
@@ -47,15 +54,25 @@ export type VideoAsset = {
 export type VideoPlaybackAuthorization = z.infer<typeof playbackAuthorizationSchema>['data']
 export type UploadedVideoNavigationState = z.infer<typeof uploadedVideoNavigationStateSchema>
 export type VideoPost = {
+  authorMemberId: string | null
   authorName: string
   body: string | null
   createdAt: string
   id: string
   status: VideoAsset['status']
 }
+export type VideoFilterMember = {
+  displayName: string
+  id: string
+  isCurrentUser: boolean
+}
+export type VideoPostFilter =
+  { kind: 'all' } | { kind: 'member'; memberId: string } | { kind: 'mine'; memberId: string | null }
 export const videoKeys = {
   byBookChat: (bookChatId: string) => ['video-posts', bookChatId] as const,
+  members: (roomId: string) => ['video-filter-members', roomId] as const,
   byPost: (postId: string) => ['video-asset', postId] as const,
+  playback: (postId: string) => ['video-playback', postId] as const,
 }
 
 export async function createVideoUpload(
@@ -99,13 +116,48 @@ export async function getVideoPosts(
 ): Promise<VideoPost[]> {
   const response = await client
     .from('posts')
-    .select('id, body, author_name_snapshot, created_at, video_assets(status)')
+    .select('id, body, author_member_id, author_name_snapshot, created_at, video_assets(status)')
     .eq('book_chat_id', bookChatId)
     .eq('type', 'video')
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
   if (response.error) throw response.error
   return parseVideoPosts(response.data)
+}
+
+export async function getVideoPost(
+  client: SupabaseClient,
+  bookChatId: string,
+  postId: string,
+): Promise<VideoPost> {
+  const response = await client
+    .from('posts')
+    .select('id, body, author_member_id, author_name_snapshot, created_at, video_assets(status)')
+    .eq('id', postId)
+    .eq('book_chat_id', bookChatId)
+    .eq('type', 'video')
+    .is('deleted_at', null)
+    .single()
+  if (response.error) throw response.error
+  return mapVideoPost(videoPostRowSchema.parse(response.data))
+}
+
+export async function getVideoFilterMembers(
+  client: SupabaseClient,
+  roomId: string,
+): Promise<VideoFilterMember[]> {
+  const [membersResponse, userResponse] = await Promise.all([
+    client
+      .from('room_members')
+      .select('id, profile_id, room_display_name')
+      .eq('room_id', roomId)
+      .eq('status', 'active')
+      .order('joined_at', { ascending: true }),
+    client.auth.getUser(),
+  ])
+  if (membersResponse.error) throw membersResponse.error
+  if (userResponse.error) throw userResponse.error
+  return parseVideoFilterMembers(membersResponse.data, userResponse.data.user.id)
 }
 
 export async function deleteVideoPost(client: SupabaseClient, postId: string): Promise<void> {
@@ -135,6 +187,35 @@ export function getUploadedVideoNavigationState(
 
 export function parseVideoPosts(value: unknown): VideoPost[] {
   return z.array(videoPostRowSchema).parse(value).map(mapVideoPost)
+}
+
+export function parseVideoFilterMembers(
+  value: unknown,
+  currentUserId: string,
+): VideoFilterMember[] {
+  return z
+    .array(videoFilterMemberRowSchema)
+    .parse(value)
+    .map((member) => ({
+      displayName: member.room_display_name,
+      id: member.id,
+      isCurrentUser: member.profile_id === currentUserId,
+    }))
+}
+
+export function filterVideoPosts(
+  posts: readonly VideoPost[],
+  filter: VideoPostFilter,
+): VideoPost[] {
+  if (filter.kind === 'all') return [...posts]
+  if (filter.memberId === null) return []
+  return posts.filter((post) => post.authorMemberId === filter.memberId)
+}
+
+export function createMuxThumbnailUrl(authorization: VideoPlaybackAuthorization): string {
+  const playbackId = encodeURIComponent(authorization.playbackId)
+  const token = encodeURIComponent(authorization.thumbnailToken)
+  return `https://image.mux.com/${playbackId}/thumbnail.webp?token=${token}`
 }
 
 export function shouldRefreshVideoPosts(
@@ -178,6 +259,7 @@ export async function getVideoDuration(file: File): Promise<number> {
 function mapVideoPost(row: z.infer<typeof videoPostRowSchema>): VideoPost {
   const asset = Array.isArray(row.video_assets) ? row.video_assets[0] : row.video_assets
   return {
+    authorMemberId: row.author_member_id,
     authorName: row.author_name_snapshot,
     body: row.body,
     createdAt: row.created_at,
