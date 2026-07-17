@@ -68,6 +68,7 @@ export function RoomDetailPage() {
           isPending={chatsQuery.isPending}
           isError={chatsQuery.isError}
           chats={chatsQuery.data}
+          roomId={roomId}
         />
       </section>
     </main>
@@ -78,11 +79,14 @@ function BookChatsContent({
   chats,
   isError,
   isPending,
+  roomId,
 }: {
   chats: Awaited<ReturnType<typeof getBookChats>> | undefined
   isError: boolean
   isPending: boolean
+  roomId: string
 }) {
+  const navigate = useNavigate()
   if (isPending)
     return (
       <p className="text-ink-subtle mt-6 text-sm" role="status">
@@ -100,9 +104,15 @@ function BookChatsContent({
   return (
     <ul className="mt-4 space-y-3">
       {chats.map((chat) => (
-        <li className="border-ink/10 rounded-lg border bg-white p-4" key={chat.id}>
-          <p className="text-ink text-sm font-bold">{chat.title}</p>
-          <p className="text-ink-subtle mt-1 text-xs">{chat.authors.join(', ') || chat.name}</p>
+        <li key={chat.id}>
+          <button
+            className="border-ink/10 hover:border-primary min-h-16 w-full rounded-lg border bg-white p-4 text-left"
+            onClick={() => void navigate(`/rooms/${roomId}/books/${chat.id}`)}
+            type="button"
+          >
+            <p className="text-ink text-sm font-bold">{chat.title}</p>
+            <p className="text-ink-subtle mt-1 text-xs">{chat.authors.join(', ') || chat.name}</p>
+          </button>
         </li>
       ))}
     </ul>

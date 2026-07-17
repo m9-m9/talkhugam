@@ -4,6 +4,7 @@ import { AuthCallbackPage } from '../../pages/auth/AuthCallbackPage'
 import { LoginPage } from '../../pages/auth/LoginPage'
 import { OnboardingPage } from '../../pages/onboarding/OnboardingPage'
 import { BookSearchPage } from '../../pages/rooms/BookSearchPage'
+import { BookDiscussionPage } from '../../pages/rooms/BookDiscussionPage'
 import { CreateRoomPage } from '../../pages/rooms/CreateRoomPage'
 import { JoinRoomPage } from '../../pages/rooms/JoinRoomPage'
 import { RoomDetailPage } from '../../pages/rooms/RoomDetailPage'
@@ -42,4 +43,5 @@ export const router = createBrowserRouter([
     path: '/rooms/:roomId/books/new',
     element: <BookSearchPage />,
   },
+  { path: '/rooms/:roomId/books/:bookChatId', element: <BookDiscussionPage /> },
 ])
