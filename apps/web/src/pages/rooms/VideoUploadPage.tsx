@@ -28,7 +28,7 @@ export function VideoUploadPage() {
       }
       const upload = await createVideoUpload(createSupabaseClient(), bookChatId)
       await uploadVideoFile(upload.uploadUrl, file)
-      void navigate(`/rooms/${roomId}/books/${bookChatId}`, {
+      void navigate(`/rooms/${roomId}/books/${bookChatId}/videos`, {
         replace: true,
         state: { uploadedVideoPostId: upload.postId, uploadedVideoStartedAt: Date.now() },
       })

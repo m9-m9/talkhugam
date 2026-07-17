@@ -7,18 +7,49 @@ const postRowSchema = z.object({
   created_at: z.string().datetime({ offset: true }),
   depth: z.union([z.literal(0), z.literal(1)]),
   id: z.string().uuid(),
+  post_labels: z
+    .array(
+      z.object({
+        kind: z.enum(['page', 'chapter', 'custom']),
+        sort_order: z.number().int().nonnegative(),
+        value: z.string().min(1).max(40),
+      }),
+    )
+    .default([]),
   root_post_id: z.string().uuid().nullable(),
 })
 
-const postFormSchema = z.object({ body: z.string().trim().min(1).max(500) })
+const postLabelSchema = z.object({
+  kind: z.enum(['page', 'chapter', 'custom']),
+  value: z.string().trim().min(1).max(40),
+})
 
-export type DiscussionPost = z.infer<typeof postRowSchema>
+const postFormSchema = z
+  .object({
+    body: z.string().trim().max(500),
+    labels: z.array(postLabelSchema).max(10).default([]),
+  })
+  .refine((value) => value.body.length > 0 || value.labels.length > 0, {
+    message: '감상이나 라벨을 하나 이상 남겨 주세요.',
+  })
+
+export type DiscussionPost = Omit<z.infer<typeof postRowSchema>, 'post_labels'> & {
+  labels: z.infer<typeof postLabelSchema>[]
+}
 export type PostForm = z.infer<typeof postFormSchema>
 
 export const postKeys = { byBookChat: (bookChatId: string) => ['posts', bookChatId] as const }
 
 export function parsePosts(value: unknown): DiscussionPost[] {
-  return z.array(postRowSchema).parse(value)
+  return z
+    .array(postRowSchema)
+    .parse(value)
+    .map((post) => ({
+      ...post,
+      labels: [...post.post_labels]
+        .sort((first, second) => first.sort_order - second.sort_order)
+        .map(({ kind, value: labelValue }) => ({ kind, value: labelValue })),
+    }))
 }
 
 export async function getPosts(
@@ -27,7 +58,9 @@ export async function getPosts(
 ): Promise<DiscussionPost[]> {
   const response = await client
     .from('posts')
-    .select('id, body, depth, root_post_id, author_name_snapshot, created_at')
+    .select(
+      'id, body, depth, root_post_id, author_name_snapshot, created_at, post_labels(kind, value, sort_order)',
+    )
     .eq('book_chat_id', bookChatId)
     .eq('type', 'text')
     .is('deleted_at', null)
@@ -46,6 +79,7 @@ export async function createPost(
     p_body: values.body,
     p_book_chat_id: bookChatId,
     p_client_id: crypto.randomUUID(),
+    p_labels: values.labels,
     p_type: 'text',
   })
   if (response.error) throw response.error
