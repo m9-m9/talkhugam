@@ -46,8 +46,8 @@ export function RoomsPage() {
 
   return (
     <main className="app-page bg-surface flex flex-col px-6">
-      <header className="border-ink/10 -mx-6 flex min-h-24 items-center border-b px-6">
-        <img alt="Talk후감" className="h-16 w-auto" src="/brand/talkhugam-wordmark.svg" />
+      <header className="border-ink/10 -mx-6 flex min-h-16 items-center border-b px-6">
+        <img alt="Talk후감" className="h-12 w-auto" src="/brand/talkhugam-wordmark.svg" />
       </header>
 
       <section aria-labelledby="recent-rooms-heading" className="flex flex-1 flex-col py-8">

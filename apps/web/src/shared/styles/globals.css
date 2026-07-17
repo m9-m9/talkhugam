@@ -70,8 +70,10 @@
 }
 
 .app-bottom-navigation {
+  --bottom-navigation-height: 100px;
+
   bottom: 0;
-  height: 100px;
+  height: var(--bottom-navigation-height);
   left: 50%;
   max-width: 640px;
   position: fixed;
@@ -81,12 +83,26 @@
 }
 
 .talkhugam-action-book {
-  bottom: calc(var(--spacing-16) + var(--spacing-4));
+  bottom: calc(var(--spacing-16) * 2 + var(--spacing-6));
   left: 50%;
   max-width: calc(var(--spacing-16) * 8 + var(--spacing-12));
   perspective: 900px;
   transform: translateX(-50%);
   width: calc(100% - var(--spacing-12));
+}
+
+.talkhugam-action-backdrop {
+  background: rgb(39 35 32 / 15%);
+  border: 0;
+  bottom: var(--bottom-navigation-height);
+  left: 50%;
+  max-width: 640px;
+  padding: 0;
+  position: fixed;
+  top: 0;
+  transform: translateX(-50%);
+  width: 100%;
+  z-index: 0;
 }
 
 .talkhugam-action-book__pages {

@@ -32,7 +32,7 @@ export function AppBottomNavigation() {
       {isActionBookOpen ? (
         <button
           aria-label="메뉴 바깥 영역을 눌러 닫기"
-          className="fixed inset-0 z-0 bg-black/15"
+          className="talkhugam-action-backdrop"
           onClick={() => setIsActionBookOpen(false)}
           type="button"
         />
