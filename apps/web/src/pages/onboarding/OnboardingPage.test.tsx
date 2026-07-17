@@ -54,8 +54,30 @@ describe('OnboardingPage', () => {
     renderOnboardingPage()
 
     expect(
-      await screen.findByText('프로필 정보를 불러오지 못했어요. 새로고침 후 다시 시도해 주세요.'),
+      await screen.findByText('프로필 정보를 불러오지 못했어요. 다시 시도해 주세요.'),
     ).toBeInTheDocument()
+  })
+
+  it('retries the initial profile preparation without asking the member to refresh', async () => {
+    const deferredProfile = createDeferredProfile()
+    getProfile
+      .mockRejectedValueOnce(new Error('profile unavailable'))
+      .mockReturnValueOnce(deferredProfile.promise)
+
+    renderOnboardingPage()
+
+    await screen.findByText('프로필 정보를 불러오지 못했어요. 다시 시도해 주세요.')
+    fireEvent.click(screen.getByRole('button', { name: '다시 시도' }))
+
+    expect(
+      await screen.findByRole('status', { name: '프로필을 준비하고 있어요.' }),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '다시 시도' })).not.toBeInTheDocument()
+
+    deferredProfile.resolve({ bio: '느리게 읽어요.', displayName: '민규', mbti: 'INTP' })
+
+    expect(await screen.findByDisplayValue('민규')).toBeInTheDocument()
+    expect(getProfile).toHaveBeenCalledTimes(2)
   })
 })
 
@@ -72,4 +94,15 @@ function renderOnboardingPage() {
       </MemoryRouter>
     </QueryClientProvider>,
   )
+}
+
+/** 테스트에서 재시도 완료 시점을 제어할 수 있는 프로필 Promise를 만든다. */
+function createDeferredProfile() {
+  type Profile = { bio: string; displayName: string; mbti: string }
+  let resolve: (profile: Profile) => void = () => undefined
+  const promise = new Promise<Profile>((complete) => {
+    resolve = complete
+  })
+
+  return { promise, resolve }
 }

@@ -62,6 +62,20 @@ describe('ProfileEditPage', () => {
     )
     expect(screen.getByRole('button', { name: '저장하기' })).toBeEnabled()
   })
+
+  it('retries the initial profile query after it fails', async () => {
+    getProfile
+      .mockRejectedValueOnce(new Error('profile unavailable'))
+      .mockResolvedValueOnce({ bio: '기존 소개', displayName: '민규', mbti: 'INTP' })
+
+    renderProfileEditPage()
+
+    expect(await screen.findByText('프로필 정보를 불러오지 못했어요.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '다시 시도' }))
+
+    expect(await screen.findByDisplayValue('민규')).toBeInTheDocument()
+    expect(getProfile).toHaveBeenCalledTimes(2)
+  })
 })
 
 /** 프로필 편집 화면의 라우터와 서버 상태 Provider를 구성해 렌더링한다. */

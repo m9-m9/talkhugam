@@ -14,6 +14,7 @@ import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { RetryState } from '../../shared/ui/RetryState'
 
 const mbtiOptions = [
   'ISTJ',
@@ -71,8 +72,20 @@ export function ProfileEditPage() {
     }
   }
 
-  if (profileQuery.isPending) return <ProfileEditState message="프로필을 준비하고 있어요." />
-  if (profileQuery.isError) return <ProfileEditState message="프로필 정보를 불러오지 못했어요." />
+  if (profileQuery.isPending || profileQuery.isFetching)
+    return <ProfileEditState message="프로필을 준비하고 있어요." />
+  if (profileQuery.isError)
+    return (
+      <ProfileEditErrorState
+        message="프로필 정보를 불러오지 못했어요."
+        onRetry={handleRetryProfile}
+      />
+    )
+
+  /** 프로필 조회를 다시 요청한다. */
+  function handleRetryProfile() {
+    void profileQuery.refetch()
+  }
 
   return (
     <main className="app-page bg-surface px-4 pb-8">
@@ -180,6 +193,15 @@ function ProfileEditState({ message }: { message: string }) {
   return (
     <main className="app-page bg-surface flex items-center justify-center px-4">
       <LoadingSpinner label={message} />
+    </main>
+  )
+}
+
+/** 프로필 편집 조회 오류와 재시도 동작을 렌더링한다. */
+function ProfileEditErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <main className="app-page bg-surface flex items-center justify-center px-4">
+      <RetryState message={message} onRetry={onRetry} />
     </main>
   )
 }

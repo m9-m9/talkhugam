@@ -70,6 +70,27 @@ describe('RoomDetailPage', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('책 목록을 불러오지 못했어요.')
   })
+
+  it('retries the book list query after it fails', async () => {
+    getReadingRoom.mockResolvedValue({ description: null, id: 'room-1', name: '금요일 아침 모임' })
+    getBookChats.mockRejectedValueOnce(new Error('book chats unavailable')).mockResolvedValueOnce([
+      {
+        authors: ['기시미 이치로'],
+        id: 'chat-1',
+        name: '미움받을 용기',
+        thumbnailUrl: null,
+        title: '미움받을 용기',
+      },
+    ])
+
+    renderRoomDetailPage('/rooms/room-1')
+
+    await screen.findByRole('alert')
+    fireEvent.click(screen.getByRole('button', { name: '다시 시도' }))
+
+    expect(await screen.findByText('미움받을 용기')).toBeInTheDocument()
+    expect(getBookChats).toHaveBeenCalledTimes(2)
+  })
 })
 
 /** 독서방 상세 화면의 라우터와 서버 상태 Provider를 구성해 렌더링한다. */

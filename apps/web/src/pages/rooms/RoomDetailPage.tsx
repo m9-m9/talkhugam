@@ -6,6 +6,7 @@ import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { BookCover } from '../../shared/ui/BookCover'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { RetryState } from '../../shared/ui/RetryState'
 
 /** 독서방 상세 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 export function RoomDetailPage() {
@@ -27,6 +28,11 @@ export function RoomDetailPage() {
   if (roomQuery.isPending) return <RoomLoadingPage />
   if (roomQuery.isError || !roomQuery.data)
     return <RoomUnavailablePage onBack={() => void navigate('/rooms', { replace: true })} />
+
+  /** 책 대화 목록 조회를 다시 요청한다. */
+  function handleRetryBookChats() {
+    void chatsQuery.refetch()
+  }
 
   return (
     <main className="app-page bg-surface px-4 pb-8">
@@ -58,7 +64,9 @@ export function RoomDetailPage() {
         <BookChatsContent
           isPending={chatsQuery.isPending}
           isError={chatsQuery.isError}
+          isRetrying={chatsQuery.isFetching}
           chats={chatsQuery.data}
+          onRetry={handleRetryBookChats}
           roomId={roomId}
         />
       </section>
@@ -71,11 +79,15 @@ function BookChatsContent({
   chats,
   isError,
   isPending,
+  isRetrying,
+  onRetry,
   roomId,
 }: {
   chats: Awaited<ReturnType<typeof getBookChats>> | undefined
   isError: boolean
   isPending: boolean
+  isRetrying: boolean
+  onRetry: () => void
   roomId: string
 }) {
   const navigate = useNavigate()
@@ -85,11 +97,17 @@ function BookChatsContent({
         <LoadingSpinner label="책을 불러오고 있어요." size="sm" />
       </div>
     )
+  if (isRetrying)
+    return (
+      <div className="mt-6">
+        <LoadingSpinner label="책을 다시 불러오고 있어요." size="sm" />
+      </div>
+    )
   if (isError)
     return (
-      <p className="mt-6 text-sm text-red-600" role="alert">
-        책 목록을 불러오지 못했어요.
-      </p>
+      <div className="mt-6">
+        <RetryState message="책 목록을 불러오지 못했어요." onRetry={onRetry} />
+      </div>
     )
   if (!chats || chats.length === 0) return <EmptyBookChats />
 
