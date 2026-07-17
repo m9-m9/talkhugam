@@ -9,6 +9,7 @@ const {
   getVideoFilterMembers,
   getVideoPlaybackAuthorization,
   getVideoPosts,
+  getVideoThumbnailAuthorizations,
   uploadVideo,
   videoUploadState,
 } = vi.hoisted(() => ({
@@ -20,6 +21,7 @@ const {
     token: 'playback-token',
   }),
   getVideoPosts: vi.fn().mockResolvedValue([]),
+  getVideoThumbnailAuthorizations: vi.fn().mockResolvedValue([]),
   uploadVideo: vi.fn(),
   videoUploadState: { isUploadingVideo: false },
 }))
@@ -37,10 +39,15 @@ vi.mock('../../entities/video', () => ({
   getVideoPost: vi.fn(),
   getVideoPlaybackAuthorization,
   getVideoPosts,
+  getVideoThumbnailAuthorizations,
+  mapVideoThumbnailAuthorizations: (
+    authorizations: Array<{ postId: string; playbackId: string; thumbnailToken: string }>,
+  ) => new Map(authorizations.map((authorization) => [authorization.postId, authorization])),
   videoKeys: {
     byBookChat: (bookChatId: string) => ['video-posts', bookChatId],
     members: (roomId: string) => ['video-filter-members', roomId],
     playback: (postId: string) => ['video-playback', postId],
+    thumbnails: (postIds: readonly string[]) => ['video-thumbnails', ...postIds],
   },
 }))
 
@@ -64,6 +71,8 @@ describe('VideoArchivePage', () => {
     getVideoFilterMembers.mockClear()
     getVideoFilterMembers.mockResolvedValue([])
     getVideoPlaybackAuthorization.mockClear()
+    getVideoThumbnailAuthorizations.mockClear()
+    getVideoThumbnailAuthorizations.mockResolvedValue([])
     uploadVideo.mockClear()
     videoUploadState.isUploadingVideo = false
   })
@@ -179,6 +188,27 @@ describe('VideoArchivePage', () => {
     expect(gallery).toHaveClass('grid-cols-2')
     expect(gallery).toHaveClass('-mx-4')
     expect(screen.getAllByRole('listitem')).toHaveLength(2)
+  })
+
+  it('requests every ready thumbnail once without issuing playback permissions per card', async () => {
+    getVideoPosts.mockResolvedValueOnce([
+      createReadyVideo('video-1', 'member-1', '민규'),
+      createReadyVideo('video-2', 'member-2', '수진'),
+      createReadyVideo('video-3', 'member-3', '지연'),
+    ])
+    renderArchivePage()
+
+    await screen.findByRole('list', { name: '영상 기록' })
+
+    await vi.waitFor(() => {
+      expect(getVideoThumbnailAuthorizations).toHaveBeenCalledWith(undefined, [
+        'video-1',
+        'video-2',
+        'video-3',
+      ])
+    })
+    expect(getVideoThumbnailAuthorizations).toHaveBeenCalledTimes(1)
+    expect(getVideoPlaybackAuthorization).not.toHaveBeenCalled()
   })
 
   it('shows only the signed-in member videos when 내 영상 is selected', async () => {

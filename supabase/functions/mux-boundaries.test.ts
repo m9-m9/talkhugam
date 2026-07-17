@@ -2,6 +2,7 @@ import { assertEquals } from 'jsr:@std/assert@1.0.14'
 import { handleDeletionWorker } from './deletion-worker/index.ts'
 import { handleMuxCreateUpload } from './mux-create-upload/index.ts'
 import { handleMuxPlaybackToken } from './mux-playback-token/index.ts'
+import { handleMuxThumbnailTokens } from './mux-thumbnail-tokens/index.ts'
 import { handleMuxWebhook } from './mux-webhook/index.ts'
 import { withEnv } from './_test/env.ts'
 import { createJsonRequest } from './_test/request.ts'
@@ -26,15 +27,17 @@ async function createWebhookSignature(body: string, timestamp: number, secret: s
   return `t=${timestamp},v1=${hex}`
 }
 
-Deno.test('mux upload and playback handlers require a user session', async () => {
+Deno.test('mux upload and media authorization handlers require a user session', async () => {
   await withEnv({ ALLOWED_ORIGINS: 'https://talkhugam.test' }, async () => {
     const uploadRequest = createJsonRequest('mux-create-upload', {}, {
       headers: { origin: 'https://talkhugam.test' },
     })
     const playbackRequest = createJsonRequest('mux-playback-token', {})
+    const thumbnailRequest = createJsonRequest('mux-thumbnail-tokens', {})
 
     assertEquals((await handleMuxCreateUpload(uploadRequest)).status, 401)
     assertEquals((await handleMuxPlaybackToken(playbackRequest)).status, 401)
+    assertEquals((await handleMuxThumbnailTokens(thumbnailRequest)).status, 401)
   })
 })
 

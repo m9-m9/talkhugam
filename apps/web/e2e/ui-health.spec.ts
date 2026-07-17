@@ -159,12 +159,16 @@ test('opens the video picker directly from the archive empty state', async ({ pa
 })
 
 test('keeps saved videos in a two-column archive gallery', async ({ page }) => {
+  let thumbnailRequestCount = 0
   await authenticatePage(page)
   await mockVideoMembers(page)
   await mockVideoPosts(page, [
-    createVideoPostRow('4b7227b2-5350-4a61-9114-b2d0c915fd1b', '민규'),
-    createVideoPostRow('e45b7500-b6bd-43d6-8438-e5b643c84282', '수진'),
+    createVideoPostRow('4b7227b2-5350-4a61-9114-b2d0c915fd1b', '민규', 'ready'),
+    createVideoPostRow('e45b7500-b6bd-43d6-8438-e5b643c84282', '수진', 'ready'),
   ])
+  await mockMuxThumbnailTokens(page, () => {
+    thumbnailRequestCount += 1
+  })
   await page.goto(`/rooms/${roomId}/books/${bookChatId}/videos`)
 
   const gallery = page.getByRole('list', { name: '영상 기록' })
@@ -174,6 +178,7 @@ test('keeps saved videos in a two-column archive gallery', async ({ page }) => {
       window.getComputedStyle(element).gridTemplateColumns.split(' ').filter(Boolean),
     ),
   ).toHaveLength(2)
+  await expect.poll(() => thumbnailRequestCount).toBe(1)
 })
 
 test('filters saved videos with the custom member selection menu', async ({ page }) => {
@@ -202,6 +207,7 @@ test('opens a gallery thumbnail in the immersive video viewer', async ({ page })
   await authenticatePage(page)
   await mockVideoMembers(page)
   await mockVideoPosts(page, [createVideoPostRow(videoId, '민규', 'ready')])
+  await mockMuxThumbnailTokens(page)
   await page.route('**/functions/v1/mux-playback-token', async (route) => {
     await route.fulfill({
       body: JSON.stringify({
@@ -335,6 +341,31 @@ async function mockVideoMembers(page: Page) {
       status: 200,
     })
   })
+}
+
+/** 영상 보관함의 일괄 썸네일 권한 요청을 안전한 테스트 응답으로 대체한다. */
+async function mockMuxThumbnailTokens(page: Page, onRequest?: () => void) {
+  await page.route('**/functions/v1/mux-thumbnail-tokens', async (route) => {
+    onRequest?.()
+    const thumbnails = readRequestedPostIds(route.request().postDataJSON()).map((postId) => ({
+      expiresAt: 1_784_269_999,
+      playbackId: `playback-${postId}`,
+      postId,
+      thumbnailToken: 'thumbnail-token',
+    }))
+    await route.fulfill({
+      body: JSON.stringify({ data: { thumbnails }, ok: true }),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+}
+
+/** 일괄 썸네일 요청 본문에서 문자열 영상 식별자 목록만 안전하게 읽는다. */
+function readRequestedPostIds(value: unknown): string[] {
+  if (value === null || typeof value !== 'object' || !('postIds' in value)) return []
+  if (!Array.isArray(value.postIds)) return []
+  return value.postIds.filter((postId): postId is string => typeof postId === 'string')
 }
 
 /** E2E 영상 보관함에 사용할 Supabase posts 행을 생성한다. */

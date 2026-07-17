@@ -7,6 +7,7 @@ export type OperationalEvent =
   | 'book_search_failed'
   | 'deletion_worker_completed'
   | 'mux_playback_token_failed'
+  | 'mux_thumbnail_tokens_failed'
   | 'mux_upload_failed'
   | 'mux_upload_started'
   | 'mux_webhook_failed'
