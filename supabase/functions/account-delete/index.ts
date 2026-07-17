@@ -4,13 +4,27 @@ import { parseJsonBody } from '../_shared/body.ts'
 import { createCorsHeaders, optionsResponse } from '../_shared/cors.ts'
 import { logOperationalEvent } from '../_shared/logger.ts'
 import { createAdminClient, getAuthenticatedContext } from '../_shared/supabase.ts'
-import { executeAccountDeletion } from './finalization.ts'
+import { executeAccountDeletion, type AccountDeletionExecution } from './finalization.ts'
 import { accountDeleteInputSchema } from './schema.ts'
 
 const preparedRequestSchema = z.array(z.object({
   request_id: z.uuid(),
   profile_id: z.uuid(),
 })).min(1).max(1)
+
+/** 계정 삭제 결과를 표준 성공 응답으로 변환한다. */
+export function createAccountDeletionSuccessResponse(
+  deletion: AccountDeletionExecution,
+  deletionRequestId: string,
+  requestId: string,
+  headers: HeadersInit = {},
+): Response {
+  return successResponse(
+    { ...deletion, requestId: deletionRequestId },
+    requestId,
+    { ...headers, 'cache-control': 'no-store' },
+  )
+}
 
 /** 계정 삭제 요청이나 사용자 동작을 처리한다. */
 export async function handleAccountDelete(request: Request): Promise<Response> {
@@ -95,21 +109,15 @@ export async function handleAccountDelete(request: Request): Promise<Response> {
       deletion.completionPending ? 'account_delete_completion_pending' : 'account_delete_succeeded',
       { requestId, status: body.value.mode },
     )
-    return successResponse(
-      {
-        ...deletion,
-        requestId: prepared.request_id,
-      },
-      requestId,
-      { ...headers, 'cache-control': 'no-store' },
-    )
+    return createAccountDeletionSuccessResponse(deletion, prepared.request_id, requestId, headers)
   } catch {
     if (isAuthDeleted && deletionRequestId) {
       logOperationalEvent('warn', 'account_delete_completion_pending', { requestId, status: body.value.mode })
-      return successResponse(
-        { completionPending: true, deleted: true, requestId: deletionRequestId },
+      return createAccountDeletionSuccessResponse(
+        { completionPending: true, deleted: true },
+        deletionRequestId,
         requestId,
-        { ...headers, 'cache-control': 'no-store' },
+        headers,
       )
     }
 
