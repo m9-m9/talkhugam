@@ -59,6 +59,9 @@ jobs:
       - name: 격리 통합 테스트 워크플로 구성 검사
         run: pnpm backend:check:integration-workflow
 
+      - name: 격리 통합 테스트 실행 명령 검사
+        run: pnpm backend:check:integration-command
+
       - name: Edge Function 타입 검사
         run: pnpm backend:check:functions
 
