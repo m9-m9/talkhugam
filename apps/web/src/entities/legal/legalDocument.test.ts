@@ -20,6 +20,8 @@ describe('legalDocument', () => {
 
     expect(privacy?.sections.flatMap((section) => section.body).join(' ')).toContain('Mux')
     expect(privacy?.sections.flatMap((section) => section.body).join(' ')).toContain('Supabase')
-    expect(privacy?.sections.flatMap((section) => section.body).join(' ')).not.toContain('PRIVATE_KEY')
+    expect(privacy?.sections.flatMap((section) => section.body).join(' ')).not.toContain(
+      'PRIVATE_KEY',
+    )
   })
 })

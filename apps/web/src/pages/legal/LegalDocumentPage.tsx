@@ -41,7 +41,9 @@ function UnknownLegalDocumentState() {
   return (
     <main className="app-page bg-surface flex min-h-screen flex-col items-center justify-center px-4 text-center">
       <h1 className="text-ink text-xl font-bold">요청한 정책 문서를 찾지 못했어요.</h1>
-      <p className="text-ink-subtle mt-3 text-sm">로그인 화면에서 현재 정책 문서를 다시 확인해 주세요.</p>
+      <p className="text-ink-subtle mt-3 text-sm">
+        로그인 화면에서 현재 정책 문서를 다시 확인해 주세요.
+      </p>
       <Link
         className="bg-primary mt-6 flex min-h-11 items-center rounded-md px-4 text-sm font-semibold text-white"
         to="/"

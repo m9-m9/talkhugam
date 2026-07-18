@@ -73,8 +73,14 @@ export const router = createBrowserRouter([
               { path: '/rooms/:roomId/members/:profileId', element: <MemberProfilePage /> },
               { path: '/rooms/:roomId/books/new', element: <BookSearchPage /> },
               { path: '/rooms/:roomId/books/:bookChatId', element: <BookDiscussionPage /> },
-              { path: '/rooms/:roomId/books/:bookChatId/manage', element: <BookChatManagementPage /> },
-              { path: '/rooms/:roomId/books/:bookChatId/videos', element: <LazyVideoArchiveRoute /> },
+              {
+                path: '/rooms/:roomId/books/:bookChatId/manage',
+                element: <BookChatManagementPage />,
+              },
+              {
+                path: '/rooms/:roomId/books/:bookChatId/videos',
+                element: <LazyVideoArchiveRoute />,
+              },
               {
                 path: '/rooms/:roomId/books/:bookChatId/videos/:videoId',
                 element: <LazyVideoPlayerRoute />,

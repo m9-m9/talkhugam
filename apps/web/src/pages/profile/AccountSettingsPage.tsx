@@ -133,7 +133,9 @@ export function AccountSettingsPage() {
         <h2 className="text-ink text-base font-bold" id="service-information-heading">
           서비스 정보
         </h2>
-        <p className="text-ink-subtle mt-2 text-sm">이용 규칙, 개인정보 처리, 문의 방법을 확인해요.</p>
+        <p className="text-ink-subtle mt-2 text-sm">
+          이용 규칙, 개인정보 처리, 문의 방법을 확인해요.
+        </p>
         <Link
           className="border-border mt-4 flex min-h-12 items-center justify-between rounded-md border bg-white px-4 text-sm font-semibold"
           to="/contact"

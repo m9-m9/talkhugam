@@ -186,8 +186,8 @@ export function LoginPage() {
         계속하면{' '}
         <Link className="text-primary font-medium underline underline-offset-2" to="/legal/terms">
           이용약관
-        </Link>
-        {' '}및{' '}
+        </Link>{' '}
+        및{' '}
         <Link className="text-primary font-medium underline underline-offset-2" to="/legal/privacy">
           개인정보처리방침
         </Link>

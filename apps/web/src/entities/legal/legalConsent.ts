@@ -45,9 +45,7 @@ export async function getHasRequiredLegalConsent(
 }
 
 /** 현재 필수 정책 문서의 동의 시각을 사용자 계정에 저장한다. */
-export async function saveRequiredLegalConsents(
-  client: SupabaseClient,
-): Promise<void> {
+export async function saveRequiredLegalConsents(client: SupabaseClient): Promise<void> {
   const response = await client.rpc('record_required_legal_consents', {
     p_privacy_version: legalDocumentVersion,
     p_terms_version: legalDocumentVersion,

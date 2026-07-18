@@ -72,8 +72,12 @@ export function LegalConsentPage() {
                 type="checkbox"
               />
               <span className="min-w-0 flex-1">
-                <span className="text-ink block text-sm font-semibold">[필수] {document.shortTitle} 동의</span>
-                <span className="text-ink-subtle mt-1 block text-xs">시행일 · {document.version}</span>
+                <span className="text-ink block text-sm font-semibold">
+                  [필수] {document.shortTitle} 동의
+                </span>
+                <span className="text-ink-subtle mt-1 block text-xs">
+                  시행일 · {document.version}
+                </span>
               </span>
               <Link
                 className="text-primary min-h-11 shrink-0 content-center text-sm font-medium"
@@ -97,7 +101,11 @@ export function LegalConsentPage() {
         onClick={() => void handleSubmit()}
         type="button"
       >
-        {isSubmitting ? <LoadingSpinner label="동의를 저장하고 있어요." showLabel={false} size="xs" /> : '동의하고 계속하기'}
+        {isSubmitting ? (
+          <LoadingSpinner label="동의를 저장하고 있어요." showLabel={false} size="xs" />
+        ) : (
+          '동의하고 계속하기'
+        )}
       </button>
     </main>
   )
