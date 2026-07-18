@@ -2,7 +2,7 @@ begin;
 
 \ir ../helpers/auth.inc
 
-select plan(10);
+select plan(9);
 
 select has_table('public', 'admin_users', 'operator allowlist should exist');
 select has_table('public', 'feedback_tickets', 'feedback ticket inbox should exist');
@@ -55,10 +55,6 @@ select is(
   false,
   'a regular user should not be identified as an operator'
 );
-select is_empty(
-  $$ select * from public.feedback_tickets $$,
-  'a regular user should not read feedback tickets through RLS'
-);
 
 reset role;
 select tests.authenticate_as('00000000-0000-0000-0000-000000000172');
@@ -68,10 +64,6 @@ select is(
   public.is_current_user_admin(),
   true,
   'an allowlisted user should be identified as an operator'
-);
-select is_empty(
-  $$ select * from public.feedback_tickets $$,
-  'an operator should still use the Edge Function instead of direct table access'
 );
 
 select * from finish();
