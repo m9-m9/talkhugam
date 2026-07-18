@@ -1,0 +1,21 @@
+{
+  "updatedAt": "2026-07-19T00:00:00Z",
+  "scope": "initial Talk후감 repository wiki",
+  "pages": [
+    "quickstart.md",
+    "architecture.md",
+    "product-flows.md",
+    "security-operations.md",
+    "testing.md"
+  ],
+  "evidence": [
+    "AGENTS.md",
+    "README.md",
+    "apps/web/src/app/router/router.tsx",
+    "supabase/migrations",
+    "supabase/tests",
+    "docs",
+    ".github/workflows",
+    "recent git history"
+  ]
+}
