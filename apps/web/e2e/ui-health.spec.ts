@@ -26,6 +26,108 @@ test('has no automated accessibility violations on the sign-in screen', async ({
   expect(accessibilityScanResults.violations).toEqual([])
 })
 
+test('sends one manual GA4 page view for each SPA screen transition', async ({ page }) => {
+  await authenticatePage(page)
+  await mockAuthenticatedPageData(page)
+  await page.route('https://www.googletagmanager.com/**', async (route) => {
+    await route.fulfill({ body: '', contentType: 'application/javascript', status: 200 })
+  })
+  await page.goto('/rooms')
+
+  await expect.poll(() => readGaPageViews(page)).toHaveLength(1)
+  await page.getByRole('button', { name: '내 정보' }).click()
+  await expect(page).toHaveURL('/profile')
+  await expect.poll(() => readGaPageViews(page)).toHaveLength(2)
+})
+
+test('submits feedback from the global launcher without exposing an in-app reply thread', async ({
+  page,
+}) => {
+  await authenticatePage(page)
+  await mockAuthenticatedPageData(page)
+  await page.route('**/functions/v1/feedback-submit', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        data: { ticketId: '8fc963a4-da01-4696-995c-755fe145776f' },
+        ok: true,
+        requestId: 'feedback-e2e',
+      }),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+  await page.goto('/rooms')
+
+  await page.getByRole('button', { name: '의견 보내기' }).click()
+  await page.getByRole('button', { name: '기능 제안' }).click()
+  await page.getByRole('textbox', { name: '의견 내용' }).fill('완독 목록을 더 쉽게 보고 싶어요.')
+  await page
+    .getByRole('dialog', { name: '의견 보내기' })
+    .getByRole('button', { name: '의견 보내기', exact: true })
+    .click()
+
+  await expect(page.getByText('의견을 받았어요.')).toBeVisible()
+  await expect(page.getByText('로그인 이메일로 답변드릴게요.')).toBeVisible()
+})
+
+test('blocks a non-operator from the admin route', async ({ page }) => {
+  await authenticatePage(page)
+  await mockAuthenticatedPageData(page)
+  await page.route('**/functions/v1/admin-feedback', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({ code: 'ADMIN_FORBIDDEN', message: '운영자 권한이 필요해요.' }),
+      contentType: 'application/json',
+      status: 403,
+    })
+  })
+  await page.goto('/admin')
+
+  await expect(page).toHaveURL('/rooms')
+  await expect(page.getByRole('heading', { name: '함께 읽는 모임' })).toBeVisible()
+})
+
+test('lets an operator change a feedback ticket status', async ({ page }) => {
+  const ticket = createAdminFeedbackTicket()
+  await authenticatePage(page)
+  await page.route('**/functions/v1/admin-feedback', async (route) => {
+    const action = readAdminFeedbackAction(route.request().postDataJSON())
+    if (action === 'access') {
+      await route.fulfill({
+        body: JSON.stringify({ data: { isAdmin: true }, ok: true, requestId: 'access-e2e' }),
+        contentType: 'application/json',
+        status: 200,
+      })
+      return
+    }
+    if (action === 'list') {
+      await route.fulfill({
+        body: JSON.stringify({ data: { tickets: [ticket] }, ok: true, requestId: 'list-e2e' }),
+        contentType: 'application/json',
+        status: 200,
+      })
+      return
+    }
+    await route.fulfill({
+      body: JSON.stringify({
+        data: { ticket: { ...ticket, status: 'in_progress' } },
+        ok: true,
+        requestId: 'update-e2e',
+      }),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+  await page.goto('/admin')
+
+  await page.getByRole('button', { name: /완독 목록을 더 쉽게/ }).click()
+  const detailSheet = page.getByRole('dialog', { name: '의견 상세' })
+  await detailSheet.getByRole('button', { name: '처리 중', exact: true }).click()
+  await expect(detailSheet.getByRole('button', { name: '처리 중', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  )
+})
+
 test('keeps core authenticated pages within the supported viewport', async ({ page }, testInfo) => {
   await authenticatePage(page)
   await mockAuthenticatedPageData(page)
@@ -404,8 +506,8 @@ async function authenticatePage(page: Page) {
   await page.route('**/rest/v1/user_legal_consents?*', async (route) => {
     await route.fulfill({
       body: JSON.stringify([
-        { document_type: 'terms', document_version: '2026-07-18' },
-        { document_type: 'privacy', document_version: '2026-07-18' },
+        { document_type: 'terms', document_version: '2026-07-18.1' },
+        { document_type: 'privacy', document_version: '2026-07-18.1' },
       ]),
       contentType: 'application/json',
       status: 200,
@@ -606,4 +708,37 @@ async function expectPageToFitViewport(page: Page, viewportWidth: number) {
 async function expectNoAccessibilityViolations(page: Page) {
   const accessibilityScanResults = await new AxeBuilder({ page }).analyze()
   expect(accessibilityScanResults.violations).toEqual([])
+}
+
+/** 현재 브라우저에서 수집 대기 중인 GA4 화면 조회 이벤트만 읽는다. */
+async function readGaPageViews(page: Page): Promise<unknown[]> {
+  return page.evaluate(() => {
+    const candidate = window as Window & { dataLayer?: unknown[] }
+    return (candidate.dataLayer ?? []).filter((entry) => {
+      if (entry === null || typeof entry !== 'object') return false
+      const args = Array.from(entry as ArrayLike<unknown>)
+      return args[0] === 'event' && args[1] === 'page_view'
+    })
+  })
+}
+
+/** 운영함 Edge Function 요청 본문에서 허용된 action 문자열만 읽는다. */
+function readAdminFeedbackAction(value: unknown): string | undefined {
+  if (value === null || typeof value !== 'object' || !('action' in value)) return undefined
+  return typeof value.action === 'string' ? value.action : undefined
+}
+
+/** 운영함 브라우저 시나리오에서 사용할 최소 피드백 티켓 fixture를 생성한다. */
+function createAdminFeedbackTicket() {
+  return {
+    authorEmailSnapshot: 'feedback@example.com',
+    authorProfileId: '00000000-0000-4000-8000-000000000001',
+    body: '완독 목록을 더 쉽게 보고 싶어요.',
+    category: 'feature',
+    createdAt: '2026-07-18T00:00:00.000Z',
+    handledAt: null,
+    handledByProfileId: null,
+    id: '8fc963a4-da01-4696-995c-755fe145776f',
+    status: 'unread',
+  }
 }

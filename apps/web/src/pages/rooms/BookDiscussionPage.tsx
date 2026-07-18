@@ -35,6 +35,7 @@ import { useVideoUpload } from '../../features/video-upload'
 import { useAuthenticatedUser } from '../../features/auth'
 import { readingRoomKeys } from '../../entities/reading-room'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
+import { trackAnalyticsEvent } from '../../shared/analytics'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { BottomSheet } from '../../shared/ui/BottomSheet'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
@@ -106,6 +107,7 @@ export function BookDiscussionPage() {
         queryClient.invalidateQueries({ queryKey: bookCompletionKeys.byChat(bookChatId ?? '') }),
         queryClient.invalidateQueries({ queryKey: bookCompletionKeys.myBooks(profileId) }),
       ])
+      trackAnalyticsEvent('book_completed')
     },
   })
   const completionRemovalMutation = useMutation({
@@ -134,6 +136,7 @@ export function BookDiscussionPage() {
     try {
       if (replyTo) await createReply(createSupabaseClient(), replyTo, parsed.value)
       else await createPost(createSupabaseClient(), bookChatId, parsed.value)
+      trackAnalyticsEvent('post_created')
       setDraft('')
       setLabels([])
       setMentionedMemberIds([])

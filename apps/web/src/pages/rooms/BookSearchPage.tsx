@@ -10,6 +10,7 @@ import {
   type BookSearchItem,
 } from '../../entities/book-chat'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
+import { trackAnalyticsEvent } from '../../shared/analytics'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { BookCover } from '../../shared/ui/BookCover'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
@@ -83,6 +84,7 @@ export function BookSearchPage() {
     try {
       await createBookChat(createSupabaseClient(), roomId, book)
       await queryClient.invalidateQueries({ queryKey: bookChatKeys.byRoom(roomId) })
+      trackAnalyticsEvent('book_chat_created')
       void navigate(`/rooms/${roomId}`, { replace: true })
     } catch {
       setErrorMessage('이 책을 추가하지 못했어요. 잠시 후 다시 시도해 주세요.')

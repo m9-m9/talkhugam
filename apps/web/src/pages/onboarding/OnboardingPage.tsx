@@ -12,6 +12,7 @@ import {
 } from '../../entities/profile'
 import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
+import { trackAnalyticsEvent } from '../../shared/analytics'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 import { RetryState } from '../../shared/ui/RetryState'
 
@@ -86,6 +87,7 @@ export function OnboardingPage() {
 
     try {
       await completeOnboarding(client, user.id, values)
+      trackAnalyticsEvent('onboarding_completed')
       void navigate('/rooms', { replace: true })
     } catch {
       setErrorMessage('저장하지 못했어요. 잠시 후 다시 시도해 주세요.')

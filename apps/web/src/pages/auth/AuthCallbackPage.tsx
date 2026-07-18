@@ -5,6 +5,7 @@ import { getHasRequiredLegalConsent } from '../../entities/legal'
 import { getOnboardingCompletedAt } from '../../entities/profile'
 import { resolveAuthDestination } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
+import { trackAnalyticsEvent } from '../../shared/analytics'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 /** 인증 callback 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
@@ -33,6 +34,7 @@ export function AuthCallbackPage() {
           getOnboardingCompletedAt(client, response.data.user.id),
           getHasRequiredLegalConsent(client, response.data.user.id),
         ])
+        trackAnalyticsEvent('login_completed')
         void navigate(resolveAuthDestination(completedAt, hasRequiredConsent), { replace: true })
       } catch {
         setErrorMessage('프로필 정보를 불러오지 못했어요. 다시 시도해 주세요.')

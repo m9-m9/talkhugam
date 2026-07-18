@@ -11,6 +11,7 @@ import {
 } from '../../entities/video'
 import { readingRoomKeys } from '../../entities/reading-room'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
+import { trackAnalyticsEvent } from '../../shared/analytics'
 
 /** 영상 업로드 상태와 사용자 동작을 재사용 가능한 hook으로 제공한다. */
 export function useVideoUpload(bookChatId: string | undefined) {
@@ -29,9 +30,11 @@ export function useVideoUpload(bookChatId: string | undefined) {
         return
       }
       const upload = await createVideoUpload(createSupabaseClient(), bookChatId)
+      trackAnalyticsEvent('video_upload_started')
       await refreshVideoPosts(bookChatId)
       await queryClient.invalidateQueries({ queryKey: readingRoomKeys.all })
       await uploadVideoFile(upload.uploadUrl, file)
+      trackAnalyticsEvent('video_upload_ready')
       await refreshVideoPosts(bookChatId)
     } catch (error) {
       setErrorMessage(getVideoUploadErrorMessage(error))

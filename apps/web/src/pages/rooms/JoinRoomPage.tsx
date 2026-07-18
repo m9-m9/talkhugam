@@ -12,6 +12,7 @@ import {
 } from '../../entities/reading-room'
 import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
+import { trackAnalyticsEvent } from '../../shared/analytics'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
@@ -34,6 +35,7 @@ export function JoinRoomPage() {
     try {
       await joinRoomByCode(client, user.id, values)
       await queryClient.invalidateQueries({ queryKey: readingRoomKeys.all })
+      trackAnalyticsEvent('reading_room_joined')
       void navigate('/rooms', { replace: true })
     } catch {
       setErrorMessage('앗, 이 코드로는 못 들어가요. 만료됐거나 잘못 입력된 코드 같아요.')

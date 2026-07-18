@@ -7,7 +7,7 @@ describe('legalDocument', () => {
     const documents = getRequiredLegalDocuments()
 
     expect(documents.map((document) => document.id)).toEqual(['terms', 'privacy'])
-    expect(documents.every((document) => document.version === '2026-07-18')).toBe(true)
+    expect(documents.every((document) => document.version === '2026-07-18.1')).toBe(true)
     expect(documents.every((document) => document.sections.length > 0)).toBe(true)
   })
 
