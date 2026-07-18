@@ -94,13 +94,13 @@ function BookChatsContent({
   if (isPending)
     return (
       <div className="mt-6">
-        <LoadingSpinner label="책을 불러오고 있어요." size="sm" />
+        <LoadingSpinner label="책을 불러오고 있어요." size="sm" variant="book" />
       </div>
     )
   if (isRetrying)
     return (
       <div className="mt-6">
-        <LoadingSpinner label="책을 다시 불러오고 있어요." size="sm" />
+        <LoadingSpinner label="책을 다시 불러오고 있어요." size="sm" variant="book" />
       </div>
     )
   if (isError)
@@ -148,7 +148,7 @@ function EmptyBookChats() {
 function RoomLoadingPage() {
   return (
     <main className="bg-surface flex min-h-screen items-center justify-center px-4">
-      <LoadingSpinner label="독서방을 불러오고 있어요." />
+      <LoadingSpinner label="독서방을 불러오고 있어요." variant="book" />
     </main>
   )
 }

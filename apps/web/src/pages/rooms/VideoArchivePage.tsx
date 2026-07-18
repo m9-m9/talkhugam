@@ -134,7 +134,7 @@ export function VideoArchivePage() {
       ) : null}
       {isUploadingVideo ? (
         <div className="mt-4">
-          <LoadingSpinner label="영상을 올리고 있어요…" size="sm" />
+          <LoadingSpinner label="영상을 올리고 있어요…" size="sm" variant="book" />
         </div>
       ) : null}
       {membersQuery.isError ? <MemberFilterLoadError onRetry={handleRetryMembers} /> : null}
@@ -149,7 +149,7 @@ export function VideoArchivePage() {
       ) : null}
       {videosQuery.isPending && !isRetryingVideos ? (
         <div className="mt-12">
-          <LoadingSpinner label="영상을 불러오고 있어요." />
+          <LoadingSpinner label="영상을 불러오고 있어요." variant="book" />
         </div>
       ) : hasVideos ? (
         filteredVideos.length > 0 ? (
@@ -218,7 +218,7 @@ function VideoArchiveLoadError({
       />
       {isRetrying ? (
         <div className="mt-4">
-          <LoadingSpinner label="영상을 다시 불러오고 있어요." size="sm" />
+          <LoadingSpinner label="영상을 다시 불러오고 있어요." size="sm" variant="book" />
         </div>
       ) : null}
     </div>
@@ -398,7 +398,7 @@ function VideoPlaceholder({ isLoading, message }: { isLoading: boolean; message:
   return (
     <div className="bg-ink absolute inset-0 flex items-center justify-center px-4 text-center">
       {isLoading ? (
-        <LoadingSpinner label={message} size="sm" tone="inverse" />
+        <LoadingSpinner label={message} size="sm" tone="inverse" variant="book" />
       ) : (
         <p className="text-sm font-medium text-white">{message}</p>
       )}

@@ -382,7 +382,37 @@
   z-index: 2;
 }
 
+@keyframes talkhugam-brand-spinner-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.talkhugam-brand-spinner {
+  --brand-spinner-size: var(--spacing-8);
+  animation: talkhugam-brand-spinner-rotate 720ms linear infinite;
+  border: 2px solid color-mix(in srgb, var(--color-primary) 24%, transparent);
+  border-radius: 9999px;
+  border-top-color: var(--color-primary);
+  box-sizing: border-box;
+  height: var(--brand-spinner-size);
+  width: var(--brand-spinner-size);
+}
+
+.talkhugam-brand-spinner--xs {
+  --brand-spinner-size: var(--spacing-4);
+}
+
+.talkhugam-brand-spinner--sm {
+  --brand-spinner-size: var(--spacing-6);
+}
+
+.talkhugam-brand-spinner--lg {
+  --brand-spinner-size: var(--spacing-10);
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .talkhugam-brand-spinner,
   .talkhugam-book-loader__page,
   .talkhugam-book-loader__bubble,
   .talkhugam-action-book__page--left,

@@ -36,13 +36,13 @@ describe('LoginPage', () => {
     ).toBeInTheDocument()
   })
 
-  it('uses the book loader while the provider is opening', () => {
+  it('uses the brand spinner while the provider is opening', () => {
     signInWithOAuth.mockReturnValue(new Promise(() => undefined))
     render(<LoginPage />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Google로 계속하기' }))
 
     const status = screen.getByRole('status', { name: '로그인을 연결하고 있어요.' })
-    expect(status.querySelector('.talkhugam-book-loader')).toBeInTheDocument()
+    expect(status.querySelector('.talkhugam-brand-spinner')).toBeInTheDocument()
   })
 })

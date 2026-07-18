@@ -41,7 +41,7 @@ describe('BookSearchPage', () => {
     expect(searchBooks).toHaveBeenCalledOnce()
   })
 
-  it('uses the book loader while searching', async () => {
+  it('uses the brand spinner while searching', async () => {
     searchBooks.mockReturnValue(new Promise(() => undefined))
     renderBookSearchPage()
 
@@ -51,7 +51,7 @@ describe('BookSearchPage', () => {
     await act(() => vi.advanceTimersByTimeAsync(300))
 
     const status = screen.getByRole('status', { name: '책을 찾고 있어요…' })
-    expect(status.querySelector('.talkhugam-book-loader')).toBeInTheDocument()
+    expect(status.querySelector('.talkhugam-brand-spinner')).toBeInTheDocument()
   })
 
   it('does not let an older response replace the latest search result', async () => {

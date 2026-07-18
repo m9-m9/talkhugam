@@ -34,7 +34,7 @@ export function LazyMuxVideoPlayer({
     <Suspense
       fallback={
         <div className={`${className} flex items-center justify-center`}>
-          <LoadingSpinner label="재생기를 불러오고 있어요." size="sm" tone={tone} />
+          <LoadingSpinner label="재생기를 불러오고 있어요." size="sm" tone={tone} variant="book" />
         </div>
       }
     >

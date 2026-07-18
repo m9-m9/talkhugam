@@ -872,7 +872,7 @@ function ChatComposer({
       ) : null}
       {isUploadingVideo ? (
         <div className="mt-3">
-          <LoadingSpinner label="영상을 채팅에 올리고 있어요…" size="xs" />
+          <LoadingSpinner label="영상을 채팅에 올리고 있어요…" size="xs" variant="book" />
         </div>
       ) : null}
     </section>
@@ -998,7 +998,12 @@ function VideoMessage({
             />
           ) : isThumbnailLoading ? (
             <div className="absolute inset-0 flex items-center justify-center">
-              <LoadingSpinner label="미리보기를 준비하고 있어요." size="sm" tone="inverse" />
+              <LoadingSpinner
+                label="미리보기를 준비하고 있어요."
+                size="sm"
+                tone="inverse"
+                variant="book"
+              />
             </div>
           ) : (
             <p className="absolute inset-0 flex items-center justify-center px-4 text-center text-sm font-medium text-white">
@@ -1017,7 +1022,7 @@ function VideoMessage({
   return (
     <article className="border-ink/10 bg-ink flex aspect-square w-[70%] max-w-[70%] flex-col items-center justify-center rounded-lg border px-4 text-center">
       {isLoading ? (
-        <LoadingSpinner label={message} size="sm" tone="inverse" />
+        <LoadingSpinner label={message} size="sm" tone="inverse" variant="book" />
       ) : (
         <p className="text-sm font-medium text-white">{message}</p>
       )}
