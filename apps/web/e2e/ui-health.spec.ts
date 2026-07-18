@@ -40,6 +40,20 @@ test('sends one manual GA4 page view for each SPA screen transition', async ({ p
   await expect.poll(() => readGaPageViews(page)).toHaveLength(2)
 })
 
+test('loads Clarity once while masking all app text and user content', async ({ page }) => {
+  await page.route('https://www.clarity.ms/tag/**', async (route) => {
+    await route.fulfill({ body: '', contentType: 'application/javascript', status: 200 })
+  })
+  await page.goto('/')
+
+  await expect(page.locator('#talkhugam-clarity')).toHaveAttribute(
+    'src',
+    /https:\/\/www\.clarity\.ms\/tag\/xoernfdaoq/,
+  )
+  await expect(page.locator('#root')).toHaveAttribute('data-clarity-mask', 'true')
+  await expect(page.locator('#talkhugam-clarity')).toHaveCount(1)
+})
+
 test('submits feedback from the global launcher without exposing an in-app reply thread', async ({
   page,
 }) => {

@@ -7,7 +7,7 @@ describe('legalDocument', () => {
     const documents = getRequiredLegalDocuments()
 
     expect(documents.map((document) => document.id)).toEqual(['terms', 'privacy'])
-    expect(documents.every((document) => document.version === '2026-07-18.1')).toBe(true)
+    expect(documents.every((document) => document.version === '2026-07-18.2')).toBe(true)
     expect(documents.every((document) => document.sections.length > 0)).toBe(true)
   })
 
@@ -20,6 +20,9 @@ describe('legalDocument', () => {
 
     expect(privacy?.sections.flatMap((section) => section.body).join(' ')).toContain('Mux')
     expect(privacy?.sections.flatMap((section) => section.body).join(' ')).toContain('Supabase')
+    expect(privacy?.sections.flatMap((section) => section.body).join(' ')).toContain(
+      'Microsoft Clarity',
+    )
     expect(privacy?.sections.flatMap((section) => section.body).join(' ')).not.toContain(
       'PRIVATE_KEY',
     )

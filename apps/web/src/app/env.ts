@@ -7,6 +7,10 @@ const clientEnvSchema = z.object({
     .string()
     .regex(/^G-[A-Z0-9]+$/)
     .optional(),
+  VITE_CLARITY_PROJECT_ID: z
+    .string()
+    .regex(/^[a-z0-9]+$/i)
+    .optional(),
   VITE_SUPPORT_EMAIL: z.string().email().optional(),
 })
 
