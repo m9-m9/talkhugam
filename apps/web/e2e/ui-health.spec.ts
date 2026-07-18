@@ -305,7 +305,6 @@ test('opens completion records from the book-chat plus menu and restores focus o
   await expect(page.getByRole('dialog', { name: '완독 기록' })).toBeHidden()
   await expect(plusButton).toBeFocused()
 })
-
 test('selects a member by typing an at-sign in the book-chat composer', async ({ page }) => {
   await authenticatePage(page)
   await mockVideoMembers(page, [
@@ -372,7 +371,6 @@ test('opens every reading book from the profile CTA and marks personal completio
   await expect(page.getByText('완독')).toBeVisible()
   await expect(page.getByRole('navigation', { name: '주요 메뉴' })).toBeVisible()
 })
-
 test('keeps a chat video preview square within seventy percent and opens the immersive viewer', async ({
   page,
 }) => {
