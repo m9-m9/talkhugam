@@ -4,11 +4,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AuthCallbackPage } from './AuthCallbackPage'
 
-const { getOnboardingCompletedAt, getUser } = vi.hoisted(() => ({
+const { getHasRequiredLegalConsent, getOnboardingCompletedAt, getUser } = vi.hoisted(() => ({
+  getHasRequiredLegalConsent: vi.fn(),
   getOnboardingCompletedAt: vi.fn(),
   getUser: vi.fn(),
 }))
 
+vi.mock('../../entities/legal', () => ({ getHasRequiredLegalConsent }))
 vi.mock('../../entities/profile', () => ({ getOnboardingCompletedAt }))
 vi.mock('../../shared/api/supabaseClient', () => ({
   createSupabaseClient: () => ({ auth: { getUser } }),
@@ -39,10 +41,21 @@ describe('AuthCallbackPage', () => {
   it('sends a completed profile to the room list', async () => {
     getUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
     getOnboardingCompletedAt.mockResolvedValue('2026-07-17T00:00:00.000Z')
+    getHasRequiredLegalConsent.mockResolvedValue(true)
 
     renderCallback('/auth/callback')
 
     expect(await screen.findByText('독서방 목록')).toBeInTheDocument()
+  })
+
+  it('sends a user without current policy consent to the consent screen', async () => {
+    getUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
+    getOnboardingCompletedAt.mockResolvedValue('2026-07-17T00:00:00.000Z')
+    getHasRequiredLegalConsent.mockResolvedValue(false)
+
+    renderCallback('/auth/callback')
+
+    expect(await screen.findByText('서비스 이용 동의')).toBeInTheDocument()
   })
 })
 
@@ -51,6 +64,7 @@ function renderCallback(initialEntry: string) {
     <MemoryRouter initialEntries={[initialEntry]}>
       <Routes>
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
+        <Route path="/legal-consent" element={<p>서비스 이용 동의</p>} />
         <Route path="/rooms" element={<p>독서방 목록</p>} />
       </Routes>
     </MemoryRouter>,

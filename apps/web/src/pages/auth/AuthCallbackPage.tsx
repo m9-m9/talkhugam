@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
+import { getHasRequiredLegalConsent } from '../../entities/legal'
 import { getOnboardingCompletedAt } from '../../entities/profile'
 import { resolveAuthDestination } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
@@ -28,8 +29,11 @@ export function AuthCallbackPage() {
       }
 
       try {
-        const completedAt = await getOnboardingCompletedAt(client, response.data.user.id)
-        void navigate(resolveAuthDestination(completedAt), { replace: true })
+        const [completedAt, hasRequiredConsent] = await Promise.all([
+          getOnboardingCompletedAt(client, response.data.user.id),
+          getHasRequiredLegalConsent(client, response.data.user.id),
+        ])
+        void navigate(resolveAuthDestination(completedAt, hasRequiredConsent), { replace: true })
       } catch {
         setErrorMessage('프로필 정보를 불러오지 못했어요. 다시 시도해 주세요.')
       }

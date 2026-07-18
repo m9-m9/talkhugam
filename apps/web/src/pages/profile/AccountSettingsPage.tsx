@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 import {
   AccountDeletionError,
@@ -128,6 +128,22 @@ export function AccountSettingsPage() {
         onRetry={handleRetryNotificationPreferences}
         preferences={notificationPreferencesQuery.data ?? null}
       />
+
+      <section className="mt-12" aria-labelledby="service-information-heading">
+        <h2 className="text-ink text-base font-bold" id="service-information-heading">
+          서비스 정보
+        </h2>
+        <p className="text-ink-subtle mt-2 text-sm">이용 규칙, 개인정보 처리, 문의 방법을 확인해요.</p>
+        <Link
+          className="border-border mt-4 flex min-h-12 items-center justify-between rounded-md border bg-white px-4 text-sm font-semibold"
+          to="/contact"
+        >
+          서비스 정보
+          <span aria-hidden="true" className="text-ink-subtle text-lg">
+            ›
+          </span>
+        </Link>
+      </section>
 
       <section className="mt-12" aria-labelledby="danger-zone-heading">
         <h2 className="text-ink text-base font-bold" id="danger-zone-heading">

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 
 import { getClientEnv } from '../../app/env'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
@@ -181,6 +182,17 @@ export function LoginPage() {
           />
         ))}
       </div>
+      <p className="text-ink-subtle text-center text-xs leading-5">
+        계속하면{' '}
+        <Link className="text-primary font-medium underline underline-offset-2" to="/legal/terms">
+          이용약관
+        </Link>
+        {' '}및{' '}
+        <Link className="text-primary font-medium underline underline-offset-2" to="/legal/privacy">
+          개인정보처리방침
+        </Link>
+        에 동의하게 됩니다.
+      </p>
       {isPending ? <LoadingSpinner label="로그인을 연결하고 있어요." size="sm" /> : null}
       {errorMessage ? (
         <p role="alert" className="text-sm text-red-600">

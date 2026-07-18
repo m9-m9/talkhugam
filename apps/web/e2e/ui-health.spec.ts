@@ -63,6 +63,7 @@ test('has no automated accessibility violations on authenticated account screens
   for (const path of ['/profile', '/profile/settings', '/notifications']) {
     await page.goto(path)
     await expect(page.locator('main')).toBeVisible()
+    await expect(page.locator('h1')).toBeVisible()
     await expectNoAccessibilityViolations(page)
   }
 })
@@ -396,6 +397,16 @@ async function authenticatePage(page: Page) {
   await page.route('**/auth/v1/user', async (route) => {
     await route.fulfill({
       body: JSON.stringify(user),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+  await page.route('**/rest/v1/user_legal_consents?*', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify([
+        { document_type: 'terms', document_version: '2026-07-18' },
+        { document_type: 'privacy', document_version: '2026-07-18' },
+      ]),
       contentType: 'application/json',
       status: 200,
     })

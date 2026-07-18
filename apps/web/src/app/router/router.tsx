@@ -1,9 +1,12 @@
 import { createBrowserRouter } from 'react-router-dom'
 
-import { AuthenticatedRoute } from '../../features/auth'
+import { AuthenticatedRoute, ConsentRequiredRoute } from '../../features/auth'
 import { AuthCallbackPage } from '../../pages/auth/AuthCallbackPage'
 import { LoginPage } from '../../pages/auth/LoginPage'
 import { RouteRecoveryPage } from '../../pages/errors/RouteRecoveryPage'
+import { ContactPage } from '../../pages/legal/ContactPage'
+import { LegalConsentPage } from '../../pages/legal/LegalConsentPage'
+import { LegalDocumentPage } from '../../pages/legal/LegalDocumentPage'
 import { OnboardingPage } from '../../pages/onboarding/OnboardingPage'
 import { AccountSettingsPage } from '../../pages/profile/AccountSettingsPage'
 import { MemberProfilePage } from '../../pages/profile/MemberProfilePage'
@@ -35,36 +38,50 @@ export const router = createBrowserRouter([
     element: <AuthCallbackPage />,
   },
   {
+    path: '/legal/:documentId',
+    element: <LegalDocumentPage />,
+  },
+  {
+    path: '/contact',
+    element: <ContactPage />,
+  },
+  {
     element: <AuthenticatedRoute />,
     children: [
-      { path: '/onboarding', element: <OnboardingPage /> },
+      { path: '/legal-consent', element: <LegalConsentPage /> },
       {
-        element: <AppNavigationLayout />,
-        errorElement: <RouteRecoveryPage kind="error" />,
+        element: <ConsentRequiredRoute />,
         children: [
-          { path: '/rooms', element: <RoomsPage /> },
-          { path: '/notifications', element: <NotificationsPage /> },
-          { path: '/profile', element: <ProfilePage /> },
-          { path: '/profile/edit', element: <ProfileEditPage /> },
-          { path: '/profile/share', element: <ProfileSharePage /> },
-          { path: '/profile/settings', element: <AccountSettingsPage /> },
-          { path: '/profile/settings/naver-info', element: <NaverAccountInfoPage /> },
-          { path: '/rooms/create', element: <CreateRoomPage /> },
-          { path: '/rooms/join', element: <JoinRoomPage /> },
-          { path: '/rooms/archive', element: <ArchivedRoomsPage /> },
-          { path: '/rooms/:roomId', element: <RoomDetailPage /> },
-          { path: '/rooms/:roomId/manage', element: <RoomManagementPage /> },
-          { path: '/rooms/:roomId/manage/settings', element: <RoomSettingsPage /> },
-          { path: '/rooms/:roomId/members/:profileId', element: <MemberProfilePage /> },
-          { path: '/rooms/:roomId/books/new', element: <BookSearchPage /> },
-          { path: '/rooms/:roomId/books/:bookChatId', element: <BookDiscussionPage /> },
-          { path: '/rooms/:roomId/books/:bookChatId/manage', element: <BookChatManagementPage /> },
-          { path: '/rooms/:roomId/books/:bookChatId/videos', element: <LazyVideoArchiveRoute /> },
+          { path: '/onboarding', element: <OnboardingPage /> },
           {
-            path: '/rooms/:roomId/books/:bookChatId/videos/:videoId',
-            element: <LazyVideoPlayerRoute />,
+            element: <AppNavigationLayout />,
+            errorElement: <RouteRecoveryPage kind="error" />,
+            children: [
+              { path: '/rooms', element: <RoomsPage /> },
+              { path: '/notifications', element: <NotificationsPage /> },
+              { path: '/profile', element: <ProfilePage /> },
+              { path: '/profile/edit', element: <ProfileEditPage /> },
+              { path: '/profile/share', element: <ProfileSharePage /> },
+              { path: '/profile/settings', element: <AccountSettingsPage /> },
+              { path: '/profile/settings/naver-info', element: <NaverAccountInfoPage /> },
+              { path: '/rooms/create', element: <CreateRoomPage /> },
+              { path: '/rooms/join', element: <JoinRoomPage /> },
+              { path: '/rooms/archive', element: <ArchivedRoomsPage /> },
+              { path: '/rooms/:roomId', element: <RoomDetailPage /> },
+              { path: '/rooms/:roomId/manage', element: <RoomManagementPage /> },
+              { path: '/rooms/:roomId/manage/settings', element: <RoomSettingsPage /> },
+              { path: '/rooms/:roomId/members/:profileId', element: <MemberProfilePage /> },
+              { path: '/rooms/:roomId/books/new', element: <BookSearchPage /> },
+              { path: '/rooms/:roomId/books/:bookChatId', element: <BookDiscussionPage /> },
+              { path: '/rooms/:roomId/books/:bookChatId/manage', element: <BookChatManagementPage /> },
+              { path: '/rooms/:roomId/books/:bookChatId/videos', element: <LazyVideoArchiveRoute /> },
+              {
+                path: '/rooms/:roomId/books/:bookChatId/videos/:videoId',
+                element: <LazyVideoPlayerRoute />,
+              },
+              { path: '*', element: <RouteRecoveryPage kind="not-found" /> },
+            ],
           },
-          { path: '*', element: <RouteRecoveryPage kind="not-found" /> },
         ],
       },
     ],

@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { LoginPage } from './LoginPage'
@@ -15,7 +16,7 @@ describe('LoginPage', () => {
 
   it('starts Google OAuth with the application callback URL', async () => {
     signInWithOAuth.mockResolvedValue({ data: {}, error: null })
-    render(<LoginPage />)
+    renderLoginPage()
 
     fireEvent.click(screen.getByRole('button', { name: 'Google로 계속하기' }))
 
@@ -27,7 +28,7 @@ describe('LoginPage', () => {
 
   it('shows a retryable message when OAuth cannot start', async () => {
     signInWithOAuth.mockResolvedValue({ data: null, error: new Error('oauth') })
-    render(<LoginPage />)
+    renderLoginPage()
 
     fireEvent.click(screen.getByRole('button', { name: 'Google로 계속하기' }))
 
@@ -38,7 +39,7 @@ describe('LoginPage', () => {
 
   it('uses the brand spinner while the provider is opening', () => {
     signInWithOAuth.mockReturnValue(new Promise(() => undefined))
-    render(<LoginPage />)
+    renderLoginPage()
 
     fireEvent.click(screen.getByRole('button', { name: 'Google로 계속하기' }))
 
@@ -48,10 +49,29 @@ describe('LoginPage', () => {
 
   it('shows a one-time completion message after account deletion', () => {
     window.history.replaceState({}, '', '/?account=deleted')
-    render(<LoginPage />)
+    renderLoginPage()
 
     expect(screen.getByRole('status')).toHaveTextContent(
       '계정 삭제 요청이 완료됐어요. Talk후감에 다시 오고 싶을 때 언제든 로그인해 주세요.',
     )
   })
+
+  it('links the required policy documents below social sign-in', () => {
+    renderLoginPage()
+
+    expect(screen.getByRole('link', { name: '이용약관' })).toHaveAttribute('href', '/legal/terms')
+    expect(screen.getByRole('link', { name: '개인정보처리방침' })).toHaveAttribute(
+      'href',
+      '/legal/privacy',
+    )
+  })
 })
+
+/** 로그인 화면을 라우터가 필요한 공개 링크와 함께 렌더링한다. */
+function renderLoginPage() {
+  render(
+    <MemoryRouter>
+      <LoginPage />
+    </MemoryRouter>,
+  )
+}
