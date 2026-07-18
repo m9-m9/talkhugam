@@ -112,6 +112,12 @@ verify_jwt = false
 [functions.naver-oauth-callback]
 verify_jwt = false
 
+[functions.feedback-submit]
+verify_jwt = false
+
+[functions.admin-feedback]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327
