@@ -21,6 +21,9 @@ const querySchema = z
   .min(2, '책 제목이나 저자를 두 글자 이상 입력해 주세요.')
   .max(100)
 
+const bookSearchDebounceMs = 300
+const bookLoaderDelayMs = 400
+
 /** 책 검색 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 export function BookSearchPage() {
   const navigate = useNavigate()
@@ -30,6 +33,7 @@ export function BookSearchPage() {
   const [items, setItems] = useState<BookSearchItem[]>([])
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isSearching, setIsSearching] = useState(false)
+  const [isBookLoaderVisible, setIsBookLoaderVisible] = useState(false)
   const [searchVersion, setSearchVersion] = useState(0)
   const [selectedBookId, setSelectedBookId] = useState<string | null>(null)
 
@@ -38,32 +42,41 @@ export function BookSearchPage() {
     if (!parsed.success) return
 
     let wasCancelled = false
+    let loaderTimeoutId: number | null = null
     const timeoutId = window.setTimeout(() => {
+      loaderTimeoutId = window.setTimeout(() => {
+        if (!wasCancelled) setIsBookLoaderVisible(true)
+      }, bookLoaderDelayMs)
       void searchBooksForQuery(
         parsed.data,
         () => wasCancelled,
         setErrorMessage,
+        setIsBookLoaderVisible,
         setIsSearching,
         setItems,
       )
-    }, 300)
+    }, bookSearchDebounceMs)
 
     return () => {
       wasCancelled = true
       window.clearTimeout(timeoutId)
+      if (loaderTimeoutId !== null) window.clearTimeout(loaderTimeoutId)
     }
   }, [query, searchVersion])
 
-  /** 검색어 변경 요청이나 사용자 동작을 처리한다. */
+  /** 검색어를 검증해 검색 대기 상태를 갱신하고, 유효하지 않은 기존 결과만 비운다. */
   function handleQueryChange(value: string) {
     const isValidQuery = querySchema.safeParse(value).success
     setQuery(value)
-    setItems([])
-    setErrorMessage(value.trim().length > 100 ? '검색어는 100자 이하로 입력해 주세요.' : null)
+    setIsBookLoaderVisible(false)
     setIsSearching(isValidQuery)
+    if (!isValidQuery) {
+      setItems([])
+    }
+    setErrorMessage(value.trim().length > 100 ? '검색어는 100자 이하로 입력해 주세요.' : null)
   }
 
-  /** 검색 요청이나 사용자 동작을 처리한다. */
+  /** 현재 유효한 검색어의 debounce 주기를 새로 시작해 책 검색을 다시 요청한다. */
   function handleSearch() {
     const parsed = querySchema.safeParse(query)
     if (!parsed.success) {
@@ -71,8 +84,8 @@ export function BookSearchPage() {
       return
     }
 
-    setItems([])
     setErrorMessage(null)
+    setIsBookLoaderVisible(false)
     setIsSearching(true)
     setSearchVersion((version) => version + 1)
   }
@@ -84,7 +97,7 @@ export function BookSearchPage() {
     handleSearch()
   }
 
-  /** Select 책 요청이나 사용자 동작을 처리한다. */
+  /** 선택한 책으로 독서방의 책 대화를 만들고, 성공하면 독서방 상세로 이동한다. */
   async function handleSelectBook(book: BookSearchItem) {
     if (!roomId) return
     setSelectedBookId(book.title)
@@ -129,6 +142,7 @@ export function BookSearchPage() {
       ) : null}
       <BookResults
         hasQuery={query.trim().length >= 2}
+        isBookLoaderVisible={isBookLoaderVisible}
         isCreatingId={selectedBookId}
         isSearching={isSearching}
         items={items}
@@ -141,24 +155,26 @@ export function BookSearchPage() {
 /** 책 검색 결과 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function BookResults({
   hasQuery,
+  isBookLoaderVisible,
   isCreatingId,
   isSearching,
   items,
   onSelect,
 }: {
   hasQuery: boolean
+  isBookLoaderVisible: boolean
   isCreatingId: string | null
   isSearching: boolean
   items: BookSearchItem[]
   onSelect: (book: BookSearchItem) => void
 }) {
-  if (isSearching)
-    return (
-      <div className="mt-12">
-        <LoadingSpinner label="책을 찾고 있어요…" size="sm" />
-      </div>
-    )
+  const bookLoader = isBookLoaderVisible ? (
+    <div className="mt-6">
+      <LoadingSpinner label="책을 찾고 있어요…" size="sm" variant="book" />
+    </div>
+  ) : null
 
+  if (items.length === 0 && isSearching) return bookLoader
   if (items.length === 0 && hasQuery)
     return <p className="text-ink-subtle mt-12 text-center text-sm">검색 결과가 없어요.</p>
 
@@ -169,40 +185,44 @@ function BookResults({
       </p>
     )
   return (
-    <ul className="mt-6 space-y-3">
-      {items.map((book) => (
-        <li key={`${book.title}-${book.isbn13 ?? book.isbn10 ?? book.externalUrl ?? ''}`}>
-          <button
-            className="border-ink/10 flex min-h-24 w-full items-center gap-3 rounded-lg border bg-white p-4 text-left"
-            disabled={isCreatingId !== null}
-            onClick={() => void onSelect(book)}
-            type="button"
-          >
-            <BookCover alt={`${book.title} 표지`} thumbnailUrl={book.thumbnailUrl} />
-            <span className="min-w-0">
-              <span className="text-ink block text-sm font-bold">{book.title}</span>
-              <span className="text-ink-subtle mt-1 block text-xs">
-                {book.authors.join(', ')}
-                {book.publisher ? ` · ${book.publisher}` : ''}
+    <>
+      {bookLoader}
+      <ul className="mt-6 space-y-3">
+        {items.map((book) => (
+          <li key={`${book.title}-${book.isbn13 ?? book.isbn10 ?? book.externalUrl ?? ''}`}>
+            <button
+              className="border-ink/10 flex min-h-24 w-full items-center gap-3 rounded-lg border bg-white p-4 text-left"
+              disabled={isCreatingId !== null}
+              onClick={() => void onSelect(book)}
+              type="button"
+            >
+              <BookCover alt={`${book.title} 표지`} thumbnailUrl={book.thumbnailUrl} />
+              <span className="min-w-0">
+                <span className="text-ink block text-sm font-bold">{book.title}</span>
+                <span className="text-ink-subtle mt-1 block text-xs">
+                  {book.authors.join(', ')}
+                  {book.publisher ? ` · ${book.publisher}` : ''}
+                </span>
+                {isCreatingId === book.title ? (
+                  <div className="mt-2">
+                    <LoadingSpinner label="책 채팅방을 만들고 있어요…" size="xs" />
+                  </div>
+                ) : null}
               </span>
-              {isCreatingId === book.title ? (
-                <div className="mt-2">
-                  <LoadingSpinner label="책 채팅방을 만들고 있어요…" size="xs" />
-                </div>
-              ) : null}
-            </span>
-          </button>
-        </li>
-      ))}
-    </ul>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </>
   )
 }
 
-/** 입력된 검색어로 책 목록을 조회해 반환한다. */
+/** 유효한 검색어를 조회하고, 취소되지 않은 최신 요청의 결과와 로딩 상태만 갱신한다. */
 async function searchBooksForQuery(
   query: string,
   isCancelled: () => boolean,
   setErrorMessage: (message: string | null) => void,
+  setIsBookLoaderVisible: (isVisible: boolean) => void,
   setIsSearching: (isSearching: boolean) => void,
   setItems: (items: BookSearchItem[]) => void,
 ) {
@@ -215,6 +235,9 @@ async function searchBooksForQuery(
   } catch {
     if (!isCancelled()) setErrorMessage('도서 검색에 실패했어요. 잠시 후 다시 시도해 주세요.')
   } finally {
-    if (!isCancelled()) setIsSearching(false)
+    if (!isCancelled()) {
+      setIsBookLoaderVisible(false)
+      setIsSearching(false)
+    }
   }
 }
