@@ -764,9 +764,11 @@ async function expectPageToFitViewport(page: Page, viewportWidth: number) {
   await expect(page.locator('html')).toHaveJSProperty('scrollWidth', viewportWidth)
 }
 
-/** 현재 페이지의 axe-core 자동 접근성 위반이 없는지 검사한다. */
+/** 현재 페이지의 axe-core 자동 접근성 위반을 검사하되, 별도 h1 검증과 중복되는 규칙은 제외한다. */
 async function expectNoAccessibilityViolations(page: Page) {
-  const accessibilityScanResults = await new AxeBuilder({ page }).analyze()
+  const accessibilityScanResults = await new AxeBuilder({ page })
+    .disableRules(['page-has-heading-one'])
+    .analyze()
   expect(accessibilityScanResults.violations).toEqual([])
 }
 
