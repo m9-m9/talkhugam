@@ -17,7 +17,7 @@ import { RetryState } from '../../shared/ui/RetryState'
 
 type RetryTarget = 'playback' | 'video' | null
 
-/** URL의 독서방·책 대화·영상 식별자를 바탕으로 재생 화면과 조회 상태별 안내를 렌더링한다. */
+/** URL의 책방·책 대화·영상 식별자를 바탕으로 재생 화면과 조회 상태별 안내를 렌더링한다. */
 export function VideoPlayerPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -58,7 +58,7 @@ export function VideoPlayerPage() {
     return getVideoPlaybackAuthorization(createSupabaseClient(), videoId ?? '')
   }
 
-  /** 현재 사용자가 이 영상을 삭제할 수 있는지 독서방 멤버 역할로 확인해 반환한다. */
+  /** 현재 사용자가 이 영상을 삭제할 수 있는지 책방 멤버 역할로 확인해 반환한다. */
   function fetchVideoDeletePermission() {
     return getVideoDeletePermission(
       createSupabaseClient(),
@@ -126,7 +126,7 @@ export function VideoPlayerPage() {
     void navigate(archivePath, { replace: true })
   }
 
-  /** 잘못된 영상 주소에서 독서방 목록 화면으로 돌아가도록 라우트를 교체한다. */
+  /** 잘못된 영상 주소에서 책방 목록 화면으로 돌아가도록 라우트를 교체한다. */
   function handleReturnToRooms() {
     void navigate('/rooms', { replace: true })
   }

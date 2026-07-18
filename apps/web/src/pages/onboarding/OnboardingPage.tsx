@@ -103,7 +103,7 @@ export function OnboardingPage() {
       <header className="space-y-3">
         <p className="text-primary text-sm font-medium">Talk후감</p>
         <h1 className="text-ink text-3xl font-semibold">나를 간단히 소개해 주세요</h1>
-        <p className="text-ink-subtle text-sm">독서방에서 함께 읽을 사람들이 볼 프로필이에요.</p>
+        <p className="text-ink-subtle text-sm">책방에서 함께 읽을 사람들이 볼 프로필이에요.</p>
       </header>
 
       <form className="mt-8 space-y-6" onSubmit={form.handleSubmit(handleSubmit)}>

@@ -97,7 +97,7 @@ test('blocks a non-operator from the admin route', async ({ page }) => {
   await page.goto('/admin')
 
   await expect(page).toHaveURL('/rooms')
-  await expect(page.getByRole('heading', { name: '함께 읽는 모임' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '함께 읽는 책방' })).toBeVisible()
 })
 
 test('lets an operator change a feedback ticket status', async ({ page }) => {
@@ -209,7 +209,7 @@ test('recovers from an unknown authenticated route by returning to reading rooms
   await page.goto('/not-a-real-page')
 
   await expect(page.getByRole('heading', { name: '페이지를 찾을 수 없어요' })).toBeVisible()
-  await page.getByRole('button', { name: '독서방으로 돌아가기' }).click()
+  await page.getByRole('button', { name: '책방으로 돌아가기' }).click()
   await expect(page).toHaveURL('/rooms')
 })
 
@@ -220,19 +220,43 @@ test('closes the action book by Escape and outside click while returning focus t
   await mockAuthenticatedPageData(page)
   await page.goto('/rooms')
 
-  const actionMenuButton = page.getByRole('button', { name: '모임 시작 메뉴 열기' })
+  const actionMenuButton = page.getByRole('button', { name: '책방 시작 메뉴 열기' })
   await actionMenuButton.click()
-  await expect(page.getByRole('dialog', { name: '모임 시작 방식 선택' })).toBeVisible()
-  await expect(page.getByRole('button', { name: '새 모임 만들기' })).toBeFocused()
+  await expect(page.getByRole('dialog', { name: '책방 시작 방식 선택' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '새 책방 만들기' })).toBeFocused()
 
   await page.keyboard.press('Escape')
-  await expect(page.getByRole('dialog', { name: '모임 시작 방식 선택' })).toBeHidden()
+  await expect(page.getByRole('dialog', { name: '책방 시작 방식 선택' })).toBeHidden()
   await expect(actionMenuButton).toBeFocused()
 
   await actionMenuButton.click()
   await page.getByRole('button', { name: '메뉴 바깥 영역을 눌러 닫기' }).click()
-  await expect(page.getByRole('dialog', { name: '모임 시작 방식 선택' })).toBeHidden()
+  await expect(page.getByRole('dialog', { name: '책방 시작 방식 선택' })).toBeHidden()
   await expect(actionMenuButton).toBeFocused()
+})
+
+test('aligns the book-chat composer controls on one 44px row', async ({ page }) => {
+  await authenticatePage(page)
+  await page.goto(`/rooms/${roomId}/books/${bookChatId}`)
+
+  const addButton = page.getByRole('button', { name: '메시지 추가 메뉴 열기' })
+  const messageInput = page.getByRole('textbox', { name: '메시지 입력' })
+  const sendButton = page.getByRole('button', { name: '전송' })
+  const [addBox, inputBox, sendBox] = await Promise.all([
+    addButton.boundingBox(),
+    messageInput.boundingBox(),
+    sendButton.boundingBox(),
+  ])
+
+  if (!addBox || !inputBox || !sendBox) throw new Error('채팅 입력 영역의 크기를 확인할 수 없어요.')
+
+  expect(Math.round(addBox.height)).toBe(44)
+  expect(Math.round(inputBox.height)).toBe(44)
+  expect(Math.round(sendBox.height)).toBe(44)
+  expect(Math.round(addBox.y)).toBe(Math.round(inputBox.y))
+  expect(Math.round(inputBox.y)).toBe(Math.round(sendBox.y))
+  expect(Math.round(inputBox.x - (addBox.x + addBox.width))).toBe(8)
+  expect(Math.round(sendBox.x - (inputBox.x + inputBox.width))).toBe(8)
 })
 
 test('closes the account deletion dialog by Escape and backdrop while restoring trigger focus', async ({
@@ -299,7 +323,7 @@ test('opens completion records from the book-chat plus menu and restores focus o
   await page.getByRole('button', { name: '완독 기록' }).click()
 
   await expect(page.getByRole('dialog', { name: '완독 기록' })).toBeVisible()
-  await expect(page.getByRole('button', { name: '완독으로 기록하기' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '완독하기' })).toBeVisible()
 
   await page.keyboard.press('Escape')
   await expect(page.getByRole('dialog', { name: '완독 기록' })).toBeHidden()
@@ -335,7 +359,7 @@ test('shows global navigation outside the book chat and hides it inside', async 
   await expect(page.getByRole('navigation', { name: '주요 메뉴' })).toBeHidden()
 })
 
-test('opens every reading book from the profile CTA and marks personal completion', async ({
+test('opens reading books from the profile hub and edits a personal completion record', async ({
   page,
 }) => {
   await authenticatePage(page)
@@ -349,26 +373,47 @@ test('opens every reading book from the profile CTA and marks personal completio
       },
       id: bookChatId,
       name: '미움받을 용기',
-      reading_rooms: { name: '금요일 아침 독서방' },
+      reading_rooms: { name: '금요일 아침 책방' },
       room_id: roomId,
     },
   ])
   await page.route('**/rest/v1/book_chat_completions?*', async (route) => {
     await route.fulfill({
-      body: JSON.stringify([{ book_chat_id: bookChatId }]),
+      body: JSON.stringify([
+        {
+          book_chat_id: bookChatId,
+          book_chats: {
+            books: {
+              authors: ['기시미 이치로'],
+              thumbnail_url: null,
+              title: '미움받을 용기',
+            },
+            room_id: roomId,
+          },
+          completed_at: '2026-07-18T01:00:00+00:00',
+          rating: 4,
+          review: '다시 읽고 싶은 문장이 많아요.',
+        },
+      ]),
       contentType: 'application/json',
       status: 200,
     })
   })
   await page.goto('/profile')
 
-  await page.getByRole('button', { name: '읽고 있는 책 모두 보기' }).click()
+  await page.getByRole('button', { name: '읽고 있는 책 보기' }).click()
 
   await expect(page).toHaveURL('/profile/books')
   await expect(page.getByRole('heading', { name: '함께 읽고 있는 책' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: '금요일 아침 독서방' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '금요일 아침 책방' })).toBeVisible()
   await expect(page.getByText('미움받을 용기')).toBeVisible()
-  await expect(page.getByText('완독')).toBeVisible()
+  await expect(page.getByText('완독', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: '미움받을 용기 기록 수정' }).click()
+  await expect(page.getByRole('dialog', { name: '완독 기록' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '4점' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByRole('textbox', { name: '총평 (선택)' })).toHaveValue(
+    '다시 읽고 싶은 문장이 많아요.',
+  )
   await expect(page.getByRole('navigation', { name: '주요 메뉴' })).toBeVisible()
 })
 test('keeps a chat video preview square within seventy percent and opens the immersive viewer', async ({
@@ -576,7 +621,7 @@ async function mockVideoPosts(page: Page, posts: unknown[]) {
   })
 }
 
-/** 현재 사용자가 속한 독서방 멤버 목록을 반환하도록 Supabase 요청을 가로챈다. */
+/** 현재 사용자가 속한 책방 멤버 목록을 반환하도록 Supabase 요청을 가로챈다. */
 async function mockVideoMembers(
   page: Page,
   members = [createVideoMember('8fc963a4-da01-4696-995c-755fe145776f', '민규', true)],
@@ -590,7 +635,7 @@ async function mockVideoMembers(
   })
 }
 
-/** E2E 독서방 멤버 행을 만든다. */
+/** E2E 책방 멤버 행을 만든다. */
 function createVideoMember(id: string, displayName: string, isCurrentUser = false) {
   return {
     id,
@@ -653,7 +698,7 @@ function createVideoPostRow(id: string, authorName: string, status = 'failed') {
   }
 }
 
-/** 인증 화면이 요청하는 프로필·알림·독서방 데이터를 안정적인 fixture로 반환한다. */
+/** 인증 화면이 요청하는 프로필·알림·책방 데이터를 안정적인 fixture로 반환한다. */
 async function mockAuthenticatedPageData(page: Page) {
   await page.route('**/rest/v1/rpc/get_my_reading_room_summaries', async (route) => {
     await route.fulfill({
@@ -728,7 +773,7 @@ async function mockRoomManagementPageData(page: Page) {
           created_by: '00000000-0000-4000-8000-000000000001',
           description: '함께 읽는 책들',
           id: roomId,
-          name: '금요일 아침 독서방',
+          name: '금요일 아침 책방',
           status: 'active',
         },
       ]),

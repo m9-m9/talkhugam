@@ -124,10 +124,10 @@ function createNotificationMessage(
 ): string {
   const actor = actorName ?? '누군가'
   const messages = {
-    invite: `${actor}님이 독서방에 초대했어요.`,
+    invite: `${actor}님이 책방에 초대했어요.`,
     mention: `${actor}님이 회원님을 멘션했어요.`,
     ownership_transfer: `${actor}님이 회원님에게 방장을 넘겼어요.`,
-    removed: `${actor}님이 회원님을 독서방에서 내보냈어요.`,
+    removed: `${actor}님이 회원님을 책방에서 내보냈어요.`,
     reply: `${actor}님이 답글을 남겼어요.`,
     system: '새 알림이 도착했어요.',
   }

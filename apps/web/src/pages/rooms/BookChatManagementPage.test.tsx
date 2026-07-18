@@ -5,7 +5,8 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { BookChatManagementPage } from './BookChatManagementPage'
 
-const { getManagedBookChat, upsertBookChatCompletion } = vi.hoisted(() => ({
+const { getBookChatCompletions, getManagedBookChat, upsertBookChatCompletion } = vi.hoisted(() => ({
+  getBookChatCompletions: vi.fn().mockResolvedValue([]),
   getManagedBookChat: vi.fn().mockResolvedValue({
     id: '00000000-0000-0000-0000-000000000101',
     name: '함께 읽는 책',
@@ -26,9 +27,11 @@ vi.mock('../../entities/book-chat', () => ({
 
 vi.mock('../../entities/book-completion', () => ({
   bookCompletionKeys: {
+    byChat: (bookChatId: string) => ['book-completions', bookChatId],
     myBookChatIds: (profileId: string) => ['my-completion-book-chat-ids', profileId],
     myBooks: (profileId: string) => ['my-completed-books', profileId],
   },
+  getBookChatCompletions,
   upsertBookChatCompletion,
 }))
 
@@ -39,16 +42,25 @@ vi.mock('../../features/auth', () => ({
 vi.mock('../../shared/api/supabaseClient', () => ({ createSupabaseClient: vi.fn() }))
 
 describe('BookChatManagementPage', () => {
-  it('records the current member completion instead of changing the shared book status', async () => {
+  it('opens a review sheet before creating a personal completion record', async () => {
     renderBookChatManagementPage()
 
-    fireEvent.click(await screen.findByRole('button', { name: '내 완독으로 기록' }))
+    fireEvent.click(await screen.findByRole('button', { name: '완독하기' }))
+
+    expect(upsertBookChatCompletion).not.toHaveBeenCalled()
+    expect(await screen.findByRole('dialog', { name: '완독 기록' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '4점' }))
+    fireEvent.change(screen.getByLabelText('총평 (선택)'), {
+      target: { value: '다시 읽고 싶은 책이에요.' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '완독 기록 저장' }))
 
     await waitFor(() =>
       expect(upsertBookChatCompletion).toHaveBeenCalledWith(undefined, {
         bookChatId: '00000000-0000-0000-0000-000000000101',
-        rating: null,
-        review: null,
+        rating: 4,
+        review: '다시 읽고 싶은 책이에요.',
       }),
     )
   })
@@ -56,9 +68,30 @@ describe('BookChatManagementPage', () => {
   it('does not expose archive controls to a reading member', async () => {
     renderBookChatManagementPage()
 
-    expect(await screen.findByRole('button', { name: '내 완독으로 기록' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: '완독하기' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: '아카이브로 이동' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: '다시 읽는 중으로' })).not.toBeInTheDocument()
+  })
+
+  it('shows a personal completion marker and opens saved values for editing', async () => {
+    getBookChatCompletions.mockResolvedValueOnce([
+      {
+        completedAt: '2026-07-19T00:00:00.000Z',
+        displayName: '민규',
+        isMe: true,
+        profileId: '00000000-0000-0000-0000-000000000001',
+        rating: 3,
+        review: '친구와 이야기하기 좋은 책이에요.',
+      },
+    ])
+    renderBookChatManagementPage()
+
+    expect(await screen.findByText('내 완독')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '수정하기' }))
+
+    expect(screen.getByRole('button', { name: '3점' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByLabelText('총평 (선택)')).toHaveValue('친구와 이야기하기 좋은 책이에요.')
+    expect(screen.getByRole('button', { name: '완독 기록 수정' })).toBeInTheDocument()
   })
 })
 

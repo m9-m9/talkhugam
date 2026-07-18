@@ -14,7 +14,7 @@ import { getUnreadNotificationCount, notificationKeys } from '../../entities/not
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
-/** 독서방 목록 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
+/** 참여 중인 책방을 최근 대화 순서로 보여 주는 메인 화면을 렌더링한다. */
 export function RoomsPage() {
   const roomsQuery = useQuery({
     queryFn: () => getReadingRooms(createSupabaseClient()),
@@ -30,7 +30,7 @@ export function RoomsPage() {
 
       <section aria-labelledby="recent-rooms-heading" className="flex flex-1 flex-col gap-4 py-8">
         <h2 className="text-ink text-base font-bold" id="recent-rooms-heading">
-          함께 읽는 모임
+          함께 읽는 책방
         </h2>
         <RoomsContent
           error={roomsQuery.error}
@@ -93,7 +93,7 @@ function NotificationBellIcon() {
   )
 }
 
-/** 독서방 목록 콘텐츠 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
+/** 책방 목록의 조회 결과에 맞는 콘텐츠 상태를 렌더링한다. */
 function RoomsContent({
   error,
   isPending,
@@ -114,20 +114,20 @@ function RoomsContent({
   return <RoomsList rooms={rooms} />
 }
 
-/** 독서방 목록 로딩 상태 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
+/** 책방 목록을 불러오는 동안 브랜드 로딩 상태를 렌더링한다. */
 function RoomsLoadingState() {
   return (
     <div className="flex flex-1 items-center justify-center">
-      <LoadingSpinner label="독서방을 불러오고 있어요." variant="book" />
+      <LoadingSpinner label="책방을 불러오고 있어요." variant="book" />
     </div>
   )
 }
 
-/** 독서방 목록 오류 상태 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
+/** 책방 목록을 불러오지 못했을 때 재시도 안내를 렌더링한다. */
 function RoomsErrorState({ onRetry }: { onRetry: () => void }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center text-center">
-      <p className="text-ink text-lg font-medium">독서방을 불러오지 못했어요</p>
+      <p className="text-ink text-lg font-medium">책방을 불러오지 못했어요</p>
       <p className="text-ink-subtle mt-2 text-sm">잠시 후 다시 시도해 주세요.</p>
       <button
         className="bg-primary mt-6 min-h-11 rounded-md px-4 text-sm font-semibold text-white"
@@ -140,18 +140,18 @@ function RoomsErrorState({ onRetry }: { onRetry: () => void }) {
   )
 }
 
-/** 빈 독서방 목록 상태 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
+/** 아직 참여한 책방이 없을 때 시작 방법을 안내한다. */
 function EmptyRoomsState() {
   return (
     <div className="flex flex-1 flex-col items-center justify-center text-center">
-      <p className="text-ink text-lg font-medium">아직 참여한 독서방이 없어요</p>
-      <p className="text-ink-subtle mt-2 text-sm">독서방을 만들거나 초대 코드로 참여해 보세요.</p>
-      <p className="text-ink-subtle mt-12 text-xs">새 독서방은 하단 + 버튼에서 만들 수 있어요.</p>
+      <p className="text-ink text-lg font-medium">아직 참여한 책방이 없어요</p>
+      <p className="text-ink-subtle mt-2 text-sm">책방을 만들거나 초대 코드로 참여해 보세요.</p>
+      <p className="text-ink-subtle mt-12 text-xs">새 책방은 하단 + 버튼에서 만들 수 있어요.</p>
     </div>
   )
 }
 
-/** 독서방 목록 목록 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
+/** 최근 대화가 있는 순서로 책방 카드를 렌더링한다. */
 function RoomsList({ rooms }: { rooms: ReadingRoom[] }) {
   const navigate = useNavigate()
 
@@ -176,7 +176,7 @@ function RoomsList({ rooms }: { rooms: ReadingRoom[] }) {
                 </span>
               </span>
               <span className="text-ink-subtle flex flex-col items-end gap-2 pt-1 text-xs">
-                {formatRoomMessageTime(room.lastMessage?.createdAt ?? null) ?? '새 모임'}
+                {formatRoomMessageTime(room.lastMessage?.createdAt ?? null) ?? '새 책방'}
                 <span aria-hidden="true" className="text-lg">
                   ›
                 </span>
@@ -189,7 +189,7 @@ function RoomsList({ rooms }: { rooms: ReadingRoom[] }) {
   )
 }
 
-/** 독서방 멤버 프로필 이미지 목록 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
+/** 책방 멤버 프로필 이미지 목록 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function RoomMemberAvatars({ members }: { members: readonly ReadingRoomMember[] }) {
   const visibleMembers = members.slice(0, 3)
   const remainingCount = members.length - visibleMembers.length

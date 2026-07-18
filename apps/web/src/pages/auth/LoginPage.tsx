@@ -164,7 +164,7 @@ export function LoginPage() {
           함께 나눠요
         </h1>
         <p className="text-ink-subtle text-sm">
-          같은 책을 읽고 느낀 점을 편하게 나누는 독서방이에요.
+          같은 책을 읽고 느낀 점을 편하게 나누는 책방이에요.
         </p>
         {wasAccountDeleted ? (
           <p className="text-primary text-sm" role="status">

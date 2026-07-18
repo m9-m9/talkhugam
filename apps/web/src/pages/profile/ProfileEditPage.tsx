@@ -94,7 +94,7 @@ export function ProfileEditPage() {
       <header className="mt-8">
         <p className="text-primary text-sm font-medium">프로필</p>
         <h1 className="text-ink mt-2 text-2xl font-bold">프로필 편집</h1>
-        <p className="text-ink-subtle mt-2 text-sm">독서방에서 함께 읽는 사람들에게 보여요.</p>
+        <p className="text-ink-subtle mt-2 text-sm">내 소개와 독서 취향을 알려주세요.</p>
       </header>
 
       <form className="mt-8 space-y-6" onSubmit={form.handleSubmit(handleSubmit)}>

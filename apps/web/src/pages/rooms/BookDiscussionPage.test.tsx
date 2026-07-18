@@ -84,7 +84,11 @@ vi.mock('../../entities/reading-room', () => ({
 }))
 
 vi.mock('../../entities/book-completion', () => ({
-  bookCompletionKeys: { byChat: (bookChatId: string) => ['book-completions', bookChatId] },
+  bookCompletionKeys: {
+    byChat: (bookChatId: string) => ['book-completions', bookChatId],
+    myBookChatIds: (profileId: string) => ['my-completion-book-chat-ids', profileId],
+    myBooks: (profileId: string) => ['my-completed-books', profileId],
+  },
   getBookChatCompletions,
   removeBookChatCompletion: vi.fn(),
   upsertBookChatCompletion,
@@ -118,6 +122,8 @@ describe('BookDiscussionPage', () => {
     getVideoFilterMembers.mockClear()
     getVideoPosts.mockClear()
     getVideoPosts.mockResolvedValue([])
+    getBookChatCompletions.mockClear()
+    getBookChatCompletions.mockResolvedValue([])
     upsertBookChatCompletion.mockClear()
     upsertBookChatCompletion.mockResolvedValue(undefined)
     videoUploadState.isUploadingVideo = false
@@ -190,7 +196,15 @@ describe('BookDiscussionPage', () => {
     expect(screen.getByRole('button', { name: '완독 기록' })).not.toHaveClass('col-span-2')
   })
 
-  it('opens the completion sheet from the plus menu before it saves a personal completion record', async () => {
+  it('aligns the add button, message input, and send button in one composer grid', () => {
+    renderBookDiscussionPage()
+
+    const input = screen.getByLabelText('메시지 입력')
+
+    expect(input.parentElement?.parentElement).toHaveClass('talkhugam-chat-composer-row')
+  })
+
+  it('opens the completion review form from the plus menu before it saves a personal completion record', async () => {
     renderBookDiscussionPage()
 
     expect(screen.queryByRole('button', { name: '완독하기' })).not.toBeInTheDocument()
@@ -200,15 +214,44 @@ describe('BookDiscussionPage', () => {
     expect(await screen.findByRole('dialog', { name: '완독 기록' })).toBeInTheDocument()
 
     expect(upsertBookChatCompletion).not.toHaveBeenCalled()
-    fireEvent.click(await screen.findByRole('button', { name: '완독으로 기록하기' }))
+    fireEvent.click(await screen.findByRole('button', { name: '완독하기' }))
+    fireEvent.click(screen.getByRole('button', { name: '5점' }))
+    fireEvent.change(screen.getByLabelText('총평 (선택)'), {
+      target: { value: '대화가 오래 남는 책이에요.' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '완독 기록 저장' }))
 
     await vi.waitFor(() =>
       expect(upsertBookChatCompletion).toHaveBeenCalledWith(undefined, {
         bookChatId: 'book-1',
-        rating: null,
-        review: null,
+        rating: 5,
+        review: '대화가 오래 남는 책이에요.',
       }),
     )
+  })
+
+  it('shows the personal completion marker and reopens saved values for editing', async () => {
+    getBookChatCompletions.mockResolvedValueOnce([
+      {
+        completedAt: '2026-07-19T00:00:00.000Z',
+        displayName: '민규',
+        isMe: true,
+        profileId: '00000000-0000-0000-0000-000000000001',
+        rating: 4,
+        review: '다시 펼쳐 보고 싶은 책이에요.',
+      },
+    ])
+    renderBookDiscussionPage()
+
+    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
+    fireEvent.click(screen.getByRole('button', { name: '완독 기록' }))
+
+    expect(await screen.findByText('내 완독')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '수정하기' }))
+
+    expect(screen.getByRole('button', { name: '4점' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByLabelText('총평 (선택)')).toHaveValue('다시 펼쳐 보고 싶은 책이에요.')
+    expect(screen.getByRole('button', { name: '완독 기록 수정' })).toBeInTheDocument()
   })
 
   it('closes the action bubble when the user taps outside it', () => {
@@ -319,14 +362,14 @@ describe('BookDiscussionPage', () => {
     renderBookDiscussionPage()
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      '감상을 불러오지 못했어요. 다시 시도해 주세요.',
+      '독후감을 불러오지 못했어요. 다시 시도해 주세요.',
     )
-    expect(screen.queryByText('첫 감상을 남겨 보세요')).not.toBeInTheDocument()
+    expect(screen.queryByText('첫 독후감을 남겨 보세요')).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: '다시 시도' }))
 
     await vi.waitFor(() => expect(getPosts).toHaveBeenCalledTimes(2))
-    expect(await screen.findByText('첫 감상을 남겨 보세요')).toBeInTheDocument()
+    expect(await screen.findByText('첫 독후감을 남겨 보세요')).toBeInTheDocument()
   })
 
   it('shows a video query error instead of the empty conversation state and retries', async () => {
@@ -336,12 +379,12 @@ describe('BookDiscussionPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       '영상을 불러오지 못했어요. 다시 시도해 주세요.',
     )
-    expect(screen.queryByText('첫 감상을 남겨 보세요')).not.toBeInTheDocument()
+    expect(screen.queryByText('첫 독후감을 남겨 보세요')).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: '다시 시도' }))
 
     await vi.waitFor(() => expect(getVideoPosts).toHaveBeenCalledTimes(2))
-    expect(await screen.findByText('첫 감상을 남겨 보세요')).toBeInTheDocument()
+    expect(await screen.findByText('첫 독후감을 남겨 보세요')).toBeInTheDocument()
   })
 
   it('keeps loaded posts visible when the video query fails', async () => {
@@ -379,7 +422,7 @@ describe('BookDiscussionPage', () => {
     renderBookDiscussionPage()
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      '감상을 불러오지 못했어요. 다시 시도해 주세요.',
+      '독후감을 불러오지 못했어요. 다시 시도해 주세요.',
     )
     expect(screen.getByRole('status', { name: '영상 준비 중…' })).toBeInTheDocument()
   })
@@ -391,7 +434,7 @@ describe('BookDiscussionPage', () => {
     renderBookDiscussionPage()
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      '감상을 불러오지 못했어요. 다시 시도해 주세요.',
+      '독후감을 불러오지 못했어요. 다시 시도해 주세요.',
     )
 
     videoRequest.resolve([])
@@ -412,7 +455,7 @@ describe('BookDiscussionPage', () => {
     expect(screen.getByRole('button', { name: '다시 시도' })).toBeDisabled()
 
     retryRequest.resolve([])
-    expect(await screen.findByText('첫 감상을 남겨 보세요')).toBeInTheDocument()
+    expect(await screen.findByText('첫 독후감을 남겨 보세요')).toBeInTheDocument()
   })
 
   it('gives an at-sign mention candidate a 44px touch target', async () => {
@@ -515,7 +558,7 @@ describe('BookDiscussionPage', () => {
     fireEvent.click(screen.getByRole('button', { name: '전송' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      '감상을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.',
+      '독후감을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.',
     )
     expectComposerState()
   })
@@ -540,7 +583,7 @@ describe('BookDiscussionPage', () => {
     fireEvent.click(screen.getByRole('button', { name: '전송' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      '감상을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.',
+      '독후감을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.',
     )
     expect(screen.getByText('답글 남기기', { selector: 'p' })).toBeInTheDocument()
     expect(screen.getByLabelText('메시지 입력')).toHaveValue('@민수 저도요')

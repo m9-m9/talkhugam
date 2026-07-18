@@ -81,7 +81,7 @@ export function RoomManagementPage() {
     <main className="app-page bg-surface px-4 pb-8">
       <AppHeader onBack={() => void navigate(`/rooms/${roomId}`)} title="방 정보" />
       <header className="mt-8">
-        <p className="text-primary text-sm font-medium">함께 읽는 모임</p>
+        <p className="text-primary text-sm font-medium">함께 읽는 책방</p>
         <h1 className="text-ink mt-2 text-xl font-bold">{room.name}</h1>
         <p className="text-ink-subtle mt-2 text-sm">{room.description ?? '아직 소개가 없어요.'}</p>
       </header>
@@ -187,7 +187,7 @@ export function RoomManagementPage() {
         >
           {room.isCurrentUserOwner && room.members.length === 1
             ? '방 보관하고 나가기'
-            : '독서방 나가기'}
+            : '책방 나가기'}
         </button>
       </section>
 
@@ -208,7 +208,7 @@ export function RoomManagementPage() {
   )
 }
 
-/** 프로필 식별자가 있는 멤버에게만 같은 독서방 안의 프로필 진입 CTA를 제공한다. */
+/** 프로필 식별자가 있는 멤버에게만 같은 책방 안의 프로필 진입 CTA를 제공한다. */
 function MemberProfileLink({ member, roomId }: { member: RoomManagementMember; roomId: string }) {
   const memberContent = (
     <>
@@ -341,7 +341,7 @@ function getActionContent(action: Exclude<PendingAction, null>) {
   return {
     confirmLabel: '나가기',
     description: '대화는 방에 남고, 다시 참여하려면 초대 코드가 필요해요.',
-    title: '독서방을 나갈까요?',
+    title: '책방을 나갈까요?',
   }
 }
 
@@ -349,13 +349,13 @@ function getActionContent(action: Exclude<PendingAction, null>) {
 function RoomManagementUnavailablePage({ onBack }: { onBack: () => void }) {
   return (
     <main className="app-page bg-surface flex min-h-screen flex-col items-center justify-center px-4 text-center">
-      <p className="text-ink text-lg font-bold">이 독서방을 찾을 수 없어요</p>
+      <p className="text-ink text-lg font-bold">이 책방을 찾을 수 없어요</p>
       <button
         className="bg-primary mt-6 min-h-11 rounded-md px-4 text-sm font-semibold text-white"
         onClick={onBack}
         type="button"
       >
-        내 독서방으로
+        내 책방으로
       </button>
     </main>
   )

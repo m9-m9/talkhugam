@@ -68,25 +68,16 @@ describe('ProfilePage', () => {
     vi.resetAllMocks()
   })
 
-  it('shows the signed-in member completed books between profile and account settings', async () => {
+  it('shows four detail destinations instead of rendering profile and completion details on the hub', async () => {
     renderProfilePage()
 
-    expect(await screen.findByRole('heading', { name: '내가 완독한 책' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: '미움받을 용기 책 대화로 이동' })).toHaveAttribute(
-      'href',
-      '/rooms/00000000-0000-0000-0000-000000000202/books/00000000-0000-0000-0000-000000000201',
-    )
-    expect(screen.getByText('★★★★★')).toBeInTheDocument()
-    expect(screen.getByText('다시 읽고 싶은 책이에요.')).toBeInTheDocument()
-  })
-
-  it('offers a route to every reading book instead of an archive action', async () => {
-    renderProfilePage()
-
-    expect(
-      await screen.findByRole('button', { name: '읽고 있는 책 모두 보기' }),
-    ).toBeInTheDocument()
-    expect(screen.queryByText('보관한 책')).not.toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: '내 정보 수정' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '책방 보기' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '읽고 있는 책 보기' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '계정 설정' })).toBeInTheDocument()
+    expect(screen.queryByText('프로필 정보')).not.toBeInTheDocument()
+    expect(screen.queryByText('내가 완독한 책')).not.toBeInTheDocument()
+    expect(screen.queryByText('미움받을 용기')).not.toBeInTheDocument()
   })
 
   it('shows a retry state instead of a loading spinner when the profile lookup fails', async () => {
@@ -127,35 +118,6 @@ describe('ProfilePage', () => {
     })
 
     expect(await screen.findByRole('heading', { name: '민규' })).toBeInTheDocument()
-  })
-
-  it('keeps completed books visible when a later lookup fails and offers a retry', async () => {
-    getMyCompletedBooks
-      .mockResolvedValueOnce([
-        {
-          authors: ['기시미 이치로'],
-          bookChatId: '00000000-0000-0000-0000-000000000201',
-          completedAt: '2026-07-18T01:00:00+00:00',
-          rating: 5,
-          review: '다시 읽고 싶은 책이에요.',
-          roomId: '00000000-0000-0000-0000-000000000202',
-          thumbnailUrl: null,
-          title: '미움받을 용기',
-        },
-      ])
-      .mockRejectedValueOnce(new Error('network'))
-    const { queryClient } = renderProfilePage()
-
-    expect(
-      await screen.findByRole('link', { name: '미움받을 용기 책 대화로 이동' }),
-    ).toBeInTheDocument()
-    await queryClient.refetchQueries({ queryKey: ['my-completed-books'] })
-
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      '완독한 책을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.',
-    )
-    expect(screen.getByRole('link', { name: '미움받을 용기 책 대화로 이동' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '다시 시도' })).toBeInTheDocument()
   })
 })
 

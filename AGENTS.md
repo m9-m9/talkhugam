@@ -102,3 +102,13 @@
 - 코드 식별자, 명령어, 파일명, 라이브러리·서비스 고유명사는 정확성을 위해 원문 표기를 허용한다.
 - `main`에 직접 push하지 않고 PR에서 Squash and merge한다. 단, 원격 저장소의 최초 부트스트랩 커밋은 예외로 한다.
 - 비밀값, 로컬 환경파일, 실제 사용자 데이터는 커밋하지 않는다.
+
+<!-- OPENWIKI:START -->
+
+## OpenWiki
+
+This repository uses OpenWiki for recurring code documentation. Start with `openwiki/quickstart.md`, then follow its links to architecture, workflows, domain concepts, operations, integrations, testing guidance, and source maps.
+
+OpenWiki is currently refreshed locally with Node 22 because the repository does not store a separate API key for GitHub Actions. When user flows change, regenerate the pages or update the affected generated guide in the same PR.
+
+<!-- OPENWIKI:END -->

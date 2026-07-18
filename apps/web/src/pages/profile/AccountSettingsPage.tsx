@@ -28,7 +28,7 @@ type NotificationPreferenceKey = keyof NotificationPreferences
 const notificationPreferenceLabels: Record<NotificationPreferenceKey, string> = {
   mentionsEnabled: '멘션 알림',
   repliesEnabled: '답글 알림',
-  roomEventsEnabled: '독서방 알림',
+  roomEventsEnabled: '책방 알림',
 }
 
 /** 계정 설정 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
@@ -396,7 +396,7 @@ function AccountDeletionDialog({
           계정 삭제
         </h2>
         <p className="text-ink-subtle mt-3 text-sm">
-          방장이 있는 독서방은 먼저 다른 멤버에게 방장을 넘겨야 해요.
+          방장인 책방은 먼저 다른 멤버에게 방장을 넘겨야 해요.
         </p>
         <fieldset className="mt-6 space-y-3">
           <legend className="text-ink text-sm font-semibold">기록을 어떻게 처리할까요?</legend>
@@ -499,7 +499,7 @@ function DeletionModeOption({
 /** 계정 삭제 오류를 사용자 행동이 가능한 문구로 변환한다. */
 function getDeletionErrorMessage(error: Error): string {
   if (error instanceof AccountDeletionError && error.code === 'OWNER_TRANSFER_REQUIRED') {
-    return '방장이 있는 독서방은 다른 멤버에게 방장을 넘긴 뒤 삭제할 수 있어요.'
+    return '방장인 책방은 다른 멤버에게 방장을 넘긴 뒤 삭제할 수 있어요.'
   }
 
   return '계정 삭제를 완료하지 못했어요. 잠시 후 다시 시도해 주세요.'

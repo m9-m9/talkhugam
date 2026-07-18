@@ -11,7 +11,7 @@ import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 import { RetryState } from '../../shared/ui/RetryState'
 import { CompletionMark } from '../../shared/ui/CompletionMark'
 
-/** 독서방 상세 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
+/** 선택한 책방의 책 대화와 관리 진입점을 렌더링한다. */
 export function RoomDetailPage() {
   const navigate = useNavigate()
   const profileId = useAuthenticatedUser().id
@@ -65,10 +65,10 @@ export function RoomDetailPage() {
           </div>
         }
         onBack={() => void navigate('/rooms')}
-        title="독서방"
+        title="책방"
       />
       <header className="mt-8">
-        <p className="text-primary text-sm font-medium">독서방</p>
+        <p className="text-primary text-sm font-medium">책방</p>
         <h1 className="text-ink mt-2 text-xl font-bold">{roomQuery.data.name}</h1>
         {roomQuery.data.description ? (
           <p className="text-ink-subtle mt-2 text-sm">{roomQuery.data.description}</p>
@@ -166,27 +166,27 @@ function EmptyBookChats() {
   )
 }
 
-/** 독서방 로딩 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
+/** 책방을 불러오는 동안 브랜드 로딩 상태를 렌더링한다. */
 function RoomLoadingPage() {
   return (
     <main className="bg-surface flex min-h-screen items-center justify-center px-4">
-      <LoadingSpinner label="독서방을 불러오고 있어요." variant="book" />
+      <LoadingSpinner label="책방을 불러오고 있어요." variant="book" />
     </main>
   )
 }
 
-/** 독서방 Unavailable 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
+/** 접근할 수 없는 책방의 안내를 렌더링한다. */
 function RoomUnavailablePage({ onBack }: { onBack: () => void }) {
   return (
     <main className="bg-surface flex min-h-screen flex-col items-center justify-center px-4 text-center">
-      <p className="text-ink text-lg font-medium">이 독서방을 찾을 수 없어요</p>
-      <p className="text-ink-subtle mt-2 text-sm">참여 중인 독서방인지 확인해 주세요.</p>
+      <p className="text-ink text-lg font-medium">이 책방을 찾을 수 없어요</p>
+      <p className="text-ink-subtle mt-2 text-sm">참여 중인 책방인지 확인해 주세요.</p>
       <button
         className="bg-primary mt-6 min-h-11 rounded-md px-4 text-sm font-semibold text-white"
         onClick={onBack}
         type="button"
       >
-        내 독서방으로
+        내 책방으로
       </button>
     </main>
   )

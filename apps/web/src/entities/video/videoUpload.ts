@@ -100,7 +100,7 @@ export type VideoPostFilter =
 export const videoKeys = {
   /** 책 대화방 식별자로 안정적인 query key를 생성한다. */
   byBookChat: (bookChatId: string) => ['video-posts', bookChatId] as const,
-  /** 독서방 식별자로 영상 필터 멤버 query key를 생성한다. */
+  /** 책방 식별자로 영상 필터 멤버 query key를 생성한다. */
   members: (roomId: string) => ['video-filter-members', roomId] as const,
   /** 메시지 식별자로 안정적인 query key를 생성한다. */
   byPost: (postId: string) => ['video-asset', postId] as const,
@@ -108,7 +108,7 @@ export const videoKeys = {
   playback: (postId: string) => ['video-playback', postId] as const,
   /** 메시지 식별자 목록으로 영상 썸네일 query key를 생성한다. */
   thumbnails: (postIds: readonly string[]) => ['video-thumbnails', ...postIds] as const,
-  /** 독서방과 작성자 식별자로 영상 삭제 권한 query key를 생성한다. */
+  /** 책방과 작성자 식별자로 영상 삭제 권한 query key를 생성한다. */
   deletePermission: (roomId: string, authorMemberId: string | null) =>
     ['video-delete-permission', roomId, authorMemberId] as const,
 }

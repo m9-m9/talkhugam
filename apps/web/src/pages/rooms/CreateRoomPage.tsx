@@ -17,7 +17,7 @@ import { trackAnalyticsEvent } from '../../shared/analytics'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
-/** 생성 독서방 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
+/** 새 책방을 만들고 초대 코드를 생성하는 화면을 렌더링한다. */
 export function CreateRoomPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -40,7 +40,7 @@ export function CreateRoomPage() {
       trackAnalyticsEvent('reading_room_created')
       setCreatedRoom(invite)
     } catch {
-      setErrorMessage('독서방을 만들지 못했어요. 잠시 후 다시 시도해 주세요.')
+      setErrorMessage('책방을 만들지 못했어요. 잠시 후 다시 시도해 주세요.')
     }
   }
 
@@ -55,18 +55,18 @@ export function CreateRoomPage() {
 
   return (
     <main className="app-page bg-surface px-4 pb-8">
-      <AppHeader onBack={() => void navigate(-1)} title="독서방 만들기" />
+      <AppHeader onBack={() => void navigate(-1)} title="책방 만들기" />
       <header className="mt-8">
-        <h1 className="text-ink text-xl font-bold">독서방 만들기</h1>
-        <p className="text-ink-subtle mt-1 text-sm">모임 이름을 정하고 친구를 초대해 보세요.</p>
+        <h1 className="text-ink text-xl font-bold">책방 만들기</h1>
+        <p className="text-ink-subtle mt-1 text-sm">책방 이름을 정하고 친구를 초대해 보세요.</p>
       </header>
 
       <form className="mt-12 space-y-6" onSubmit={form.handleSubmit(handleSubmit)}>
-        <FormField errorMessage={form.formState.errors.name?.message} label="모임 이름">
+        <FormField errorMessage={form.formState.errors.name?.message} label="책방 이름">
           <input
             aria-invalid={Boolean(form.formState.errors.name)}
             className="border-ink/10 focus:border-primary min-h-12 w-full rounded-md border bg-white px-4 text-sm outline-none"
-            placeholder="예: 금요일 아침 독서 모임"
+            placeholder="예: 금요일 아침 책방"
             {...form.register('name')}
           />
         </FormField>
@@ -95,11 +95,11 @@ export function CreateRoomPage() {
         >
           {form.formState.isSubmitting ? (
             <span className="flex items-center justify-center gap-2">
-              <LoadingSpinner label="독서방을 만들고 있어요." showLabel={false} size="xs" />
-              독서방을 만들고 있어요…
+              <LoadingSpinner label="책방을 만들고 있어요." showLabel={false} size="xs" />
+              책방을 만들고 있어요…
             </span>
           ) : (
-            '독서방 만들기'
+            '책방 만들기'
           )}
         </button>
       </form>
@@ -107,7 +107,7 @@ export function CreateRoomPage() {
   )
 }
 
-/** 독서방 생성 완료 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
+/** 책방 생성 직후 초대 코드를 공유할 수 있는 완료 화면을 렌더링한다. */
 function RoomCreatedPage({ invite, onClose }: { invite: CreatedRoomInvite; onClose: () => void }) {
   const [isCopied, setIsCopied] = useState(false)
 
@@ -133,14 +133,14 @@ function RoomCreatedPage({ invite, onClose }: { invite: CreatedRoomInvite; onClo
             나중에
           </button>
         }
-        title="독서방 만들기 완료"
+        title="책방 만들기 완료"
       />
       <header className="mt-8">
-        <h1 className="text-ink text-xl font-bold">독서방 만들기 완료</h1>
-        <p className="text-ink-subtle mt-1 text-sm">새 독서방을 만들었어요.</p>
+        <h1 className="text-ink text-xl font-bold">책방 만들기 완료</h1>
+        <p className="text-ink-subtle mt-1 text-sm">새 책방을 만들었어요.</p>
       </header>
       <div className="flex flex-1 flex-col items-center justify-center text-center">
-        <p className="text-ink text-2xl font-bold">독서방이 만들어졌어요!</p>
+        <p className="text-ink text-2xl font-bold">책방이 만들어졌어요!</p>
         <p className="text-ink-subtle mt-3 text-sm">
           초대 코드를 보내고 함께 읽을 친구를 불러보세요.
         </p>

@@ -29,14 +29,14 @@ describe('CreateRoomPage', () => {
 
     renderCreateRoomPage()
 
-    fireEvent.change(screen.getByLabelText('모임 이름'), { target: { value: '금요일 아침 모임' } })
-    fireEvent.click(screen.getByRole('button', { name: '독서방 만들기' }))
+    fireEvent.change(screen.getByLabelText('책방 이름'), { target: { value: '금요일 아침 책방' } })
+    fireEvent.click(screen.getByRole('button', { name: '책방 만들기' }))
 
     await waitFor(() => {
       expect(createRoomWithInvite).toHaveBeenCalledWith(
         undefined,
         '00000000-0000-0000-0000-000000000001',
-        { description: '', name: '금요일 아침 모임' },
+        { description: '', name: '금요일 아침 책방' },
       )
     })
     expect(await screen.findByText('TALK87')).toBeInTheDocument()
@@ -48,11 +48,11 @@ describe('CreateRoomPage', () => {
 
     renderCreateRoomPage()
 
-    fireEvent.change(screen.getByLabelText('모임 이름'), { target: { value: '금요일 아침 모임' } })
-    fireEvent.click(screen.getByRole('button', { name: '독서방 만들기' }))
+    fireEvent.change(screen.getByLabelText('책방 이름'), { target: { value: '금요일 아침 책방' } })
+    fireEvent.click(screen.getByRole('button', { name: '책방 만들기' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      '독서방을 만들지 못했어요. 잠시 후 다시 시도해 주세요.',
+      '책방을 만들지 못했어요. 잠시 후 다시 시도해 주세요.',
     )
   })
 })

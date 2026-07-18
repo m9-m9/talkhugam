@@ -9,7 +9,7 @@ import { AppHeader } from '../../shared/ui/AppHeader'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 import { RetryState } from '../../shared/ui/RetryState'
 
-/** 같은 독서방에서 함께 읽는 멤버의 공개 프로필을 렌더링한다. */
+/** 같은 책방에서 함께 읽는 멤버의 공개 프로필을 렌더링한다. */
 export function MemberProfilePage() {
   const navigate = useNavigate()
   const { profileId, roomId } = useParams()
@@ -58,7 +58,7 @@ export function MemberProfilePage() {
             <h1 className="text-ink text-xl font-bold" id="member-profile-heading">
               {profile.displayName}
             </h1>
-            <p className="text-ink-subtle mt-1 text-sm">같은 독서방에서 함께 읽고 있어요.</p>
+            <p className="text-ink-subtle mt-1 text-sm">같은 책방에서 함께 읽고 있어요.</p>
           </div>
         </div>
       </section>
@@ -80,7 +80,7 @@ export function MemberProfilePage() {
         className="bg-primary mt-12 flex min-h-11 w-full items-center justify-center rounded-md px-4 text-sm font-semibold text-white"
         to={`/rooms/${roomId}`}
       >
-        독서방으로 돌아가기
+        책방으로 돌아가기
       </Link>
     </main>
   )
@@ -115,7 +115,7 @@ function MemberProfileUnavailablePage({ onBack }: { onBack: () => void }) {
         onClick={onBack}
         type="button"
       >
-        내 독서방으로
+        내 책방으로
       </button>
     </main>
   )
@@ -134,7 +134,7 @@ function MemberProfileErrorPage({ onBack, onRetry }: { onBack: () => void; onRet
         onClick={onBack}
         type="button"
       >
-        독서방으로 돌아가기
+        책방으로 돌아가기
       </button>
     </main>
   )

@@ -1,12 +1,29 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
 import { MyReadingBooksPage } from './MyReadingBooksPage'
 
-const { getMyBookChatCompletionIds, getMyReadingBooks } = vi.hoisted(() => ({
+const {
+  getMyBookChatCompletionIds,
+  getMyCompletedBooks,
+  getMyReadingBooks,
+  upsertBookChatCompletion,
+} = vi.hoisted(() => ({
   getMyBookChatCompletionIds: vi.fn().mockResolvedValue(['00000000-0000-0000-0000-000000000101']),
+  getMyCompletedBooks: vi.fn().mockResolvedValue([
+    {
+      authors: ['기시미 이치로'],
+      bookChatId: '00000000-0000-0000-0000-000000000101',
+      completedAt: '2026-07-18T01:00:00+00:00',
+      rating: 4,
+      review: '나를 돌아보게 한 책이에요.',
+      roomId: '00000000-0000-0000-0000-000000000201',
+      thumbnailUrl: null,
+      title: '미움받을 용기',
+    },
+  ]),
   getMyReadingBooks: vi.fn().mockResolvedValue([
     {
       authors: ['기시미 이치로'],
@@ -27,6 +44,7 @@ const { getMyBookChatCompletionIds, getMyReadingBooks } = vi.hoisted(() => ({
       title: '모순',
     },
   ]),
+  upsertBookChatCompletion: vi.fn().mockResolvedValue(undefined),
 }))
 
 vi.mock('../../entities/book-chat', () => ({
@@ -43,8 +61,11 @@ vi.mock('../../entities/book-chat', () => ({
 vi.mock('../../entities/book-completion', () => ({
   bookCompletionKeys: {
     myBookChatIds: (profileId: string) => ['my-completion-book-chat-ids', profileId],
+    myBooks: (profileId: string) => ['my-completed-books', profileId],
   },
   getMyBookChatCompletionIds,
+  getMyCompletedBooks,
+  upsertBookChatCompletion,
 }))
 
 vi.mock('../../features/auth', () => ({
@@ -64,6 +85,44 @@ describe('MyReadingBooksPage', () => {
     expect(screen.getByRole('link', { name: '미움받을 용기 책 대화로 이동' })).toHaveAttribute(
       'href',
       '/rooms/00000000-0000-0000-0000-000000000201/books/00000000-0000-0000-0000-000000000101',
+    )
+  })
+
+  it('opens a completion record sheet from an unfinished book card', async () => {
+    renderMyReadingBooksPage()
+
+    fireEvent.click(await screen.findByRole('button', { name: '모순 완독하기' }))
+
+    expect(screen.getByRole('dialog', { name: '완독 기록' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '완독 기록 저장' })).toBeInTheDocument()
+  })
+
+  it('opens a prefilled completion record sheet from a completed book card', async () => {
+    renderMyReadingBooksPage()
+
+    fireEvent.click(await screen.findByRole('button', { name: '미움받을 용기 기록 수정' }))
+
+    expect(screen.getByRole('dialog', { name: '완독 기록' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '4점', pressed: true })).toBeInTheDocument()
+    expect(screen.getByDisplayValue('나를 돌아보게 한 책이에요.')).toBeInTheDocument()
+  })
+
+  it('saves the rating and review entered from an unfinished book card', async () => {
+    renderMyReadingBooksPage()
+
+    fireEvent.click(await screen.findByRole('button', { name: '모순 완독하기' }))
+    fireEvent.click(screen.getByRole('button', { name: '5점' }))
+    fireEvent.change(screen.getByRole('textbox', { name: '총평 (선택)' }), {
+      target: { value: '다시 읽고 싶은 문장이 많아요.' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '완독 기록 저장' }))
+
+    await waitFor(() =>
+      expect(upsertBookChatCompletion).toHaveBeenCalledWith(undefined, {
+        bookChatId: '00000000-0000-0000-0000-000000000102',
+        rating: 5,
+        review: '다시 읽고 싶은 문장이 많아요.',
+      }),
     )
   })
 })

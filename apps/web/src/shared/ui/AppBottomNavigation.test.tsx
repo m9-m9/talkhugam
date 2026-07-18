@@ -21,10 +21,10 @@ describe('AppBottomNavigation', () => {
       </MemoryRouter>,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: '모임 시작 메뉴 열기' }))
+    fireEvent.click(screen.getByRole('button', { name: '책방 시작 메뉴 열기' }))
 
-    expect(screen.getByRole('button', { name: '새 모임 만들기' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '초대 코드로 참여' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '새 책방 만들기' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '초대 코드로 책방 참여' })).toBeInTheDocument()
     expect(container.querySelector('path')?.getAttribute('d')).toContain('C31 1 75 1')
   })
 
@@ -35,15 +35,15 @@ describe('AppBottomNavigation', () => {
       </MemoryRouter>,
     )
 
-    const trigger = screen.getByRole('button', { name: '모임 시작 메뉴 열기' })
+    const trigger = screen.getByRole('button', { name: '책방 시작 메뉴 열기' })
     fireEvent.click(trigger)
 
-    await expect(screen.getByRole('button', { name: '새 모임 만들기' })).toHaveFocus()
+    await expect(screen.getByRole('button', { name: '새 책방 만들기' })).toHaveFocus()
 
     fireEvent.keyDown(window, { key: 'Escape' })
 
     await expect(trigger).toHaveFocus()
-    expect(screen.queryByRole('button', { name: '새 모임 만들기' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '새 책방 만들기' })).not.toBeInTheDocument()
   })
 
   it('navigates to room creation from the left page of the action book', () => {
@@ -56,8 +56,8 @@ describe('AppBottomNavigation', () => {
       </MemoryRouter>,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: '모임 시작 메뉴 열기' }))
-    fireEvent.click(screen.getByRole('button', { name: '새 모임 만들기' }))
+    fireEvent.click(screen.getByRole('button', { name: '책방 시작 메뉴 열기' }))
+    fireEvent.click(screen.getByRole('button', { name: '새 책방 만들기' }))
 
     expect(screen.getByText('/rooms/create')).toBeInTheDocument()
   })
@@ -69,11 +69,11 @@ describe('AppBottomNavigation', () => {
       </MemoryRouter>,
     )
 
-    const trigger = screen.getByRole('button', { name: '모임 시작 메뉴 열기' })
+    const trigger = screen.getByRole('button', { name: '책방 시작 메뉴 열기' })
     fireEvent.click(trigger)
     fireEvent.pointerDown(document.body)
 
-    expect(screen.queryByRole('button', { name: '새 모임 만들기' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '새 책방 만들기' })).not.toBeInTheDocument()
     expect(trigger).toHaveFocus()
   })
 
@@ -84,12 +84,12 @@ describe('AppBottomNavigation', () => {
       </MemoryRouter>,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: '모임 시작 메뉴 열기' }))
+    fireEvent.click(screen.getByRole('button', { name: '책방 시작 메뉴 열기' }))
     const profileButton = screen.getByRole('button', { name: '내 정보' })
     profileButton.focus()
     fireEvent.focusIn(profileButton)
 
-    expect(screen.queryByRole('button', { name: '새 모임 만들기' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '새 책방 만들기' })).not.toBeInTheDocument()
     expect(profileButton).toHaveFocus()
   })
 
@@ -103,8 +103,8 @@ describe('AppBottomNavigation', () => {
       </MemoryRouter>,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: '모임 시작 메뉴 열기' }))
-    fireEvent.click(screen.getByRole('button', { name: '초대 코드로 참여' }))
+    fireEvent.click(screen.getByRole('button', { name: '책방 시작 메뉴 열기' }))
+    fireEvent.click(screen.getByRole('button', { name: '초대 코드로 책방 참여' }))
 
     expect(screen.getByText('/rooms/join')).toBeInTheDocument()
   })

@@ -33,8 +33,8 @@ export const createRoomFormSchema = z.object({
   name: z
     .string()
     .trim()
-    .min(1, '모임 이름을 입력해 주세요.')
-    .max(40, '모임 이름은 40자 이내로 작성해 주세요.'),
+    .min(1, '책방 이름을 입력해 주세요.')
+    .max(40, '책방 이름은 40자 이내로 작성해 주세요.'),
 })
 
 export const joinRoomFormSchema = z.object({
@@ -54,7 +54,7 @@ export type CreatedRoomInvite = {
   roomId: string
 }
 
-/** 독서방 With 초대 데이터를 생성해 반환한다. */
+/** 책방과 초대 코드를 함께 생성해 반환한다. */
 export async function createRoomWithInvite(
   client: SupabaseClient,
   profileId: string,
@@ -67,7 +67,7 @@ export async function createRoomWithInvite(
   return { code: invite.code, expiresAt: invite.expiresAt, roomId }
 }
 
-/** 초대 코드를 검증해 현재 사용자를 독서방 멤버로 참여시킨다. */
+/** 초대 코드를 검증해 현재 사용자를 책방 멤버로 참여시킨다. */
 export async function joinRoomByCode(
   client: SupabaseClient,
   profileId: string,
@@ -84,7 +84,7 @@ export async function joinRoomByCode(
   return getSingleResult(joinRoomResultSchema.parse(response.data)).room_id
 }
 
-/** 독서방 데이터를 생성해 반환한다. */
+/** 책방 데이터를 생성해 반환한다. */
 async function createReadingRoom(
   client: SupabaseClient,
   values: CreateRoomForm,
