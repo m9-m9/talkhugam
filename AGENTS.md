@@ -17,6 +17,12 @@
 
 - 새 기능, 버그 수정, 리팩터링처럼 **코드를 작성하거나 변경할 때만** Superpowers의
   `test-driven-development`, `systematic-debugging`, `verification-before-completion`을 사용한다.
+- 같은 코드 작업에서는 Ponytail `full` 모드로 요구사항·기존 구현·표준 기능을 먼저 확인하고,
+  가장 작은 안전한 구현을 선택한다. 보안, 입력 검증, 접근성, 명시된 요구사항은 단순화하지 않는다.
+- 커밋 또는 PR 직전에는 변경분에 `ponytail-review`를 실행해 불필요한 추상화·의존성·죽은 코드를
+  확인한다. 전체 `ponytail-audit`은 주요 기능 묶음 완료 또는 출시 전 점검에서만 실행한다.
+- 의도적으로 남긴 단순화에 한계와 재검토 조건이 있으면 `ponytail:` 주석으로 남기고, 이후
+  `ponytail-debt`로 목록을 점검한다.
 - 기획 논의, 문구 수정, Figma만 수정하는 작업에는 Superpowers 절차를 강제하지 않는다.
 - Superpowers 지침과 이 파일이 충돌하면 이 파일의 보안, 아키텍처, UI, 테스트, Git 규칙을 우선한다.
 
