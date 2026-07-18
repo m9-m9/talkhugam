@@ -21,19 +21,21 @@ import {
   type BookCompletionInput,
 } from '../../entities/book-completion'
 import {
-  getVideoPlaybackAuthorization,
+  createMuxThumbnailUrl,
   getVideoFilterMembers,
   getVideoPosts,
+  getVideoThumbnailAuthorizations,
+  mapVideoThumbnailAuthorizations,
   videoKeys,
   type VideoFilterMember,
   type VideoPost,
+  type VideoThumbnailAuthorization,
 } from '../../entities/video'
 import { useVideoUpload } from '../../features/video-upload'
 import { useAuthenticatedUser } from '../../features/auth'
 import { readingRoomKeys } from '../../entities/reading-room'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
-import { LazyMuxVideoPlayer } from '../../shared/ui/LazyMuxVideoPlayer'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 import { RetryState } from '../../shared/ui/RetryState'
 
@@ -78,6 +80,16 @@ export function BookDiscussionPage() {
     queryFn: () => getVideoFilterMembers(createSupabaseClient(), roomId ?? ''),
     queryKey: videoKeys.members(roomId ?? ''),
   })
+  const readyVideoPostIds = (videosQuery.data ?? [])
+    .filter((video) => video.status === 'ready')
+    .map((video) => video.id)
+  const thumbnailsQuery = useQuery({
+    enabled: readyVideoPostIds.length > 0,
+    queryFn: () => getVideoThumbnailAuthorizations(createSupabaseClient(), readyVideoPostIds),
+    queryKey: videoKeys.thumbnails(readyVideoPostIds),
+    staleTime: 4 * 60 * 1_000,
+  })
+  const thumbnailsByPostId = mapVideoThumbnailAuthorizations(thumbnailsQuery.data ?? [])
   const completionsQuery = useQuery({
     enabled: Boolean(bookChatId),
     queryFn: () => getBookChatCompletions(createSupabaseClient(), bookChatId ?? '', profileId),
@@ -179,6 +191,11 @@ export function BookDiscussionPage() {
             onRetry={handleRetryTimeline}
             retryMessage={timelineRetryMessage}
             videos={videosQuery.data ?? []}
+            isThumbnailLoading={thumbnailsQuery.isLoading}
+            onOpenVideo={(videoId) =>
+              void navigate(`/rooms/${roomId}/books/${bookChatId}/videos/${videoId}`)
+            }
+            thumbnailsByPostId={thumbnailsByPostId}
           />
         )}
       </section>
@@ -212,10 +229,13 @@ function DiscussionTimeline({
   hasPendingQuery,
   hasVideoError,
   isRetrying,
+  isThumbnailLoading,
+  onOpenVideo,
   onReply,
   onRetry,
   posts,
   retryMessage,
+  thumbnailsByPostId,
   videos,
 }: {
   allPosts: DiscussionPost[]
@@ -223,10 +243,13 @@ function DiscussionTimeline({
   hasPendingQuery: boolean
   hasVideoError: boolean
   isRetrying: boolean
+  isThumbnailLoading: boolean
+  onOpenVideo: (videoId: string) => void
   onReply: (id: string) => void
   onRetry: () => void
   posts: DiscussionPost[]
   retryMessage: string | null
+  thumbnailsByPostId: ReadonlyMap<string, VideoThumbnailAuthorization>
   videos: VideoPost[]
 }) {
   const errorMessage =
@@ -242,9 +265,12 @@ function DiscussionTimeline({
       <ChatTimeline
         allPosts={allPosts}
         onReply={onReply}
+        isThumbnailLoading={isThumbnailLoading}
+        onOpenVideo={onOpenVideo}
         posts={posts}
         showEmptyState={!errorMessage && !hasPendingQuery}
         videos={videos}
+        thumbnailsByPostId={thumbnailsByPostId}
       />
       {isShowingLoadingFeedback ? <LoadingSpinner label={loadingLabel} size="xs" /> : null}
     </div>
@@ -862,15 +888,21 @@ function ActionButton({
 /** 대화 타임라인 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function ChatTimeline({
   allPosts,
+  isThumbnailLoading,
+  onOpenVideo,
   onReply,
   posts,
   showEmptyState = true,
+  thumbnailsByPostId,
   videos,
 }: {
   allPosts: DiscussionPost[]
+  isThumbnailLoading: boolean
+  onOpenVideo: (videoId: string) => void
   onReply: (id: string) => void
   posts: DiscussionPost[]
   showEmptyState?: boolean
+  thumbnailsByPostId: ReadonlyMap<string, VideoThumbnailAuthorization>
   videos: VideoPost[]
 }) {
   const messages = createChatMessages(posts, videos)
@@ -887,7 +919,7 @@ function ChatTimeline({
       {messages.map((message) =>
         message.type === 'text' ? (
           <li className="flex" key={message.post.id}>
-            <article className="border-ink/10 max-w-full rounded-lg border bg-white px-4 py-3">
+            <article className="border-ink/10 w-fit max-w-[70%] rounded-lg border bg-white px-4 py-3">
               <p className="text-ink text-sm font-medium">{message.post.authorName}</p>
               <PostLabels labels={message.post.labels} />
               {message.post.body ? (
@@ -905,7 +937,12 @@ function ChatTimeline({
           </li>
         ) : (
           <li className="flex" key={message.video.id}>
-            <VideoMessage video={message.video} />
+            <VideoMessage
+              isThumbnailLoading={isThumbnailLoading}
+              onOpen={() => onOpenVideo(message.video.id)}
+              thumbnailAuthorization={thumbnailsByPostId.get(message.video.id)}
+              video={message.video}
+            />
           </li>
         ),
       )}
@@ -914,48 +951,52 @@ function ChatTimeline({
 }
 
 /** 영상 메시지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
-function VideoMessage({ video }: { video: VideoPost }) {
-  const [hasPlaybackMediaError, setHasPlaybackMediaError] = useState(false)
-  const playbackQuery = useQuery({
-    enabled: video.status === 'ready',
-    queryFn: () => getVideoPlaybackAuthorization(createSupabaseClient(), video.id),
-    queryKey: ['video-playback', video.id],
-    staleTime: 4 * 60 * 1_000,
-  })
-  /** Mux 재생기 오류를 현재 영상 카드의 재시도 상태로 전환한다. */
-  function handlePlaybackMediaError() {
-    setHasPlaybackMediaError(true)
-  }
-
-  /** 실패 안내를 닫고 해당 영상의 재생 권한만 다시 요청한다. */
-  function handleRetryPlaybackMedia() {
-    setHasPlaybackMediaError(false)
-    void playbackQuery.refetch()
-  }
-
-  if (video.status === 'ready' && playbackQuery.data && !hasPlaybackMediaError)
+function VideoMessage({
+  isThumbnailLoading,
+  onOpen,
+  thumbnailAuthorization,
+  video,
+}: {
+  isThumbnailLoading: boolean
+  onOpen: () => void
+  thumbnailAuthorization: VideoThumbnailAuthorization | undefined
+  video: VideoPost
+}) {
+  if (video.status === 'ready')
     return (
-      <article className="border-ink/10 w-full max-w-full overflow-hidden rounded-lg border bg-white">
-        <LazyMuxVideoPlayer
-          className="aspect-video w-full"
-          metadata={{ videoId: video.id, videoTitle: 'Talk후감 영상' }}
-          onPlaybackError={handlePlaybackMediaError}
-          playbackId={playbackQuery.data.playbackId}
-          thumbnailTime={0}
-          tokens={{
-            playback: playbackQuery.data.token,
-            thumbnail: playbackQuery.data.thumbnailToken,
-          }}
-        />
-        <p className="text-ink p-3 text-sm font-medium">{video.authorName}의 영상</p>
-      </article>
+      <button
+        aria-label={`${video.authorName}님의 영상 보기`}
+        className="border-ink/10 focus-visible:ring-primary bg-ink relative w-[70%] max-w-[70%] overflow-hidden rounded-lg border text-left focus-visible:ring-2 focus-visible:outline-none"
+        onClick={onOpen}
+        type="button"
+      >
+        <div className="relative aspect-square">
+          {thumbnailAuthorization ? (
+            <img
+              alt=""
+              className="absolute inset-0 size-full object-cover"
+              src={createMuxThumbnailUrl(thumbnailAuthorization)}
+            />
+          ) : isThumbnailLoading ? (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <LoadingSpinner label="미리보기를 준비하고 있어요." size="sm" tone="inverse" />
+            </div>
+          ) : (
+            <p className="absolute inset-0 flex items-center justify-center px-4 text-center text-sm font-medium text-white">
+              미리보기를 불러오지 못했어요.
+            </p>
+          )}
+          <VideoPlayIcon />
+          <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-3 pt-8 pb-3 text-sm font-medium text-white">
+            {video.authorName}의 영상
+          </span>
+        </div>
+      </button>
     )
-  if (video.status === 'ready' && playbackQuery.data && hasPlaybackMediaError)
-    return <VideoMessagePlaybackError onRetry={handleRetryPlaybackMedia} />
-  const message = getVideoMessageLabel(video, playbackQuery.isError)
-  const isLoading = video.status !== 'failed' && !playbackQuery.isError
+  const message = getVideoMessageLabel(video)
+  const isLoading = video.status !== 'failed'
   return (
-    <article className="border-ink/10 bg-ink flex aspect-video w-full max-w-full flex-col items-center justify-center rounded-lg border px-4 text-center">
+    <article className="border-ink/10 bg-ink flex aspect-square w-[70%] max-w-[70%] flex-col items-center justify-center rounded-lg border px-4 text-center">
       {isLoading ? (
         <LoadingSpinner label={message} size="sm" tone="inverse" />
       ) : (
@@ -965,21 +1006,17 @@ function VideoMessage({ video }: { video: VideoPost }) {
   )
 }
 
-/** 채팅을 유지한 채 영상 카드 하나의 재생 실패와 재시도 제어를 렌더링한다. */
-function VideoMessagePlaybackError({ onRetry }: { onRetry: () => void }) {
+/** 정방형 영상 미리보기 위에 재생 가능 여부를 나타내는 제어 아이콘을 렌더링한다. */
+function VideoPlayIcon() {
   return (
-    <article className="border-ink/10 bg-ink flex aspect-video w-full max-w-full flex-col items-center justify-center gap-3 rounded-lg border px-4 text-center">
-      <p className="text-sm font-medium text-white" role="alert">
-        영상을 재생하지 못했어요. 다시 시도해 주세요.
-      </p>
-      <button
-        className="border-primary text-primary min-h-11 cursor-pointer rounded-md border px-3 text-sm font-semibold"
-        onClick={onRetry}
-        type="button"
-      >
-        재생 다시 시도
-      </button>
-    </article>
+    <span
+      aria-hidden="true"
+      className="text-ink absolute top-1/2 left-1/2 flex size-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 shadow-sm"
+    >
+      <svg className="ml-0.5 size-5" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M8 5.7v12.6L18 12 8 5.7Z" />
+      </svg>
+    </span>
   )
 }
 
@@ -1051,9 +1088,8 @@ function createChatMessages(posts: DiscussionPost[], videos: VideoPost[]) {
 }
 
 /** 영상 메시지 라벨 데이터를 조회하거나 계산해 반환한다. */
-function getVideoMessageLabel(video: VideoPost, hasPlaybackError: boolean) {
+function getVideoMessageLabel(video: VideoPost) {
   if (video.status === 'failed') return '영상 처리에 실패했어요.'
-  if (hasPlaybackError) return '재생 정보를 불러오지 못했어요.'
   if (video.status === 'waiting_upload') return '영상을 올리고 있어요…'
   return '영상 준비 중…'
 }

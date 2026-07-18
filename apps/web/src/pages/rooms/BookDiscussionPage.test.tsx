@@ -10,10 +10,9 @@ const {
   createReply,
   getBookChatCompletions,
   getPosts,
-  getVideoPlaybackAuthorization,
   getVideoFilterMembers,
   getVideoPosts,
-  loadMuxPlayer,
+  getVideoThumbnailAuthorizations,
   parsePostForm,
   videoUploadState,
 } = vi.hoisted(() => ({
@@ -21,7 +20,6 @@ const {
   createReply: vi.fn().mockResolvedValue('reply-1'),
   getBookChatCompletions: vi.fn().mockResolvedValue([]),
   getPosts: vi.fn().mockResolvedValue([]),
-  getVideoPlaybackAuthorization: vi.fn(),
   getVideoFilterMembers: vi.fn().mockResolvedValue([
     {
       displayName: '민수',
@@ -35,7 +33,7 @@ const {
     },
   ]),
   getVideoPosts: vi.fn().mockResolvedValue([]),
-  loadMuxPlayer: vi.fn(),
+  getVideoThumbnailAuthorizations: vi.fn().mockResolvedValue([]),
   parsePostForm: vi.fn(
     ({
       body,
@@ -56,15 +54,6 @@ const {
   videoUploadState: { isUploadingVideo: false },
 }))
 
-vi.mock('@mux/mux-player-react', () => {
-  loadMuxPlayer()
-  return {
-    default: ({ onError }: { onError?: () => void }) => (
-      <button data-testid="mux-player" onClick={onError} type="button" />
-    ),
-  }
-})
-
 vi.mock('../../entities/post', () => ({
   createPost,
   createReply,
@@ -75,12 +64,16 @@ vi.mock('../../entities/post', () => ({
 }))
 
 vi.mock('../../entities/video', () => ({
-  getVideoPlaybackAuthorization,
+  createMuxThumbnailUrl: () => 'https://image.mux.com/playback-id/thumbnail.webp?token=token',
   getVideoFilterMembers,
   getVideoPosts,
+  getVideoThumbnailAuthorizations,
+  mapVideoThumbnailAuthorizations: (authorizations: Array<{ postId: string }>) =>
+    new Map(authorizations.map((authorization) => [authorization.postId, authorization])),
   videoKeys: {
     byBookChat: (bookChatId: string) => ['video-posts', bookChatId],
     members: (roomId: string) => ['video-filter-members', roomId],
+    thumbnails: (postIds: string[]) => ['video-thumbnails', postIds],
   },
 }))
 
@@ -118,23 +111,35 @@ describe('BookDiscussionPage', () => {
     createReply.mockClear()
     getPosts.mockClear()
     getPosts.mockResolvedValue([])
-    getVideoPlaybackAuthorization.mockClear()
+    getVideoThumbnailAuthorizations.mockClear()
+    getVideoThumbnailAuthorizations.mockResolvedValue([])
     getVideoFilterMembers.mockClear()
     getVideoPosts.mockClear()
     getVideoPosts.mockResolvedValue([])
-    loadMuxPlayer.mockClear()
     videoUploadState.isUploadingVideo = false
   })
 
-  it('does not load the Mux player while the conversation has no ready video', async () => {
+  it('keeps a text message within seventy percent of the chat timeline width', async () => {
+    getPosts.mockResolvedValueOnce([
+      {
+        authorName: '서연',
+        body: '이 문장이 특히 좋았어요.',
+        createdAt: '2026-07-18T00:00:00.000Z',
+        depth: 0,
+        id: 'post-1',
+        labels: [],
+        rootPostId: null,
+      },
+    ])
     renderBookDiscussionPage()
 
-    await screen.findByRole('heading', { name: '읽고 느낀 걸 나눠요' })
+    const message = await screen.findByText('이 문장이 특히 좋았어요.')
 
-    expect(loadMuxPlayer).not.toHaveBeenCalled()
+    expect(message.closest('article')).toHaveClass('max-w-[70%]')
+    expect(message.closest('article')).toHaveClass('w-fit')
   })
 
-  it('loads the Mux player after the ready video playback authorization resolves', async () => {
+  it('opens a square seventy-percent video preview in the immersive player', async () => {
     getVideoPosts.mockResolvedValueOnce([
       {
         authorName: '민규',
@@ -144,44 +149,23 @@ describe('BookDiscussionPage', () => {
         status: 'ready',
       },
     ])
-    getVideoPlaybackAuthorization.mockResolvedValueOnce({
-      playbackId: 'playback-id',
-      thumbnailToken: 'thumbnail-token',
-      token: 'playback-token',
-    })
-    renderBookDiscussionPage()
-
-    expect(await screen.findByTestId('mux-player')).toBeInTheDocument()
-    expect(loadMuxPlayer).toHaveBeenCalledOnce()
-  })
-
-  it('retries only the failed video message playback without replacing the chat screen', async () => {
-    getVideoPosts.mockResolvedValueOnce([
+    getVideoThumbnailAuthorizations.mockResolvedValueOnce([
       {
-        authorName: '민규',
-        body: null,
-        createdAt: '2026-07-18T00:00:00.000Z',
-        id: 'video-1',
-        status: 'ready',
+        postId: 'video-1',
+        playbackId: 'playback-id',
+        thumbnailToken: 'thumbnail-token',
       },
     ])
-    getVideoPlaybackAuthorization.mockResolvedValue({
-      playbackId: 'playback-id',
-      thumbnailToken: 'thumbnail-token',
-      token: 'playback-token',
-    })
     renderBookDiscussionPage()
 
-    fireEvent.click(await screen.findByTestId('mux-player'))
+    const preview = await screen.findByRole('button', { name: '민규님의 영상 보기' })
+    expect(preview).toHaveClass('w-[70%]')
+    expect(preview.querySelector('.aspect-square')).toBeInTheDocument()
+    expect(getVideoThumbnailAuthorizations).toHaveBeenCalledWith(undefined, ['video-1'])
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      '영상을 재생하지 못했어요. 다시 시도해 주세요.',
-    )
-    expect(screen.getByRole('heading', { name: '읽고 느낀 걸 나눠요' })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: '재생 다시 시도' }))
+    fireEvent.click(preview)
 
-    await vi.waitFor(() => expect(getVideoPlaybackAuthorization).toHaveBeenCalledTimes(2))
-    expect(await screen.findByTestId('mux-player')).toBeInTheDocument()
+    expect(screen.getByText('몰입형 영상 화면')).toBeInTheDocument()
   })
 
   it('opens the message actions as a speech bubble above the composer', () => {
@@ -677,6 +661,10 @@ function renderBookDiscussionPage() {
       <MemoryRouter initialEntries={['/rooms/room-1/books/book-1']}>
         <Routes>
           <Route path="/rooms/:roomId/books/:bookChatId" element={<BookDiscussionPage />} />
+          <Route
+            path="/rooms/:roomId/books/:bookChatId/videos/:videoId"
+            element={<p>몰입형 영상 화면</p>}
+          />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,

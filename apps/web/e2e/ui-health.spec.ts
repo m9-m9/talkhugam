@@ -144,6 +144,36 @@ test('shows global navigation outside the book chat and hides it inside', async 
   await expect(page.getByRole('navigation', { name: '주요 메뉴' })).toBeHidden()
 })
 
+test('keeps a chat video preview square within seventy percent and opens the immersive viewer', async ({
+  page,
+}) => {
+  const videoId = '4b7227b2-5350-4a61-9114-b2d0c915fd1b'
+  await authenticatePage(page)
+  await mockVideoPosts(page, [createVideoPostRow(videoId, '민규', 'ready')])
+  await mockMuxThumbnailTokens(page)
+  await mockMuxPlaybackAuthorizationFailure(page)
+  await page.goto(`/rooms/${roomId}/books/${bookChatId}`)
+
+  const preview = page.getByRole('button', { name: '민규님의 영상 보기' })
+  await expect(preview).toBeVisible()
+
+  const previewBox = await preview.boundingBox()
+  const timelineRowBox = await preview.locator('xpath=ancestor::li').boundingBox()
+  expect(previewBox).not.toBeNull()
+  expect(timelineRowBox).not.toBeNull()
+  if (!previewBox || !timelineRowBox) throw new Error('영상 미리보기의 화면 크기를 읽지 못했어요.')
+
+  expect(previewBox.width / timelineRowBox.width).toBeLessThanOrEqual(0.7)
+  expect(Math.abs(previewBox.width - previewBox.height)).toBeLessThanOrEqual(1)
+
+  await preview.click()
+
+  await expect(page).toHaveURL(`/rooms/${roomId}/books/${bookChatId}/videos/${videoId}`)
+  await expect(page.getByRole('heading', { name: '영상 보기' })).toBeVisible()
+  await expect(page.getByRole('main')).toHaveCSS('padding-left', '0px')
+  await expect(page.getByRole('navigation', { name: '주요 메뉴' })).toBeHidden()
+})
+
 test('opens the video picker directly from the archive empty state', async ({ page }) => {
   await authenticatePage(page)
   await mockVideoMembers(page)
