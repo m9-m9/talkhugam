@@ -2,7 +2,7 @@ begin;
 
 \ir ../helpers/auth.inc
 
-select plan(10);
+select plan(11);
 
 select tests.create_supabase_user(
   '00000000-0000-0000-0000-000000000361',
@@ -92,6 +92,9 @@ select lives_ok(
   $$,
   'an owner can remove an active member'
 );
+
+reset role;
+
 select is(
   (
     select status
@@ -109,6 +112,10 @@ select ok(
   ),
   'member removal should record the removal time'
 );
+
+select tests.authenticate_as('00000000-0000-0000-0000-000000000361');
+set local role authenticated;
+
 select throws_ok(
   $$
     select public.remove_room_member(
@@ -126,17 +133,31 @@ select lives_ok(
   $$,
   'a final owner can archive and leave their room'
 );
+
+reset role;
+
+select ok(
+  (
+    select archived_at is not null
+    from public.reading_rooms
+    where id = '10000000-0000-0000-0000-000000000361'
+  ),
+  'archiving a room should record the archive time'
+);
+
+select tests.authenticate_as('00000000-0000-0000-0000-000000000361');
+set local role authenticated;
+
 select results_eq(
   $$
-    select id, name, description, archived_at
+    select id, name, description
     from public.get_my_archived_reading_rooms()
   $$,
   $$
     values (
       '10000000-0000-0000-0000-000000000361'::uuid,
       '관리 테스트 독서방'::text,
-      '관리 기능 검증용 방'::text,
-      (select archived_at from public.reading_rooms where id = '10000000-0000-0000-0000-000000000361')
+      '관리 기능 검증용 방'::text
     )
   $$,
   'the archived room owner can retrieve their past room after leaving it'
