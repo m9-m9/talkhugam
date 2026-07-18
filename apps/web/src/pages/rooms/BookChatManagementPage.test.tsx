@@ -25,7 +25,10 @@ vi.mock('../../entities/book-chat', () => ({
 }))
 
 vi.mock('../../entities/book-completion', () => ({
-  bookCompletionKeys: { myBooks: (profileId: string) => ['my-completed-books', profileId] },
+  bookCompletionKeys: {
+    myBookChatIds: (profileId: string) => ['my-completion-book-chat-ids', profileId],
+    myBooks: (profileId: string) => ['my-completed-books', profileId],
+  },
   upsertBookChatCompletion,
 }))
 
@@ -48,6 +51,14 @@ describe('BookChatManagementPage', () => {
         review: null,
       }),
     )
+  })
+
+  it('does not expose archive controls to a reading member', async () => {
+    renderBookChatManagementPage()
+
+    expect(await screen.findByRole('button', { name: '내 완독으로 기록' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '아카이브로 이동' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '다시 읽는 중으로' })).not.toBeInTheDocument()
   })
 })
 

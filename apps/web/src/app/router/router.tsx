@@ -16,6 +16,7 @@ import { NaverAccountInfoPage } from '../../pages/profile/NaverAccountInfoPage'
 import { ProfileEditPage } from '../../pages/profile/ProfileEditPage'
 import { ProfileSharePage } from '../../pages/profile/ProfileSharePage'
 import { ProfilePage } from '../../pages/profile/ProfilePage'
+import { MyReadingBooksPage } from '../../pages/profile/MyReadingBooksPage'
 import { NotificationsPage } from '../../pages/notifications/NotificationsPage'
 import { BookSearchPage } from '../../pages/rooms/BookSearchPage'
 import { BookDiscussionPage } from '../../pages/rooms/BookDiscussionPage'
@@ -70,6 +71,7 @@ export const router = createBrowserRouter([
                   { path: '/rooms', element: <RoomsPage /> },
                   { path: '/notifications', element: <NotificationsPage /> },
                   { path: '/profile', element: <ProfilePage /> },
+                  { path: '/profile/books', element: <MyReadingBooksPage /> },
                   { path: '/profile/edit', element: <ProfileEditPage /> },
                   { path: '/profile/share', element: <ProfileSharePage /> },
                   { path: '/profile/settings', element: <AccountSettingsPage /> },

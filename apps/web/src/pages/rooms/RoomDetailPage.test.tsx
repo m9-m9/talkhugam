@@ -5,8 +5,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { RoomDetailPage } from './RoomDetailPage'
 
-const { getBookChats, getReadingRoom } = vi.hoisted(() => ({
+const { getBookChats, getMyBookChatCompletionIds, getReadingRoom } = vi.hoisted(() => ({
   getBookChats: vi.fn(),
+  getMyBookChatCompletionIds: vi.fn().mockResolvedValue([]),
   getReadingRoom: vi.fn(),
 }))
 
@@ -17,6 +18,17 @@ vi.mock('../../entities/book-chat', () => ({
   },
   getBookChats,
   getReadingRoom,
+}))
+
+vi.mock('../../entities/book-completion', () => ({
+  bookCompletionKeys: {
+    myBookChatIds: (profileId: string) => ['my-completion-book-chat-ids', profileId],
+  },
+  getMyBookChatCompletionIds,
+}))
+
+vi.mock('../../features/auth', () => ({
+  useAuthenticatedUser: () => ({ id: '00000000-0000-0000-0000-000000000001' }),
 }))
 
 vi.mock('../../shared/api/supabaseClient', () => ({ createSupabaseClient: vi.fn() }))
@@ -50,6 +62,24 @@ describe('RoomDetailPage', () => {
     fireEvent.click(bookCard)
 
     expect(await screen.findByText('책 대화 화면')).toBeInTheDocument()
+  })
+
+  it('marks a book already completed by me in the room book list', async () => {
+    getReadingRoom.mockResolvedValue({ description: null, id: 'room-1', name: '금요일 아침 모임' })
+    getBookChats.mockResolvedValue([
+      {
+        authors: ['기시미 이치로'],
+        id: 'chat-1',
+        name: '미움받을 용기',
+        thumbnailUrl: null,
+        title: '미움받을 용기',
+      },
+    ])
+    getMyBookChatCompletionIds.mockResolvedValue(['chat-1'])
+
+    renderRoomDetailPage('/rooms/room-1')
+
+    expect(await screen.findByText('완독')).toBeInTheDocument()
   })
 
   it('offers a clear route back when the reading room is unavailable', async () => {

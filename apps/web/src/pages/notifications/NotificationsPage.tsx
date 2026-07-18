@@ -73,7 +73,6 @@ export function NotificationsPage() {
 
   return (
     <main className="app-page bg-surface px-4 pb-8">
-      <h1 className="sr-only">알림</h1>
       <AppHeader
         action={
           <button
@@ -87,6 +86,7 @@ export function NotificationsPage() {
         }
         onBack={() => void navigate('/rooms')}
         title="알림"
+        titleAsHeading
       />
       <p aria-live="polite" className="sr-only">
         {feedbackMessage}

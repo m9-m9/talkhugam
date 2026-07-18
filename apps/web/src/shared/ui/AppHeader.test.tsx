@@ -20,4 +20,10 @@ describe('AppHeader', () => {
     expect(handleBack).toHaveBeenCalledOnce()
     expect(screen.queryByText('뒤로')).not.toBeInTheDocument()
   })
+
+  it('renders the page title as the primary heading when the screen has no other heading', () => {
+    render(<AppHeader title="알림" titleAsHeading />)
+
+    expect(screen.getByRole('heading', { level: 1, name: '알림' })).toBeInTheDocument()
+  })
 })

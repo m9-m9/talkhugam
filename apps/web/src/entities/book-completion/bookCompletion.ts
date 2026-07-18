@@ -42,6 +42,8 @@ const bookCompletionInputSchema = z.object({
   review: z.string().trim().max(1000).nullable(),
 })
 
+const bookChatCompletionIdRowSchema = z.object({ book_chat_id: z.string().uuid() })
+
 export type BookChatCompletion = {
   avatarPath: string | null
   completedAt: string
@@ -70,6 +72,8 @@ export const bookCompletionKeys = {
   byChat: (bookChatId: string) => ['book-completions', bookChatId] as const,
   /** 프로필 식별자로 개인 완독 도서 query key를 생성한다. */
   myBooks: (profileId: string) => ['my-completed-books', profileId] as const,
+  /** 프로필 식별자로 완독 표시용 책 대화 식별자 query key를 생성한다. */
+  myBookChatIds: (profileId: string) => ['my-completion-book-chat-ids', profileId] as const,
 }
 
 /** 개인이 완독한 도서 목록 데이터를 조회해 반환한다. */
@@ -87,6 +91,20 @@ export async function getMyCompletedBooks(
 
   if (response.error) throw response.error
   return parseCompletedBooks(response.data)
+}
+
+/** 개인이 완독한 책 대화 식별자만 조회해 다른 목록의 완독 표시에 사용한다. */
+export async function getMyBookChatCompletionIds(
+  client: SupabaseClient,
+  profileId: string,
+): Promise<string[]> {
+  const response = await client
+    .from('book_chat_completions')
+    .select('book_chat_id')
+    .eq('profile_id', z.string().uuid().parse(profileId))
+
+  if (response.error) throw response.error
+  return parseBookChatCompletionIds(response.data)
 }
 
 /** 책 대화방 멤버의 완독 현황 데이터를 조회해 반환한다. */
@@ -137,6 +155,14 @@ export async function removeBookChatCompletion(
 /** 외부 입력을 검증해 개인 완독 도서 목록 도메인 모델로 변환한다. */
 export function parseCompletedBooks(value: unknown): CompletedBook[] {
   return z.array(completedBookRowSchema).parse(value).map(mapCompletedBook)
+}
+
+/** 외부 입력을 검증해 완독 표시용 책 대화 식별자 목록으로 변환한다. */
+export function parseBookChatCompletionIds(value: unknown): string[] {
+  return z
+    .array(bookChatCompletionIdRowSchema)
+    .parse(value)
+    .map((row) => row.book_chat_id)
 }
 
 /** 외부 입력을 검증해 책 대화방 완독 현황 도메인 모델로 변환한다. */

@@ -60,6 +60,20 @@ const archivedBookChatRowSchema = z.object({
   room_id: z.string().uuid(),
 })
 
+const readingBookRowSchema = z.object({
+  books: z
+    .object({
+      authors: z.array(z.string()),
+      thumbnail_url: z.string().nullable(),
+      title: z.string(),
+    })
+    .nullable(),
+  id: z.string().uuid(),
+  name: z.string().min(1),
+  reading_rooms: z.object({ name: z.string().min(1) }).nullable(),
+  room_id: z.string().uuid(),
+})
+
 export type BookChat = {
   authors: string[]
   id: string
@@ -88,6 +102,16 @@ export type ArchivedBookChat = {
   title: string
 }
 
+export type ReadingBook = {
+  authors: string[]
+  bookChatId: string
+  isCompleted: boolean
+  roomId: string
+  roomName: string
+  thumbnailUrl: string | null
+  title: string
+}
+
 export const bookChatKeys = {
   /** 독서방 식별자로 안정적인 query key를 생성한다. */
   byRoom: (roomId: string) => ['book-chats', roomId] as const,
@@ -95,6 +119,9 @@ export const bookChatKeys = {
   room: (roomId: string) => ['reading-room', roomId] as const,
   /** 프로필별 보관한 책 대화 목록 query key를 생성한다. */
   myArchived: (profileId: string) => ['archived-book-chats', profileId] as const,
+  /** 프로필과 개인 완독 상태로 모든 참여 독서방의 읽는 책 목록 query key를 생성한다. */
+  myReading: (profileId: string, completedBookChatIds: readonly string[]) =>
+    ['my-reading-books', profileId, ...completedBookChatIds] as const,
 }
 
 /** 책 대화방 목록 데이터를 조회하거나 계산해 반환한다. */
@@ -157,6 +184,23 @@ export async function getMyArchivedBookChats(
 
   if (response.error) throw response.error
   return parseArchivedBookChats(response.data)
+}
+
+/** 참여 중인 모든 독서방의 읽는 책을 개인 완독 표시와 함께 조회한다. */
+export async function getMyReadingBooks(
+  client: SupabaseClient,
+  profileId: string,
+  completedBookChatIds: readonly string[],
+): Promise<ReadingBook[]> {
+  z.string().uuid().parse(profileId)
+  const response = await client
+    .from('book_chats')
+    .select('id, room_id, name, books(title, authors, thumbnail_url), reading_rooms(name)')
+    .eq('status', 'reading')
+    .order('created_at', { ascending: false })
+
+  if (response.error) throw response.error
+  return parseReadingBooks(response.data, completedBookChatIds)
 }
 
 /** 대화방의 읽기 상태를 완독 또는 아카이브 상태로 바꾼다. */
@@ -257,6 +301,34 @@ export function parseBookChats(value: unknown): BookChat[] {
 /** 외부 응답을 내 정보 화면에서 쓰는 보관한 책 모델로 변환한다. */
 export function parseArchivedBookChats(value: unknown): ArchivedBookChat[] {
   return z.array(archivedBookChatRowSchema).parse(value).map(mapArchivedBookChat)
+}
+
+/** 외부 입력을 검증해 독서방별 개인 읽는 책 목록 모델로 변환한다. */
+export function parseReadingBooks(
+  value: unknown,
+  completedBookChatIds: readonly string[],
+): ReadingBook[] {
+  const completedIds = new Set(completedBookChatIds)
+  return z
+    .array(readingBookRowSchema)
+    .parse(value)
+    .map((row) => mapReadingBook(row, completedIds))
+}
+
+/** 원본 데이터를 개인 책 목록에서 쓰는 읽기 상태 모델로 변환한다. */
+function mapReadingBook(
+  row: z.infer<typeof readingBookRowSchema>,
+  completedBookChatIds: ReadonlySet<string>,
+): ReadingBook {
+  return {
+    authors: row.books?.authors ?? [],
+    bookChatId: row.id,
+    isCompleted: completedBookChatIds.has(row.id),
+    roomId: row.room_id,
+    roomName: row.reading_rooms?.name ?? '이름 없는 독서방',
+    thumbnailUrl: row.books?.thumbnail_url ?? null,
+    title: row.books?.title ?? row.name,
+  }
 }
 
 /** 원본 보관한 책 행을 개인 기록 화면의 도메인 모델로 변환한다. */

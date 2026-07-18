@@ -322,6 +322,43 @@ test('shows global navigation outside the book chat and hides it inside', async 
   await expect(page.getByRole('navigation', { name: '주요 메뉴' })).toBeHidden()
 })
 
+test('opens every reading book from the profile CTA and marks personal completion', async ({
+  page,
+}) => {
+  await authenticatePage(page)
+  await mockAuthenticatedPageData(page)
+  await mockReadingBooks(page, [
+    {
+      books: {
+        authors: ['기시미 이치로'],
+        thumbnail_url: null,
+        title: '미움받을 용기',
+      },
+      id: bookChatId,
+      name: '미움받을 용기',
+      reading_rooms: { name: '금요일 아침 독서방' },
+      room_id: roomId,
+    },
+  ])
+  await page.route('**/rest/v1/book_chat_completions?*', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify([{ book_chat_id: bookChatId }]),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+  await page.goto('/profile')
+
+  await page.getByRole('button', { name: '읽고 있는 책 모두 보기' }).click()
+
+  await expect(page).toHaveURL('/profile/books')
+  await expect(page.getByRole('heading', { name: '함께 읽고 있는 책' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '금요일 아침 독서방' })).toBeVisible()
+  await expect(page.getByText('미움받을 용기')).toBeVisible()
+  await expect(page.getByText('완독')).toBeVisible()
+  await expect(page.getByRole('navigation', { name: '주요 메뉴' })).toBeVisible()
+})
+
 test('keeps a chat video preview square within seventy percent and opens the immersive viewer', async ({
   page,
 }) => {
@@ -643,6 +680,17 @@ async function mockAuthenticatedPageData(page: Page) {
       body: JSON.stringify([]),
       contentType: 'application/json',
       headers: { 'content-range': '0-0/0' },
+      status: 200,
+    })
+  })
+}
+
+/** 프로필의 전체 읽는 책 화면이 요구하는 책 대화 조인 행을 반환한다. */
+async function mockReadingBooks(page: Page, books: unknown[]) {
+  await page.route('**/rest/v1/book_chats?*', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify(books),
+      contentType: 'application/json',
       status: 200,
     })
   })

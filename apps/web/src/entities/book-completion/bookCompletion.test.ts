@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { bookCompletionKeys, parseBookChatCompletions, parseCompletedBooks } from './bookCompletion'
+import {
+  bookCompletionKeys,
+  parseBookChatCompletionIds,
+  parseBookChatCompletions,
+  parseCompletedBooks,
+} from './bookCompletion'
 
 describe('bookCompletionKeys', () => {
   it('keeps a completion roster and my completed books in separate query scopes', () => {
@@ -40,6 +45,17 @@ describe('parseCompletedBooks', () => {
         title: '미움받을 용기',
       },
     ])
+  })
+})
+
+describe('parseBookChatCompletionIds', () => {
+  it('keeps only validated book chat identifiers for a member completion display', () => {
+    expect(
+      parseBookChatCompletionIds([
+        { book_chat_id: 'e9b33e51-5b8d-4d33-a2ce-c49b22b6b700' },
+        { book_chat_id: '0a9c9826-5aa6-41d0-a2f7-e79b5f667b20' },
+      ]),
+    ).toEqual(['e9b33e51-5b8d-4d33-a2ce-c49b22b6b700', '0a9c9826-5aa6-41d0-a2f7-e79b5f667b20'])
   })
 })
 

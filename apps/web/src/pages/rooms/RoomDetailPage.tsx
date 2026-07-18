@@ -2,15 +2,19 @@ import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 
 import { bookChatKeys, getBookChats, getReadingRoom } from '../../entities/book-chat'
+import { bookCompletionKeys, getMyBookChatCompletionIds } from '../../entities/book-completion'
+import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { BookCover } from '../../shared/ui/BookCover'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 import { RetryState } from '../../shared/ui/RetryState'
+import { CompletionMark } from '../../shared/ui/CompletionMark'
 
 /** 독서방 상세 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 export function RoomDetailPage() {
   const navigate = useNavigate()
+  const profileId = useAuthenticatedUser().id
   const { roomId } = useParams()
   const roomQuery = useQuery({
     enabled: Boolean(roomId),
@@ -21,6 +25,10 @@ export function RoomDetailPage() {
     enabled: Boolean(roomId) && Boolean(roomQuery.data),
     queryFn: () => getBookChats(createSupabaseClient(), roomId ?? ''),
     queryKey: bookChatKeys.byRoom(roomId ?? ''),
+  })
+  const completionIdsQuery = useQuery({
+    queryFn: () => getMyBookChatCompletionIds(createSupabaseClient(), profileId),
+    queryKey: bookCompletionKeys.myBookChatIds(profileId),
   })
 
   if (!roomId)
@@ -76,6 +84,7 @@ export function RoomDetailPage() {
           isError={chatsQuery.isError}
           isRetrying={chatsQuery.isFetching}
           chats={chatsQuery.data}
+          completedBookChatIds={new Set(completionIdsQuery.data ?? [])}
           onRetry={handleRetryBookChats}
           roomId={roomId}
         />
@@ -87,6 +96,7 @@ export function RoomDetailPage() {
 /** 책 대화 목록 콘텐츠 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function BookChatsContent({
   chats,
+  completedBookChatIds,
   isError,
   isPending,
   isRetrying,
@@ -94,6 +104,7 @@ function BookChatsContent({
   roomId,
 }: {
   chats: Awaited<ReturnType<typeof getBookChats>> | undefined
+  completedBookChatIds: ReadonlySet<string>
   isError: boolean
   isPending: boolean
   isRetrying: boolean
@@ -136,6 +147,7 @@ function BookChatsContent({
               <span className="text-ink-subtle mt-1 block text-xs">
                 {chat.authors.join(', ') || chat.name}
               </span>
+              {completedBookChatIds.has(chat.id) ? <CompletionMark className="mt-2" /> : null}
             </span>
           </button>
         </li>

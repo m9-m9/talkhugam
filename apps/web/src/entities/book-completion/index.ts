@@ -1,7 +1,9 @@
 export {
   bookCompletionKeys,
   getBookChatCompletions,
+  getMyBookChatCompletionIds,
   getMyCompletedBooks,
+  parseBookChatCompletionIds,
   parseBookChatCompletions,
   parseBookCompletionInput,
   parseCompletedBooks,
