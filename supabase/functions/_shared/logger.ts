@@ -5,6 +5,8 @@ export type OperationalEvent =
   | 'account_delete_failed'
   | 'account_delete_succeeded'
   | 'book_search_failed'
+  | 'bestseller_refresh_completed'
+  | 'bestseller_refresh_failed'
   | 'deletion_worker_completed'
   | 'mux_playback_token_failed'
   | 'mux_thumbnail_tokens_failed'
@@ -24,6 +26,7 @@ const ALLOWED_METADATA_KEYS = new Set([
   'code',
   'retryable',
   'durationMs',
+  'count',
 ])
 
 /** 운영 로그 metadata에서 허용된 필드만 남긴다. */

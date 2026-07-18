@@ -7,6 +7,7 @@ import { RoomsPage } from './RoomsPage'
 
 const { getReadingRooms } = vi.hoisted(() => ({ getReadingRooms: vi.fn() }))
 const { getUnreadNotificationCount } = vi.hoisted(() => ({ getUnreadNotificationCount: vi.fn() }))
+const { getCurrentBestsellers } = vi.hoisted(() => ({ getCurrentBestsellers: vi.fn() }))
 
 vi.mock('../../entities/reading-room', () => ({
   formatRoomMemberSummary: () => '민규 · 1명',
@@ -17,6 +18,11 @@ vi.mock('../../entities/reading-room', () => ({
 }))
 
 vi.mock('../../shared/api/supabaseClient', () => ({ createSupabaseClient: vi.fn() }))
+
+vi.mock('../../entities/bestseller', () => ({
+  bestsellerKeys: { current: ['bestseller-books'] },
+  getCurrentBestsellers,
+}))
 
 vi.mock('../../entities/notification', () => ({
   getUnreadNotificationCount,
@@ -31,6 +37,7 @@ describe('RoomsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     getUnreadNotificationCount.mockResolvedValue(0)
+    getCurrentBestsellers.mockResolvedValue([])
   })
 
   it('renders the rooms returned by the room repository', async () => {
@@ -67,6 +74,28 @@ describe('RoomsPage', () => {
     const { findByRole } = renderRoomsPage()
 
     expect(await findByRole('heading', { level: 2, name: '함께 읽는 책방' })).toBeInTheDocument()
+  })
+
+  it('shows the stored Aladin bestseller cards above the reading room list', async () => {
+    getReadingRooms.mockResolvedValue([])
+    getCurrentBestsellers.mockResolvedValue([
+      {
+        author: '기시미 이치로',
+        productUrl: 'https://www.aladin.co.kr/shop/wproduct.aspx?ItemId=1',
+        rank: 1,
+        thumbnailUrl: null,
+        title: '미움받을 용기',
+      },
+    ])
+
+    renderRoomsPage()
+
+    expect(
+      await screen.findByRole('heading', { level: 2, name: '요즘 많이 읽는 책' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: '1위 미움받을 용기, 알라딘에서 보기' }),
+    ).toHaveAttribute('href', 'https://www.aladin.co.kr/shop/wproduct.aspx?ItemId=1')
   })
 
   it('keeps the reading room heading while the room list is loading', () => {

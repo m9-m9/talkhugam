@@ -118,6 +118,9 @@ verify_jwt = false
 [functions.admin-feedback]
 verify_jwt = false
 
+[functions.bestseller-refresh]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

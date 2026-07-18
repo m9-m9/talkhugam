@@ -10,12 +10,22 @@ import {
   type ReadingRoom,
   type ReadingRoomMember,
 } from '../../entities/reading-room'
+import {
+  bestsellerKeys,
+  getCurrentBestsellers,
+  type BestsellerBook,
+} from '../../entities/bestseller'
 import { getUnreadNotificationCount, notificationKeys } from '../../entities/notification'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
+import { BookCover } from '../../shared/ui/BookCover'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 /** 참여 중인 책방을 최근 대화 순서로 보여 주는 메인 화면을 렌더링한다. */
 export function RoomsPage() {
+  const bestsellersQuery = useQuery({
+    queryFn: () => getCurrentBestsellers(createSupabaseClient()),
+    queryKey: bestsellerKeys.current,
+  })
   const roomsQuery = useQuery({
     queryFn: () => getReadingRooms(createSupabaseClient()),
     queryKey: readingRoomKeys.all,
@@ -27,6 +37,8 @@ export function RoomsPage() {
         <img alt="Talk후감" className="h-10 w-auto" src="/brand/talkhugam-wordmark.svg" />
         <NotificationInboxButton />
       </header>
+
+      <BestsellerSection bestsellers={bestsellersQuery.data} />
 
       <section aria-labelledby="recent-rooms-heading" className="flex flex-1 flex-col gap-4 py-8">
         <h2 className="text-ink text-base font-bold" id="recent-rooms-heading">
@@ -40,6 +52,45 @@ export function RoomsPage() {
         />
       </section>
     </main>
+  )
+}
+
+/** 저장된 베스트셀러가 있을 때만 홈 상단에 알라딘 순위 카드 목록을 렌더링한다. */
+function BestsellerSection({ bestsellers }: { bestsellers: BestsellerBook[] | undefined }) {
+  if (!bestsellers || bestsellers.length === 0) return null
+
+  return (
+    <section
+      aria-labelledby="bestseller-heading"
+      className="border-ink/10 -mx-4 border-b px-4 py-6"
+    >
+      <div className="flex items-baseline justify-between gap-4">
+        <h2 className="text-ink text-base font-bold" id="bestseller-heading">
+          요즘 많이 읽는 책
+        </h2>
+        <span className="text-ink-subtle shrink-0 text-xs">알라딘 베스트셀러</span>
+      </div>
+      <ul className="mt-4 flex gap-3 overflow-x-auto pb-1">
+        {bestsellers.slice(0, 6).map((bestseller) => (
+          <li className="w-28 shrink-0" key={bestseller.rank}>
+            <a
+              aria-label={`${bestseller.rank}위 ${bestseller.title}, 알라딘에서 보기`}
+              className="border-ink/10 hover:border-primary focus-visible:outline-primary flex min-h-32 flex-col gap-2 rounded-md border bg-white p-3 focus-visible:outline-2"
+              href={bestseller.productUrl}
+              rel="noreferrer"
+              target="_blank"
+            >
+              <span className="text-primary text-xs font-bold">{bestseller.rank}위</span>
+              <BookCover alt={`${bestseller.title} 표지`} thumbnailUrl={bestseller.thumbnailUrl} />
+              <span className="text-ink line-clamp-2 text-xs font-semibold">
+                {bestseller.title}
+              </span>
+              <span className="text-ink-subtle line-clamp-1 text-xs">{bestseller.author}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
 
