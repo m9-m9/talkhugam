@@ -230,12 +230,16 @@ function CompletedBooksSection({
                     {book.authors.join(', ')}
                   </span>
                   <CompletionMark className="mt-2" />
-                  <span className="text-primary mt-1 block text-xs">
-                    {book.rating ? '★'.repeat(book.rating) : '별점 작성 전'}
-                  </span>
-                  <span className="text-ink-subtle mt-1 block truncate text-xs">
-                    {book.review || '총평 작성 전'}
-                  </span>
+                  {book.rating ? (
+                    <span className="text-primary mt-1 block text-xs">
+                      {'★'.repeat(book.rating)}
+                    </span>
+                  ) : null}
+                  {book.review ? (
+                    <span className="text-ink-subtle mt-1 block truncate text-xs">
+                      {book.review}
+                    </span>
+                  ) : null}
                 </span>
                 <span aria-hidden="true" className="text-ink-subtle text-lg">
                   ›

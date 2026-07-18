@@ -80,6 +80,28 @@ describe('ProfilePage', () => {
     expect(screen.getByText('다시 읽고 싶은 책이에요.')).toBeInTheDocument()
   })
 
+  it('does not show unfinished review placeholders for a previously saved completion', async () => {
+    getMyCompletedBooks.mockResolvedValueOnce([
+      {
+        authors: ['기시미 이치로'],
+        bookChatId: '00000000-0000-0000-0000-000000000201',
+        completedAt: '2026-07-18T01:00:00+00:00',
+        rating: null,
+        review: null,
+        roomId: '00000000-0000-0000-0000-000000000202',
+        thumbnailUrl: null,
+        title: '미움받을 용기',
+      },
+    ])
+    renderProfilePage()
+
+    expect(
+      await screen.findByRole('link', { name: '미움받을 용기 책 대화로 이동' }),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('별점 작성 전')).not.toBeInTheDocument()
+    expect(screen.queryByText('총평 작성 전')).not.toBeInTheDocument()
+  })
+
   it('offers a route to every reading book instead of an archive action', async () => {
     renderProfilePage()
 

@@ -3,11 +3,19 @@ import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
 import { bookChatKeys, deleteManagedBookChat, getManagedBookChat } from '../../entities/book-chat'
-import { bookCompletionKeys, upsertBookChatCompletion } from '../../entities/book-completion'
+import {
+  bookCompletionKeys,
+  getBookChatCompletions,
+  upsertBookChatCompletion,
+  type BookCompletionInput,
+} from '../../entities/book-completion'
+import { CompletionReviewForm } from '../../features/book-completion'
 import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { BookCover } from '../../shared/ui/BookCover'
+import { BottomSheet } from '../../shared/ui/BottomSheet'
+import { CompletionMark } from '../../shared/ui/CompletionMark'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 /** 책 대화방의 개인 완독 기록과 삭제 요청을 관리하는 화면을 렌더링한다. */
@@ -18,21 +26,26 @@ export function BookChatManagementPage() {
   const profileId = useAuthenticatedUser().id
   const { bookChatId, roomId } = useParams()
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isCompletionEditorOpen, setIsCompletionEditorOpen] = useState(false)
   const bookChatQuery = useQuery({
     enabled: Boolean(bookChatId),
     queryFn: () => getManagedBookChat(client, bookChatId ?? ''),
     queryKey: ['managed-book-chat', bookChatId],
   })
+  const completionsQuery = useQuery({
+    enabled: Boolean(bookChatId),
+    queryFn: () => getBookChatCompletions(client, bookChatId ?? '', profileId),
+    queryKey: bookCompletionKeys.byChat(bookChatId ?? ''),
+  })
   const completionMutation = useMutation({
-    mutationFn: () =>
-      upsertBookChatCompletion(client, {
-        bookChatId: bookChatId ?? '',
-        rating: null,
-        review: null,
-      }),
+    mutationFn: (input: BookCompletionInput) => upsertBookChatCompletion(client, input),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: bookCompletionKeys.myBooks(profileId) })
-      await queryClient.invalidateQueries({ queryKey: bookCompletionKeys.myBookChatIds(profileId) })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: bookCompletionKeys.byChat(bookChatId ?? '') }),
+        queryClient.invalidateQueries({ queryKey: bookCompletionKeys.myBooks(profileId) }),
+        queryClient.invalidateQueries({ queryKey: bookCompletionKeys.myBookChatIds(profileId) }),
+      ])
+      setIsCompletionEditorOpen(false)
     },
   })
   const deletionMutation = useMutation({
@@ -48,6 +61,22 @@ export function BookChatManagementPage() {
   if (bookChatQuery.isError || bookChatQuery.data === null)
     return <BookChatManagementUnavailablePage onBack={() => void navigate(`/rooms/${roomId}`)} />
   const chat = bookChatQuery.data
+  const ownCompletion = completionsQuery.data?.find((completion) => completion.isMe)
+
+  /** 완독 기록 작성 팝업을 열어 별점과 총평을 먼저 입력받는다. */
+  function handleOpenCompletionEditor() {
+    setIsCompletionEditorOpen(true)
+  }
+
+  /** 완독 기록 작성 팝업을 닫고 기존 완독 상태를 유지한다. */
+  function handleCloseCompletionEditor() {
+    setIsCompletionEditorOpen(false)
+  }
+
+  /** 작성한 완독 정보만 서버에 저장해 빈 완독 기록 생성을 막는다. */
+  function handleSaveCompletion(input: BookCompletionInput) {
+    completionMutation.mutate(input)
+  }
 
   return (
     <main className="app-page bg-surface px-4 pb-8">
@@ -61,10 +90,11 @@ export function BookChatManagementPage() {
       </header>
       <section className="border-ink/10 mt-8 flex items-center gap-4 rounded-lg border bg-white p-4">
         <BookCover alt={`${chat.title} 표지`} thumbnailUrl={chat.thumbnailUrl} />
-        <span>
+        <div className="min-w-0 flex-1">
           <span className="text-ink block text-sm font-bold">{chat.name}</span>
           <span className="text-ink-subtle mt-1 block text-xs">내 완독 기록을 남길 수 있어요.</span>
-        </span>
+        </div>
+        {ownCompletion ? <CompletionMark label="내 완독" /> : null}
       </section>
       <section className="mt-12" aria-labelledby="book-chat-actions">
         <h2 className="text-ink text-base font-bold" id="book-chat-actions">
@@ -74,10 +104,10 @@ export function BookChatManagementPage() {
           <button
             className="border-ink/10 min-h-12 w-full rounded-md border bg-white px-4 text-left text-sm font-semibold"
             disabled={completionMutation.isPending}
-            onClick={() => completionMutation.mutate()}
+            onClick={handleOpenCompletionEditor}
             type="button"
           >
-            {completionMutation.isPending ? '완독 기록 중…' : '내 완독으로 기록'}
+            {ownCompletion ? '수정하기' : '완독하기'}
           </button>
           <button
             className="border-ink/10 min-h-12 w-full rounded-md border bg-white px-4 text-left text-sm font-semibold text-red-600"
@@ -88,11 +118,6 @@ export function BookChatManagementPage() {
             삭제 요청
           </button>
         </div>
-        {completionMutation.isError ? (
-          <p className="mt-4 text-sm text-red-600" role="alert">
-            완독 기록을 저장하지 못했어요. 다시 시도해 주세요.
-          </p>
-        ) : null}
       </section>
       {isDeleteDialogOpen ? (
         <BookChatDeletionDialog
@@ -102,6 +127,24 @@ export function BookChatManagementPage() {
           onCancel={() => setIsDeleteDialogOpen(false)}
           onConfirm={(confirmationName) => deletionMutation.mutate(confirmationName)}
         />
+      ) : null}
+      {isCompletionEditorOpen ? (
+        <BottomSheet onClose={handleCloseCompletionEditor} title="완독 기록">
+          <CompletionReviewForm
+            bookChatId={bookChatId}
+            initialRating={ownCompletion?.rating ?? null}
+            initialReview={ownCompletion?.review ?? null}
+            isSaving={completionMutation.isPending}
+            onCancel={handleCloseCompletionEditor}
+            onSave={handleSaveCompletion}
+            submitLabel={ownCompletion ? '완독 기록 수정' : '완독 기록 저장'}
+          />
+          {completionMutation.isError ? (
+            <p className="mt-3 text-sm text-red-600" role="alert">
+              완독 기록을 저장하지 못했어요. 다시 시도해 주세요.
+            </p>
+          ) : null}
+        </BottomSheet>
       ) : null}
     </main>
   )

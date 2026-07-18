@@ -299,7 +299,7 @@ test('opens completion records from the book-chat plus menu and restores focus o
   await page.getByRole('button', { name: '완독 기록' }).click()
 
   await expect(page.getByRole('dialog', { name: '완독 기록' })).toBeVisible()
-  await expect(page.getByRole('button', { name: '완독으로 기록하기' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '완독하기' })).toBeVisible()
 
   await page.keyboard.press('Escape')
   await expect(page.getByRole('dialog', { name: '완독 기록' })).toBeHidden()

@@ -84,7 +84,11 @@ vi.mock('../../entities/reading-room', () => ({
 }))
 
 vi.mock('../../entities/book-completion', () => ({
-  bookCompletionKeys: { byChat: (bookChatId: string) => ['book-completions', bookChatId] },
+  bookCompletionKeys: {
+    byChat: (bookChatId: string) => ['book-completions', bookChatId],
+    myBookChatIds: (profileId: string) => ['my-completion-book-chat-ids', profileId],
+    myBooks: (profileId: string) => ['my-completed-books', profileId],
+  },
   getBookChatCompletions,
   removeBookChatCompletion: vi.fn(),
   upsertBookChatCompletion,
@@ -118,6 +122,8 @@ describe('BookDiscussionPage', () => {
     getVideoFilterMembers.mockClear()
     getVideoPosts.mockClear()
     getVideoPosts.mockResolvedValue([])
+    getBookChatCompletions.mockClear()
+    getBookChatCompletions.mockResolvedValue([])
     upsertBookChatCompletion.mockClear()
     upsertBookChatCompletion.mockResolvedValue(undefined)
     videoUploadState.isUploadingVideo = false
@@ -190,7 +196,7 @@ describe('BookDiscussionPage', () => {
     expect(screen.getByRole('button', { name: '완독 기록' })).not.toHaveClass('col-span-2')
   })
 
-  it('opens the completion sheet from the plus menu before it saves a personal completion record', async () => {
+  it('opens the completion review form from the plus menu before it saves a personal completion record', async () => {
     renderBookDiscussionPage()
 
     expect(screen.queryByRole('button', { name: '완독하기' })).not.toBeInTheDocument()
@@ -200,15 +206,44 @@ describe('BookDiscussionPage', () => {
     expect(await screen.findByRole('dialog', { name: '완독 기록' })).toBeInTheDocument()
 
     expect(upsertBookChatCompletion).not.toHaveBeenCalled()
-    fireEvent.click(await screen.findByRole('button', { name: '완독으로 기록하기' }))
+    fireEvent.click(await screen.findByRole('button', { name: '완독하기' }))
+    fireEvent.click(screen.getByRole('button', { name: '5점' }))
+    fireEvent.change(screen.getByLabelText('총평 (선택)'), {
+      target: { value: '대화가 오래 남는 책이에요.' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '완독 기록 저장' }))
 
     await vi.waitFor(() =>
       expect(upsertBookChatCompletion).toHaveBeenCalledWith(undefined, {
         bookChatId: 'book-1',
-        rating: null,
-        review: null,
+        rating: 5,
+        review: '대화가 오래 남는 책이에요.',
       }),
     )
+  })
+
+  it('shows the personal completion marker and reopens saved values for editing', async () => {
+    getBookChatCompletions.mockResolvedValueOnce([
+      {
+        completedAt: '2026-07-19T00:00:00.000Z',
+        displayName: '민규',
+        isMe: true,
+        profileId: '00000000-0000-0000-0000-000000000001',
+        rating: 4,
+        review: '다시 펼쳐 보고 싶은 책이에요.',
+      },
+    ])
+    renderBookDiscussionPage()
+
+    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
+    fireEvent.click(screen.getByRole('button', { name: '완독 기록' }))
+
+    expect(await screen.findByText('내 완독')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '수정하기' }))
+
+    expect(screen.getByRole('button', { name: '4점' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByLabelText('총평 (선택)')).toHaveValue('다시 펼쳐 보고 싶은 책이에요.')
+    expect(screen.getByRole('button', { name: '완독 기록 수정' })).toBeInTheDocument()
   })
 
   it('closes the action bubble when the user taps outside it', () => {
