@@ -93,7 +93,9 @@ describe('BookSearchPage', () => {
 
   it('keeps the current results visible while a newer search is pending', async () => {
     const secondSearch = deferred<BookSearchItem[]>()
-    searchBooks.mockResolvedValueOnce([createBook('처음 결과')]).mockReturnValueOnce(secondSearch.promise)
+    searchBooks
+      .mockResolvedValueOnce([createBook('처음 결과')])
+      .mockReturnValueOnce(secondSearch.promise)
     renderBookSearchPage()
 
     const input = screen.getByPlaceholderText('책 제목이나 저자')
