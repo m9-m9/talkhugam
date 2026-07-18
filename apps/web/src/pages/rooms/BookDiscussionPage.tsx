@@ -522,9 +522,7 @@ function ChatComposer({
     const nextLabel = createDraftLabel(labelKind, labelDrafts[labelKind])
     if (!nextLabel) return
     onChangeLabels([...labels, nextLabel])
-    setLabelDrafts((drafts) => ({ ...drafts, [labelKind]: '' }))
-    setLabelKind(null)
-    setIsActionTrayOpen(false)
+    handleCloseActionTray()
     messageInputRef.current?.focus()
   }
 
@@ -552,6 +550,22 @@ function ChatComposer({
     window.requestAnimationFrame(() => firstActionButtonRef.current?.focus())
   }
 
+  /** 라벨 임시 입력을 비우고 메시지 추가 메뉴를 닫는다. */
+  function handleCloseActionTray() {
+    setIsActionTrayOpen(false)
+    setLabelKind(null)
+    setLabelDrafts({ chapter: '', page: '' })
+  }
+
+  /** 메시지 추가 메뉴를 열거나, 열려 있으면 라벨 임시 입력을 비우고 닫는다. */
+  function handleToggleActionTray() {
+    if (isActionTrayOpen) {
+      handleCloseActionTray()
+      return
+    }
+    setIsActionTrayOpen(true)
+  }
+
   useEffect(() => {
     /** 외부 포인터 Down 요청이나 사용자 동작을 처리한다. */
     function handleOutsidePointerDown(event: PointerEvent) {
@@ -563,7 +577,7 @@ function ChatComposer({
       if (!isActionTrayOpen) return
       if (actionMenuRef.current?.contains(event.target)) return
       if (actionMenuButtonRef.current?.contains(event.target)) return
-      setIsActionTrayOpen(false)
+      handleCloseActionTray()
     }
 
     /** Escape 키 요청이나 사용자 동작을 처리한다. */
@@ -575,7 +589,7 @@ function ChatComposer({
         return
       }
       if (!isActionTrayOpen) return
-      setIsActionTrayOpen(false)
+      handleCloseActionTray()
       actionMenuButtonRef.current?.focus()
     }
 
@@ -697,14 +711,14 @@ function ChatComposer({
                 <ActionButton
                   label="영상 올리기"
                   onClick={() => {
-                    setIsActionTrayOpen(false)
+                    handleCloseActionTray()
                     fileInputRef.current?.click()
                   }}
                 />
                 <ActionButton
                   label="영상 기록"
                   onClick={() => {
-                    setIsActionTrayOpen(false)
+                    handleCloseActionTray()
                     onOpenVideoArchive()
                   }}
                 />
@@ -729,7 +743,7 @@ function ChatComposer({
           aria-expanded={isActionTrayOpen}
           aria-label={isActionTrayOpen ? '메시지 추가 메뉴 닫기' : '메시지 추가 메뉴 열기'}
           className="border-ink/20 text-ink flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-full border"
-          onClick={() => setIsActionTrayOpen((isOpen) => !isOpen)}
+          onClick={handleToggleActionTray}
           ref={actionMenuButtonRef}
           type="button"
         >
@@ -805,7 +819,7 @@ function ChatComposer({
           />
         </div>
         <button
-          className="bg-primary min-h-11 rounded-md px-3 text-sm font-semibold text-white disabled:opacity-40"
+          className="bg-primary text-ink min-h-11 rounded-md px-3 text-sm font-semibold disabled:opacity-40"
           disabled={value.trim().length === 0 && labels.length === 0}
           onClick={onSubmit}
           type="button"

@@ -527,18 +527,29 @@ describe('BookDiscussionPage', () => {
       () => fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 닫기' })),
     ],
     ['Escape', () => fireEvent.keyDown(window, { key: 'Escape' })],
-  ])('preserves the active label draft after closing with %s', (_, closeMenu) => {
-    renderBookDiscussionPage()
-    openPageLabelEditor()
-    fireEvent.change(screen.getByLabelText('페이지 번호'), { target: { value: '87' } })
+  ])(
+    'returns to label selection and keeps only the message draft after closing with %s',
+    (_, closeMenu) => {
+      renderBookDiscussionPage()
+      openPageLabelEditor()
+      fireEvent.change(screen.getByLabelText('페이지 번호'), { target: { value: '87' } })
+      fireEvent.change(screen.getByLabelText('메시지 입력'), {
+        target: { value: '이 문장을 기억할게요' },
+      })
 
-    closeMenu()
-    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
+      closeMenu()
+      fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
 
-    expect(screen.getByLabelText('페이지 번호')).toHaveValue('87')
-  })
+      expect(screen.getByRole('button', { name: '페이지 라벨' })).toBeInTheDocument()
+      expect(screen.queryByLabelText('페이지 번호')).not.toBeInTheDocument()
+      expect(screen.getByLabelText('메시지 입력')).toHaveValue('이 문장을 기억할게요')
 
-  it('returns to label selection without clearing separate page and chapter drafts', () => {
+      fireEvent.click(screen.getByRole('button', { name: '페이지 라벨' }))
+      expect(screen.getByLabelText('페이지 번호')).toHaveValue('')
+    },
+  )
+
+  it('keeps separate label drafts while returning inside the still-open action menu', () => {
     renderBookDiscussionPage()
     openPageLabelEditor()
     fireEvent.change(screen.getByLabelText('페이지 번호'), { target: { value: '87' } })

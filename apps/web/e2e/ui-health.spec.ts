@@ -113,7 +113,9 @@ test('closes the account deletion dialog by Escape and backdrop while restoring 
   await expect(deletionTrigger).toBeFocused()
 })
 
-test('preserves a book-chat label draft while the action bubble is dismissed', async ({ page }) => {
+test('resets a dismissed book-chat label editor while keeping the message draft', async ({
+  page,
+}) => {
   await authenticatePage(page)
   await page.goto(`/rooms/${roomId}/books/${bookChatId}`)
 
@@ -121,11 +123,18 @@ test('preserves a book-chat label draft while the action bubble is dismissed', a
   await page.getByRole('button', { name: '페이지 라벨' }).click()
   await page.getByRole('textbox', { name: '페이지 번호' }).fill('87')
 
-  await page.getByRole('textbox', { name: '메시지 입력' }).click()
+  const composer = page.getByRole('textbox', { name: '메시지 입력' })
+  await composer.fill('이 문장을 기억할게요')
+  await composer.click()
   await expect(page.getByRole('textbox', { name: '페이지 번호' })).toBeHidden()
 
   await page.getByRole('button', { name: '메시지 추가 메뉴 열기' }).click()
-  await expect(page.getByRole('textbox', { name: '페이지 번호' })).toHaveValue('87')
+  await expect(page.getByRole('button', { name: '페이지 라벨' })).toBeVisible()
+  await expect(page.getByRole('textbox', { name: '페이지 번호' })).toBeHidden()
+  await expect(composer).toHaveValue('이 문장을 기억할게요')
+
+  await page.getByRole('button', { name: '페이지 라벨' }).click()
+  await expect(page.getByRole('textbox', { name: '페이지 번호' })).toHaveValue('')
 
   const accessibilityScanResults = await new AxeBuilder({ page }).analyze()
   expect(accessibilityScanResults.violations).toEqual([])
