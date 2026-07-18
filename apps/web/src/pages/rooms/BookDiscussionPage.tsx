@@ -36,6 +36,7 @@ import { useAuthenticatedUser } from '../../features/auth'
 import { readingRoomKeys } from '../../entities/reading-room'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
+import { BottomSheet } from '../../shared/ui/BottomSheet'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 import { RetryState } from '../../shared/ui/RetryState'
 
@@ -54,6 +55,8 @@ export function BookDiscussionPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isRetryingTimeline, setIsRetryingTimeline] = useState(false)
   const [timelineRetryMessage, setTimelineRetryMessage] = useState<string | null>(null)
+  const [isCompletionSheetOpen, setIsCompletionSheetOpen] = useState(false)
+  const completionTriggerRef = useRef<HTMLButtonElement>(null)
   const {
     errorMessage: videoErrorMessage,
     isUploadingVideo,
@@ -91,7 +94,7 @@ export function BookDiscussionPage() {
   })
   const thumbnailsByPostId = mapVideoThumbnailAuthorizations(thumbnailsQuery.data ?? [])
   const completionsQuery = useQuery({
-    enabled: Boolean(bookChatId),
+    enabled: Boolean(bookChatId) && isCompletionSheetOpen,
     queryFn: () => getBookChatCompletions(createSupabaseClient(), bookChatId ?? '', profileId),
     queryKey: bookCompletionKeys.byChat(bookChatId ?? ''),
   })
@@ -154,6 +157,17 @@ export function BookDiscussionPage() {
     })
   }
 
+  /** 완독 기록 시트를 열어 현재 책의 멤버 기록을 확인한다. */
+  function handleOpenCompletionSheet() {
+    setIsCompletionSheetOpen(true)
+  }
+
+  /** 완독 기록 시트를 닫고 메시지 추가 버튼으로 포커스를 돌려준다. */
+  function handleCloseCompletionSheet() {
+    setIsCompletionSheetOpen(false)
+    completionTriggerRef.current?.focus()
+  }
+
   if (!roomId || !bookChatId) return <main className="bg-surface min-h-screen" />
   const roots = postsQuery.data?.filter((post) => post.depth === 0) ?? []
   return (
@@ -176,19 +190,6 @@ export function BookDiscussionPage() {
         <p className="text-primary text-sm font-medium">책 대화</p>
         <h1 className="text-ink mt-2 text-xl font-bold">읽고 느낀 걸 나눠요</h1>
       </header>
-      <CompletionSection
-        bookChatId={bookChatId}
-        completions={completionsQuery.data ?? []}
-        errorMessage={
-          completionMutation.isError || completionRemovalMutation.isError
-            ? '완독 기록을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.'
-            : null
-        }
-        isLoading={completionsQuery.isPending}
-        isSaving={completionMutation.isPending || completionRemovalMutation.isPending}
-        onRemove={() => completionRemovalMutation.mutate(bookChatId)}
-        onSave={(input) => completionMutation.mutate(input)}
-      />
       <section className="mt-8 flex-1">
         {postsQuery.isPending && videosQuery.isPending ? (
           <LoadingSpinner label="대화를 불러오고 있어요." size="sm" />
@@ -223,13 +224,31 @@ export function BookDiscussionPage() {
         onChangeLabels={setLabels}
         onChangeMentionedMemberIds={setMentionedMemberIds}
         onOpenVideoArchive={() => void navigate(`/rooms/${roomId}/books/${bookChatId}/videos`)}
+        onOpenCompletion={handleOpenCompletionSheet}
         onRetryMentionMembers={() => void membersQuery.refetch()}
         onSelectVideo={uploadVideo}
         onSubmit={() => void handleSubmit()}
+        completionTriggerRef={completionTriggerRef}
         hasMentionMemberError={membersQuery.isError}
         isUploadingVideo={isUploadingVideo}
         value={draft}
       />
+      {isCompletionSheetOpen ? (
+        <CompletionSheet
+          bookChatId={bookChatId}
+          completions={completionsQuery.data ?? []}
+          errorMessage={
+            completionMutation.isError || completionRemovalMutation.isError
+              ? '완독 기록을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.'
+              : null
+          }
+          isLoading={completionsQuery.isPending}
+          isSaving={completionMutation.isPending || completionRemovalMutation.isPending}
+          onClose={handleCloseCompletionSheet}
+          onRemove={() => completionRemovalMutation.mutate(bookChatId)}
+          onSave={(input) => completionMutation.mutate(input)}
+        />
+      ) : null}
     </main>
   )
 }
@@ -300,13 +319,14 @@ function getDiscussionTimelineErrorMessage(
   return null
 }
 
-/** 개인 완독 기록과 모임 멤버의 총평 현황을 렌더링한다. */
-function CompletionSection({
+/** 개인 완독 기록과 모임 멤버의 총평 현황을 하단 시트로 렌더링한다. */
+function CompletionSheet({
   bookChatId,
   completions,
   errorMessage,
   isLoading,
   isSaving,
+  onClose,
   onRemove,
   onSave,
 }: {
@@ -315,116 +335,78 @@ function CompletionSection({
   errorMessage: string | null
   isLoading: boolean
   isSaving: boolean
+  onClose: () => void
   onRemove: () => void
   onSave: (input: BookCompletionInput) => void
 }) {
   const ownCompletion = completions.find((completion) => completion.isMe)
-  const [isCompletionFormOpen, setIsCompletionFormOpen] = useState(false)
-
-  /** 완독 기록 입력 폼을 연다. */
-  function handleOpenCompletionForm() {
-    setIsCompletionFormOpen(true)
-  }
-
-  /** 완독 기록 입력 폼을 닫고 작성 중인 값은 저장하지 않는다. */
-  function handleCloseCompletionForm() {
-    setIsCompletionFormOpen(false)
-  }
-
-  if (isLoading)
-    return (
-      <section className="mt-8" aria-label="완독 현황">
-        <LoadingSpinner label="완독 현황을 불러오고 있어요." size="xs" />
-      </section>
-    )
-
   return (
-    <section
-      className="border-ink/10 mt-8 rounded-lg border bg-white p-4"
-      aria-labelledby="completion-heading"
-    >
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h2 className="text-ink text-base font-bold" id="completion-heading">
-            함께 읽은 기록
-          </h2>
-          <p className="text-ink-subtle mt-1 text-xs">{completions.length}명 완독</p>
-        </div>
-        {ownCompletion ? (
-          <button
-            className="border-primary text-primary min-h-11 cursor-pointer rounded-md border px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40"
-            disabled={isSaving}
-            onClick={onRemove}
-            type="button"
-          >
-            완독 취소
-          </button>
-        ) : (
-          <button
-            className="bg-primary min-h-11 cursor-pointer rounded-md px-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
-            disabled={isSaving}
-            onClick={handleOpenCompletionForm}
-            type="button"
-          >
-            완독하기
-          </button>
-        )}
-      </div>
-
-      {ownCompletion ? (
-        <CompletionReviewForm
-          bookChatId={bookChatId}
-          initialRating={ownCompletion.rating}
-          initialReview={ownCompletion.review}
-          isSaving={isSaving}
-          key={ownCompletion.completedAt}
-          onSave={onSave}
-          submitLabel="총평 저장"
-        />
+    <BottomSheet onClose={onClose} title="완독 기록">
+      <p className="text-ink-subtle mt-2 text-sm">
+        완독일은 오늘로 기록돼요. 별점과 총평은 선택이에요.
+      </p>
+      {isLoading ? (
+        <LoadingSpinner label="완독 현황을 불러오고 있어요." size="xs" variant="book" />
       ) : null}
-
-      {isCompletionFormOpen && !ownCompletion ? (
-        <CompletionReviewForm
-          bookChatId={bookChatId}
-          initialRating={null}
-          initialReview={null}
-          isSaving={isSaving}
-          onCancel={handleCloseCompletionForm}
-          onSave={onSave}
-          submitLabel="완독으로 기록하기"
-        />
+      {!isLoading ? (
+        <>
+          <div className="border-ink/10 mt-4 border-t pt-4">
+            <p className="text-ink text-sm font-semibold">
+              함께 읽은 기록 · {completions.length}명 완독
+            </p>
+            {ownCompletion ? (
+              <button
+                className="border-primary text-primary mt-3 min-h-11 cursor-pointer rounded-md border px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40"
+                disabled={isSaving}
+                onClick={onRemove}
+                type="button"
+              >
+                완독 취소
+              </button>
+            ) : null}
+          </div>
+          <CompletionReviewForm
+            bookChatId={bookChatId}
+            initialRating={ownCompletion?.rating ?? null}
+            initialReview={ownCompletion?.review ?? null}
+            isSaving={isSaving}
+            key={ownCompletion?.completedAt ?? 'new-completion'}
+            onSave={onSave}
+            submitLabel={ownCompletion ? '총평 저장' : '완독으로 기록하기'}
+          />
+          {errorMessage ? (
+            <p className="mt-3 text-sm text-red-600" role="alert">
+              {errorMessage}
+            </p>
+          ) : null}
+          {completions.length === 0 ? (
+            <p className="text-ink-subtle mt-4 text-sm">아직 완독한 멤버가 없어요.</p>
+          ) : (
+            <ul className="mt-4 space-y-3" aria-label="완독한 멤버">
+              {completions.map((completion) => (
+                <li
+                  className="border-ink/10 border-t pt-3 first:border-t-0 first:pt-0"
+                  key={completion.profileId}
+                >
+                  <p className="text-ink text-sm font-semibold">
+                    {completion.displayName}
+                    {completion.isMe ? ' (나)' : ''}
+                  </p>
+                  {completion.rating ? (
+                    <p className="text-primary mt-1 text-sm" aria-label={`${completion.rating}점`}>
+                      {'★'.repeat(completion.rating)}
+                    </p>
+                  ) : null}
+                  <p className="text-ink-subtle mt-1 text-sm">
+                    {completion.review || '총평 작성 전'}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
       ) : null}
-
-      {errorMessage ? (
-        <p className="mt-3 text-sm text-red-600" role="alert">
-          {errorMessage}
-        </p>
-      ) : null}
-
-      {completions.length === 0 ? (
-        <p className="text-ink-subtle mt-4 text-sm">아직 완독한 멤버가 없어요.</p>
-      ) : (
-        <ul className="mt-4 space-y-3" aria-label="완독한 멤버">
-          {completions.map((completion) => (
-            <li
-              className="border-ink/10 border-t pt-3 first:border-t-0 first:pt-0"
-              key={completion.profileId}
-            >
-              <p className="text-ink text-sm font-semibold">
-                {completion.displayName}
-                {completion.isMe ? ' (나)' : ''}
-              </p>
-              {completion.rating ? (
-                <p className="text-primary mt-1 text-sm" aria-label={`${completion.rating}점`}>
-                  {'★'.repeat(completion.rating)}
-                </p>
-              ) : null}
-              <p className="text-ink-subtle mt-1 text-sm">{completion.review || '총평 작성 전'}</p>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
+    </BottomSheet>
   )
 }
 
@@ -518,6 +500,7 @@ function CompletionReviewForm({
 
 /** 대화 입력창 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function ChatComposer({
+  completionTriggerRef,
   errorMessage,
   hasMentionMemberError,
   isReplying,
@@ -528,12 +511,14 @@ function ChatComposer({
   onChangeDraft,
   onChangeLabels,
   onChangeMentionedMemberIds,
+  onOpenCompletion,
   onOpenVideoArchive,
   onRetryMentionMembers,
   onSelectVideo,
   onSubmit,
   value,
 }: {
+  completionTriggerRef: RefObject<HTMLButtonElement | null>
   errorMessage: string | null
   hasMentionMemberError: boolean
   isReplying: boolean
@@ -544,6 +529,7 @@ function ChatComposer({
   onChangeDraft: (value: string) => void
   onChangeLabels: (labels: PostForm['labels']) => void
   onChangeMentionedMemberIds: (mentionedMemberIds: PostForm['mentionedMemberIds']) => void
+  onOpenCompletion: () => void
   onOpenVideoArchive: () => void
   onRetryMentionMembers: () => void
   onSelectVideo: (file: File | undefined) => void
@@ -773,6 +759,15 @@ function ChatComposer({
                     onOpenVideoArchive()
                   }}
                 />
+                <ActionButton
+                  className="col-span-2"
+                  label="완독 기록"
+                  onClick={() => {
+                    completionTriggerRef.current = actionMenuButtonRef.current
+                    handleCloseActionTray()
+                    onOpenCompletion()
+                  }}
+                />
               </div>
             </>
           )}
@@ -895,18 +890,20 @@ function ChatComposer({
 /** 동작 버튼 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function ActionButton({
   buttonRef,
+  className = '',
   disabled = false,
   label,
   onClick,
 }: {
   buttonRef?: RefObject<HTMLButtonElement | null>
+  className?: string
   disabled?: boolean
   label: string
   onClick: () => void
 }) {
   return (
     <button
-      className="border-ink/10 text-ink min-h-11 cursor-pointer rounded-md border px-3 text-left text-sm disabled:cursor-not-allowed disabled:opacity-40"
+      className={`border-ink/10 text-ink min-h-11 cursor-pointer rounded-md border px-3 text-left text-sm disabled:cursor-not-allowed disabled:opacity-40 ${className}`}
       disabled={disabled}
       onClick={onClick}
       ref={buttonRef}

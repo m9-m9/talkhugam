@@ -170,6 +170,25 @@ test('resets a dismissed book-chat label editor while keeping the message draft'
   await expect(page.getByRole('textbox', { name: '페이지 번호' })).toBeHidden()
 })
 
+test('opens completion records from the book-chat plus menu and restores focus on close', async ({
+  page,
+}) => {
+  await authenticatePage(page)
+  await mockBookCompletionRecords(page)
+  await page.goto(`/rooms/${roomId}/books/${bookChatId}`)
+
+  const plusButton = page.getByRole('button', { name: '메시지 추가 메뉴 열기' })
+  await plusButton.click()
+  await page.getByRole('button', { name: '완독 기록' }).click()
+
+  await expect(page.getByRole('dialog', { name: '완독 기록' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '완독으로 기록하기' })).toBeVisible()
+
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog', { name: '완독 기록' })).toBeHidden()
+  await expect(plusButton).toBeFocused()
+})
+
 test('selects a member by typing an at-sign in the book-chat composer', async ({ page }) => {
   await authenticatePage(page)
   await mockVideoMembers(page, [
@@ -511,6 +530,17 @@ async function mockAuthenticatedPageData(page: Page) {
       body: JSON.stringify([]),
       contentType: 'application/json',
       headers: { 'content-range': '0-0/0' },
+      status: 200,
+    })
+  })
+}
+
+/** 책 대화의 완독 시트가 필요한 빈 완독 기록 응답을 브라우저에 제공한다. */
+async function mockBookCompletionRecords(page: Page) {
+  await page.route('**/rest/v1/book_chat_completions?*', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify([]),
+      contentType: 'application/json',
       status: 200,
     })
   })

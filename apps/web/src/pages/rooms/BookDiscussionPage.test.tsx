@@ -182,16 +182,17 @@ describe('BookDiscussionPage', () => {
     expect(screen.getByRole('button', { name: '영상 올리기' })).toBeInTheDocument()
   })
 
-  it('opens the completion form before it saves a personal completion record', async () => {
+  it('opens the completion sheet from the plus menu before it saves a personal completion record', async () => {
     renderBookDiscussionPage()
 
-    expect(await screen.findByRole('button', { name: '완독하기' })).toBeInTheDocument()
-    expect(screen.getByText('아직 완독한 멤버가 없어요.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '완독하기' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
+    fireEvent.click(screen.getByRole('button', { name: '완독 기록' }))
 
-    fireEvent.click(screen.getByRole('button', { name: '완독하기' }))
+    expect(await screen.findByRole('dialog', { name: '완독 기록' })).toBeInTheDocument()
 
     expect(upsertBookChatCompletion).not.toHaveBeenCalled()
-    fireEvent.click(screen.getByRole('button', { name: '완독으로 기록하기' }))
+    fireEvent.click(await screen.findByRole('button', { name: '완독으로 기록하기' }))
 
     await vi.waitFor(() =>
       expect(upsertBookChatCompletion).toHaveBeenCalledWith(undefined, {

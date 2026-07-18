@@ -101,7 +101,9 @@ export type UpdateManagedRoom = z.infer<typeof updateRoomSchema>
 
 export const roomManagementKeys = {
   archive: ['room-management', 'archive'] as const,
+  /** 특정 독서방의 관리 상세 데이터를 식별하는 쿼리 키를 반환한다. */
   detail: (roomId: string) => ['room-management', roomId] as const,
+  /** 특정 독서방의 활성 초대 목록을 식별하는 쿼리 키를 반환한다. */
   invites: (roomId: string) => ['room-management', roomId, 'invites'] as const,
 }
 
