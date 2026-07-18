@@ -10,6 +10,7 @@ const authenticatedUserSchema = z.object({
   app_metadata: z.unknown().default({}),
   email: z.string().email().nullable().optional(),
   id: z.string().min(1),
+  user_metadata: z.unknown().default({}),
 })
 
 /** 인증 라우트 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
@@ -33,6 +34,7 @@ export function AuthenticatedRoute() {
         appMetadata: parsedUser.app_metadata,
         email: parsedUser.email ?? null,
         id: parsedUser.id,
+        userMetadata: parsedUser.user_metadata,
       })
     }
 

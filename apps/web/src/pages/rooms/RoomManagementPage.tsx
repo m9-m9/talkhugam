@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import {
   createManagedRoomInvite,
@@ -156,15 +156,7 @@ export function RoomManagementPage() {
               >
                 {member.displayName.slice(0, 1)}
               </span>
-              <span className="min-w-0 flex-1">
-                <span className="text-ink block text-sm font-semibold">
-                  {member.displayName}
-                  {member.isCurrentUser ? ' (나)' : ''}
-                </span>
-                <span className="text-ink-subtle mt-1 block text-xs">
-                  {member.role === 'owner' ? '방장' : '멤버'}
-                </span>
-              </span>
+              <MemberProfileLink member={member} roomId={roomId} />
               {room.isCurrentUserOwner && !member.isCurrentUser ? (
                 <MemberMenu
                   member={member}
@@ -213,6 +205,33 @@ export function RoomManagementPage() {
         </p>
       ) : null}
     </main>
+  )
+}
+
+/** 프로필 식별자가 있는 멤버에게만 같은 독서방 안의 프로필 진입 CTA를 제공한다. */
+function MemberProfileLink({ member, roomId }: { member: RoomManagementMember; roomId: string }) {
+  const memberContent = (
+    <>
+      <span className="text-ink block text-sm font-semibold">
+        {member.displayName}
+        {member.isCurrentUser ? ' (나)' : ''}
+      </span>
+      <span className="text-ink-subtle mt-1 block text-xs">
+        {member.role === 'owner' ? '방장' : '멤버'}
+      </span>
+    </>
+  )
+
+  if (member.profileId === null) return <span className="min-w-0 flex-1">{memberContent}</span>
+
+  return (
+    <Link
+      aria-label={`${member.displayName} 프로필 보기`}
+      className="min-w-0 flex-1 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+      to={`/rooms/${roomId}/members/${member.profileId}`}
+    >
+      {memberContent}
+    </Link>
   )
 }
 

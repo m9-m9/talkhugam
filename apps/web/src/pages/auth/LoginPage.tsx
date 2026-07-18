@@ -1,10 +1,23 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { getClientEnv } from '../../app/env'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 type Provider = 'google' | 'kakao' | 'naver'
+
+/** 계정 삭제 완료를 알리는 일회성 로그인 화면 상태인지 확인한다. */
+function hasAccountDeletionCompleted(): boolean {
+  return new URLSearchParams(window.location.search).get('account') === 'deleted'
+}
+
+/** 계정 삭제 완료 안내를 노출한 뒤 URL에서 일회성 상태 값을 제거한다. */
+function clearAccountDeletionCompleted(): void {
+  const url = new URL(window.location.href)
+  url.searchParams.delete('account')
+  window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`)
+}
+
 /** Naver OAuth 시작 Edge Function URL을 만든다. */
 function createNaverBridgeStartUrl(supabaseUrl: string, origin: string): string {
   const returnTo = encodeURIComponent(`${origin}/auth/callback`)
@@ -114,6 +127,11 @@ function SocialLoginButton({ disabled, onClick, provider }: SocialLoginButtonPro
 export function LoginPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isPending, setIsPending] = useState(false)
+  const [wasAccountDeleted] = useState(hasAccountDeletionCompleted)
+
+  useEffect(() => {
+    if (wasAccountDeleted) clearAccountDeletionCompleted()
+  }, [wasAccountDeleted])
 
   /** 로그인 요청이나 사용자 동작을 처리한다. */
   async function handleLogin(provider: Provider) {
@@ -147,6 +165,11 @@ export function LoginPage() {
         <p className="text-ink-subtle text-sm">
           같은 책을 읽고 느낀 점을 편하게 나누는 독서방이에요.
         </p>
+        {wasAccountDeleted ? (
+          <p className="text-primary text-sm" role="status">
+            계정 삭제 요청이 완료됐어요. Talk후감에 다시 오고 싶을 때 언제든 로그인해 주세요.
+          </p>
+        ) : null}
       </div>
       <div className="space-y-3">
         {(['kakao', 'google', 'naver'] as const).map((provider) => (

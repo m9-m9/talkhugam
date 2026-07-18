@@ -20,6 +20,7 @@ import { RetryState } from '../../shared/ui/RetryState'
 
 type AccountIdentity = {
   email: string
+  hasNaverProvider: boolean
   providers: string[]
 }
 type NotificationPreferenceKey = keyof NotificationPreferences
@@ -56,7 +57,7 @@ export function AccountSettingsPage() {
       await requestAccountDeletion(client, mode)
       await clearLocalSession(client)
     },
-    onSuccess: () => void navigate('/', { replace: true }),
+    onSuccess: () => void navigate('/?account=deleted', { replace: true }),
   })
 
   /** 알림 수신 설정 변경 요청이나 사용자 동작을 처리한다. */
@@ -105,7 +106,7 @@ export function AccountSettingsPage() {
         <p className="text-ink-subtle mt-2 text-sm">로그인과 알림 수신 방식을 관리해요.</p>
       </header>
 
-      <AccountInformation account={account} />
+      <AccountInformation account={account} onShowNaverInfo={() => void navigate('/profile/settings/naver-info')} />
       <NotificationPreferencesSection
         queryErrorMessage={
           notificationPreferencesQuery.isError || isRetryingNotificationPreferences
@@ -166,14 +167,23 @@ function createAccountIdentity(
   email: string | null | undefined,
   appMetadata: unknown,
 ): AccountIdentity {
+  const providers = getProviderLabels(appMetadata)
+
   return {
     email: email ?? '이메일 정보를 찾을 수 없어요',
-    providers: getProviderLabels(appMetadata),
+    hasNaverProvider: providers.includes('네이버'),
+    providers,
   }
 }
 
 /** 로그인 수단과 이메일을 읽기 전용 정보로 렌더링한다. */
-function AccountInformation({ account }: { account: AccountIdentity }) {
+function AccountInformation({
+  account,
+  onShowNaverInfo,
+}: {
+  account: AccountIdentity
+  onShowNaverInfo: () => void
+}) {
   return (
     <section className="mt-8" aria-label="계정 정보">
       <dl className="border-ink/10 overflow-hidden rounded-lg border bg-white">
@@ -183,6 +193,21 @@ function AccountInformation({ account }: { account: AccountIdentity }) {
           value={account.providers.length > 0 ? account.providers.join(', ') : '확인할 수 없어요'}
         />
       </dl>
+      {account.hasNaverProvider ? (
+        <button
+          className="border-ink/10 mt-4 flex min-h-12 w-full items-center justify-between rounded-lg border bg-white px-4 text-left"
+          onClick={onShowNaverInfo}
+          type="button"
+        >
+          <span>
+            <span className="text-ink block text-sm font-semibold">Naver 제공 정보</span>
+            <span className="text-ink-subtle mt-1 block text-xs">로그인에 제공된 정보만 확인해요.</span>
+          </span>
+          <span aria-hidden="true" className="text-ink-subtle text-lg">
+            ›
+          </span>
+        </button>
+      ) : null}
     </section>
   )
 }
@@ -263,7 +288,7 @@ function NotificationPreferenceToggle({
   onChange: () => void
 }) {
   return (
-    <label className="flex min-h-14 cursor-pointer items-center justify-between gap-4 px-4 py-2 has-[:disabled]:cursor-not-allowed">
+    <label className="flex min-h-12 cursor-pointer items-center justify-between gap-4 px-4 py-2 has-[:disabled]:cursor-not-allowed">
       <span className="text-ink text-sm font-medium">{label}</span>
       <span className="relative flex size-11 items-center justify-center">
         <input

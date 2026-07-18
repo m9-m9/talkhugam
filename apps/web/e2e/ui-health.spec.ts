@@ -35,7 +35,9 @@ test('keeps core authenticated pages within the supported viewport', async ({ pa
     '/rooms/create',
     '/rooms/join',
     '/profile',
+    '/profile/share',
     '/profile/settings',
+    '/profile/settings/naver-info',
     '/notifications',
   ]) {
     await page.goto(path)
@@ -62,6 +64,23 @@ test('has no automated accessibility violations on authenticated account screens
     await page.goto(path)
     await expect(page.locator('main')).toBeVisible()
     await expectNoAccessibilityViolations(page)
+  }
+})
+
+test('keeps room management and archived-room screens within the supported viewport', async ({
+  page,
+}, testInfo) => {
+  await authenticatePage(page)
+  await mockRoomManagementPageData(page)
+
+  for (const path of [
+    `/rooms/${roomId}/manage`,
+    `/rooms/${roomId}/members/00000000-0000-4000-8000-000000000001`,
+    '/rooms/archive',
+  ]) {
+    await page.goto(path)
+    await expect(page.locator('main')).toBeVisible()
+    await expectPageToFitViewport(page, testInfo.project.use.viewport?.width ?? 640)
   }
 })
 
@@ -494,6 +513,46 @@ async function mockAuthenticatedPageData(page: Page) {
       headers: { 'content-range': '0-0/0' },
       status: 200,
     })
+  })
+}
+
+/** 방 관리와 아카이브 화면의 RLS 허용 응답을 E2E 브라우저에 제공한다. */
+async function mockRoomManagementPageData(page: Page) {
+  await page.route('**/rest/v1/reading_rooms?*', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify([
+        {
+          created_by: '00000000-0000-4000-8000-000000000001',
+          description: '함께 읽는 책들',
+          id: roomId,
+          name: '금요일 아침 독서방',
+          status: 'active',
+        },
+      ]),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+  await page.route('**/rest/v1/room_members?*', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify([
+        {
+          id: '10000000-0000-4000-8000-000000000001',
+          joined_at: '2026-07-18T00:00:00.000+00:00',
+          profile_id: '00000000-0000-4000-8000-000000000001',
+          role: 'owner',
+          room_avatar_path: null,
+          room_display_name: '민규',
+          room_id: roomId,
+          status: 'active',
+        },
+      ]),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+  await page.route('**/rest/v1/rpc/get_my_archived_reading_rooms', async (route) => {
+    await route.fulfill({ body: JSON.stringify([]), contentType: 'application/json', status: 200 })
   })
 }
 

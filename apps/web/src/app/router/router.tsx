@@ -6,7 +6,10 @@ import { LoginPage } from '../../pages/auth/LoginPage'
 import { RouteRecoveryPage } from '../../pages/errors/RouteRecoveryPage'
 import { OnboardingPage } from '../../pages/onboarding/OnboardingPage'
 import { AccountSettingsPage } from '../../pages/profile/AccountSettingsPage'
+import { MemberProfilePage } from '../../pages/profile/MemberProfilePage'
+import { NaverAccountInfoPage } from '../../pages/profile/NaverAccountInfoPage'
 import { ProfileEditPage } from '../../pages/profile/ProfileEditPage'
+import { ProfileSharePage } from '../../pages/profile/ProfileSharePage'
 import { ProfilePage } from '../../pages/profile/ProfilePage'
 import { NotificationsPage } from '../../pages/notifications/NotificationsPage'
 import { BookSearchPage } from '../../pages/rooms/BookSearchPage'
@@ -43,13 +46,16 @@ export const router = createBrowserRouter([
           { path: '/notifications', element: <NotificationsPage /> },
           { path: '/profile', element: <ProfilePage /> },
           { path: '/profile/edit', element: <ProfileEditPage /> },
+          { path: '/profile/share', element: <ProfileSharePage /> },
           { path: '/profile/settings', element: <AccountSettingsPage /> },
+          { path: '/profile/settings/naver-info', element: <NaverAccountInfoPage /> },
           { path: '/rooms/create', element: <CreateRoomPage /> },
           { path: '/rooms/join', element: <JoinRoomPage /> },
           { path: '/rooms/archive', element: <ArchivedRoomsPage /> },
           { path: '/rooms/:roomId', element: <RoomDetailPage /> },
           { path: '/rooms/:roomId/manage', element: <RoomManagementPage /> },
           { path: '/rooms/:roomId/manage/settings', element: <RoomSettingsPage /> },
+          { path: '/rooms/:roomId/members/:profileId', element: <MemberProfilePage /> },
           { path: '/rooms/:roomId/books/new', element: <BookSearchPage /> },
           { path: '/rooms/:roomId/books/:bookChatId', element: <BookDiscussionPage /> },
           { path: '/rooms/:roomId/books/:bookChatId/manage', element: <BookChatManagementPage /> },
