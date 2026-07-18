@@ -306,10 +306,16 @@ function CompletionSection({
   onSave: (input: BookCompletionInput) => void
 }) {
   const ownCompletion = completions.find((completion) => completion.isMe)
+  const [isCompletionFormOpen, setIsCompletionFormOpen] = useState(false)
 
-  /** 빈 완독 기록 저장 요청이나 사용자 동작을 처리한다. */
-  function handleMarkCompleted() {
-    onSave({ bookChatId, rating: null, review: null })
+  /** 완독 기록 입력 폼을 연다. */
+  function handleOpenCompletionForm() {
+    setIsCompletionFormOpen(true)
+  }
+
+  /** 완독 기록 입력 폼을 닫고 작성 중인 값은 저장하지 않는다. */
+  function handleCloseCompletionForm() {
+    setIsCompletionFormOpen(false)
   }
 
   if (isLoading)
@@ -344,10 +350,10 @@ function CompletionSection({
           <button
             className="bg-primary min-h-11 cursor-pointer rounded-md px-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
             disabled={isSaving}
-            onClick={handleMarkCompleted}
+            onClick={handleOpenCompletionForm}
             type="button"
           >
-            완독 기록하기
+            완독하기
           </button>
         )}
       </div>
@@ -355,10 +361,24 @@ function CompletionSection({
       {ownCompletion ? (
         <CompletionReviewForm
           bookChatId={bookChatId}
-          completion={ownCompletion}
+          initialRating={ownCompletion.rating}
+          initialReview={ownCompletion.review}
           isSaving={isSaving}
           key={ownCompletion.completedAt}
           onSave={onSave}
+          submitLabel="총평 저장"
+        />
+      ) : null}
+
+      {isCompletionFormOpen && !ownCompletion ? (
+        <CompletionReviewForm
+          bookChatId={bookChatId}
+          initialRating={null}
+          initialReview={null}
+          isSaving={isSaving}
+          onCancel={handleCloseCompletionForm}
+          onSave={onSave}
+          submitLabel="완독으로 기록하기"
         />
       ) : null}
 
@@ -395,20 +415,26 @@ function CompletionSection({
   )
 }
 
-/** 완독한 사용자가 별점과 총평을 작성하는 입력 폼을 렌더링한다. */
+/** 완독 기록을 만들거나 기존 별점과 총평을 수정하는 입력 폼을 렌더링한다. */
 function CompletionReviewForm({
   bookChatId,
-  completion,
+  initialRating,
+  initialReview,
   isSaving,
+  onCancel,
   onSave,
+  submitLabel,
 }: {
   bookChatId: string
-  completion: BookChatCompletion
+  initialRating: number | null
+  initialReview: string | null
   isSaving: boolean
+  onCancel?: () => void
   onSave: (input: BookCompletionInput) => void
+  submitLabel: string
 }) {
-  const [rating, setRating] = useState<number | null>(completion.rating)
-  const [review, setReview] = useState(completion.review ?? '')
+  const [rating, setRating] = useState<number | null>(initialRating)
+  const [review, setReview] = useState(initialReview ?? '')
 
   /** 총평 저장 요청이나 사용자 동작을 처리한다. */
   function handleSaveReview() {
@@ -453,14 +479,26 @@ function CompletionReviewForm({
         placeholder="이 책을 읽고 남은 생각을 적어 보세요."
         value={review}
       />
-      <button
-        className="bg-ink mt-3 min-h-11 w-full cursor-pointer rounded-md px-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
-        disabled={isSaving}
-        onClick={handleSaveReview}
-        type="button"
-      >
-        총평 저장
-      </button>
+      <div className="mt-3 flex gap-2">
+        {onCancel ? (
+          <button
+            className="border-ink/10 text-ink min-h-11 flex-1 cursor-pointer rounded-md border px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40"
+            disabled={isSaving}
+            onClick={onCancel}
+            type="button"
+          >
+            취소
+          </button>
+        ) : null}
+        <button
+          className="bg-ink min-h-11 flex-1 cursor-pointer rounded-md px-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+          disabled={isSaving}
+          onClick={handleSaveReview}
+          type="button"
+        >
+          {submitLabel}
+        </button>
+      </div>
     </div>
   )
 }

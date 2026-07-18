@@ -14,6 +14,7 @@ const {
   getVideoPosts,
   getVideoThumbnailAuthorizations,
   parsePostForm,
+  upsertBookChatCompletion,
   videoUploadState,
 } = vi.hoisted(() => ({
   createPost: vi.fn().mockResolvedValue('post-1'),
@@ -51,6 +52,7 @@ const {
       return { body, labels: normalizedLabels, mentionedMemberIds }
     },
   ),
+  upsertBookChatCompletion: vi.fn().mockResolvedValue(undefined),
   videoUploadState: { isUploadingVideo: false },
 }))
 
@@ -85,7 +87,7 @@ vi.mock('../../entities/book-completion', () => ({
   bookCompletionKeys: { byChat: (bookChatId: string) => ['book-completions', bookChatId] },
   getBookChatCompletions,
   removeBookChatCompletion: vi.fn(),
-  upsertBookChatCompletion: vi.fn(),
+  upsertBookChatCompletion,
 }))
 
 vi.mock('../../features/auth', () => ({
@@ -116,6 +118,8 @@ describe('BookDiscussionPage', () => {
     getVideoFilterMembers.mockClear()
     getVideoPosts.mockClear()
     getVideoPosts.mockResolvedValue([])
+    upsertBookChatCompletion.mockClear()
+    upsertBookChatCompletion.mockResolvedValue(undefined)
     videoUploadState.isUploadingVideo = false
   })
 
@@ -178,11 +182,24 @@ describe('BookDiscussionPage', () => {
     expect(screen.getByRole('button', { name: '영상 올리기' })).toBeInTheDocument()
   })
 
-  it('lets the signed-in member begin a personal completion record', async () => {
+  it('opens the completion form before it saves a personal completion record', async () => {
     renderBookDiscussionPage()
 
-    expect(await screen.findByRole('button', { name: '완독 기록하기' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: '완독하기' })).toBeInTheDocument()
     expect(screen.getByText('아직 완독한 멤버가 없어요.')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '완독하기' }))
+
+    expect(upsertBookChatCompletion).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: '완독으로 기록하기' }))
+
+    await vi.waitFor(() =>
+      expect(upsertBookChatCompletion).toHaveBeenCalledWith(undefined, {
+        bookChatId: 'book-1',
+        rating: null,
+        review: null,
+      }),
+    )
   })
 
   it('closes the action bubble when the user taps outside it', () => {
