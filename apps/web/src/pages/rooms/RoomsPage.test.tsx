@@ -41,14 +41,14 @@ describe('RoomsPage', () => {
         id: 'room-1',
         lastMessage: null,
         members: [{ displayName: '민규', joinedAt: '2026-07-17T00:00:00.000Z' }],
-        name: '금요일 아침 독서 모임',
+        name: '금요일 아침 책방',
         updatedAt: '2026-07-17T00:00:00.000Z',
       },
     ])
 
     renderRoomsPage()
 
-    expect(await screen.findByText('금요일 아침 독서 모임')).toBeInTheDocument()
+    expect(await screen.findByText('금요일 아침 책방')).toBeInTheDocument()
     expect(screen.getByText('민규: 여기가 좋더라')).toBeInTheDocument()
   })
 
@@ -66,22 +66,22 @@ describe('RoomsPage', () => {
     getReadingRooms.mockResolvedValue([])
     const { findByRole } = renderRoomsPage()
 
-    expect(await findByRole('heading', { level: 2, name: '함께 읽는 모임' })).toBeInTheDocument()
+    expect(await findByRole('heading', { level: 2, name: '함께 읽는 책방' })).toBeInTheDocument()
   })
 
   it('keeps the reading room heading while the room list is loading', () => {
     getReadingRooms.mockReturnValue(new Promise<never>(() => undefined))
     const { getByRole } = renderRoomsPage()
 
-    expect(getByRole('heading', { level: 2, name: '함께 읽는 모임' })).toBeInTheDocument()
+    expect(getByRole('heading', { level: 2, name: '함께 읽는 책방' })).toBeInTheDocument()
   })
 
   it('keeps the reading room heading when the room list cannot be loaded', async () => {
-    getReadingRooms.mockRejectedValue(new Error('독서방 조회 실패'))
+    getReadingRooms.mockRejectedValue(new Error('책방 조회 실패'))
     const { findByRole, findByText } = renderRoomsPage()
 
-    expect(await findByText('독서방을 불러오지 못했어요')).toBeInTheDocument()
-    expect(await findByRole('heading', { level: 2, name: '함께 읽는 모임' })).toBeInTheDocument()
+    expect(await findByText('책방을 불러오지 못했어요')).toBeInTheDocument()
+    expect(await findByRole('heading', { level: 2, name: '함께 읽는 책방' })).toBeInTheDocument()
   })
 })
 

@@ -55,7 +55,7 @@ export function AppBottomNavigation() {
     }
   }, [isActionBookOpen])
 
-  /** 책자 바깥 영역을 눌러 모임 시작 선택지를 닫고 + 버튼에 포커스를 돌린다. */
+  /** 책자 바깥 영역을 눌러 책방 시작 선택지를 닫고 + 버튼에 포커스를 돌린다. */
   function handleCloseActionBook() {
     setIsActionBookOpen(false)
     actionMenuButtonRef.current?.focus()
@@ -67,18 +67,18 @@ export function AppBottomNavigation() {
     handleCloseActionBook()
   }
 
-  /** 중앙 + 버튼으로 모임 시작 선택지의 펼침 상태를 전환한다. */
+  /** 중앙 + 버튼으로 책방 시작 선택지의 펼침 상태를 전환한다. */
   function handleToggleActionBook() {
     setIsActionBookOpen((isOpen) => !isOpen)
   }
 
-  /** 생성 독서방 요청이나 사용자 동작을 처리한다. */
+  /** 새 책방 생성 화면으로 이동한다. */
   function handleCreateRoom() {
     setIsActionBookOpen(false)
     void navigate('/rooms/create')
   }
 
-  /** 참여 독서방 요청이나 사용자 동작을 처리한다. */
+  /** 초대 코드로 책방에 참여하는 화면으로 이동한다. */
   function handleJoinRoom() {
     setIsActionBookOpen(false)
     void navigate('/rooms/join')
@@ -102,7 +102,7 @@ export function AppBottomNavigation() {
           role="dialog"
         >
           <h2 className="sr-only" id="action-book-title">
-            모임 시작 방식 선택
+            책방 시작 방식 선택
           </h2>
           <div className="talkhugam-action-book__pages flex">
             <svg
@@ -126,7 +126,7 @@ export function AppBottomNavigation() {
               />
             </svg>
             <button
-              aria-label="새 모임 만들기"
+              aria-label="새 책방 만들기"
               className="talkhugam-action-book__page talkhugam-action-book__page--left flex flex-1 flex-col items-start gap-2 text-left"
               onClick={handleCreateRoom}
               ref={firstActionButtonRef}
@@ -135,7 +135,7 @@ export function AppBottomNavigation() {
               <span className="text-primary text-sm font-bold">새로운 이야기</span>
               <span>
                 <span className="text-ink block text-base font-bold whitespace-nowrap">
-                  새 모임 만들기
+                  새 책방 만들기
                 </span>
                 <span className="text-ink-subtle mt-1 block text-xs">
                   친구를 초대해 함께 시작해요.
@@ -143,7 +143,7 @@ export function AppBottomNavigation() {
               </span>
             </button>
             <button
-              aria-label="초대 코드로 참여"
+              aria-label="초대 코드로 책방 참여"
               className="talkhugam-action-book__page talkhugam-action-book__page--right flex flex-1 flex-col items-start gap-2 text-left"
               onClick={handleJoinRoom}
               type="button"
@@ -168,7 +168,7 @@ export function AppBottomNavigation() {
           onClick={() => void navigate('/rooms')}
           type="button"
         >
-          독서방
+          책방
         </button>
         <button
           aria-label="Talk후감 메인으로"
@@ -189,7 +189,7 @@ export function AppBottomNavigation() {
       </div>
       <button
         aria-expanded={isActionBookOpen}
-        aria-label={isActionBookOpen ? '모임 시작 메뉴 닫기' : '모임 시작 메뉴 열기'}
+        aria-label={isActionBookOpen ? '책방 시작 메뉴 닫기' : '책방 시작 메뉴 열기'}
         className="bg-primary text-ink absolute top-0 left-1/2 z-20 flex size-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full shadow-lg"
         onClick={handleToggleActionBook}
         ref={actionMenuButtonRef}

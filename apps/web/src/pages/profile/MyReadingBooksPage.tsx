@@ -11,7 +11,7 @@ import { CompletionMark } from '../../shared/ui/CompletionMark'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 import { RetryState } from '../../shared/ui/RetryState'
 
-/** 참여 중인 독서방 전체의 읽는 책과 개인 완독 표시를 한 화면에 렌더링한다. */
+/** 참여 중인 책방 전체의 읽는 책과 개인 완독 표시를 한 화면에 렌더링한다. */
 export function MyReadingBooksPage() {
   const navigate = useNavigate()
   const profileId = useAuthenticatedUser().id
@@ -40,7 +40,7 @@ export function MyReadingBooksPage() {
       <header className="mt-8">
         <p className="text-primary text-sm font-medium">책 기록</p>
         <h1 className="text-ink mt-2 text-xl font-bold">함께 읽고 있는 책</h1>
-        <p className="text-ink-subtle mt-2 text-sm">참여 중인 모든 독서방의 책을 모아 봐요.</p>
+        <p className="text-ink-subtle mt-2 text-sm">참여 중인 모든 책방의 책을 모아 봐요.</p>
       </header>
 
       {isLoading ? (
@@ -61,7 +61,7 @@ export function MyReadingBooksPage() {
   )
 }
 
-/** 독서방 이름을 기준으로 읽는 책을 묶어 목록으로 렌더링한다. */
+/** 책방 이름을 기준으로 읽는 책을 묶어 목록으로 렌더링한다. */
 function ReadingBookGroups({ books }: { books: ReadingBook[] }) {
   const groups = groupReadingBooksByRoom(books)
   if (groups.length === 0)
@@ -69,7 +69,7 @@ function ReadingBookGroups({ books }: { books: ReadingBook[] }) {
       <section className="bg-surface-muted mt-12 rounded-lg p-6 text-center">
         <h2 className="text-ink text-base font-bold">아직 읽고 있는 책이 없어요</h2>
         <p className="text-ink-subtle mt-2 text-sm">
-          독서방에서 첫 책을 골라 이야기를 시작해 보세요.
+          책방에서 첫 책을 골라 이야기를 시작해 보세요.
         </p>
       </section>
     )
@@ -94,7 +94,7 @@ function ReadingBookGroups({ books }: { books: ReadingBook[] }) {
   )
 }
 
-/** 하나의 읽는 책을 표지, 독서방, 개인 완독 표시와 함께 링크 카드로 렌더링한다. */
+/** 하나의 읽는 책을 표지, 책방, 개인 완독 표시와 함께 링크 카드로 렌더링한다. */
 function ReadingBookCard({ book }: { book: ReadingBook }) {
   return (
     <Link
@@ -117,7 +117,7 @@ function ReadingBookCard({ book }: { book: ReadingBook }) {
   )
 }
 
-/** 읽는 책 목록을 독서방 순서대로 묶어 렌더링에 필요한 구조로 변환한다. */
+/** 읽는 책 목록을 책방 순서대로 묶어 렌더링에 필요한 구조로 변환한다. */
 function groupReadingBooksByRoom(books: ReadingBook[]): Array<{
   books: ReadingBook[]
   roomId: string

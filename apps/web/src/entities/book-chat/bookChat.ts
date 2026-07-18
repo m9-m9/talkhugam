@@ -113,13 +113,13 @@ export type ReadingBook = {
 }
 
 export const bookChatKeys = {
-  /** 독서방 식별자로 안정적인 query key를 생성한다. */
+  /** 책방 식별자로 안정적인 query key를 생성한다. */
   byRoom: (roomId: string) => ['book-chats', roomId] as const,
-  /** 독서방 식별자로 독서방 상세 query key를 생성한다. */
+  /** 책방 식별자로 책방 상세 query key를 생성한다. */
   room: (roomId: string) => ['reading-room', roomId] as const,
   /** 프로필별 보관한 책 대화 목록 query key를 생성한다. */
   myArchived: (profileId: string) => ['archived-book-chats', profileId] as const,
-  /** 프로필과 개인 완독 상태로 모든 참여 독서방의 읽는 책 목록 query key를 생성한다. */
+  /** 프로필과 개인 완독 상태로 모든 참여 책방의 읽는 책 목록 query key를 생성한다. */
   myReading: (profileId: string, completedBookChatIds: readonly string[]) =>
     ['my-reading-books', profileId, ...completedBookChatIds] as const,
 }
@@ -138,7 +138,7 @@ export async function getBookChats(client: SupabaseClient, roomId: string): Prom
   return parseBookChats(response.data)
 }
 
-/** 독서방 데이터를 조회하거나 계산해 반환한다. */
+/** 책방 데이터를 조회하거나 계산해 반환한다. */
 export async function getReadingRoom(
   client: SupabaseClient,
   roomId: string,
@@ -170,7 +170,7 @@ export async function getManagedBookChat(
   return mapManagedBookChat(managedBookChatSchema.parse(response.data))
 }
 
-/** 현재 사용자가 참여했던 독서방에서 보관한 책 대화 목록을 조회한다. */
+/** 현재 사용자가 참여했던 책방에서 보관한 책 대화 목록을 조회한다. */
 export async function getMyArchivedBookChats(
   client: SupabaseClient,
   profileId: string,
@@ -186,7 +186,7 @@ export async function getMyArchivedBookChats(
   return parseArchivedBookChats(response.data)
 }
 
-/** 참여 중인 모든 독서방의 읽는 책을 개인 완독 표시와 함께 조회한다. */
+/** 참여 중인 모든 책방의 읽는 책을 개인 완독 표시와 함께 조회한다. */
 export async function getMyReadingBooks(
   client: SupabaseClient,
   profileId: string,
@@ -303,7 +303,7 @@ export function parseArchivedBookChats(value: unknown): ArchivedBookChat[] {
   return z.array(archivedBookChatRowSchema).parse(value).map(mapArchivedBookChat)
 }
 
-/** 외부 입력을 검증해 독서방별 개인 읽는 책 목록 모델로 변환한다. */
+/** 외부 입력을 검증해 책방별 개인 읽는 책 목록 모델로 변환한다. */
 export function parseReadingBooks(
   value: unknown,
   completedBookChatIds: readonly string[],
@@ -325,7 +325,7 @@ function mapReadingBook(
     bookChatId: row.id,
     isCompleted: completedBookChatIds.has(row.id),
     roomId: row.room_id,
-    roomName: row.reading_rooms?.name ?? '이름 없는 독서방',
+    roomName: row.reading_rooms?.name ?? '이름 없는 책방',
     thumbnailUrl: row.books?.thumbnail_url ?? null,
     title: row.books?.title ?? row.name,
   }

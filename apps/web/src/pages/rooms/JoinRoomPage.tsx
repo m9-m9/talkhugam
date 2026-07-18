@@ -16,7 +16,7 @@ import { trackAnalyticsEvent } from '../../shared/analytics'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
-/** 참여 독서방 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
+/** 초대 코드로 책방에 참여하는 화면을 렌더링한다. */
 export function JoinRoomPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -49,7 +49,7 @@ export function JoinRoomPage() {
         <p aria-hidden="true" className="text-primary text-2xl">
           ✦
         </p>
-        <h1 className="text-ink mt-4 text-2xl font-bold">독서방 초대장을 받았어요</h1>
+        <h1 className="text-ink mt-4 text-2xl font-bold">책방 초대장을 받았어요</h1>
         <p className="text-ink-subtle mt-3 text-sm whitespace-pre-line">
           {'친구가 보내준 6자리 코드를 넣으면,\n무슨 책을 읽는 방인지 미리 볼 수 있어요'}
         </p>
@@ -86,7 +86,7 @@ export function JoinRoomPage() {
         >
           {form.formState.isSubmitting ? (
             <span className="flex items-center justify-center gap-2">
-              <LoadingSpinner label="독서방에 입장하고 있어요." showLabel={false} size="xs" />
+              <LoadingSpinner label="책방에 들어가고 있어요." showLabel={false} size="xs" />
               입장하고 있어요…
             </span>
           ) : (

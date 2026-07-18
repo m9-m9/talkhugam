@@ -31,7 +31,7 @@ const postFormSchema = z
     mentionedMemberIds: z.array(z.string().uuid()).max(6).default([]),
   })
   .refine((value) => value.body.length > 0 || value.labels.length > 0, {
-    message: '감상이나 라벨을 하나 이상 남겨 주세요.',
+    message: '독후감이나 라벨을 하나 이상 남겨 주세요.',
   })
 
 export type DiscussionPost = {

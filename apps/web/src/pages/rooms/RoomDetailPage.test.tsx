@@ -87,9 +87,9 @@ describe('RoomDetailPage', () => {
 
     renderRoomDetailPage('/rooms/room-1')
 
-    expect(await screen.findByText('이 독서방을 찾을 수 없어요')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: '내 독서방으로' }))
-    expect(await screen.findByText('내 독서방 화면')).toBeInTheDocument()
+    expect(await screen.findByText('이 책방을 찾을 수 없어요')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '내 책방으로' }))
+    expect(await screen.findByText('내 책방 화면')).toBeInTheDocument()
   })
 
   it('explains when the selected room loads but its book list cannot be loaded', async () => {
@@ -123,14 +123,14 @@ describe('RoomDetailPage', () => {
   })
 })
 
-/** 독서방 상세 화면의 라우터와 서버 상태 Provider를 구성해 렌더링한다. */
+/** 책방 상세 화면의 라우터와 서버 상태 Provider를 구성해 렌더링한다. */
 function renderRoomDetailPage(initialEntry: string) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[initialEntry]}>
         <Routes>
-          <Route path="/rooms" element={<p>내 독서방 화면</p>} />
+          <Route path="/rooms" element={<p>내 책방 화면</p>} />
           <Route path="/rooms/:roomId" element={<RoomDetailPage />} />
           <Route path="/rooms/:roomId/books/:bookChatId" element={<p>책 대화 화면</p>} />
         </Routes>

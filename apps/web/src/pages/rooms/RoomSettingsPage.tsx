@@ -19,12 +19,12 @@ const roomSettingsSchema = z.object({
   name: z
     .string()
     .trim()
-    .min(1, '모임 이름을 입력해 주세요.')
-    .max(40, '모임 이름은 40자 이내로 작성해 주세요.'),
+    .min(1, '책방 이름을 입력해 주세요.')
+    .max(40, '책방 이름은 40자 이내로 작성해 주세요.'),
 })
 type RoomSettingsForm = z.infer<typeof roomSettingsSchema>
 
-/** 방장이 모임 이름과 소개를 편집하는 방 설정 화면을 렌더링한다. */
+/** 방장이 책방 이름과 소개를 편집하는 설정 화면을 렌더링한다. */
 export function RoomSettingsPage() {
   const client = createSupabaseClient()
   const navigate = useNavigate()
@@ -62,12 +62,12 @@ export function RoomSettingsPage() {
     <main className="app-page bg-surface px-4 pb-8">
       <AppHeader onBack={() => void navigate(`/rooms/${roomId}/manage`)} title="방 설정" />
       <header className="mt-8">
-        <h1 className="text-ink text-xl font-bold">모임을 소개해 주세요</h1>
+        <h1 className="text-ink text-xl font-bold">책방을 소개해 주세요</h1>
         <p className="text-ink-subtle mt-2 text-sm">이 방에 참여한 사람들이 함께 볼 정보예요.</p>
       </header>
       <form className="mt-12 space-y-6" onSubmit={form.handleSubmit(handleSubmit)}>
         <label className="block space-y-2">
-          <span className="text-ink text-sm font-semibold">모임 이름</span>
+          <span className="text-ink text-sm font-semibold">책방 이름</span>
           <input
             className="border-ink/10 focus:border-primary min-h-12 w-full rounded-md border bg-white px-4 text-sm outline-none"
             {...form.register('name')}

@@ -2,16 +2,16 @@ import { useNavigate } from 'react-router-dom'
 
 type RouteRecoveryKind = 'error' | 'not-found'
 
-/** 잘못된 주소 또는 라우트 렌더링 오류에서 독서방 목록으로 복귀하는 화면을 렌더링한다. */
+/** 잘못된 주소 또는 라우트 렌더링 오류에서 책방 목록으로 복귀하는 화면을 렌더링한다. */
 export function RouteRecoveryPage({ kind }: { kind: RouteRecoveryKind }) {
   const navigate = useNavigate()
   const isNotFound = kind === 'not-found'
   const title = isNotFound ? '페이지를 찾을 수 없어요' : '화면을 불러오지 못했어요'
   const description = isNotFound
-    ? '주소를 다시 확인하거나 내 독서방으로 돌아가 보세요.'
-    : '잠시 후 다시 시도하거나 내 독서방으로 돌아가 보세요.'
+    ? '주소를 다시 확인하거나 내 책방으로 돌아가 보세요.'
+    : '잠시 후 다시 시도하거나 내 책방으로 돌아가 보세요.'
 
-  /** 사용자를 독서방 목록으로 이동시켜 다음 행동을 이어갈 수 있게 한다. */
+  /** 사용자를 책방 목록으로 이동시켜 다음 행동을 이어갈 수 있게 한다. */
   function handleReturnToRooms() {
     void navigate('/rooms', { replace: true })
   }
@@ -29,7 +29,7 @@ export function RouteRecoveryPage({ kind }: { kind: RouteRecoveryKind }) {
           onClick={handleReturnToRooms}
           type="button"
         >
-          독서방으로 돌아가기
+          책방으로 돌아가기
         </button>
       </section>
     </main>

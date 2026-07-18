@@ -82,7 +82,7 @@ export function BookChatManagementPage() {
     <main className="app-page bg-surface px-4 pb-8">
       <AppHeader
         onBack={() => void navigate(`/rooms/${roomId}/books/${bookChatId}`)}
-        title="책 채팅방 관리"
+        title="책 대화 관리"
       />
       <header className="mt-8">
         <p className="text-primary text-sm font-medium">책 대화</p>
@@ -232,7 +232,7 @@ function BookChatManagementUnavailablePage({ onBack }: { onBack: () => void }) {
         onClick={onBack}
         type="button"
       >
-        독서방으로
+        책방으로
       </button>
     </main>
   )

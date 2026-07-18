@@ -132,7 +132,7 @@ export function ProfilePage() {
           <span>
             <span className="text-ink block text-sm font-semibold">읽고 있는 책</span>
             <span className="text-ink-subtle mt-1 block text-xs">
-              참여 중인 모든 독서방의 책을 모아 봐요.
+              참여 중인 모든 책방의 책을 모아 봐요.
             </span>
           </span>
           <span aria-hidden="true" className="text-primary text-lg">

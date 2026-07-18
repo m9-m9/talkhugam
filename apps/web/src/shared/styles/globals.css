@@ -180,6 +180,13 @@
   z-index: 1;
 }
 
+.talkhugam-chat-composer-row {
+  align-items: center;
+  display: grid;
+  gap: var(--spacing-2);
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+}
+
 @keyframes talkhugam-action-book-open-left {
   0% {
     opacity: 0;

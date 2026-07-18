@@ -196,6 +196,14 @@ describe('BookDiscussionPage', () => {
     expect(screen.getByRole('button', { name: '완독 기록' })).not.toHaveClass('col-span-2')
   })
 
+  it('aligns the add button, message input, and send button in one composer grid', () => {
+    renderBookDiscussionPage()
+
+    const input = screen.getByLabelText('메시지 입력')
+
+    expect(input.parentElement?.parentElement).toHaveClass('talkhugam-chat-composer-row')
+  })
+
   it('opens the completion review form from the plus menu before it saves a personal completion record', async () => {
     renderBookDiscussionPage()
 
@@ -354,14 +362,14 @@ describe('BookDiscussionPage', () => {
     renderBookDiscussionPage()
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      '감상을 불러오지 못했어요. 다시 시도해 주세요.',
+      '독후감을 불러오지 못했어요. 다시 시도해 주세요.',
     )
-    expect(screen.queryByText('첫 감상을 남겨 보세요')).not.toBeInTheDocument()
+    expect(screen.queryByText('첫 독후감을 남겨 보세요')).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: '다시 시도' }))
 
     await vi.waitFor(() => expect(getPosts).toHaveBeenCalledTimes(2))
-    expect(await screen.findByText('첫 감상을 남겨 보세요')).toBeInTheDocument()
+    expect(await screen.findByText('첫 독후감을 남겨 보세요')).toBeInTheDocument()
   })
 
   it('shows a video query error instead of the empty conversation state and retries', async () => {
@@ -371,12 +379,12 @@ describe('BookDiscussionPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       '영상을 불러오지 못했어요. 다시 시도해 주세요.',
     )
-    expect(screen.queryByText('첫 감상을 남겨 보세요')).not.toBeInTheDocument()
+    expect(screen.queryByText('첫 독후감을 남겨 보세요')).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: '다시 시도' }))
 
     await vi.waitFor(() => expect(getVideoPosts).toHaveBeenCalledTimes(2))
-    expect(await screen.findByText('첫 감상을 남겨 보세요')).toBeInTheDocument()
+    expect(await screen.findByText('첫 독후감을 남겨 보세요')).toBeInTheDocument()
   })
 
   it('keeps loaded posts visible when the video query fails', async () => {
@@ -414,7 +422,7 @@ describe('BookDiscussionPage', () => {
     renderBookDiscussionPage()
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      '감상을 불러오지 못했어요. 다시 시도해 주세요.',
+      '독후감을 불러오지 못했어요. 다시 시도해 주세요.',
     )
     expect(screen.getByRole('status', { name: '영상 준비 중…' })).toBeInTheDocument()
   })
@@ -426,7 +434,7 @@ describe('BookDiscussionPage', () => {
     renderBookDiscussionPage()
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      '감상을 불러오지 못했어요. 다시 시도해 주세요.',
+      '독후감을 불러오지 못했어요. 다시 시도해 주세요.',
     )
 
     videoRequest.resolve([])
@@ -447,7 +455,7 @@ describe('BookDiscussionPage', () => {
     expect(screen.getByRole('button', { name: '다시 시도' })).toBeDisabled()
 
     retryRequest.resolve([])
-    expect(await screen.findByText('첫 감상을 남겨 보세요')).toBeInTheDocument()
+    expect(await screen.findByText('첫 독후감을 남겨 보세요')).toBeInTheDocument()
   })
 
   it('gives an at-sign mention candidate a 44px touch target', async () => {
@@ -550,7 +558,7 @@ describe('BookDiscussionPage', () => {
     fireEvent.click(screen.getByRole('button', { name: '전송' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      '감상을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.',
+      '독후감을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.',
     )
     expectComposerState()
   })
@@ -575,7 +583,7 @@ describe('BookDiscussionPage', () => {
     fireEvent.click(screen.getByRole('button', { name: '전송' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      '감상을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.',
+      '독후감을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.',
     )
     expect(screen.getByText('답글 남기기', { selector: 'p' })).toBeInTheDocument()
     expect(screen.getByLabelText('메시지 입력')).toHaveValue('@민수 저도요')

@@ -97,7 +97,7 @@ export function BookSearchPage() {
     handleSearch()
   }
 
-  /** 선택한 책으로 독서방의 책 대화를 만들고, 성공하면 독서방 상세로 이동한다. */
+  /** 선택한 책으로 책방의 책 대화를 만들고, 성공하면 책방 상세로 이동한다. */
   async function handleSelectBook(book: BookSearchItem) {
     if (!roomId) return
     setSelectedBookId(book.title)
@@ -205,7 +205,7 @@ function BookResults({
                 </span>
                 {isCreatingId === book.title ? (
                   <div className="mt-2">
-                    <LoadingSpinner label="책 채팅방을 만들고 있어요…" size="xs" />
+                    <LoadingSpinner label="책 대화를 만들고 있어요…" size="xs" />
                   </div>
                 ) : null}
               </span>
@@ -233,7 +233,8 @@ async function searchBooksForQuery(
     const items = await searchBooks(createSupabaseClient(), query)
     if (!isCancelled()) setItems(items)
   } catch {
-    if (!isCancelled()) setErrorMessage('도서 검색에 실패했어요. 잠시 후 다시 시도해 주세요.')
+    if (!isCancelled())
+      setErrorMessage('도서 검색을 완료하지 못했어요. 잠시 후 다시 시도해 주세요.')
   } finally {
     if (!isCancelled()) {
       setIsBookLoaderVisible(false)

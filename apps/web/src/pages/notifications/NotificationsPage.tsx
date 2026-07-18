@@ -161,9 +161,7 @@ function NotificationsEmptyState() {
   return (
     <div className="flex min-h-64 flex-col items-center justify-center text-center">
       <p className="text-ink text-base font-semibold">아직 새로운 알림이 없어요</p>
-      <p className="text-ink-subtle mt-2 text-sm">
-        독서방에서 새 소식이 오면 이곳에 알려 드릴게요.
-      </p>
+      <p className="text-ink-subtle mt-2 text-sm">책방에서 새 소식이 오면 이곳에 알려 드릴게요.</p>
     </div>
   )
 }

@@ -14,7 +14,7 @@ export function ContactPage() {
         <p className="text-primary text-sm font-medium">Contact Us</p>
         <h1 className="text-ink mt-2 text-2xl font-bold">Talk후감에 문의하기</h1>
         <p className="text-ink-subtle mt-3 text-sm leading-6">
-          로그인, 독서방, 콘텐츠, 개인정보 처리와 관련한 문의를 남길 수 있어요.
+          로그인, 책방, 콘텐츠, 개인정보 처리와 관련한 문의를 남길 수 있어요.
         </p>
       </section>
       <section

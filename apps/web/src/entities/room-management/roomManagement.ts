@@ -101,9 +101,9 @@ export type UpdateManagedRoom = z.infer<typeof updateRoomSchema>
 
 export const roomManagementKeys = {
   archive: ['room-management', 'archive'] as const,
-  /** 특정 독서방의 관리 상세 데이터를 식별하는 쿼리 키를 반환한다. */
+  /** 특정 책방의 관리 상세 데이터를 식별하는 쿼리 키를 반환한다. */
   detail: (roomId: string) => ['room-management', roomId] as const,
-  /** 특정 독서방의 활성 초대 목록을 식별하는 쿼리 키를 반환한다. */
+  /** 특정 책방의 활성 초대 목록을 식별하는 쿼리 키를 반환한다. */
   invites: (roomId: string) => ['room-management', roomId, 'invites'] as const,
 }
 
@@ -135,7 +135,7 @@ export function parseRoomInvites(value: unknown): ManagedRoomInvite[] {
   return z.array(roomInviteRowSchema).parse(value).map(mapRoomInvite)
 }
 
-/** 지난 독서방 목록 응답을 UI가 사용하는 아카이브 모델로 변환한다. */
+/** 지난 책방 목록 응답을 UI가 사용하는 아카이브 모델로 변환한다. */
 export function parseArchivedRooms(value: unknown): ArchivedRoom[] {
   return z.array(archivedRoomRowSchema).parse(value).map(mapArchivedRoom)
 }
@@ -167,7 +167,7 @@ export async function getRoomManagement(
   return parseRoomManagement(roomResponse.data, membersResponse.data, currentProfileId)
 }
 
-/** 현재 사용자가 만들고 보관한 지난 독서방을 조회한다. */
+/** 현재 사용자가 만들고 보관한 지난 책방을 조회한다. */
 export async function getArchivedRooms(client: SupabaseClient): Promise<ArchivedRoom[]> {
   const response = await client.rpc('get_my_archived_reading_rooms')
 

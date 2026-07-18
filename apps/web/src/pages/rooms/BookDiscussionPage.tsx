@@ -131,7 +131,7 @@ export function BookDiscussionPage() {
   async function handleSubmit() {
     const parsed = postInput(draft, labels, mentionedMemberIds)
     if (!parsed.ok || !bookChatId) {
-      setErrorMessage('감상이나 라벨을 하나 이상 남겨 주세요.')
+      setErrorMessage('독후감이나 라벨을 하나 이상 남겨 주세요.')
       return
     }
     if (replyTo && parsed.value.labels.length > 0) {
@@ -150,11 +150,11 @@ export function BookDiscussionPage() {
       await queryClient.invalidateQueries({ queryKey: postKeys.byBookChat(bookChatId) })
       await queryClient.invalidateQueries({ queryKey: readingRoomKeys.all })
     } catch {
-      setErrorMessage('감상을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.')
+      setErrorMessage('독후감을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.')
     }
   }
 
-  /** 실패한 감상과 영상 조회를 함께 다시 요청한다. */
+  /** 실패한 독후감과 영상 조회를 함께 다시 요청한다. */
   function handleRetryTimeline() {
     setTimelineRetryMessage(
       getDiscussionTimelineErrorMessage(postsQuery.isError, videosQuery.isError),
@@ -207,7 +207,7 @@ export function BookDiscussionPage() {
       <AppHeader
         action={
           <button
-            aria-label="책 채팅방 관리"
+            aria-label="책 대화 관리"
             className="text-ink min-h-11 min-w-11 px-3 text-xl"
             onClick={() => void navigate(`/rooms/${roomId}/books/${bookChatId}/manage`)}
             type="button"
@@ -288,7 +288,7 @@ export function BookDiscussionPage() {
   )
 }
 
-/** 감상과 영상 조회 상태에 따라 대화 또는 재시도 안내를 렌더링한다. */
+/** 독후감과 영상 조회 상태에 따라 대화 또는 재시도 안내를 렌더링한다. */
 function DiscussionTimeline({
   allPosts,
   hasPostError,
@@ -349,12 +349,12 @@ function getDiscussionTimelineErrorMessage(
   hasVideoError: boolean,
 ): string | null {
   if (hasPostError && hasVideoError) return '대화를 불러오지 못했어요. 다시 시도해 주세요.'
-  if (hasPostError) return '감상을 불러오지 못했어요. 다시 시도해 주세요.'
+  if (hasPostError) return '독후감을 불러오지 못했어요. 다시 시도해 주세요.'
   if (hasVideoError) return '영상을 불러오지 못했어요. 다시 시도해 주세요.'
   return null
 }
 
-/** 개인 완독 기록과 모임 멤버의 총평 현황을 하단 시트로 렌더링한다. */
+/** 개인 완독 기록과 책방 멤버의 총평 현황을 하단 시트로 렌더링한다. */
 function CompletionSheet({
   bookChatId,
   completions,
@@ -769,7 +769,7 @@ function ChatComposer({
           )}
         </div>
       ) : null}
-      <div className="flex items-center gap-2">
+      <div className="talkhugam-chat-composer-row">
         <input
           accept="video/mp4,video/quicktime"
           aria-label="영상 파일 선택"
@@ -784,7 +784,7 @@ function ChatComposer({
         <button
           aria-expanded={isActionTrayOpen}
           aria-label={isActionTrayOpen ? '메시지 추가 메뉴 닫기' : '메시지 추가 메뉴 열기'}
-          className="border-ink/20 text-ink flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-full border"
+          className="border-ink/20 text-ink flex size-11 cursor-pointer items-center justify-center rounded-full border"
           onClick={handleToggleActionTray}
           ref={actionMenuButtonRef}
           type="button"
@@ -846,7 +846,7 @@ function ChatComposer({
           <textarea
             aria-autocomplete="list"
             aria-controls={shouldShowMentionMenu ? 'mention-candidates' : undefined}
-            className="border-ink/10 focus:border-primary min-h-11 w-full resize-none rounded-md border bg-white px-3 py-2 text-sm outline-none"
+            className="border-ink/10 focus:border-primary block min-h-11 w-full resize-none rounded-md border bg-white px-3 py-2 text-sm outline-none"
             id="discussion-message"
             onChange={(event) => handleChangeMessage(event.target.value)}
             onKeyDown={(event) => {
@@ -861,7 +861,7 @@ function ChatComposer({
           />
         </div>
         <button
-          className="bg-primary text-ink min-h-11 rounded-md px-3 text-sm font-semibold disabled:opacity-40"
+          className="bg-primary text-ink min-h-11 shrink-0 rounded-md px-3 text-sm font-semibold disabled:opacity-40"
           disabled={value.trim().length === 0 && labels.length === 0}
           onClick={onSubmit}
           type="button"
@@ -934,7 +934,7 @@ function ChatTimeline({
   if (messages.length === 0 && showEmptyState)
     return (
       <div className="bg-surface-muted rounded-lg p-6 text-center">
-        <p className="text-ink font-medium">첫 감상을 남겨 보세요</p>
+        <p className="text-ink font-medium">첫 독후감을 남겨 보세요</p>
         <p className="text-ink-subtle mt-2 text-sm">페이지나 챕터 라벨만 먼저 남겨도 괜찮아요.</p>
       </div>
     )
@@ -1119,7 +1119,7 @@ function createChatMessages(posts: DiscussionPost[], videos: VideoPost[]) {
 
 /** 영상 메시지 라벨 데이터를 조회하거나 계산해 반환한다. */
 function getVideoMessageLabel(video: VideoPost) {
-  if (video.status === 'failed') return '영상 처리에 실패했어요.'
+  if (video.status === 'failed') return '영상 처리를 완료하지 못했어요. 잠시 후 다시 시도해 주세요.'
   if (video.status === 'waiting_upload') return '영상을 올리고 있어요…'
   return '영상 준비 중…'
 }
@@ -1130,7 +1130,7 @@ function getActiveMentionQuery(value: string) {
   return match?.[1] ?? null
 }
 
-/** 현재 @ 검색어와 일치하는 독서방 멤버 후보를 반환한다. */
+/** 현재 @ 검색어와 일치하는 책방 멤버 후보를 반환한다. */
 function getMatchingMentionCandidates(
   candidates: readonly VideoFilterMember[],
   query: string | null,
