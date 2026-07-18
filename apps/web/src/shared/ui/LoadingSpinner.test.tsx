@@ -13,9 +13,7 @@ describe('LoadingSpinner', () => {
   })
 
   it('renders the book loader only when the longer reading-room or video wait needs it', () => {
-    const { container } = render(
-      <LoadingSpinner label="영상을 준비하고 있어요." variant="book" />,
-    )
+    const { container } = render(<LoadingSpinner label="영상을 준비하고 있어요." variant="book" />)
 
     expect(container.querySelector('.talkhugam-book-loader')).toBeInTheDocument()
     expect(container.querySelector('.talkhugam-brand-spinner')).not.toBeInTheDocument()

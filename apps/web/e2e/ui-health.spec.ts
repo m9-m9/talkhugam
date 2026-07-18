@@ -44,6 +44,14 @@ test('keeps core authenticated pages within the supported viewport', async ({ pa
   }
 })
 
+test('uses the bottom-navigation token as the global page bottom spacing', async ({ page }) => {
+  await authenticatePage(page)
+  await mockAuthenticatedPageData(page)
+  await page.goto('/rooms')
+
+  await expect(page.locator('.app-with-bottom-navigation')).toHaveCSS('padding-bottom', '96px')
+})
+
 test('has no automated accessibility violations on authenticated account screens', async ({
   page,
 }) => {

@@ -29,6 +29,7 @@
 
 @layer base {
   :root {
+    --app-bottom-navigation-height: calc(var(--spacing-16) + var(--spacing-8));
     color: var(--color-ink);
     background: var(--color-surface);
     font-family:
@@ -71,11 +72,11 @@
 
 .app-with-bottom-navigation {
   min-height: 100vh;
-  padding-bottom: 100px;
+  padding-bottom: var(--app-bottom-navigation-height);
 }
 
 .app-bottom-navigation {
-  --bottom-navigation-height: calc(var(--spacing-16) + var(--spacing-8));
+  --bottom-navigation-height: var(--app-bottom-navigation-height);
 
   bottom: 0;
   height: var(--bottom-navigation-height);
@@ -279,7 +280,7 @@
 .talkhugam-book-loader__bubbles {
   align-items: flex-end;
   display: flex;
-  gap: 8px;
+  gap: var(--spacing-2);
   height: 26px;
   justify-content: center;
 }
