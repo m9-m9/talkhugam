@@ -206,7 +206,7 @@ export function VideoPlayerPage() {
               onReturn={handleReturnToArchive}
             />
           ) : isVideoLoading ? (
-            <LoadingSpinner label="영상을 준비하고 있어요." tone="inverse" />
+            <LoadingSpinner label="영상을 준비하고 있어요." tone="inverse" variant="book" />
           ) : playbackQuery.data ? (
             <LazyMuxVideoPlayer
               className="absolute inset-0 size-full"
@@ -368,7 +368,9 @@ function PlayerLookupErrorState({
         onRetry={onRetry}
         {...(retryLabel === undefined ? {} : { retryLabel })}
       />
-      {isRetrying ? <LoadingSpinner label={loadingLabel} size="sm" tone="inverse" /> : null}
+      {isRetrying ? (
+        <LoadingSpinner label={loadingLabel} size="sm" tone="inverse" variant="book" />
+      ) : null}
       <button
         className="min-h-11 cursor-pointer px-3 text-sm font-medium text-white/80"
         onClick={onReturn}

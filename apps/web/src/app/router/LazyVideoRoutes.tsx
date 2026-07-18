@@ -48,7 +48,7 @@ function VideoRouteLoadingState({
     <main
       className={`app-page ${backgroundClassName} flex min-h-dvh items-center justify-center px-4`}
     >
-      <LoadingSpinner label={label} tone={tone} />
+      <LoadingSpinner label={label} tone={tone} variant="book" />
     </main>
   )
 }

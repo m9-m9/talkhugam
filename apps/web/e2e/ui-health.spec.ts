@@ -35,13 +35,23 @@ test('keeps core authenticated pages within the supported viewport', async ({ pa
     '/rooms/create',
     '/rooms/join',
     '/profile',
+    '/profile/share',
     '/profile/settings',
+    '/profile/settings/naver-info',
     '/notifications',
   ]) {
     await page.goto(path)
     await expect(page.locator('main')).toBeVisible()
     await expectPageToFitViewport(page, testInfo.project.use.viewport?.width ?? 640)
   }
+})
+
+test('uses the bottom-navigation token as the global page bottom spacing', async ({ page }) => {
+  await authenticatePage(page)
+  await mockAuthenticatedPageData(page)
+  await page.goto('/rooms')
+
+  await expect(page.locator('.app-with-bottom-navigation')).toHaveCSS('padding-bottom', '96px')
 })
 
 test('has no automated accessibility violations on authenticated account screens', async ({
@@ -54,6 +64,23 @@ test('has no automated accessibility violations on authenticated account screens
     await page.goto(path)
     await expect(page.locator('main')).toBeVisible()
     await expectNoAccessibilityViolations(page)
+  }
+})
+
+test('keeps room management and archived-room screens within the supported viewport', async ({
+  page,
+}, testInfo) => {
+  await authenticatePage(page)
+  await mockRoomManagementPageData(page)
+
+  for (const path of [
+    `/rooms/${roomId}/manage`,
+    `/rooms/${roomId}/members/00000000-0000-4000-8000-000000000001`,
+    '/rooms/archive',
+  ]) {
+    await page.goto(path)
+    await expect(page.locator('main')).toBeVisible()
+    await expectPageToFitViewport(page, testInfo.project.use.viewport?.width ?? 640)
   }
 })
 
@@ -113,7 +140,9 @@ test('closes the account deletion dialog by Escape and backdrop while restoring 
   await expect(deletionTrigger).toBeFocused()
 })
 
-test('preserves a book-chat label draft while the action bubble is dismissed', async ({ page }) => {
+test('resets a dismissed book-chat label editor while keeping the message draft', async ({
+  page,
+}) => {
   await authenticatePage(page)
   await page.goto(`/rooms/${roomId}/books/${bookChatId}`)
 
@@ -121,17 +150,63 @@ test('preserves a book-chat label draft while the action bubble is dismissed', a
   await page.getByRole('button', { name: '페이지 라벨' }).click()
   await page.getByRole('textbox', { name: '페이지 번호' }).fill('87')
 
-  await page.getByRole('textbox', { name: '메시지 입력' }).click()
+  const composer = page.getByRole('textbox', { name: '메시지 입력' })
+  await composer.fill('이 문장을 기억할게요')
+  await composer.click()
   await expect(page.getByRole('textbox', { name: '페이지 번호' })).toBeHidden()
 
   await page.getByRole('button', { name: '메시지 추가 메뉴 열기' }).click()
-  await expect(page.getByRole('textbox', { name: '페이지 번호' })).toHaveValue('87')
+  await expect(page.getByRole('button', { name: '페이지 라벨' })).toBeVisible()
+  await expect(page.getByRole('textbox', { name: '페이지 번호' })).toBeHidden()
+  await expect(composer).toHaveValue('이 문장을 기억할게요')
+
+  await page.getByRole('button', { name: '페이지 라벨' }).click()
+  await expect(page.getByRole('textbox', { name: '페이지 번호' })).toHaveValue('')
 
   const accessibilityScanResults = await new AxeBuilder({ page }).analyze()
   expect(accessibilityScanResults.violations).toEqual([])
 
   await page.getByRole('button', { name: '메시지 추가 메뉴 닫기' }).click()
   await expect(page.getByRole('textbox', { name: '페이지 번호' })).toBeHidden()
+})
+
+test('opens completion records from the book-chat plus menu and restores focus on close', async ({
+  page,
+}) => {
+  await authenticatePage(page)
+  await mockBookCompletionRecords(page)
+  await page.goto(`/rooms/${roomId}/books/${bookChatId}`)
+
+  const plusButton = page.getByRole('button', { name: '메시지 추가 메뉴 열기' })
+  await plusButton.click()
+  await page.getByRole('button', { name: '완독 기록' }).click()
+
+  await expect(page.getByRole('dialog', { name: '완독 기록' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '완독으로 기록하기' })).toBeVisible()
+
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog', { name: '완독 기록' })).toBeHidden()
+  await expect(plusButton).toBeFocused()
+})
+
+test('selects a member by typing an at-sign in the book-chat composer', async ({ page }) => {
+  await authenticatePage(page)
+  await mockVideoMembers(page, [
+    createVideoMember('8fc963a4-da01-4696-995c-755fe145776f', '민규', true),
+    createVideoMember('b21f0060-cd1d-40db-a6ae-fd2eb3e9f862', '민수'),
+  ])
+  await page.goto(`/rooms/${roomId}/books/${bookChatId}`)
+
+  const composer = page.getByRole('textbox', { name: '메시지 입력' })
+  await composer.fill('@민')
+  await expect(page.getByRole('listbox', { name: '멘션할 멤버' })).toBeVisible()
+  await page.getByRole('option', { name: '민수 멘션 추가' }).click()
+
+  await expect(composer).toHaveValue('@민수 ')
+  await expect(page.getByRole('listbox', { name: '멘션할 멤버' })).toBeHidden()
+
+  await page.getByRole('button', { name: '메시지 추가 메뉴 열기' }).click()
+  await expect(page.getByRole('button', { name: '멤버 멘션' })).toBeHidden()
 })
 
 test('shows global navigation outside the book chat and hides it inside', async ({ page }) => {
@@ -141,6 +216,36 @@ test('shows global navigation outside the book chat and hides it inside', async 
   await expect(page.getByRole('navigation', { name: '주요 메뉴' })).toBeVisible()
 
   await page.goto(`/rooms/${roomId}/books/${bookChatId}`)
+  await expect(page.getByRole('navigation', { name: '주요 메뉴' })).toBeHidden()
+})
+
+test('keeps a chat video preview square within seventy percent and opens the immersive viewer', async ({
+  page,
+}) => {
+  const videoId = '4b7227b2-5350-4a61-9114-b2d0c915fd1b'
+  await authenticatePage(page)
+  await mockVideoPosts(page, [createVideoPostRow(videoId, '민규', 'ready')])
+  await mockMuxThumbnailTokens(page)
+  await mockMuxPlaybackAuthorizationFailure(page)
+  await page.goto(`/rooms/${roomId}/books/${bookChatId}`)
+
+  const preview = page.getByRole('button', { name: '민규님의 영상 보기' })
+  await expect(preview).toBeVisible()
+
+  const previewBox = await preview.boundingBox()
+  const timelineRowBox = await preview.locator('xpath=ancestor::li').boundingBox()
+  expect(previewBox).not.toBeNull()
+  expect(timelineRowBox).not.toBeNull()
+  if (!previewBox || !timelineRowBox) throw new Error('영상 미리보기의 화면 크기를 읽지 못했어요.')
+
+  expect(previewBox.width / timelineRowBox.width).toBeLessThanOrEqual(0.7)
+  expect(Math.abs(previewBox.width - previewBox.height)).toBeLessThanOrEqual(1)
+
+  await preview.click()
+
+  await expect(page).toHaveURL(`/rooms/${roomId}/books/${bookChatId}/videos/${videoId}`)
+  await expect(page.getByRole('heading', { name: '영상 보기' })).toBeVisible()
+  await expect(page.getByRole('main')).toHaveCSS('padding-left', '0px')
   await expect(page.getByRole('navigation', { name: '주요 메뉴' })).toBeHidden()
 })
 
@@ -179,6 +284,17 @@ test('keeps saved videos in a two-column archive gallery', async ({ page }) => {
     ),
   ).toHaveLength(2)
   await expect.poll(() => thumbnailRequestCount).toBe(1)
+})
+
+test('does not paint an unused grid slot when the video archive has one item', async ({ page }) => {
+  await authenticatePage(page)
+  await mockVideoMembers(page)
+  await mockVideoPosts(page, [createVideoPostRow('4b7227b2-5350-4a61-9114-b2d0c915fd1b', '민규')])
+  await page.goto(`/rooms/${roomId}/books/${bookChatId}/videos`)
+
+  const gallery = page.getByRole('list', { name: '영상 기록' })
+  await expect(gallery.getByRole('listitem')).toHaveCount(1)
+  await expect(gallery).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
 })
 
 test('filters saved videos with the custom member selection menu', async ({ page }) => {
@@ -299,21 +415,29 @@ async function mockVideoPosts(page: Page, posts: unknown[]) {
 }
 
 /** 현재 사용자가 속한 독서방 멤버 목록을 반환하도록 Supabase 요청을 가로챈다. */
-async function mockVideoMembers(page: Page) {
+async function mockVideoMembers(
+  page: Page,
+  members = [createVideoMember('8fc963a4-da01-4696-995c-755fe145776f', '민규', true)],
+) {
   await page.route('**/rest/v1/room_members?*', async (route) => {
     await route.fulfill({
-      body: JSON.stringify([
-        {
-          id: '8fc963a4-da01-4696-995c-755fe145776f',
-          profile_id: '00000000-0000-4000-8000-000000000001',
-          role: 'member',
-          room_display_name: '민규',
-        },
-      ]),
+      body: JSON.stringify(members),
       contentType: 'application/json',
       status: 200,
     })
   })
+}
+
+/** E2E 독서방 멤버 행을 만든다. */
+function createVideoMember(id: string, displayName: string, isCurrentUser = false) {
+  return {
+    id,
+    profile_id: isCurrentUser
+      ? '00000000-0000-4000-8000-000000000001'
+      : 'b09d779e-6e94-49bc-ae52-39a6caec6206',
+    role: 'member',
+    room_display_name: displayName,
+  }
 }
 
 /** 영상 보관함의 일괄 썸네일 권한 요청을 안전한 테스트 응답으로 대체한다. */
@@ -408,6 +532,57 @@ async function mockAuthenticatedPageData(page: Page) {
       headers: { 'content-range': '0-0/0' },
       status: 200,
     })
+  })
+}
+
+/** 책 대화의 완독 시트가 필요한 빈 완독 기록 응답을 브라우저에 제공한다. */
+async function mockBookCompletionRecords(page: Page) {
+  await page.route('**/rest/v1/book_chat_completions?*', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify([]),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+}
+
+/** 방 관리와 아카이브 화면의 RLS 허용 응답을 E2E 브라우저에 제공한다. */
+async function mockRoomManagementPageData(page: Page) {
+  await page.route('**/rest/v1/reading_rooms?*', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify([
+        {
+          created_by: '00000000-0000-4000-8000-000000000001',
+          description: '함께 읽는 책들',
+          id: roomId,
+          name: '금요일 아침 독서방',
+          status: 'active',
+        },
+      ]),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+  await page.route('**/rest/v1/room_members?*', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify([
+        {
+          id: '10000000-0000-4000-8000-000000000001',
+          joined_at: '2026-07-18T00:00:00.000+00:00',
+          profile_id: '00000000-0000-4000-8000-000000000001',
+          role: 'owner',
+          room_avatar_path: null,
+          room_display_name: '민규',
+          room_id: roomId,
+          status: 'active',
+        },
+      ]),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+  await page.route('**/rest/v1/rpc/get_my_archived_reading_rooms', async (route) => {
+    await route.fulfill({ body: JSON.stringify([]), contentType: 'application/json', status: 200 })
   })
 }
 

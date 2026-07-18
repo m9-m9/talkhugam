@@ -38,13 +38,23 @@ export function RoomDetailPage() {
     <main className="app-page bg-surface px-4 pb-8">
       <AppHeader
         action={
-          <button
-            className="text-primary min-h-11 px-3 text-sm font-medium"
-            onClick={() => void navigate(`/rooms/${roomId}/books/new`)}
-            type="button"
-          >
-            새 책
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              className="text-primary min-h-11 px-3 text-sm font-medium"
+              onClick={() => void navigate(`/rooms/${roomId}/books/new`)}
+              type="button"
+            >
+              새 책
+            </button>
+            <button
+              aria-label="방 정보와 멤버 관리"
+              className="text-ink min-h-11 min-w-11 px-3 text-xl"
+              onClick={() => void navigate(`/rooms/${roomId}/manage`)}
+              type="button"
+            >
+              ⋯
+            </button>
+          </div>
         }
         onBack={() => void navigate('/rooms')}
         title="독서방"
@@ -94,13 +104,13 @@ function BookChatsContent({
   if (isPending)
     return (
       <div className="mt-6">
-        <LoadingSpinner label="책을 불러오고 있어요." size="sm" />
+        <LoadingSpinner label="책을 불러오고 있어요." size="sm" variant="book" />
       </div>
     )
   if (isRetrying)
     return (
       <div className="mt-6">
-        <LoadingSpinner label="책을 다시 불러오고 있어요." size="sm" />
+        <LoadingSpinner label="책을 다시 불러오고 있어요." size="sm" variant="book" />
       </div>
     )
   if (isError)
@@ -148,7 +158,7 @@ function EmptyBookChats() {
 function RoomLoadingPage() {
   return (
     <main className="bg-surface flex min-h-screen items-center justify-center px-4">
-      <LoadingSpinner label="독서방을 불러오고 있어요." />
+      <LoadingSpinner label="독서방을 불러오고 있어요." variant="book" />
     </main>
   )
 }

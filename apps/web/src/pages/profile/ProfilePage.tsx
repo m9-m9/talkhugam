@@ -59,13 +59,22 @@ export function ProfilePage() {
     <main className="app-page bg-surface px-4 pb-8">
       <AppHeader
         action={
-          <button
-            className="text-primary min-h-11 px-3 text-sm font-medium"
-            onClick={() => void navigate('/profile/settings')}
-            type="button"
-          >
-            설정
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              className="text-primary min-h-11 px-2 text-sm font-medium"
+              onClick={() => void navigate('/profile/share')}
+              type="button"
+            >
+              공유
+            </button>
+            <button
+              className="text-primary min-h-11 px-2 text-sm font-medium"
+              onClick={() => void navigate('/profile/settings')}
+              type="button"
+            >
+              설정
+            </button>
+          </div>
         }
         onBack={() => void navigate('/rooms')}
         title="내 정보"
@@ -221,7 +230,7 @@ function ProfileDetail({ label, value }: { label: string; value: string }) {
   return (
     <div className="border-ink/10 flex items-start justify-between gap-6 border-b px-4 py-4 last:border-b-0">
       <dt className="text-ink-subtle text-sm">{label}</dt>
-      <dd className="text-ink max-w-56 text-right text-sm">{value}</dd>
+      <dd className="text-ink max-w-48 text-right text-sm">{value}</dd>
     </div>
   )
 }

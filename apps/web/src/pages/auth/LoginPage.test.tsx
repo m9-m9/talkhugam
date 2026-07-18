@@ -36,13 +36,22 @@ describe('LoginPage', () => {
     ).toBeInTheDocument()
   })
 
-  it('uses the book loader while the provider is opening', () => {
+  it('uses the brand spinner while the provider is opening', () => {
     signInWithOAuth.mockReturnValue(new Promise(() => undefined))
     render(<LoginPage />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Google로 계속하기' }))
 
     const status = screen.getByRole('status', { name: '로그인을 연결하고 있어요.' })
-    expect(status.querySelector('.talkhugam-book-loader')).toBeInTheDocument()
+    expect(status.querySelector('.talkhugam-brand-spinner')).toBeInTheDocument()
+  })
+
+  it('shows a one-time completion message after account deletion', () => {
+    window.history.replaceState({}, '', '/?account=deleted')
+    render(<LoginPage />)
+
+    expect(screen.getByRole('status')).toHaveTextContent(
+      '계정 삭제 요청이 완료됐어요. Talk후감에 다시 오고 싶을 때 언제든 로그인해 주세요.',
+    )
   })
 })

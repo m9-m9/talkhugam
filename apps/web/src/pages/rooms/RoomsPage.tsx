@@ -118,7 +118,7 @@ function RoomsContent({
 function RoomsLoadingState() {
   return (
     <div className="flex flex-1 items-center justify-center">
-      <LoadingSpinner label="독서방을 불러오고 있어요." />
+      <LoadingSpinner label="독서방을 불러오고 있어요." variant="book" />
     </div>
   )
 }

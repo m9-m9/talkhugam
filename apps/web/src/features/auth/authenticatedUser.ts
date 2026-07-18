@@ -4,6 +4,7 @@ export type AuthenticatedUser = {
   appMetadata: unknown
   email: string | null
   id: string
+  userMetadata: unknown
 }
 
 export const authenticatedUserContext = createContext<AuthenticatedUser | null>(null)
