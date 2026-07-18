@@ -382,7 +382,7 @@ async function authenticatePage(page: Page) {
   }
   await page.addInitScript((authenticatedUser) => {
     window.localStorage.setItem(
-      'sb-gvuwtaxvoinelqdvrher-auth-token',
+      'sb-aibrendxalzmqsovaqps-auth-token',
       JSON.stringify({
         access_token: 'e2e-access-token',
         expires_at: Math.floor(Date.now() / 1000) + 3600,
