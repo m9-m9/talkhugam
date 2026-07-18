@@ -5,7 +5,7 @@
   "description": "Talk후감 Phase 1 workspace",
   "packageManager": "pnpm@10.4.0",
   "engines": {
-    "node": ">=22"
+    "node": "22.x"
   },
   "scripts": {
     "backend:start": "supabase start",
