@@ -1,12 +1,16 @@
 export {
   bookChatKeys,
   createBookChat,
+  deleteManagedBookChat,
   getBookChats,
+  getManagedBookChat,
   getReadingRoom,
   parseBookChats,
   parseBookSearchResponse,
   searchBooks,
+  updateBookChatStatus,
   type BookChat,
   type BookSearchItem,
+  type ManagedBookChat,
   type ReadingRoomDetail,
 } from './bookChat'

@@ -158,7 +158,20 @@ export function BookDiscussionPage() {
   const roots = postsQuery.data?.filter((post) => post.depth === 0) ?? []
   return (
     <main className="app-page bg-surface flex min-h-screen flex-col px-4 pb-6">
-      <AppHeader onBack={() => void navigate(`/rooms/${roomId}`)} title="책 대화" />
+      <AppHeader
+        action={
+          <button
+            aria-label="책 채팅방 관리"
+            className="text-ink min-h-11 min-w-11 px-3 text-xl"
+            onClick={() => void navigate(`/rooms/${roomId}/books/${bookChatId}/manage`)}
+            type="button"
+          >
+            ⋯
+          </button>
+        }
+        onBack={() => void navigate(`/rooms/${roomId}`)}
+        title="책 대화"
+      />
       <header className="mt-8">
         <p className="text-primary text-sm font-medium">책 대화</p>
         <h1 className="text-ink mt-2 text-xl font-bold">읽고 느낀 걸 나눠요</h1>

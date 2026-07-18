@@ -11,9 +11,13 @@ import { ProfilePage } from '../../pages/profile/ProfilePage'
 import { NotificationsPage } from '../../pages/notifications/NotificationsPage'
 import { BookSearchPage } from '../../pages/rooms/BookSearchPage'
 import { BookDiscussionPage } from '../../pages/rooms/BookDiscussionPage'
+import { BookChatManagementPage } from '../../pages/rooms/BookChatManagementPage'
 import { CreateRoomPage } from '../../pages/rooms/CreateRoomPage'
 import { JoinRoomPage } from '../../pages/rooms/JoinRoomPage'
 import { RoomDetailPage } from '../../pages/rooms/RoomDetailPage'
+import { RoomManagementPage } from '../../pages/rooms/RoomManagementPage'
+import { ArchivedRoomsPage } from '../../pages/rooms/ArchivedRoomsPage'
+import { RoomSettingsPage } from '../../pages/rooms/RoomSettingsPage'
 import { RoomsPage } from '../../pages/rooms/RoomsPage'
 import { AppNavigationLayout } from './AppNavigationLayout'
 import { LazyVideoArchiveRoute, LazyVideoPlayerRoute } from './LazyVideoRoutes'
@@ -42,9 +46,13 @@ export const router = createBrowserRouter([
           { path: '/profile/settings', element: <AccountSettingsPage /> },
           { path: '/rooms/create', element: <CreateRoomPage /> },
           { path: '/rooms/join', element: <JoinRoomPage /> },
+          { path: '/rooms/archive', element: <ArchivedRoomsPage /> },
           { path: '/rooms/:roomId', element: <RoomDetailPage /> },
+          { path: '/rooms/:roomId/manage', element: <RoomManagementPage /> },
+          { path: '/rooms/:roomId/manage/settings', element: <RoomSettingsPage /> },
           { path: '/rooms/:roomId/books/new', element: <BookSearchPage /> },
           { path: '/rooms/:roomId/books/:bookChatId', element: <BookDiscussionPage /> },
+          { path: '/rooms/:roomId/books/:bookChatId/manage', element: <BookChatManagementPage /> },
           { path: '/rooms/:roomId/books/:bookChatId/videos', element: <LazyVideoArchiveRoute /> },
           {
             path: '/rooms/:roomId/books/:bookChatId/videos/:videoId',
