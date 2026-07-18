@@ -53,7 +53,7 @@ describe('BookSearchPage', () => {
     expect(searchBooks).toHaveBeenCalledOnce()
   })
 
-  it('uses the brand spinner while searching', async () => {
+  it('shows the book loader only after a slow book search has waited 400ms', async () => {
     searchBooks.mockReturnValue(new Promise(() => undefined))
     renderBookSearchPage()
 
@@ -61,9 +61,14 @@ describe('BookSearchPage', () => {
       target: { value: '미움' },
     })
     await act(() => vi.advanceTimersByTimeAsync(300))
+    await act(() => vi.advanceTimersByTimeAsync(399))
+
+    expect(screen.queryByRole('status', { name: '책을 찾고 있어요…' })).not.toBeInTheDocument()
+
+    await act(() => vi.advanceTimersByTimeAsync(1))
 
     const status = screen.getByRole('status', { name: '책을 찾고 있어요…' })
-    expect(status.querySelector('.talkhugam-brand-spinner')).toBeInTheDocument()
+    expect(status.querySelector('.talkhugam-book-loader')).toBeInTheDocument()
   })
 
   it('does not let an older response replace the latest search result', async () => {
@@ -84,6 +89,24 @@ describe('BookSearchPage', () => {
     await act(async () => firstSearch.resolve([createBook('오래된 결과')]))
     expect(screen.queryByText('오래된 결과')).not.toBeInTheDocument()
     expect(screen.getByText('최신 결과')).toBeInTheDocument()
+  })
+
+  it('keeps the current results visible while a newer search is pending', async () => {
+    const secondSearch = deferred<BookSearchItem[]>()
+    searchBooks.mockResolvedValueOnce([createBook('처음 결과')]).mockReturnValueOnce(secondSearch.promise)
+    renderBookSearchPage()
+
+    const input = screen.getByPlaceholderText('책 제목이나 저자')
+    fireEvent.change(input, { target: { value: '미움받을' } })
+    await act(() => vi.advanceTimersByTimeAsync(300))
+    await act(async () => undefined)
+    expect(screen.getByText('처음 결과')).toBeInTheDocument()
+
+    fireEvent.change(input, { target: { value: '용기' } })
+    await act(() => vi.advanceTimersByTimeAsync(700))
+
+    expect(screen.getByText('처음 결과')).toBeInTheDocument()
+    expect(screen.getByRole('status', { name: '책을 찾고 있어요…' })).toBeInTheDocument()
   })
 })
 
