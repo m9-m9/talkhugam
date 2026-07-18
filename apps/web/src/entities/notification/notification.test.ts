@@ -14,6 +14,7 @@ describe('알림 도메인 변환', () => {
       parseNotifications([
         {
           actor: null,
+          book_chat_id: null,
           created_at: '2026-07-18T01:02:03.000Z',
           id: ids.notification,
           post: null,
@@ -43,6 +44,7 @@ describe('알림 도메인 변환', () => {
       parseNotifications([
         {
           actor: { room_display_name: '수진' },
+          book_chat_id: null,
           created_at: '2026-07-18T01:02:03.000Z',
           id: ids.notification,
           post: { book_chat_id: ids.bookChat },
@@ -64,11 +66,52 @@ describe('알림 도메인 변환', () => {
     ])
   })
 
+  it('영상 기록과 완독 총평 알림을 책 대화 경로로 변환한다', () => {
+    expect(
+      parseNotifications([
+        {
+          actor: { room_display_name: '민주' },
+          book_chat_id: ids.bookChat,
+          created_at: '2026-07-18T01:02:03.000Z',
+          id: ids.notification,
+          post: { book_chat_id: ids.bookChat },
+          post_id: null,
+          read_at: null,
+          room: { name: '금요일 아침 책방' },
+          room_id: ids.room,
+          type: 'video_ready',
+        },
+        {
+          actor: { room_display_name: '수진' },
+          book_chat_id: ids.bookChat,
+          created_at: '2026-07-18T01:02:04.000Z',
+          id: '22222222-2222-4222-8222-222222222223',
+          post: { book_chat_id: ids.bookChat },
+          post_id: null,
+          read_at: null,
+          room: { name: '금요일 아침 책방' },
+          room_id: ids.room,
+          type: 'completion_review',
+        },
+      ]),
+    ).toMatchObject([
+      {
+        message: '민주님이 새 영상 기록을 남겼어요.',
+        targetPath: `/rooms/${ids.room}/books/${ids.bookChat}`,
+      },
+      {
+        message: '수진님이 완독 총평을 남겼어요.',
+        targetPath: `/rooms/${ids.room}/books/${ids.bookChat}`,
+      },
+    ])
+  })
+
   it('읽을 수 없는 독서방의 알림은 원본 room_id가 있어도 이동 경로를 만들지 않는다', () => {
     expect(
       parseNotifications([
         {
           actor: null,
+          book_chat_id: null,
           created_at: '2026-07-18T01:02:03.000Z',
           id: ids.notification,
           post: null,

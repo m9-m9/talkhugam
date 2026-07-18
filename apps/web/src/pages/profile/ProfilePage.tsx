@@ -15,7 +15,7 @@ type ProfileNavigationRowProps = {
   onClick: () => void
 }
 
-/** 현재 사용자의 기본 정보를 요약하고 네 개의 상세 화면 진입점을 렌더링한다. */
+/** 현재 사용자의 기본 정보를 요약하고 다섯 개의 상세 화면 진입점을 렌더링한다. */
 export function ProfilePage() {
   const navigate = useNavigate()
   const profileId = useAuthenticatedUser().id
@@ -94,6 +94,11 @@ export function ProfilePage() {
             description="로그인 수단과 계정을 관리해요."
             label="계정 설정"
             onClick={() => void navigate('/profile/settings')}
+          />
+          <ProfileNavigationRow
+            description="이용약관과 개인정보처리방침을 확인해요."
+            label="서비스 정보"
+            onClick={() => void navigate('/contact')}
           />
         </div>
       </section>

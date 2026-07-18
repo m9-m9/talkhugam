@@ -8,10 +8,13 @@ const notificationTypeSchema = z.enum([
   'removed',
   'ownership_transfer',
   'system',
+  'video_ready',
+  'completion_review',
 ])
 
 const notificationRowSchema = z.object({
   actor: z.object({ room_display_name: z.string().min(1).max(30) }).nullable(),
+  book_chat_id: z.string().uuid().nullable(),
   created_at: z.string().datetime({ offset: true }),
   id: z.string().uuid(),
   post: z.object({ book_chat_id: z.string().uuid() }).nullable(),
@@ -52,7 +55,7 @@ export async function getNotifications(client: SupabaseClient): Promise<AppNotif
   const response = await client
     .from('notifications')
     .select(
-      'id,type,read_at,created_at,room_id,post_id,actor:room_members!notifications_actor_member_id_fkey(room_display_name),room:reading_rooms!notifications_room_id_fkey(name),post:posts!notifications_post_id_fkey(book_chat_id)',
+      'id,type,read_at,created_at,room_id,post_id,book_chat_id,actor:room_members!notifications_actor_member_id_fkey(room_display_name),room:reading_rooms!notifications_room_id_fkey(name),post:posts!notifications_post_id_fkey(book_chat_id)',
     )
     .order('created_at', { ascending: false })
 
@@ -111,7 +114,7 @@ function mapNotification(row: z.infer<typeof notificationRowSchema>): AppNotific
     roomName: row.room?.name ?? null,
     targetPath: createNotificationTargetPath(
       row.room === null ? null : row.room_id,
-      row.post?.book_chat_id ?? null,
+      row.post?.book_chat_id ?? row.book_chat_id,
     ),
     type: row.type,
   }
@@ -127,9 +130,11 @@ function createNotificationMessage(
     invite: `${actor}님이 책방에 초대했어요.`,
     mention: `${actor}님이 회원님을 멘션했어요.`,
     ownership_transfer: `${actor}님이 회원님에게 방장을 넘겼어요.`,
+    completion_review: `${actor}님이 완독 총평을 남겼어요.`,
     removed: `${actor}님이 회원님을 책방에서 내보냈어요.`,
     reply: `${actor}님이 답글을 남겼어요.`,
     system: '새 알림이 도착했어요.',
+    video_ready: `${actor}님이 새 영상 기록을 남겼어요.`,
   }
   return messages[type]
 }

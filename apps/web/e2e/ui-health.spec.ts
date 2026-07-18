@@ -721,6 +721,13 @@ async function mockAuthenticatedPageData(page: Page) {
       status: 200,
     })
   })
+  await page.route('**/rest/v1/book_chat_reading_progresses?*', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify([]),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
   await page.route('**/rest/v1/notification_preferences?*', async (route) => {
     await route.fulfill({
       body: JSON.stringify({

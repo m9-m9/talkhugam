@@ -68,16 +68,25 @@ describe('ProfilePage', () => {
     vi.resetAllMocks()
   })
 
-  it('shows four detail destinations instead of rendering profile and completion details on the hub', async () => {
+  it('shows five detail destinations instead of rendering profile and completion details on the hub', async () => {
     renderProfilePage()
 
     expect(await screen.findByRole('button', { name: '내 정보 수정' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '책방 보기' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '읽고 있는 책 보기' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '계정 설정' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '서비스 정보' })).toBeInTheDocument()
     expect(screen.queryByText('프로필 정보')).not.toBeInTheDocument()
     expect(screen.queryByText('내가 완독한 책')).not.toBeInTheDocument()
     expect(screen.queryByText('미움받을 용기')).not.toBeInTheDocument()
+  })
+
+  it('opens the service information page from the profile hub', async () => {
+    renderProfilePage()
+
+    fireEvent.click(await screen.findByRole('button', { name: '서비스 정보' }))
+
+    expect(screen.getByText('서비스 정보 화면')).toBeInTheDocument()
   })
 
   it('shows a retry state instead of a loading spinner when the profile lookup fails', async () => {
@@ -129,6 +138,7 @@ function renderProfilePage() {
       <MemoryRouter initialEntries={['/profile']}>
         <Routes>
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/contact" element={<p>서비스 정보 화면</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,

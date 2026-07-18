@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { MyReadingBooksPage } from './MyReadingBooksPage'
 
@@ -9,7 +9,9 @@ const {
   getMyBookChatCompletionIds,
   getMyCompletedBooks,
   getMyReadingBooks,
+  getMyReadingProgresses,
   upsertBookChatCompletion,
+  upsertReadingProgress,
 } = vi.hoisted(() => ({
   getMyBookChatCompletionIds: vi.fn().mockResolvedValue(['00000000-0000-0000-0000-000000000101']),
   getMyCompletedBooks: vi.fn().mockResolvedValue([
@@ -44,7 +46,16 @@ const {
       title: '모순',
     },
   ]),
+  getMyReadingProgresses: vi.fn().mockResolvedValue([
+    {
+      bookChatId: '00000000-0000-0000-0000-000000000101',
+      currentPage: 87,
+      totalPages: 320,
+      updatedAt: '2026-07-19T01:00:00+00:00',
+    },
+  ]),
   upsertBookChatCompletion: vi.fn().mockResolvedValue(undefined),
+  upsertReadingProgress: vi.fn().mockResolvedValue(undefined),
 }))
 
 vi.mock('../../entities/book-chat', () => ({
@@ -68,11 +79,25 @@ vi.mock('../../entities/book-completion', () => ({
   upsertBookChatCompletion,
 }))
 
+vi.mock('../../entities/reading-progress', () => ({
+  calculateReadingProgressPercent: (currentPage: number, totalPages: number) =>
+    Math.round((currentPage / totalPages) * 100),
+  getMyReadingProgresses,
+  readingProgressKeys: {
+    byProfile: (profileId: string) => ['reading-progresses', profileId],
+  },
+  upsertReadingProgress,
+}))
+
 vi.mock('../../features/auth', () => ({
   useAuthenticatedUser: () => ({ id: '00000000-0000-0000-0000-000000000001' }),
 }))
 
 vi.mock('../../shared/api/supabaseClient', () => ({ createSupabaseClient: vi.fn() }))
+
+afterEach(() => {
+  cleanup()
+})
 
 describe('MyReadingBooksPage', () => {
   it('lists every joined room reading book and shows my personal completion state', async () => {
@@ -95,6 +120,38 @@ describe('MyReadingBooksPage', () => {
 
     expect(screen.getByRole('dialog', { name: '완독 기록' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '완독 기록 저장' })).toBeInTheDocument()
+  })
+
+  it('opens a progress record sheet from a reading book card', async () => {
+    renderMyReadingBooksPage()
+
+    fireEvent.click(await screen.findByRole('button', { name: '모순 진행률 기록하기' }))
+
+    expect(screen.getByRole('dialog', { name: '독서 진행률 기록' })).toBeInTheDocument()
+    expect(screen.getByRole('spinbutton', { name: '현재 읽은 페이지' })).toBeInTheDocument()
+    expect(screen.getByRole('spinbutton', { name: '전체 페이지' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '진행률 저장' })).toBeInTheDocument()
+  })
+
+  it('saves a personal reading progress record from a reading book card', async () => {
+    renderMyReadingBooksPage()
+
+    fireEvent.click(await screen.findByRole('button', { name: '모순 진행률 기록하기' }))
+    fireEvent.change(screen.getByRole('spinbutton', { name: '현재 읽은 페이지' }), {
+      target: { value: '146' },
+    })
+    fireEvent.change(screen.getByRole('spinbutton', { name: '전체 페이지' }), {
+      target: { value: '298' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '진행률 저장' }))
+
+    await waitFor(() =>
+      expect(upsertReadingProgress).toHaveBeenCalledWith(undefined, {
+        bookChatId: '00000000-0000-0000-0000-000000000102',
+        currentPage: 146,
+        totalPages: 298,
+      }),
+    )
   })
 
   it('opens a prefilled completion record sheet from a completed book card', async () => {
