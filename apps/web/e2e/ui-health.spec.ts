@@ -555,8 +555,8 @@ async function authenticatePage(page: Page) {
   await page.route('**/rest/v1/user_legal_consents?*', async (route) => {
     await route.fulfill({
       body: JSON.stringify([
-        { document_type: 'terms', document_version: '2026-07-18.1' },
-        { document_type: 'privacy', document_version: '2026-07-18.1' },
+        { document_type: 'terms', document_version: '2026-07-18.2' },
+        { document_type: 'privacy', document_version: '2026-07-18.2' },
       ]),
       contentType: 'application/json',
       status: 200,
