@@ -227,7 +227,7 @@ function MemberProfileLink({ member, roomId }: { member: RoomManagementMember; r
   return (
     <Link
       aria-label={`${member.displayName} 프로필 보기`}
-      className="min-w-0 flex-1 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+      className="focus-visible:outline-primary min-w-0 flex-1 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2"
       to={`/rooms/${roomId}/members/${member.profileId}`}
     >
       {memberContent}

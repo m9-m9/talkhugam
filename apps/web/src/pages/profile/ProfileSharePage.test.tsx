@@ -28,9 +28,7 @@ describe('ProfileSharePage', () => {
     expect(await screen.findByRole('heading', { name: '민규의 독서 카드' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: '공유하기' }))
 
-    expect(share).toHaveBeenCalledWith(
-      expect.objectContaining({ title: '민규의 Talk후감 프로필' }),
-    )
+    expect(share).toHaveBeenCalledWith(expect.objectContaining({ title: '민규의 Talk후감 프로필' }))
   })
 })
 

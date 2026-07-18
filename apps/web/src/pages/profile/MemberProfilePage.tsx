@@ -68,7 +68,10 @@ export function MemberProfilePage() {
           소개
         </h2>
         <dl className="border-ink/10 mt-4 overflow-hidden rounded-lg border bg-white">
-          <MemberProfileDetail label="한 줄 소개" value={profile.bio || '아직 소개를 작성하지 않았어요.'} />
+          <MemberProfileDetail
+            label="한 줄 소개"
+            value={profile.bio || '아직 소개를 작성하지 않았어요.'}
+          />
           <MemberProfileDetail label="MBTI" value={profile.mbti || '선택 안 함'} />
         </dl>
       </section>

@@ -106,7 +106,10 @@ export function AccountSettingsPage() {
         <p className="text-ink-subtle mt-2 text-sm">로그인과 알림 수신 방식을 관리해요.</p>
       </header>
 
-      <AccountInformation account={account} onShowNaverInfo={() => void navigate('/profile/settings/naver-info')} />
+      <AccountInformation
+        account={account}
+        onShowNaverInfo={() => void navigate('/profile/settings/naver-info')}
+      />
       <NotificationPreferencesSection
         queryErrorMessage={
           notificationPreferencesQuery.isError || isRetryingNotificationPreferences
@@ -201,7 +204,9 @@ function AccountInformation({
         >
           <span>
             <span className="text-ink block text-sm font-semibold">Naver 제공 정보</span>
-            <span className="text-ink-subtle mt-1 block text-xs">로그인에 제공된 정보만 확인해요.</span>
+            <span className="text-ink-subtle mt-1 block text-xs">
+              로그인에 제공된 정보만 확인해요.
+            </span>
           </span>
           <span aria-hidden="true" className="text-ink-subtle text-lg">
             ›

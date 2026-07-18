@@ -57,10 +57,7 @@ function renderMemberProfilePage() {
         ]}
       >
         <Routes>
-          <Route
-            element={<MemberProfilePage />}
-            path="/rooms/:roomId/members/:profileId"
-          />
+          <Route element={<MemberProfilePage />} path="/rooms/:roomId/members/:profileId" />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
