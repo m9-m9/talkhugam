@@ -359,7 +359,7 @@ test('shows global navigation outside the book chat and hides it inside', async 
   await expect(page.getByRole('navigation', { name: '주요 메뉴' })).toBeHidden()
 })
 
-test('opens every reading book from the profile CTA and marks personal completion', async ({
+test('opens reading books from the profile hub and edits a personal completion record', async ({
   page,
 }) => {
   await authenticatePage(page)
@@ -379,20 +379,41 @@ test('opens every reading book from the profile CTA and marks personal completio
   ])
   await page.route('**/rest/v1/book_chat_completions?*', async (route) => {
     await route.fulfill({
-      body: JSON.stringify([{ book_chat_id: bookChatId }]),
+      body: JSON.stringify([
+        {
+          book_chat_id: bookChatId,
+          book_chats: {
+            books: {
+              authors: ['기시미 이치로'],
+              thumbnail_url: null,
+              title: '미움받을 용기',
+            },
+            room_id: roomId,
+          },
+          completed_at: '2026-07-18T01:00:00+00:00',
+          rating: 4,
+          review: '다시 읽고 싶은 문장이 많아요.',
+        },
+      ]),
       contentType: 'application/json',
       status: 200,
     })
   })
   await page.goto('/profile')
 
-  await page.getByRole('button', { name: '읽고 있는 책 모두 보기' }).click()
+  await page.getByRole('button', { name: '읽고 있는 책 보기' }).click()
 
   await expect(page).toHaveURL('/profile/books')
   await expect(page.getByRole('heading', { name: '함께 읽고 있는 책' })).toBeVisible()
   await expect(page.getByRole('heading', { name: '금요일 아침 책방' })).toBeVisible()
   await expect(page.getByText('미움받을 용기')).toBeVisible()
-  await expect(page.getByText('완독')).toBeVisible()
+  await expect(page.getByText('완독', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: '미움받을 용기 기록 수정' }).click()
+  await expect(page.getByRole('dialog', { name: '완독 기록' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '4점' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByRole('textbox', { name: '총평 (선택)' })).toHaveValue(
+    '다시 읽고 싶은 문장이 많아요.',
+  )
   await expect(page.getByRole('navigation', { name: '주요 메뉴' })).toBeVisible()
 })
 test('keeps a chat video preview square within seventy percent and opens the immersive viewer', async ({
