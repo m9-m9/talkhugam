@@ -5,7 +5,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ProfilePage } from './ProfilePage'
 
-const { getMyCompletedBooks, getProfile } = vi.hoisted(() => ({
+const { getMyArchivedBookChats, getMyCompletedBooks, getProfile } = vi.hoisted(() => ({
+  getMyArchivedBookChats: vi.fn().mockResolvedValue([
+    {
+      archivedAt: '2026-07-18T01:00:00+00:00',
+      authors: ['기시미 이치로'],
+      bookChatId: '00000000-0000-0000-0000-000000000301',
+      roomId: '00000000-0000-0000-0000-000000000302',
+      thumbnailUrl: null,
+      title: '아카이브한 책',
+    },
+  ]),
   getMyCompletedBooks: vi.fn().mockResolvedValue([
     {
       authors: ['기시미 이치로'],
@@ -30,6 +40,11 @@ vi.mock('../../entities/book-completion', () => ({
   getMyCompletedBooks,
 }))
 
+vi.mock('../../entities/book-chat', () => ({
+  bookChatKeys: { myArchived: (profileId: string) => ['archived-book-chats', profileId] },
+  getMyArchivedBookChats,
+}))
+
 vi.mock('../../entities/profile', () => ({ getProfile }))
 
 vi.mock('../../features/auth', () => ({
@@ -42,6 +57,16 @@ vi.mock('../../shared/api/supabaseClient', () => ({
 
 describe('ProfilePage', () => {
   beforeEach(() => {
+    getMyArchivedBookChats.mockResolvedValue([
+      {
+        archivedAt: '2026-07-18T01:00:00+00:00',
+        authors: ['기시미 이치로'],
+        bookChatId: '00000000-0000-0000-0000-000000000301',
+        roomId: '00000000-0000-0000-0000-000000000302',
+        thumbnailUrl: null,
+        title: '아카이브한 책',
+      },
+    ])
     getMyCompletedBooks.mockResolvedValue([
       {
         authors: ['기시미 이치로'],
@@ -76,6 +101,13 @@ describe('ProfilePage', () => {
     )
     expect(screen.getByText('★★★★★')).toBeInTheDocument()
     expect(screen.getByText('다시 읽고 싶은 책이에요.')).toBeInTheDocument()
+  })
+
+  it('shows archived book chats in the member reading history', async () => {
+    renderProfilePage()
+
+    expect(await screen.findByRole('heading', { name: '보관한 책' })).toBeInTheDocument()
+    expect(screen.getByText('아카이브한 책')).toBeInTheDocument()
   })
 
   it('shows a retry state instead of a loading spinner when the profile lookup fails', async () => {

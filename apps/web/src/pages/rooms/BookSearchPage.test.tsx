@@ -41,6 +41,18 @@ describe('BookSearchPage', () => {
     expect(searchBooks).toHaveBeenCalledOnce()
   })
 
+  it('starts the current valid search when Enter is pressed in the search input', async () => {
+    searchBooks.mockResolvedValue([])
+    renderBookSearchPage()
+
+    const input = screen.getByPlaceholderText('책 제목이나 저자')
+    fireEvent.change(input, { target: { value: '미움' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+
+    await act(() => vi.advanceTimersByTimeAsync(300))
+    expect(searchBooks).toHaveBeenCalledOnce()
+  })
+
   it('uses the brand spinner while searching', async () => {
     searchBooks.mockReturnValue(new Promise(() => undefined))
     renderBookSearchPage()

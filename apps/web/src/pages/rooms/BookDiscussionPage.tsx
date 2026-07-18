@@ -566,6 +566,13 @@ function ChatComposer({
     messageInputRef.current?.focus()
   }
 
+  /** 라벨 입력창에서 Enter를 누르면 현재 라벨을 추가한다. */
+  function handleLabelInputKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key !== 'Enter') return
+    event.preventDefault()
+    handleAddLabel()
+  }
+
   /** Remove 라벨 요청이나 사용자 동작을 처리한다. */
   function handleRemoveLabel(index: number) {
     onChangeLabels(labels.filter((_, labelIndex) => labelIndex !== index))
@@ -718,6 +725,7 @@ function ChatComposer({
                       [labelKind]: event.target.value,
                     }))
                   }
+                  onKeyDown={handleLabelInputKeyDown}
                   placeholder={labelKind === 'page' ? '예: 87' : '예: 3장 또는 고독'}
                   value={labelDrafts[labelKind]}
                 />
@@ -763,7 +771,6 @@ function ChatComposer({
                   }}
                 />
                 <ActionButton
-                  className="col-span-2"
                   label="완독 기록"
                   onClick={() => {
                     completionTriggerRef.current = actionMenuButtonRef.current
@@ -776,7 +783,7 @@ function ChatComposer({
           )}
         </div>
       ) : null}
-      <div className="flex items-end gap-2">
+      <div className="flex items-center gap-2">
         <input
           accept="video/mp4,video/quicktime"
           aria-label="영상 파일 선택"

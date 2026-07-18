@@ -7,6 +7,11 @@ import {
   getMyCompletedBooks,
   type CompletedBook,
 } from '../../entities/book-completion'
+import {
+  bookChatKeys,
+  getMyArchivedBookChats,
+  type ArchivedBookChat,
+} from '../../entities/book-chat'
 import { getProfile } from '../../entities/profile'
 import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
@@ -21,6 +26,7 @@ export function ProfilePage() {
   const profileId = useAuthenticatedUser().id
   const [isRetryingProfile, setIsRetryingProfile] = useState(false)
   const [isRetryingCompletedBooks, setIsRetryingCompletedBooks] = useState(false)
+  const [isRetryingArchivedBooks, setIsRetryingArchivedBooks] = useState(false)
   const profileQuery = useQuery({
     queryFn: () => getProfile(createSupabaseClient(), profileId),
     queryKey: ['profile', profileId],
@@ -28,6 +34,10 @@ export function ProfilePage() {
   const completedBooksQuery = useQuery({
     queryFn: () => getMyCompletedBooks(createSupabaseClient(), profileId),
     queryKey: bookCompletionKeys.myBooks(profileId),
+  })
+  const archivedBooksQuery = useQuery({
+    queryFn: () => getMyArchivedBookChats(createSupabaseClient(), profileId),
+    queryKey: bookChatKeys.myArchived(profileId),
   })
 
   /** 실패한 프로필 조회를 다시 요청하고 재시도 피드백을 유지한다. */
@@ -40,6 +50,12 @@ export function ProfilePage() {
   function handleRetryCompletedBooks() {
     setIsRetryingCompletedBooks(true)
     void completedBooksQuery.refetch().finally(() => setIsRetryingCompletedBooks(false))
+  }
+
+  /** 실패한 보관한 책 조회를 다시 요청하고 재시도 피드백을 유지한다. */
+  function handleRetryArchivedBooks() {
+    setIsRetryingArchivedBooks(true)
+    void archivedBooksQuery.refetch().finally(() => setIsRetryingArchivedBooks(false))
   }
 
   if (profileQuery.isPending && !isRetryingProfile)
@@ -126,6 +142,14 @@ export function ProfilePage() {
         onRetry={handleRetryCompletedBooks}
       />
 
+      <ArchivedBooksSection
+        archivedBooks={archivedBooksQuery.data ?? []}
+        hasError={archivedBooksQuery.isError}
+        isLoading={archivedBooksQuery.isPending}
+        isRetrying={isRetryingArchivedBooks}
+        onRetry={handleRetryArchivedBooks}
+      />
+
       <section className="mt-12" aria-labelledby="account-heading">
         <h2 className="text-ink text-base font-bold" id="account-heading">
           계정
@@ -147,6 +171,63 @@ export function ProfilePage() {
         </button>
       </section>
     </main>
+  )
+}
+
+/** 개인이 보관한 책 대화 목록을 내 정보 화면에서 렌더링한다. */
+function ArchivedBooksSection({
+  archivedBooks,
+  hasError,
+  isLoading,
+  isRetrying,
+  onRetry,
+}: {
+  archivedBooks: ArchivedBookChat[]
+  hasError: boolean
+  isLoading: boolean
+  isRetrying: boolean
+  onRetry: () => void
+}) {
+  return (
+    <section className="mt-12" aria-labelledby="archived-books-heading">
+      <h2 className="text-ink text-base font-bold" id="archived-books-heading">
+        보관한 책
+      </h2>
+      {isLoading && !isRetrying ? (
+        <LoadingSpinner label="보관한 책을 불러오고 있어요." size="xs" />
+      ) : null}
+      {hasError || isRetrying ? (
+        <div className="mt-4">
+          <RetryState
+            isRetrying={isRetrying}
+            message="보관한 책을 불러오지 못했어요. 잠시 후 다시 시도해 주세요."
+            onRetry={onRetry}
+          />
+        </div>
+      ) : null}
+      {!isLoading && !hasError && !isRetrying && archivedBooks.length === 0 ? (
+        <p className="text-ink-subtle mt-4 text-sm">아직 보관한 책이 없어요.</p>
+      ) : null}
+      {archivedBooks.length > 0 ? (
+        <ul className="mt-4 space-y-3" aria-label="보관한 책 목록">
+          {archivedBooks.map((book) => (
+            <li
+              className="border-ink/10 flex min-h-20 items-center gap-3 rounded-lg border bg-white p-3"
+              key={book.bookChatId}
+            >
+              <BookCover alt="" thumbnailUrl={book.thumbnailUrl} />
+              <span className="min-w-0 flex-1">
+                <span className="text-ink block truncate text-sm font-semibold">{book.title}</span>
+                <span className="text-ink-subtle mt-1 block truncate text-xs">
+                  {book.authors.join(', ') || '저자 정보 없음'}
+                </span>
+                <span className="text-ink-subtle mt-1 block text-xs">아카이브됨</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
   )
 }
 

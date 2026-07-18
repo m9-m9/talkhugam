@@ -49,6 +49,7 @@ export function ProfileEditPage() {
     queryFn: () => getProfile(createSupabaseClient(), profileId),
     queryKey: ['profile', profileId],
   })
+  const isSaveDisabled = form.formState.isSubmitting || !form.formState.isDirty
 
   useEffect(() => {
     if (!profileQuery.data) return
@@ -147,7 +148,7 @@ export function ProfileEditPage() {
         ) : null}
         <button
           className="bg-primary min-h-11 w-full rounded-md px-4 text-sm font-semibold text-white disabled:opacity-50"
-          disabled={form.formState.isSubmitting}
+          disabled={isSaveDisabled}
           type="submit"
         >
           {form.formState.isSubmitting ? (

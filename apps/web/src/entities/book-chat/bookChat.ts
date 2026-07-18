@@ -46,6 +46,20 @@ const managedBookChatSchema = z.object({
   status: z.enum(['reading', 'completed', 'archived', 'deleted']),
 })
 
+const archivedBookChatRowSchema = z.object({
+  archived_at: z.string().datetime({ offset: true }),
+  books: z
+    .object({
+      authors: z.array(z.string()),
+      thumbnail_url: z.string().nullable(),
+      title: z.string(),
+    })
+    .nullable(),
+  id: z.string().uuid(),
+  name: z.string().min(1),
+  room_id: z.string().uuid(),
+})
+
 export type BookChat = {
   authors: string[]
   id: string
@@ -65,11 +79,22 @@ export type ManagedBookChat = {
   title: string
 }
 
+export type ArchivedBookChat = {
+  archivedAt: string
+  authors: string[]
+  bookChatId: string
+  roomId: string
+  thumbnailUrl: string | null
+  title: string
+}
+
 export const bookChatKeys = {
   /** 독서방 식별자로 안정적인 query key를 생성한다. */
   byRoom: (roomId: string) => ['book-chats', roomId] as const,
   /** 독서방 식별자로 독서방 상세 query key를 생성한다. */
   room: (roomId: string) => ['reading-room', roomId] as const,
+  /** 프로필별 보관한 책 대화 목록 query key를 생성한다. */
+  myArchived: (profileId: string) => ['archived-book-chats', profileId] as const,
 }
 
 /** 책 대화방 목록 데이터를 조회하거나 계산해 반환한다. */
@@ -116,6 +141,22 @@ export async function getManagedBookChat(
   if (response.data === null) return null
 
   return mapManagedBookChat(managedBookChatSchema.parse(response.data))
+}
+
+/** 현재 사용자가 참여했던 독서방에서 보관한 책 대화 목록을 조회한다. */
+export async function getMyArchivedBookChats(
+  client: SupabaseClient,
+  profileId: string,
+): Promise<ArchivedBookChat[]> {
+  z.string().uuid().parse(profileId)
+  const response = await client
+    .from('book_chats')
+    .select('id, room_id, name, archived_at, books(title, authors, thumbnail_url)')
+    .eq('status', 'archived')
+    .order('archived_at', { ascending: false })
+
+  if (response.error) throw response.error
+  return parseArchivedBookChats(response.data)
 }
 
 /** 대화방의 읽기 상태를 완독 또는 아카이브 상태로 바꾼다. */
@@ -186,18 +227,14 @@ export async function createBookChat(
 }
 
 /** 원본 데이터를 책 대화방 도메인 모델로 변환한다. */
-function mapBookChat(row: z.infer<typeof bookChatRowSchema>): BookChat[] {
-  if (!row.books) return []
-
-  return [
-    {
-      authors: row.books.authors,
-      id: row.id,
-      name: row.name,
-      thumbnailUrl: row.books.thumbnail_url,
-      title: row.books.title,
-    },
-  ]
+function mapBookChat(row: z.infer<typeof bookChatRowSchema>): BookChat {
+  return {
+    authors: row.books?.authors ?? [],
+    id: row.id,
+    name: row.name,
+    thumbnailUrl: row.books?.thumbnail_url ?? null,
+    title: row.books?.title ?? row.name,
+  }
 }
 
 /** 원본 관리 행을 화면에서 쓰는 책 대화 모델로 변환한다. */
@@ -214,7 +251,24 @@ function mapManagedBookChat(row: z.infer<typeof managedBookChatSchema>): Managed
 
 /** 외부 입력을 검증해 책 대화방 목록 형식으로 변환한다. */
 export function parseBookChats(value: unknown): BookChat[] {
-  return z.array(bookChatRowSchema).parse(value).flatMap(mapBookChat)
+  return z.array(bookChatRowSchema).parse(value).map(mapBookChat)
+}
+
+/** 외부 응답을 내 정보 화면에서 쓰는 보관한 책 모델로 변환한다. */
+export function parseArchivedBookChats(value: unknown): ArchivedBookChat[] {
+  return z.array(archivedBookChatRowSchema).parse(value).map(mapArchivedBookChat)
+}
+
+/** 원본 보관한 책 행을 개인 기록 화면의 도메인 모델로 변환한다. */
+function mapArchivedBookChat(row: z.infer<typeof archivedBookChatRowSchema>): ArchivedBookChat {
+  return {
+    archivedAt: row.archived_at,
+    authors: row.books?.authors ?? [],
+    bookChatId: row.id,
+    roomId: row.room_id,
+    thumbnailUrl: row.books?.thumbnail_url ?? null,
+    title: row.books?.title ?? row.name,
+  }
 }
 
 /** 외부 입력을 검증해 책 검색 응답 형식으로 변환한다. */

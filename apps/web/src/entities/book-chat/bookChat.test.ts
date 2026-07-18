@@ -1,6 +1,11 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
-import { bookChatKeys, parseBookChats, parseBookSearchResponse } from './bookChat'
+import {
+  bookChatKeys,
+  getMyArchivedBookChats,
+  parseBookChats,
+  parseBookSearchResponse,
+} from './bookChat'
 
 describe('bookChatKeys', () => {
   it('scopes room data to its room id', () => {
@@ -10,7 +15,7 @@ describe('bookChatKeys', () => {
 })
 
 describe('parseBookChats', () => {
-  it('maps book-chat rows and omits incomplete book relations', () => {
+  it('keeps a created chat visible with its chat name when its book relation is temporarily unavailable', () => {
     expect(
       parseBookChats([
         {
@@ -18,11 +23,7 @@ describe('parseBookChats', () => {
           id: 'f17c0d6d-3e6e-4b7f-a1f1-5d652aa2a85e',
           name: '함께 읽는 책',
         },
-        {
-          books: null,
-          id: '11dd2691-ca0d-4b86-bb2b-9fa7c6cd374f',
-          name: '삭제된 책',
-        },
+        { books: null, id: '11dd2691-ca0d-4b86-bb2b-9fa7c6cd374f', name: '새로 만든 책' },
       ]),
     ).toEqual([
       {
@@ -32,7 +33,32 @@ describe('parseBookChats', () => {
         thumbnailUrl: null,
         title: '함께 읽는 책',
       },
+      {
+        authors: [],
+        id: '11dd2691-ca0d-4b86-bb2b-9fa7c6cd374f',
+        name: '새로 만든 책',
+        thumbnailUrl: null,
+        title: '새로 만든 책',
+      },
     ])
+  })
+})
+
+describe('getMyArchivedBookChats', () => {
+  it('asks for only the signed-in member archived book chats with book details', async () => {
+    const order = vi.fn().mockResolvedValue({ data: [], error: null })
+    const status = vi.fn().mockReturnValue({ order })
+    const select = vi.fn().mockReturnValue({ eq: status })
+    const from = vi.fn().mockReturnValue({ select })
+    const client = {
+      from,
+    }
+
+    const profileId = 'f17c0d6d-3e6e-4b7f-a1f1-5d652aa2a85e'
+    await getMyArchivedBookChats(client as never, profileId)
+
+    expect(from).toHaveBeenCalledWith('book_chats')
+    expect(status).toHaveBeenCalledWith('status', 'archived')
   })
 })
 

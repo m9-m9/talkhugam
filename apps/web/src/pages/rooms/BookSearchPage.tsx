@@ -77,6 +77,13 @@ export function BookSearchPage() {
     setSearchVersion((version) => version + 1)
   }
 
+  /** 책 검색창에서 Enter를 누르면 현재 검색어로 다시 조회한다. */
+  function handleSearchInputKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key !== 'Enter') return
+    event.preventDefault()
+    handleSearch()
+  }
+
   /** Select 책 요청이나 사용자 동작을 처리한다. */
   async function handleSelectBook(book: BookSearchItem) {
     if (!roomId) return
@@ -103,6 +110,7 @@ export function BookSearchPage() {
         <input
           className="border-ink/10 focus:border-primary min-h-12 min-w-0 flex-1 rounded-md border bg-white px-4 text-sm outline-none"
           onChange={(event) => handleQueryChange(event.target.value)}
+          onKeyDown={handleSearchInputKeyDown}
           placeholder="책 제목이나 저자"
           value={query}
         />

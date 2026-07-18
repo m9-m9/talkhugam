@@ -8,6 +8,8 @@ import {
   getManagedBookChat,
   updateBookChatStatus,
 } from '../../entities/book-chat'
+import { bookCompletionKeys, upsertBookChatCompletion } from '../../entities/book-completion'
+import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { BookCover } from '../../shared/ui/BookCover'
@@ -18,6 +20,7 @@ export function BookChatManagementPage() {
   const client = createSupabaseClient()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const profileId = useAuthenticatedUser().id
   const { bookChatId, roomId } = useParams()
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const bookChatQuery = useQuery({
@@ -26,11 +29,22 @@ export function BookChatManagementPage() {
     queryKey: ['managed-book-chat', bookChatId],
   })
   const statusMutation = useMutation({
-    mutationFn: (status: 'reading' | 'completed' | 'archived') =>
+    mutationFn: (status: 'reading' | 'archived') =>
       updateBookChatStatus(client, bookChatId ?? '', status),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: bookChatKeys.byRoom(roomId ?? '') })
       await queryClient.invalidateQueries({ queryKey: ['managed-book-chat', bookChatId] })
+    },
+  })
+  const completionMutation = useMutation({
+    mutationFn: () =>
+      upsertBookChatCompletion(client, {
+        bookChatId: bookChatId ?? '',
+        rating: null,
+        review: null,
+      }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: bookCompletionKeys.myBooks(profileId) })
     },
   })
   const deletionMutation = useMutation({
@@ -71,11 +85,11 @@ export function BookChatManagementPage() {
         <div className="mt-4 space-y-3">
           <button
             className="border-ink/10 min-h-12 w-full rounded-md border bg-white px-4 text-left text-sm font-semibold"
-            disabled={statusMutation.isPending || chat.status === 'completed'}
-            onClick={() => statusMutation.mutate('completed')}
+            disabled={completionMutation.isPending}
+            onClick={() => completionMutation.mutate()}
             type="button"
           >
-            완독으로 표시
+            {completionMutation.isPending ? '완독 기록 중…' : '내 완독으로 기록'}
           </button>
           <button
             className="border-ink/10 min-h-12 w-full rounded-md border bg-white px-4 text-left text-sm font-semibold"
@@ -85,7 +99,7 @@ export function BookChatManagementPage() {
           >
             아카이브로 이동
           </button>
-          {chat.status !== 'reading' ? (
+          {chat.status === 'archived' ? (
             <button
               className="border-ink/10 min-h-12 w-full rounded-md border bg-white px-4 text-left text-sm font-semibold"
               disabled={statusMutation.isPending}
@@ -104,9 +118,11 @@ export function BookChatManagementPage() {
             삭제 요청
           </button>
         </div>
-        {statusMutation.isError ? (
+        {statusMutation.isError || completionMutation.isError ? (
           <p className="mt-4 text-sm text-red-600" role="alert">
-            상태를 바꾸지 못했어요. 다시 시도해 주세요.
+            {completionMutation.isError
+              ? '완독 기록을 저장하지 못했어요. 다시 시도해 주세요.'
+              : '상태를 바꾸지 못했어요. 다시 시도해 주세요.'}
           </p>
         ) : null}
       </section>
