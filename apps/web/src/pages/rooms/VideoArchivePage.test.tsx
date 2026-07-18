@@ -187,7 +187,18 @@ describe('VideoArchivePage', () => {
     const gallery = await screen.findByRole('list', { name: '영상 기록' })
     expect(gallery).toHaveClass('grid-cols-2')
     expect(gallery).toHaveClass('-mx-4')
+    expect(gallery).not.toHaveClass('bg-ink/10')
     expect(screen.getAllByRole('listitem')).toHaveLength(2)
+  })
+
+  it('does not render an empty colored grid slot when the archive has one video', async () => {
+    getVideoPosts.mockResolvedValueOnce([createFailedVideo('video-1', '민규')])
+    renderArchivePage()
+
+    const gallery = await screen.findByRole('list', { name: '영상 기록' })
+
+    expect(gallery).not.toHaveClass('bg-ink/10')
+    expect(screen.getAllByRole('listitem')).toHaveLength(1)
   })
 
   it('requests every ready thumbnail once without issuing playback permissions per card', async () => {

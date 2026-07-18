@@ -153,7 +153,7 @@ export function VideoArchivePage() {
         </div>
       ) : hasVideos ? (
         filteredVideos.length > 0 ? (
-          <ul aria-label="영상 기록" className="bg-ink/10 -mx-4 mt-6 grid grid-cols-2 gap-px">
+          <ul aria-label="영상 기록" className="-mx-4 mt-6 grid grid-cols-2 gap-px">
             {filteredVideos.map((video) => (
               <li className="bg-ink min-w-0" key={video.id}>
                 <VideoGalleryItem

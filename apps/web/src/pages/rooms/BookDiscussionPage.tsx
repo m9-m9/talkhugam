@@ -205,7 +205,6 @@ export function BookDiscussionPage() {
         key={bookChatId}
         labels={labels}
         mentionCandidates={(membersQuery.data ?? []).filter((member) => !member.isCurrentUser)}
-        mentionedMemberIds={mentionedMemberIds}
         onCancelReply={() => setReplyTo(null)}
         onChangeDraft={setDraft}
         onChangeLabels={setLabels}
@@ -474,7 +473,6 @@ function ChatComposer({
   isUploadingVideo,
   labels,
   mentionCandidates,
-  mentionedMemberIds,
   onCancelReply,
   onChangeDraft,
   onChangeLabels,
@@ -491,7 +489,6 @@ function ChatComposer({
   isUploadingVideo: boolean
   labels: PostForm['labels']
   mentionCandidates: VideoFilterMember[]
-  mentionedMemberIds: PostForm['mentionedMemberIds']
   onCancelReply: () => void
   onChangeDraft: (value: string) => void
   onChangeLabels: (labels: PostForm['labels']) => void
@@ -507,13 +504,17 @@ function ChatComposer({
   const actionMenuRef = useRef<HTMLDivElement>(null)
   const actionMenuButtonRef = useRef<HTMLButtonElement>(null)
   const firstActionButtonRef = useRef<HTMLButtonElement>(null)
+  const mentionMenuRef = useRef<HTMLDivElement>(null)
   const [isActionTrayOpen, setIsActionTrayOpen] = useState(false)
   const [labelKind, setLabelKind] = useState<LabelKind | null>(null)
-  const [isMentionSelectorOpen, setIsMentionSelectorOpen] = useState(false)
+  const [isMentionMenuDismissed, setIsMentionMenuDismissed] = useState(false)
   const [labelDrafts, setLabelDrafts] = useState<Record<LabelKind, string>>({
     chapter: '',
     page: '',
   })
+  const mentionQuery = getActiveMentionQuery(value)
+  const shouldShowMentionMenu = mentionQuery !== null && !isMentionMenuDismissed
+  const matchingMentionCandidates = getMatchingMentionCandidates(mentionCandidates, mentionQuery)
 
   /** Add 라벨 요청이나 사용자 동작을 처리한다. */
   function handleAddLabel() {
@@ -532,20 +533,17 @@ function ChatComposer({
     onChangeLabels(labels.filter((_, labelIndex) => labelIndex !== index))
   }
 
-  /** 선택한 멤버의 멘션 상태를 추가하거나 해제한다. */
-  function handleToggleMention(memberId: string) {
-    const hasMentionedMember = mentionedMemberIds.includes(memberId)
-    if (hasMentionedMember) {
-      onChangeMentionedMemberIds(mentionedMemberIds.filter((id) => id !== memberId))
-      return
-    }
-    if (mentionedMemberIds.length === 6) return
-    onChangeMentionedMemberIds([...mentionedMemberIds, memberId])
+  /** 입력된 메시지와 일치하는 멘션 대상 식별자를 함께 갱신한다. */
+  function handleChangeMessage(nextValue: string) {
+    onChangeDraft(nextValue)
+    onChangeMentionedMemberIds(getMentionedMemberIds(nextValue, mentionCandidates))
+    setIsMentionMenuDismissed(false)
   }
 
-  /** 선택한 멤버 멘션을 입력 영역에서 제거한다. */
-  function handleRemoveMention(memberId: string) {
-    onChangeMentionedMemberIds(mentionedMemberIds.filter((id) => id !== memberId))
+  /** 선택한 멤버를 현재 @ 입력 위치에 삽입하고 메시지 입력을 유지한다. */
+  function handleSelectMention(member: VideoFilterMember) {
+    handleChangeMessage(insertMention(value, member.displayName))
+    window.requestAnimationFrame(() => messageInputRef.current?.focus())
   }
 
   /** 복귀 To 라벨 선택 요청이나 사용자 동작을 처리한다. */
@@ -557,7 +555,12 @@ function ChatComposer({
   useEffect(() => {
     /** 외부 포인터 Down 요청이나 사용자 동작을 처리한다. */
     function handleOutsidePointerDown(event: PointerEvent) {
-      if (!isActionTrayOpen || !(event.target instanceof Node)) return
+      if (!(event.target instanceof Node)) return
+      const isMentionMenuTarget = mentionMenuRef.current?.contains(event.target)
+      const isMessageInputTarget = messageInputRef.current?.contains(event.target)
+      if (shouldShowMentionMenu && !isMentionMenuTarget && !isMessageInputTarget)
+        setIsMentionMenuDismissed(true)
+      if (!isActionTrayOpen) return
       if (actionMenuRef.current?.contains(event.target)) return
       if (actionMenuButtonRef.current?.contains(event.target)) return
       setIsActionTrayOpen(false)
@@ -565,7 +568,13 @@ function ChatComposer({
 
     /** Escape 키 요청이나 사용자 동작을 처리한다. */
     function handleEscape(event: KeyboardEvent) {
-      if (event.key !== 'Escape' || !isActionTrayOpen) return
+      if (event.key !== 'Escape') return
+      if (shouldShowMentionMenu) {
+        setIsMentionMenuDismissed(true)
+        messageInputRef.current?.focus()
+        return
+      }
+      if (!isActionTrayOpen) return
       setIsActionTrayOpen(false)
       actionMenuButtonRef.current?.focus()
     }
@@ -576,7 +585,7 @@ function ChatComposer({
       document.removeEventListener('pointerdown', handleOutsidePointerDown)
       window.removeEventListener('keydown', handleEscape)
     }
-  }, [isActionTrayOpen])
+  }, [isActionTrayOpen, shouldShowMentionMenu])
 
   return (
     <section className="border-ink/10 relative mt-6 border-t pt-4">
@@ -610,28 +619,6 @@ function ChatComposer({
               </button>
             </li>
           ))}
-        </ul>
-      ) : null}
-      {mentionedMemberIds.length > 0 ? (
-        <ul className="mb-3 flex flex-wrap gap-2" aria-label="선택한 멘션">
-          {mentionCandidates
-            .filter((member) => mentionedMemberIds.includes(member.id))
-            .map((member) => (
-              <li
-                className="bg-primary/10 text-primary flex min-h-8 items-center gap-1 rounded-md px-2 text-xs"
-                key={member.id}
-              >
-                @{member.displayName}
-                <button
-                  aria-label={`${member.displayName} 멘션 삭제`}
-                  className="-my-2 -mr-2 flex min-h-11 min-w-11 cursor-pointer items-center justify-center"
-                  onClick={() => handleRemoveMention(member.id)}
-                  type="button"
-                >
-                  ×
-                </button>
-              </li>
-            ))}
         </ul>
       ) : null}
       {isActionTrayOpen ? (
@@ -690,67 +677,6 @@ function ChatComposer({
                 </button>
               </div>
             </div>
-          ) : isMentionSelectorOpen ? (
-            <div>
-              <div className="mb-2 flex min-h-11 items-center gap-2">
-                <button
-                  aria-label="메시지 추가 메뉴로 돌아가기"
-                  className="text-ink hover:bg-surface-muted flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-md"
-                  onClick={() => setIsMentionSelectorOpen(false)}
-                  type="button"
-                >
-                  <svg aria-hidden="true" className="size-5" fill="none" viewBox="0 0 24 24">
-                    <path
-                      d="m14.5 5-7 7 7 7"
-                      stroke="currentColor"
-                      strokeLinecap="round"
-                      strokeWidth="1.8"
-                    />
-                  </svg>
-                </button>
-                <h2 className="text-ink text-sm font-semibold" id="chat-action-menu-title">
-                  멤버 멘션
-                </h2>
-              </div>
-              {hasMentionMemberError ? (
-                <div className="space-y-2" role="alert">
-                  <p className="text-sm text-red-600">
-                    멘션할 멤버를 불러오지 못했어요. 다시 시도해 주세요.
-                  </p>
-                  <button
-                    className="border-ink/10 text-ink min-h-11 cursor-pointer rounded-md border px-3 text-sm font-medium"
-                    onClick={onRetryMentionMembers}
-                    type="button"
-                  >
-                    다시 시도
-                  </button>
-                </div>
-              ) : mentionCandidates.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {mentionCandidates.map((member) => {
-                    const hasMentionedMember = mentionedMemberIds.includes(member.id)
-                    return (
-                      <button
-                        aria-label={`${member.displayName} 멘션`}
-                        aria-pressed={hasMentionedMember}
-                        className={`min-h-11 cursor-pointer rounded-md border px-3 text-sm font-medium ${
-                          hasMentionedMember
-                            ? 'border-primary bg-primary text-white'
-                            : 'border-ink/10 text-ink bg-white'
-                        }`}
-                        key={member.id}
-                        onClick={() => handleToggleMention(member.id)}
-                        type="button"
-                      >
-                        @{member.displayName}
-                      </button>
-                    )
-                  })}
-                </div>
-              ) : (
-                <p className="text-ink-subtle text-sm">멘션할 멤버가 없어요.</p>
-              )}
-            </div>
           ) : (
             <>
               <h2 className="sr-only" id="chat-action-menu-title">
@@ -768,7 +694,6 @@ function ChatComposer({
                   label="챕터 라벨"
                   onClick={() => setLabelKind('chapter')}
                 />
-                <ActionButton label="멤버 멘션" onClick={() => setIsMentionSelectorOpen(true)} />
                 <ActionButton
                   label="영상 올리기"
                   onClick={() => {
@@ -820,23 +745,65 @@ function ChatComposer({
             />
           </svg>
         </button>
-        <label className="sr-only" htmlFor="discussion-message">
-          메시지 입력
-        </label>
-        <textarea
-          className="border-ink/10 focus:border-primary min-h-11 flex-1 resize-none rounded-md border bg-white px-3 py-2 text-sm outline-none"
-          id="discussion-message"
-          onChange={(event) => onChangeDraft(event.target.value)}
-          onKeyDown={(event) => {
-            if (!shouldSubmitMessage(event.key, event.shiftKey)) return
-            event.preventDefault()
-            onSubmit()
-          }}
-          placeholder={isReplying ? '답글을 입력하세요' : '메시지 입력'}
-          ref={messageInputRef}
-          rows={1}
-          value={value}
-        />
+        <div className="relative min-w-0 flex-1">
+          {shouldShowMentionMenu ? (
+            <div
+              className="border-ink/10 absolute right-0 bottom-full left-0 z-10 mb-2 rounded-lg border bg-white p-2 shadow-lg"
+              ref={mentionMenuRef}
+            >
+              {hasMentionMemberError ? (
+                <div className="space-y-2" role="alert">
+                  <p className="text-sm text-red-600">
+                    멘션할 멤버를 불러오지 못했어요. 다시 시도해 주세요.
+                  </p>
+                  <button
+                    className="border-ink/10 text-ink min-h-11 cursor-pointer rounded-md border px-3 text-sm font-medium"
+                    onClick={onRetryMentionMembers}
+                    type="button"
+                  >
+                    다시 시도
+                  </button>
+                </div>
+              ) : matchingMentionCandidates.length > 0 ? (
+                <div aria-label="멘션할 멤버" id="mention-candidates" role="listbox">
+                  {matchingMentionCandidates.map((member) => (
+                    <button
+                      aria-label={`${member.displayName} 멘션 추가`}
+                      className="hover:bg-surface-muted text-ink flex min-h-11 w-full cursor-pointer items-center rounded-md px-3 text-left text-sm font-medium"
+                      key={member.id}
+                      onClick={() => handleSelectMention(member)}
+                      role="option"
+                      type="button"
+                    >
+                      @{member.displayName}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-ink-subtle px-3 py-2 text-sm">멘션할 멤버가 없어요.</p>
+              )}
+            </div>
+          ) : null}
+          <label className="sr-only" htmlFor="discussion-message">
+            메시지 입력
+          </label>
+          <textarea
+            aria-autocomplete="list"
+            aria-controls={shouldShowMentionMenu ? 'mention-candidates' : undefined}
+            className="border-ink/10 focus:border-primary min-h-11 w-full resize-none rounded-md border bg-white px-3 py-2 text-sm outline-none"
+            id="discussion-message"
+            onChange={(event) => handleChangeMessage(event.target.value)}
+            onKeyDown={(event) => {
+              if (!shouldSubmitMessage(event.key, event.shiftKey)) return
+              event.preventDefault()
+              onSubmit()
+            }}
+            placeholder={isReplying ? '답글을 입력하세요' : '메시지 입력'}
+            ref={messageInputRef}
+            rows={1}
+            value={value}
+          />
+        </div>
         <button
           className="bg-primary min-h-11 rounded-md px-3 text-sm font-semibold text-white disabled:opacity-40"
           disabled={value.trim().length === 0 && labels.length === 0}
@@ -1092,6 +1059,45 @@ function getVideoMessageLabel(video: VideoPost) {
   if (video.status === 'failed') return '영상 처리에 실패했어요.'
   if (video.status === 'waiting_upload') return '영상을 올리고 있어요…'
   return '영상 준비 중…'
+}
+
+/** 메시지 마지막 단어에서 현재 작성 중인 @ 멘션 검색어를 추출한다. */
+function getActiveMentionQuery(value: string) {
+  const match = value.match(/(?:^|\s)@([^\s@]*)$/u)
+  return match?.[1] ?? null
+}
+
+/** 현재 @ 검색어와 일치하는 독서방 멤버 후보를 반환한다. */
+function getMatchingMentionCandidates(
+  candidates: readonly VideoFilterMember[],
+  query: string | null,
+) {
+  if (query === null) return []
+  const normalizedQuery = query.toLocaleLowerCase('ko-KR')
+  return candidates.filter((candidate) =>
+    candidate.displayName.toLocaleLowerCase('ko-KR').includes(normalizedQuery),
+  )
+}
+
+/** 메시지 본문에 실제로 완성된 @이름과 일치하는 멤버 식별자를 최대 여섯 명까지 반환한다. */
+function getMentionedMemberIds(value: string, candidates: readonly VideoFilterMember[]) {
+  const candidateIdsByName = new Map(
+    candidates.map((candidate) => [candidate.displayName, candidate.id]),
+  )
+  const memberIds = [...value.matchAll(/(?:^|\s)@([^\s@]+)/gu)]
+    .map((match) => candidateIdsByName.get(match[1] ?? ''))
+    .filter((memberId): memberId is string => memberId !== undefined)
+
+  return memberIds.filter((memberId, index) => memberIds.indexOf(memberId) === index).slice(0, 6)
+}
+
+/** 현재 작성 중인 @검색어를 선택한 멤버 이름으로 바꾸고 다음 메시지를 위한 공백을 추가한다. */
+function insertMention(value: string, displayName: string) {
+  const activeMentionPattern = /(^|\s)@[^\s@]*$/u
+  if (activeMentionPattern.test(value))
+    return value.replace(activeMentionPattern, (_, prefix: string) => `${prefix}@${displayName} `)
+  const separator = value.length === 0 || value.endsWith(' ') ? '' : ' '
+  return `${value}${separator}@${displayName} `
 }
 
 /** 메시지 본문·라벨·멘션을 전송 가능한 입력 형식으로 검증한다. */
