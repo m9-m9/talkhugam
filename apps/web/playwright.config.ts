@@ -10,8 +10,9 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   webServer: {
-    command: 'pnpm dev --host 127.0.0.1 --port 4173',
+    command: 'pnpm exec vite --mode e2e --host 127.0.0.1 --port 4173',
     env: {
+      VITE_CLARITY_PROJECT_ID: 'xoernfdaoq',
       VITE_SUPABASE_PUBLISHABLE_KEY: 'e2e-public-key',
       VITE_SUPABASE_URL: 'https://aibrendxalzmqsovaqps.supabase.co',
     },

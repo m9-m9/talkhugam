@@ -4,10 +4,13 @@ type AppHeaderProps = {
   action?: ReactNode
   onBack?: () => void
   title: string
+  titleAsHeading?: boolean
 }
 
 /** 앱 헤더 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
-export function AppHeader({ action, onBack, title }: AppHeaderProps) {
+export function AppHeader({ action, onBack, title, titleAsHeading = false }: AppHeaderProps) {
+  const titleClassName = 'text-ink text-base font-bold'
+
   return (
     <header className="border-ink/10 -mx-4 flex min-h-16 items-center gap-2 border-b px-4">
       {onBack ? (
@@ -27,7 +30,11 @@ export function AppHeader({ action, onBack, title }: AppHeaderProps) {
           </svg>
         </button>
       ) : null}
-      <p className="text-ink text-base font-bold">{title}</p>
+      {titleAsHeading ? (
+        <h1 className={titleClassName}>{title}</h1>
+      ) : (
+        <p className={titleClassName}>{title}</p>
+      )}
       {action ? <div className="ml-auto flex items-center">{action}</div> : null}
     </header>
   )

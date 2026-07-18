@@ -26,6 +26,122 @@ test('has no automated accessibility violations on the sign-in screen', async ({
   expect(accessibilityScanResults.violations).toEqual([])
 })
 
+test('sends one manual GA4 page view for each SPA screen transition', async ({ page }) => {
+  await authenticatePage(page)
+  await mockAuthenticatedPageData(page)
+  await page.route('https://www.googletagmanager.com/**', async (route) => {
+    await route.fulfill({ body: '', contentType: 'application/javascript', status: 200 })
+  })
+  await page.goto('/rooms')
+
+  await expect.poll(() => readGaPageViews(page)).toHaveLength(1)
+  await page.getByRole('button', { name: '내 정보' }).click()
+  await expect(page).toHaveURL('/profile')
+  await expect.poll(() => readGaPageViews(page)).toHaveLength(2)
+})
+
+test('loads Clarity once while masking all app text and user content', async ({ page }) => {
+  await page.route('https://www.clarity.ms/tag/**', async (route) => {
+    await route.fulfill({ body: '', contentType: 'application/javascript', status: 200 })
+  })
+  await page.goto('/')
+
+  await expect(page.locator('#talkhugam-clarity')).toHaveAttribute(
+    'src',
+    /https:\/\/www\.clarity\.ms\/tag\/xoernfdaoq/,
+  )
+  await expect(page.locator('#root')).toHaveAttribute('data-clarity-mask', 'true')
+  await expect(page.locator('#talkhugam-clarity')).toHaveCount(1)
+})
+
+test('submits feedback from the global launcher without exposing an in-app reply thread', async ({
+  page,
+}) => {
+  await authenticatePage(page)
+  await mockAuthenticatedPageData(page)
+  await page.route('**/functions/v1/feedback-submit', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        data: { ticketId: '8fc963a4-da01-4696-995c-755fe145776f' },
+        ok: true,
+        requestId: 'feedback-e2e',
+      }),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+  await page.goto('/rooms')
+
+  await page.getByRole('button', { name: '의견 보내기' }).click()
+  await page.getByRole('button', { name: '기능 제안' }).click()
+  await page.getByRole('textbox', { name: '의견 내용' }).fill('완독 목록을 더 쉽게 보고 싶어요.')
+  await page
+    .getByRole('dialog', { name: '의견 보내기' })
+    .getByRole('button', { name: '의견 보내기', exact: true })
+    .click()
+
+  await expect(page.getByText('의견을 받았어요.')).toBeVisible()
+  await expect(page.getByText('로그인 이메일로 답변드릴게요.')).toBeVisible()
+})
+
+test('blocks a non-operator from the admin route', async ({ page }) => {
+  await authenticatePage(page)
+  await mockAuthenticatedPageData(page)
+  await page.route('**/functions/v1/admin-feedback', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({ code: 'ADMIN_FORBIDDEN', message: '운영자 권한이 필요해요.' }),
+      contentType: 'application/json',
+      status: 403,
+    })
+  })
+  await page.goto('/admin')
+
+  await expect(page).toHaveURL('/rooms')
+  await expect(page.getByRole('heading', { name: '함께 읽는 모임' })).toBeVisible()
+})
+
+test('lets an operator change a feedback ticket status', async ({ page }) => {
+  const ticket = createAdminFeedbackTicket()
+  await authenticatePage(page)
+  await page.route('**/functions/v1/admin-feedback', async (route) => {
+    const action = readAdminFeedbackAction(route.request().postDataJSON())
+    if (action === 'access') {
+      await route.fulfill({
+        body: JSON.stringify({ data: { isAdmin: true }, ok: true, requestId: 'access-e2e' }),
+        contentType: 'application/json',
+        status: 200,
+      })
+      return
+    }
+    if (action === 'list') {
+      await route.fulfill({
+        body: JSON.stringify({ data: { tickets: [ticket] }, ok: true, requestId: 'list-e2e' }),
+        contentType: 'application/json',
+        status: 200,
+      })
+      return
+    }
+    await route.fulfill({
+      body: JSON.stringify({
+        data: { ticket: { ...ticket, status: 'in_progress' } },
+        ok: true,
+        requestId: 'update-e2e',
+      }),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+  await page.goto('/admin')
+
+  await page.getByRole('button', { name: /완독 목록을 더 쉽게/ }).click()
+  const detailSheet = page.getByRole('dialog', { name: '의견 상세' })
+  await detailSheet.getByRole('button', { name: '처리 중', exact: true }).click()
+  await expect(detailSheet.getByRole('button', { name: '처리 중', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  )
+})
+
 test('keeps core authenticated pages within the supported viewport', async ({ page }, testInfo) => {
   await authenticatePage(page)
   await mockAuthenticatedPageData(page)
@@ -63,6 +179,7 @@ test('has no automated accessibility violations on authenticated account screens
   for (const path of ['/profile', '/profile/settings', '/notifications']) {
     await page.goto(path)
     await expect(page.locator('main')).toBeVisible()
+    await expect(page.locator('h1')).toBeVisible()
     await expectNoAccessibilityViolations(page)
   }
 })
@@ -188,7 +305,6 @@ test('opens completion records from the book-chat plus menu and restores focus o
   await expect(page.getByRole('dialog', { name: '완독 기록' })).toBeHidden()
   await expect(plusButton).toBeFocused()
 })
-
 test('selects a member by typing an at-sign in the book-chat composer', async ({ page }) => {
   await authenticatePage(page)
   await mockVideoMembers(page, [
@@ -219,6 +335,42 @@ test('shows global navigation outside the book chat and hides it inside', async 
   await expect(page.getByRole('navigation', { name: '주요 메뉴' })).toBeHidden()
 })
 
+test('opens every reading book from the profile CTA and marks personal completion', async ({
+  page,
+}) => {
+  await authenticatePage(page)
+  await mockAuthenticatedPageData(page)
+  await mockReadingBooks(page, [
+    {
+      books: {
+        authors: ['기시미 이치로'],
+        thumbnail_url: null,
+        title: '미움받을 용기',
+      },
+      id: bookChatId,
+      name: '미움받을 용기',
+      reading_rooms: { name: '금요일 아침 독서방' },
+      room_id: roomId,
+    },
+  ])
+  await page.route('**/rest/v1/book_chat_completions?*', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify([{ book_chat_id: bookChatId }]),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+  await page.goto('/profile')
+
+  await page.getByRole('button', { name: '읽고 있는 책 모두 보기' }).click()
+
+  await expect(page).toHaveURL('/profile/books')
+  await expect(page.getByRole('heading', { name: '함께 읽고 있는 책' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '금요일 아침 독서방' })).toBeVisible()
+  await expect(page.getByText('미움받을 용기')).toBeVisible()
+  await expect(page.getByText('완독')).toBeVisible()
+  await expect(page.getByRole('navigation', { name: '주요 메뉴' })).toBeVisible()
+})
 test('keeps a chat video preview square within seventy percent and opens the immersive viewer', async ({
   page,
 }) => {
@@ -400,6 +552,16 @@ async function authenticatePage(page: Page) {
       status: 200,
     })
   })
+  await page.route('**/rest/v1/user_legal_consents?*', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify([
+        { document_type: 'terms', document_version: '2026-07-18.2' },
+        { document_type: 'privacy', document_version: '2026-07-18.2' },
+      ]),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
 }
 
 /** 지정한 영상 게시물 목록을 반환하도록 Supabase posts 요청을 가로챈다. */
@@ -535,6 +697,17 @@ async function mockAuthenticatedPageData(page: Page) {
   })
 }
 
+/** 프로필의 전체 읽는 책 화면이 요구하는 책 대화 조인 행을 반환한다. */
+async function mockReadingBooks(page: Page, books: unknown[]) {
+  await page.route('**/rest/v1/book_chats?*', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify(books),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+}
+
 /** 책 대화의 완독 시트가 필요한 빈 완독 기록 응답을 브라우저에 제공한다. */
 async function mockBookCompletionRecords(page: Page) {
   await page.route('**/rest/v1/book_chat_completions?*', async (route) => {
@@ -591,8 +764,43 @@ async function expectPageToFitViewport(page: Page, viewportWidth: number) {
   await expect(page.locator('html')).toHaveJSProperty('scrollWidth', viewportWidth)
 }
 
-/** 현재 페이지의 axe-core 자동 접근성 위반이 없는지 검사한다. */
+/** 현재 페이지의 axe-core 자동 접근성 위반을 검사하되, 별도 h1 검증과 중복되는 규칙은 제외한다. */
 async function expectNoAccessibilityViolations(page: Page) {
-  const accessibilityScanResults = await new AxeBuilder({ page }).analyze()
+  const accessibilityScanResults = await new AxeBuilder({ page })
+    .disableRules(['page-has-heading-one'])
+    .analyze()
   expect(accessibilityScanResults.violations).toEqual([])
+}
+
+/** 현재 브라우저에서 수집 대기 중인 GA4 화면 조회 이벤트만 읽는다. */
+async function readGaPageViews(page: Page): Promise<unknown[]> {
+  return page.evaluate(() => {
+    const candidate = window as Window & { dataLayer?: unknown[] }
+    return (candidate.dataLayer ?? []).filter((entry) => {
+      if (entry === null || typeof entry !== 'object') return false
+      const args = Array.from(entry as ArrayLike<unknown>)
+      return args[0] === 'event' && args[1] === 'page_view'
+    })
+  })
+}
+
+/** 운영함 Edge Function 요청 본문에서 허용된 action 문자열만 읽는다. */
+function readAdminFeedbackAction(value: unknown): string | undefined {
+  if (value === null || typeof value !== 'object' || !('action' in value)) return undefined
+  return typeof value.action === 'string' ? value.action : undefined
+}
+
+/** 운영함 브라우저 시나리오에서 사용할 최소 피드백 티켓 fixture를 생성한다. */
+function createAdminFeedbackTicket() {
+  return {
+    authorEmailSnapshot: 'feedback@example.com',
+    authorProfileId: '00000000-0000-4000-8000-000000000001',
+    body: '완독 목록을 더 쉽게 보고 싶어요.',
+    category: 'feature',
+    createdAt: '2026-07-18T00:00:00.000Z',
+    handledAt: null,
+    handledByProfileId: null,
+    id: '8fc963a4-da01-4696-995c-755fe145776f',
+    status: 'unread',
+  }
 }

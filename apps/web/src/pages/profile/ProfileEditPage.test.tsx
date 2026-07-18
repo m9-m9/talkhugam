@@ -48,6 +48,20 @@ describe('ProfileEditPage', () => {
     expect(await screen.findByText('내 프로필 화면')).toBeInTheDocument()
   })
 
+  it('keeps saving disabled until the user changes a profile field and offers a back button', async () => {
+    getProfile.mockResolvedValue({ bio: '기존 소개', displayName: '민규', mbti: 'INTP' })
+
+    renderProfileEditPage()
+
+    expect(await screen.findByDisplayValue('민규')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '이전 화면으로' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '저장하기' })).toBeDisabled()
+
+    fireEvent.change(screen.getByLabelText('한 줄 소개'), { target: { value: '바뀐 소개' } })
+
+    expect(screen.getByRole('button', { name: '저장하기' })).toBeEnabled()
+  })
+
   it('keeps the form visible and shows a retry message when saving fails', async () => {
     getProfile.mockResolvedValue({ bio: null, displayName: '민규', mbti: null })
     updateProfile.mockRejectedValue(new Error('update unavailable'))
@@ -55,6 +69,7 @@ describe('ProfileEditPage', () => {
     renderProfileEditPage()
 
     await screen.findByDisplayValue('민규')
+    fireEvent.change(screen.getByLabelText('한 줄 소개'), { target: { value: '새 소개' } })
     fireEvent.click(screen.getByRole('button', { name: '저장하기' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent(

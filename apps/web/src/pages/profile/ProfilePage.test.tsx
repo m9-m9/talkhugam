@@ -30,6 +30,8 @@ vi.mock('../../entities/book-completion', () => ({
   getMyCompletedBooks,
 }))
 
+vi.mock('../../entities/book-chat', () => ({}))
+
 vi.mock('../../entities/profile', () => ({ getProfile }))
 
 vi.mock('../../features/auth', () => ({
@@ -76,6 +78,15 @@ describe('ProfilePage', () => {
     )
     expect(screen.getByText('★★★★★')).toBeInTheDocument()
     expect(screen.getByText('다시 읽고 싶은 책이에요.')).toBeInTheDocument()
+  })
+
+  it('offers a route to every reading book instead of an archive action', async () => {
+    renderProfilePage()
+
+    expect(
+      await screen.findByRole('button', { name: '읽고 있는 책 모두 보기' }),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('보관한 책')).not.toBeInTheDocument()
   })
 
   it('shows a retry state instead of a loading spinner when the profile lookup fails', async () => {

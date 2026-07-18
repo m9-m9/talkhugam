@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 
+import { BrandSymbol } from './BrandSymbol'
+
 /** 앱 하단 이동 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 export function AppBottomNavigation() {
   const location = useLocation()
@@ -174,7 +176,7 @@ export function AppBottomNavigation() {
           onClick={() => void navigate('/rooms')}
           type="button"
         >
-          <img alt="" className="size-12" src="/brand/talkhugam-symbol.svg" />
+          <BrandSymbol alt="" className="size-12" tone="coral" />
         </button>
         <button
           aria-current={isProfileActive ? 'page' : undefined}

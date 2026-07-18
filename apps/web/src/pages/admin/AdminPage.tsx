@@ -1,0 +1,177 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useState } from 'react'
+
+import {
+  formatFeedbackCategory,
+  formatFeedbackStatus,
+  getAdminFeedbackTickets,
+  updateAdminFeedbackStatus,
+  type AdminFeedbackTicket,
+  type FeedbackStatus,
+} from '../../entities/feedback'
+import { createSupabaseClient } from '../../shared/api/supabaseClient'
+import { BottomSheet } from '../../shared/ui/BottomSheet'
+import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+
+const statusFilters: readonly { label: string; value: FeedbackStatus | undefined }[] = [
+  { label: '전체', value: undefined },
+  { label: '미확인', value: 'unread' },
+  { label: '처리 중', value: 'in_progress' },
+  { label: '완료', value: 'completed' },
+]
+
+/** 운영자가 피드백을 읽고 처리 상태만 변경하는 작은 운영함 화면을 렌더링한다. */
+export function AdminPage() {
+  const [statusFilter, setStatusFilter] = useState<FeedbackStatus | undefined>(undefined)
+  const [selectedTicket, setSelectedTicket] = useState<AdminFeedbackTicket | null>(null)
+  const queryClient = useQueryClient()
+  const feedbackQuery = useQuery({
+    queryFn: () => getAdminFeedbackTickets(createSupabaseClient(), statusFilter),
+    queryKey: ['admin-feedback', statusFilter],
+  })
+  const statusMutation = useMutation({
+    mutationFn: ({ status, ticketId }: { status: FeedbackStatus; ticketId: string }) =>
+      updateAdminFeedbackStatus(createSupabaseClient(), ticketId, status),
+    onSuccess: async (ticket) => {
+      setSelectedTicket(ticket)
+      await queryClient.invalidateQueries({ queryKey: ['admin-feedback'] })
+    },
+  })
+
+  /** 선택한 상태 필터를 적용하고 현재 상세 시트는 닫는다. */
+  function handleStatusFilterChange(nextStatus: FeedbackStatus | undefined) {
+    setStatusFilter(nextStatus)
+    setSelectedTicket(null)
+  }
+
+  /** 티켓을 선택해 이메일 회신 정보와 상태 변경 선택지를 담은 상세 시트를 연다. */
+  function handleOpenTicket(ticket: AdminFeedbackTicket) {
+    setSelectedTicket(ticket)
+  }
+
+  /** 상세 시트를 닫되 목록의 현재 필터와 서버 상태는 유지한다. */
+  function handleCloseTicket() {
+    setSelectedTicket(null)
+  }
+
+  /** 선택한 티켓을 운영자가 지정한 처리 상태로 변경한다. */
+  function handleUpdateStatus(status: FeedbackStatus) {
+    if (!selectedTicket) return
+    statusMutation.mutate({ status, ticketId: selectedTicket.id })
+  }
+
+  return (
+    <main className="app-page bg-surface px-4 pb-12">
+      <header className="border-border -mx-4 border-b px-4 py-4">
+        <p className="text-primary text-sm font-semibold">Operator inbox</p>
+        <h1 className="text-ink mt-1 text-xl font-bold">이용자 의견</h1>
+      </header>
+      <section className="pt-6" aria-label="피드백 상태 필터">
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {statusFilters.map((filter) => (
+            <button
+              aria-pressed={statusFilter === filter.value}
+              className={`min-h-11 shrink-0 cursor-pointer rounded-full px-4 text-sm font-semibold ${
+                statusFilter === filter.value
+                  ? 'bg-primary text-white'
+                  : 'border-border text-ink border bg-white'
+              }`}
+              key={filter.label}
+              onClick={() => handleStatusFilterChange(filter.value)}
+              type="button"
+            >
+              {filter.label}
+            </button>
+          ))}
+        </div>
+      </section>
+      <section className="pt-6" aria-live="polite">
+        {feedbackQuery.isPending ? <LoadingSpinner label="의견을 불러오고 있어요." /> : null}
+        {feedbackQuery.isError ? (
+          <p className="text-danger text-sm">
+            운영함을 불러오지 못했어요. 새로고침 후 다시 확인해 주세요.
+          </p>
+        ) : null}
+        {feedbackQuery.data?.length === 0 ? (
+          <p className="text-ink-subtle border-ink/15 rounded-lg border border-dashed p-6 text-center text-sm">
+            해당 상태의 의견이 없어요.
+          </p>
+        ) : null}
+        <ul className="space-y-3">
+          {feedbackQuery.data?.map((ticket) => (
+            <li key={ticket.id}>
+              <button
+                className="border-border focus-visible:outline-primary w-full cursor-pointer rounded-lg border bg-white p-4 text-left focus-visible:outline-2 focus-visible:outline-offset-2"
+                onClick={() => handleOpenTicket(ticket)}
+                type="button"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-primary text-xs font-bold">
+                    {formatFeedbackCategory(ticket.category)}
+                  </span>
+                  <span className="text-ink-subtle text-xs">
+                    {formatFeedbackStatus(ticket.status)}
+                  </span>
+                </div>
+                <p className="text-ink mt-3 line-clamp-2 text-sm leading-6">{ticket.body}</p>
+                <p className="text-ink-subtle mt-3 text-xs">{formatDateTime(ticket.createdAt)}</p>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </section>
+      {selectedTicket ? (
+        <BottomSheet onClose={handleCloseTicket} title="의견 상세">
+          <section className="pt-5">
+            <p className="text-primary text-sm font-bold">
+              {formatFeedbackCategory(selectedTicket.category)}
+            </p>
+            <p className="text-ink mt-3 text-sm leading-6 whitespace-pre-wrap">
+              {selectedTicket.body}
+            </p>
+            <div className="border-border mt-6 border-t pt-4 text-sm">
+              <p className="text-ink-subtle">답변 이메일</p>
+              <a
+                className="text-primary mt-1 inline-flex min-h-11 items-center font-semibold"
+                href={`mailto:${selectedTicket.authorEmailSnapshot}`}
+              >
+                {selectedTicket.authorEmailSnapshot}
+              </a>
+            </div>
+            <p className="text-ink mt-6 text-sm font-semibold">처리 상태</p>
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              {statusFilters.slice(1).map((filter) => (
+                <button
+                  aria-pressed={selectedTicket.status === filter.value}
+                  className={`min-h-11 cursor-pointer rounded-md border px-2 text-sm font-semibold ${
+                    selectedTicket.status === filter.value
+                      ? 'border-primary bg-primary text-white'
+                      : 'border-border text-ink bg-white'
+                  }`}
+                  disabled={statusMutation.isPending}
+                  key={filter.label}
+                  onClick={() => filter.value && handleUpdateStatus(filter.value)}
+                  type="button"
+                >
+                  {filter.label}
+                </button>
+              ))}
+            </div>
+            {statusMutation.isError ? (
+              <p className="text-danger mt-3 text-sm" role="alert">
+                상태를 바꾸지 못했어요. 다시 시도해 주세요.
+              </p>
+            ) : null}
+          </section>
+        </BottomSheet>
+      ) : null}
+    </main>
+  )
+}
+
+/** ISO 날짜를 운영함 목록에서 빠르게 읽을 수 있는 한국 시간 문자열로 변환한다. */
+function formatDateTime(value: string): string {
+  return new Intl.DateTimeFormat('ko-KR', { dateStyle: 'short', timeStyle: 'short' }).format(
+    new Date(value),
+  )
+}

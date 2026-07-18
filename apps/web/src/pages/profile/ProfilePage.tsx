@@ -12,6 +12,7 @@ import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { BookCover } from '../../shared/ui/BookCover'
+import { CompletionMark } from '../../shared/ui/CompletionMark'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 import { RetryState } from '../../shared/ui/RetryState'
 
@@ -118,6 +119,28 @@ export function ProfilePage() {
         </dl>
       </section>
 
+      <section className="mt-12" aria-labelledby="reading-books-heading">
+        <h2 className="text-ink text-base font-bold" id="reading-books-heading">
+          책 기록
+        </h2>
+        <button
+          aria-label="읽고 있는 책 모두 보기"
+          className="border-ink/10 mt-4 flex min-h-16 w-full items-center justify-between rounded-lg border bg-white px-4 text-left"
+          onClick={() => void navigate('/profile/books')}
+          type="button"
+        >
+          <span>
+            <span className="text-ink block text-sm font-semibold">읽고 있는 책</span>
+            <span className="text-ink-subtle mt-1 block text-xs">
+              참여 중인 모든 독서방의 책을 모아 봐요.
+            </span>
+          </span>
+          <span aria-hidden="true" className="text-primary text-lg">
+            ›
+          </span>
+        </button>
+      </section>
+
       <CompletedBooksSection
         completedBooks={completedBooksQuery.data ?? []}
         hasError={completedBooksQuery.isError}
@@ -206,6 +229,7 @@ function CompletedBooksSection({
                   <span className="text-ink-subtle mt-1 block truncate text-xs">
                     {book.authors.join(', ')}
                   </span>
+                  <CompletionMark className="mt-2" />
                   <span className="text-primary mt-1 block text-xs">
                     {book.rating ? '★'.repeat(book.rating) : '별점 작성 전'}
                   </span>

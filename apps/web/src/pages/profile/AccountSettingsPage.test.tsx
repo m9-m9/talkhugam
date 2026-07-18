@@ -133,6 +133,15 @@ describe('AccountSettingsPage', () => {
     expect(screen.queryByRole('button', { name: '다시 시도' })).not.toBeInTheDocument()
   })
 
+  it('links service policies and contact from account settings', async () => {
+    renderAccountSettingsPage()
+
+    expect(await screen.findByRole('link', { name: '서비스 정보' })).toHaveAttribute(
+      'href',
+      '/contact',
+    )
+  })
+
   it('requires a deletion mode and confirmation before deleting the account', async () => {
     renderAccountSettingsPage()
 

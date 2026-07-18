@@ -2,22 +2,20 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
-import {
-  bookChatKeys,
-  deleteManagedBookChat,
-  getManagedBookChat,
-  updateBookChatStatus,
-} from '../../entities/book-chat'
+import { bookChatKeys, deleteManagedBookChat, getManagedBookChat } from '../../entities/book-chat'
+import { bookCompletionKeys, upsertBookChatCompletion } from '../../entities/book-completion'
+import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { BookCover } from '../../shared/ui/BookCover'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
-/** 책 대화방의 완독과 아카이브 상태를 관리하는 화면을 렌더링한다. */
+/** 책 대화방의 개인 완독 기록과 삭제 요청을 관리하는 화면을 렌더링한다. */
 export function BookChatManagementPage() {
   const client = createSupabaseClient()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const profileId = useAuthenticatedUser().id
   const { bookChatId, roomId } = useParams()
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const bookChatQuery = useQuery({
@@ -25,12 +23,16 @@ export function BookChatManagementPage() {
     queryFn: () => getManagedBookChat(client, bookChatId ?? ''),
     queryKey: ['managed-book-chat', bookChatId],
   })
-  const statusMutation = useMutation({
-    mutationFn: (status: 'reading' | 'completed' | 'archived') =>
-      updateBookChatStatus(client, bookChatId ?? '', status),
+  const completionMutation = useMutation({
+    mutationFn: () =>
+      upsertBookChatCompletion(client, {
+        bookChatId: bookChatId ?? '',
+        rating: null,
+        review: null,
+      }),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: bookChatKeys.byRoom(roomId ?? '') })
-      await queryClient.invalidateQueries({ queryKey: ['managed-book-chat', bookChatId] })
+      await queryClient.invalidateQueries({ queryKey: bookCompletionKeys.myBooks(profileId) })
+      await queryClient.invalidateQueries({ queryKey: bookCompletionKeys.myBookChatIds(profileId) })
     },
   })
   const deletionMutation = useMutation({
@@ -61,7 +63,7 @@ export function BookChatManagementPage() {
         <BookCover alt={`${chat.title} 표지`} thumbnailUrl={chat.thumbnailUrl} />
         <span>
           <span className="text-ink block text-sm font-bold">{chat.name}</span>
-          <span className="text-ink-subtle mt-1 block text-xs">{getStatusLabel(chat.status)}</span>
+          <span className="text-ink-subtle mt-1 block text-xs">내 완독 기록을 남길 수 있어요.</span>
         </span>
       </section>
       <section className="mt-12" aria-labelledby="book-chat-actions">
@@ -71,42 +73,24 @@ export function BookChatManagementPage() {
         <div className="mt-4 space-y-3">
           <button
             className="border-ink/10 min-h-12 w-full rounded-md border bg-white px-4 text-left text-sm font-semibold"
-            disabled={statusMutation.isPending || chat.status === 'completed'}
-            onClick={() => statusMutation.mutate('completed')}
+            disabled={completionMutation.isPending}
+            onClick={() => completionMutation.mutate()}
             type="button"
           >
-            완독으로 표시
+            {completionMutation.isPending ? '완독 기록 중…' : '내 완독으로 기록'}
           </button>
-          <button
-            className="border-ink/10 min-h-12 w-full rounded-md border bg-white px-4 text-left text-sm font-semibold"
-            disabled={statusMutation.isPending || chat.status === 'archived'}
-            onClick={() => statusMutation.mutate('archived')}
-            type="button"
-          >
-            아카이브로 이동
-          </button>
-          {chat.status !== 'reading' ? (
-            <button
-              className="border-ink/10 min-h-12 w-full rounded-md border bg-white px-4 text-left text-sm font-semibold"
-              disabled={statusMutation.isPending}
-              onClick={() => statusMutation.mutate('reading')}
-              type="button"
-            >
-              다시 읽는 중으로
-            </button>
-          ) : null}
           <button
             className="border-ink/10 min-h-12 w-full rounded-md border bg-white px-4 text-left text-sm font-semibold text-red-600"
-            disabled={statusMutation.isPending || deletionMutation.isPending}
+            disabled={deletionMutation.isPending}
             onClick={() => setIsDeleteDialogOpen(true)}
             type="button"
           >
             삭제 요청
           </button>
         </div>
-        {statusMutation.isError ? (
+        {completionMutation.isError ? (
           <p className="mt-4 text-sm text-red-600" role="alert">
-            상태를 바꾸지 못했어요. 다시 시도해 주세요.
+            완독 기록을 저장하지 못했어요. 다시 시도해 주세요.
           </p>
         ) : null}
       </section>
@@ -184,13 +168,6 @@ function BookChatDeletionDialog({
       </div>
     </div>
   )
-}
-
-/** 상태 코드를 사용자에게 읽기 쉬운 문구로 바꾼다. */
-function getStatusLabel(status: 'reading' | 'completed' | 'archived' | 'deleted'): string {
-  return { archived: '아카이브됨', completed: '완독', deleted: '삭제 요청됨', reading: '읽는 중' }[
-    status
-  ]
 }
 
 /** 책 대화방 관리 정보를 기다리는 동안 책 로더를 렌더링한다. */

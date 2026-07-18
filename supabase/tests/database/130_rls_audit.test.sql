@@ -1,6 +1,6 @@
 begin;
 
-select plan(18);
+select plan(19);
 
 select is(
   (
@@ -10,8 +10,8 @@ select is(
     where pg_namespace.nspname = 'public'
       and pg_class.relkind = 'r'
   ),
-  15::bigint,
-  'the backend should expose exactly fifteen public tables'
+  18::bigint,
+  'the backend should expose exactly eighteen public tables'
 );
 select is(
   (
@@ -44,6 +44,11 @@ select is(
   ),
   0::bigint,
   'authenticated users should create multi-row resources only through RPCs'
+);
+select is(
+  has_table_privilege('authenticated', 'public.user_legal_consents', 'INSERT'),
+  false,
+  'authenticated users should record legal consent only through the narrow RPC'
 );
 select is(
   (
@@ -123,7 +128,8 @@ select is(
         ('post_labels'),
         ('post_mentions'),
         ('notifications'),
-        ('video_assets')
+        ('video_assets'),
+        ('user_legal_consents')
     ) as expected(table_name)
     where not exists (
       select 1

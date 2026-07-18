@@ -182,6 +182,14 @@ describe('BookDiscussionPage', () => {
     expect(screen.getByRole('button', { name: '영상 올리기' })).toBeInTheDocument()
   })
 
+  it('keeps every chat action in the same two-column grid', () => {
+    renderBookDiscussionPage()
+
+    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
+
+    expect(screen.getByRole('button', { name: '완독 기록' })).not.toHaveClass('col-span-2')
+  })
+
   it('opens the completion sheet from the plus menu before it saves a personal completion record', async () => {
     renderBookDiscussionPage()
 
@@ -611,6 +619,17 @@ describe('BookDiscussionPage', () => {
     fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
     fireEvent.click(screen.getByRole('button', { name: '페이지 라벨' }))
     expect(screen.getByLabelText('페이지 번호')).toHaveValue('')
+  })
+
+  it('adds a label when Enter is pressed in the label input', () => {
+    renderBookDiscussionPage()
+    openPageLabelEditor()
+    fireEvent.change(screen.getByLabelText('페이지 번호'), { target: { value: '87' } })
+
+    fireEvent.keyDown(screen.getByLabelText('페이지 번호'), { key: 'Enter' })
+
+    expect(screen.getByText('페이지 87')).toBeInTheDocument()
+    expect(screen.getByLabelText('메시지 입력')).toHaveFocus()
   })
 
   it('keeps an invalid label draft open so the user can correct it', () => {

@@ -3,6 +3,15 @@ import { z } from 'zod'
 const clientEnvSchema = z.object({
   VITE_SUPABASE_URL: z.string().url(),
   VITE_SUPABASE_PUBLISHABLE_KEY: z.string().min(1),
+  VITE_GA_MEASUREMENT_ID: z
+    .string()
+    .regex(/^G-[A-Z0-9]+$/)
+    .optional(),
+  VITE_CLARITY_PROJECT_ID: z
+    .string()
+    .regex(/^[a-z0-9]+$/i)
+    .optional(),
+  VITE_SUPPORT_EMAIL: z.string().email().optional(),
 })
 
 export type ClientEnv = z.infer<typeof clientEnvSchema>

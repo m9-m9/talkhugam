@@ -13,6 +13,7 @@ import {
 } from '../../entities/reading-room'
 import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
+import { trackAnalyticsEvent } from '../../shared/analytics'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
@@ -36,6 +37,7 @@ export function CreateRoomPage() {
     try {
       const invite = await createRoomWithInvite(client, user.id, values)
       await queryClient.invalidateQueries({ queryKey: readingRoomKeys.all })
+      trackAnalyticsEvent('reading_room_created')
       setCreatedRoom(invite)
     } catch {
       setErrorMessage('독서방을 만들지 못했어요. 잠시 후 다시 시도해 주세요.')
