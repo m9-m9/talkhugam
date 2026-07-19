@@ -19,6 +19,7 @@ test-results/
 
 # Supabase local state
 supabase/.temp/
+supabase/types/
 
 # Local backup artifacts
 /backups/

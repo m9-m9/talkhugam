@@ -24,7 +24,7 @@
     "backend:test:integration": "bash scripts/run-integration-tests.sh",
     "backend:test:mux": "deno test --config supabase/functions/deno.json --allow-env --allow-net --env-file=.env supabase/tests/integration/muxLiveFlow.test.ts",
     "backend:functions:serve": "supabase functions serve --env-file supabase/functions/.env.local",
-    "backend:types": "supabase gen types typescript --local > supabase/types/database.types.ts",
+    "backend:types": "mkdir -p supabase/types && supabase gen types typescript --local > supabase/types/database.types.ts",
     "dev:web": "pnpm --filter @talkhugam/web dev",
     "docs:functions:web": "pnpm --filter @talkhugam/web docs:functions",
     "docs:functions:write:web": "pnpm --filter @talkhugam/web docs:functions:write",
