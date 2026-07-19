@@ -3,6 +3,12 @@ import { useNavigate, useParams } from 'react-router-dom'
 
 import { bookChatKeys, getBookChats, getReadingRoom } from '../../entities/book-chat'
 import { bookCompletionKeys, getMyBookChatCompletionIds } from '../../entities/book-completion'
+import {
+  calculateReadingProgressPercent,
+  getMyReadingProgresses,
+  readingProgressKeys,
+  type ReadingProgress,
+} from '../../entities/reading-progress'
 import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
@@ -29,6 +35,10 @@ export function RoomDetailPage() {
   const completionIdsQuery = useQuery({
     queryFn: () => getMyBookChatCompletionIds(createSupabaseClient(), profileId),
     queryKey: bookCompletionKeys.myBookChatIds(profileId),
+  })
+  const progressesQuery = useQuery({
+    queryFn: () => getMyReadingProgresses(createSupabaseClient(), profileId),
+    queryKey: readingProgressKeys.byProfile(profileId),
   })
 
   if (!roomId)
@@ -85,6 +95,7 @@ export function RoomDetailPage() {
           isRetrying={chatsQuery.isFetching}
           chats={chatsQuery.data}
           completedBookChatIds={new Set(completionIdsQuery.data ?? [])}
+          progressesByBookChatId={createProgressesByBookChatId(progressesQuery.data ?? [])}
           onRetry={handleRetryBookChats}
           roomId={roomId}
         />
@@ -101,6 +112,7 @@ function BookChatsContent({
   isPending,
   isRetrying,
   onRetry,
+  progressesByBookChatId,
   roomId,
 }: {
   chats: Awaited<ReturnType<typeof getBookChats>> | undefined
@@ -109,6 +121,7 @@ function BookChatsContent({
   isPending: boolean
   isRetrying: boolean
   onRetry: () => void
+  progressesByBookChatId: ReadonlyMap<string, ReadingProgress>
   roomId: string
 }) {
   const navigate = useNavigate()
@@ -148,11 +161,48 @@ function BookChatsContent({
                 {chat.authors.join(', ') || chat.name}
               </span>
               {completedBookChatIds.has(chat.id) ? <CompletionMark className="mt-2" /> : null}
+              {!completedBookChatIds.has(chat.id) ? (
+                <BookChatProgress progress={progressesByBookChatId.get(chat.id)} />
+              ) : null}
             </span>
           </button>
         </li>
       ))}
     </ul>
+  )
+}
+
+/** 개인 독서 진행률 배열을 책 대화 식별자로 빠르게 조회할 수 있는 Map으로 변환한다. */
+function createProgressesByBookChatId(
+  progresses: ReadingProgress[],
+): ReadonlyMap<string, ReadingProgress> {
+  return new Map(progresses.map((progress) => [progress.bookChatId, progress]))
+}
+
+/** 아직 완독하지 않은 책 카드에 개인 진행률과 퍼센트 막대를 렌더링한다. */
+function BookChatProgress({ progress }: { progress: ReadingProgress | undefined }) {
+  if (!progress) return null
+  const percent = calculateReadingProgressPercent(progress.currentPage, progress.totalPages)
+
+  return (
+    <span className="mt-3 block">
+      <span className="text-ink-subtle flex items-center justify-between text-xs">
+        <span>
+          {progress.currentPage} / {progress.totalPages}쪽
+        </span>
+        <span className="text-primary font-semibold">{percent}%</span>
+      </span>
+      <span
+        aria-label={`독서 진행률 ${percent}%`}
+        aria-valuemax={100}
+        aria-valuemin={0}
+        aria-valuenow={percent}
+        className="bg-ink/10 mt-2 block h-2 overflow-hidden rounded-full"
+        role="progressbar"
+      >
+        <span className="bg-primary block h-full rounded-full" style={{ width: `${percent}%` }} />
+      </span>
+    </span>
   )
 }
 

@@ -9,7 +9,11 @@ import {
   upsertBookChatCompletion,
   type BookCompletionInput,
 } from '../../entities/book-completion'
-import { CompletionReviewForm, invalidateCompletionQueries } from '../../features/book-completion'
+import {
+  CompletionReviewForm,
+  invalidateCompletionQueries,
+  storeBookCompletionInCache,
+} from '../../features/book-completion'
 import { useAuthenticatedUser } from '../../features/auth'
 import { trackAnalyticsEvent } from '../../shared/analytics'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
@@ -40,7 +44,8 @@ export function BookChatManagementPage() {
   })
   const completionMutation = useMutation({
     mutationFn: (input: BookCompletionInput) => upsertBookChatCompletion(client, input),
-    onSuccess: () => {
+    onSuccess: (_result, input) => {
+      storeBookCompletionInCache(queryClient, { ...input, profileId })
       setIsCompletionEditorOpen(false)
       trackAnalyticsEvent('book_completed')
       invalidateCompletionQueries(queryClient, bookChatId ?? '', profileId)

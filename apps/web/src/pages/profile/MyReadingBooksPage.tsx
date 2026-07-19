@@ -18,7 +18,11 @@ import {
   type ReadingProgress,
   type ReadingProgressInput,
 } from '../../entities/reading-progress'
-import { CompletionReviewForm } from '../../features/book-completion'
+import {
+  CompletionReviewForm,
+  invalidateCompletionQueries,
+  storeBookCompletionInCache,
+} from '../../features/book-completion'
 import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
@@ -76,20 +80,32 @@ export function MyReadingBooksPage() {
   const saveCompletionMutation = useMutation({
     mutationFn: (input: BookCompletionInput) =>
       upsertBookChatCompletion(createSupabaseClient(), input),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: bookCompletionKeys.myBooks(profileId) }),
-        queryClient.invalidateQueries({ queryKey: ['my-reading-books', profileId] }),
-        queryClient.invalidateQueries({ queryKey: readingProgressKeys.byProfile(profileId) }),
-      ])
+    onSuccess: (_result, input) => {
+      storeBookCompletionInCache(queryClient, { ...input, profileId })
+      invalidateCompletionQueries(queryClient, input.bookChatId, profileId)
       setSelectedBook(null)
     },
   })
   const saveProgressMutation = useMutation({
     mutationFn: (input: ReadingProgressInput) =>
       upsertReadingProgress(createSupabaseClient(), input),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: readingProgressKeys.byProfile(profileId) })
+    onSuccess: (_result, input) => {
+      queryClient.setQueryData<ReadingProgress[]>(
+        readingProgressKeys.byProfile(profileId),
+        (progresses = []) => [
+          ...progresses.filter((progress) => progress.bookChatId !== input.bookChatId),
+          {
+            bookChatId: input.bookChatId,
+            currentPage: input.currentPage,
+            totalPages: input.totalPages,
+            updatedAt: new Date().toISOString(),
+          },
+        ],
+      )
+      void queryClient.invalidateQueries({
+        queryKey: readingProgressKeys.byProfile(profileId),
+        refetchType: 'inactive',
+      })
       setSelectedProgressBook(null)
     },
   })

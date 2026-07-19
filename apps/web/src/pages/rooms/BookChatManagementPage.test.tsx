@@ -87,6 +87,16 @@ describe('BookChatManagementPage', () => {
     )
   })
 
+  it('keeps my completion visible immediately even before a later room refresh', async () => {
+    renderBookChatManagementPage()
+
+    fireEvent.click(await screen.findByRole('button', { name: '완독하기' }))
+    fireEvent.click(screen.getByRole('button', { name: '완독 기록 저장' }))
+
+    expect(await screen.findByText('내 완독')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '수정하기' })).toBeInTheDocument()
+  })
+
   it('closes the review sheet even when background completion refresh fails', async () => {
     const { queryClient } = renderBookChatManagementPage()
     vi.spyOn(queryClient, 'invalidateQueries').mockRejectedValueOnce(

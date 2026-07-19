@@ -71,6 +71,7 @@ vi.mock('../../entities/book-chat', () => ({
 
 vi.mock('../../entities/book-completion', () => ({
   bookCompletionKeys: {
+    byChat: (bookChatId: string) => ['book-completions', bookChatId],
     myBookChatIds: (profileId: string) => ['my-completion-book-chat-ids', profileId],
     myBooks: (profileId: string) => ['my-completed-books', profileId],
   },
