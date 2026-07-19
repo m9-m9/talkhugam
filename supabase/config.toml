@@ -88,6 +88,9 @@ deno_version = 2
 [functions.book-search]
 verify_jwt = false
 
+[functions.book-bestsellers]
+verify_jwt = false
+
 [functions.mux-create-upload]
 verify_jwt = false
 
