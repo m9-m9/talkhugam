@@ -93,7 +93,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: 로컬 Supabase 시작
-        run: pnpm backend:start
+        run: pnpm backend:start --exclude mailpit
 
       - name: 빈 데이터베이스에 migration 적용
         run: pnpm backend:reset
