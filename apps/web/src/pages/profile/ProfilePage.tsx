@@ -2,12 +2,13 @@ import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
-import { getProfile } from '../../entities/profile'
+import { getProfile, getProfileAvatarUrl } from '../../entities/profile'
 import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 import { RetryState } from '../../shared/ui/RetryState'
+import { ProfileAvatar } from '../../shared/ui/ProfileAvatar'
 
 type ProfileNavigationRowProps = {
   description: string
@@ -19,11 +20,32 @@ type ProfileNavigationRowProps = {
 export function ProfilePage() {
   const navigate = useNavigate()
   const profileId = useAuthenticatedUser().id
+  const client = createSupabaseClient()
   const [isRetryingProfile, setIsRetryingProfile] = useState(false)
   const profileQuery = useQuery({
-    queryFn: () => getProfile(createSupabaseClient(), profileId),
+    queryFn: fetchProfile,
     queryKey: ['profile', profileId],
   })
+  const avatarUrlQuery = useQuery({
+    enabled: Boolean(profileQuery.data?.avatarPath),
+    queryFn: fetchProfileAvatarUrl,
+    queryKey: [
+      'profile-avatar',
+      profileId,
+      profileQuery.data?.avatarPath,
+      profileQuery.data?.updatedAt,
+    ],
+  })
+
+  /** 로그인한 사용자의 최신 프로필 정보를 조회해 반환한다. */
+  function fetchProfile() {
+    return getProfile(client, profileId)
+  }
+
+  /** 프로필 사진 경로가 있을 때만 표시 가능한 임시 URL을 조회해 반환한다. */
+  function fetchProfileAvatarUrl() {
+    return getProfileAvatarUrl(client, profileQuery.data?.avatarPath ?? null)
+  }
 
   /** 실패한 프로필 조회를 다시 요청하고 재시도 중 상태를 반환한다. */
   function handleRetryProfile() {
@@ -53,12 +75,10 @@ export function ProfilePage() {
 
       <section aria-labelledby="profile-heading" className="mt-8">
         <div className="flex min-w-0 items-center gap-4">
-          <div
-            aria-hidden="true"
-            className="bg-primary flex size-16 shrink-0 items-center justify-center rounded-full text-2xl font-semibold text-white"
-          >
-            {profile.displayName.slice(0, 1)}
-          </div>
+          <ProfileAvatar
+            avatarUrl={avatarUrlQuery.data ?? null}
+            displayName={profile.displayName}
+          />
           <div className="min-w-0">
             <h1 className="text-ink text-xl font-bold" id="profile-heading">
               {profile.displayName}

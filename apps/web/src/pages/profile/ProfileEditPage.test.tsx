@@ -5,15 +5,17 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { ProfileEditPage } from './ProfileEditPage'
 
-const { getProfile, updateProfile } = vi.hoisted(() => ({
+const { getProfile, updateProfile, uploadProfileAvatar } = vi.hoisted(() => ({
   getProfile: vi.fn(),
   updateProfile: vi.fn(),
+  uploadProfileAvatar: vi.fn(),
 }))
 
 vi.mock('../../entities/profile', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../entities/profile')>()),
   getProfile,
   updateProfile,
+  uploadProfileAvatar,
 }))
 
 vi.mock('../../features/auth', () => ({
@@ -90,6 +92,25 @@ describe('ProfileEditPage', () => {
 
     expect(await screen.findByDisplayValue('민규')).toBeInTheDocument()
     expect(getProfile).toHaveBeenCalledTimes(2)
+  })
+
+  it('uploads an allowed profile photo immediately after the user chooses it', async () => {
+    getProfile.mockResolvedValue({ bio: null, displayName: '민규', mbti: null })
+    uploadProfileAvatar.mockResolvedValue('00000000-0000-0000-0000-000000000001/avatar')
+
+    renderProfileEditPage()
+
+    await screen.findByDisplayValue('민규')
+    const photo = new File(['photo'], 'profile.png', { type: 'image/png' })
+    fireEvent.change(screen.getByLabelText('프로필 사진 선택'), { target: { files: [photo] } })
+
+    await waitFor(() => {
+      expect(uploadProfileAvatar).toHaveBeenCalledWith(
+        undefined,
+        '00000000-0000-0000-0000-000000000001',
+        photo,
+      )
+    })
   })
 })
 

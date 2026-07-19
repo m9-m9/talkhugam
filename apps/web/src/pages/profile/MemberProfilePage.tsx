@@ -1,13 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
-import { getProfile } from '../../entities/profile'
+import { getProfile, getProfileAvatarUrl } from '../../entities/profile'
 import { getRoomManagement, roomManagementKeys } from '../../entities/room-management'
 import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 import { RetryState } from '../../shared/ui/RetryState'
+import { ProfileAvatar } from '../../shared/ui/ProfileAvatar'
 
 /** 같은 책방에서 함께 읽는 멤버의 공개 프로필을 렌더링한다. */
 export function MemberProfilePage() {
@@ -23,9 +24,29 @@ export function MemberProfilePage() {
   const member = roomQuery.data?.members.find((roomMember) => roomMember.profileId === profileId)
   const profileQuery = useQuery({
     enabled: Boolean(member?.profileId),
-    queryFn: () => getProfile(client, member?.profileId ?? ''),
+    queryFn: fetchProfile,
     queryKey: ['profile', member?.profileId],
   })
+  const avatarUrlQuery = useQuery({
+    enabled: Boolean(profileQuery.data?.avatarPath),
+    queryFn: fetchProfileAvatarUrl,
+    queryKey: [
+      'profile-avatar',
+      member?.profileId,
+      profileQuery.data?.avatarPath,
+      profileQuery.data?.updatedAt,
+    ],
+  })
+
+  /** 선택한 책방 멤버의 공개 프로필을 권한 범위 안에서 조회해 반환한다. */
+  function fetchProfile() {
+    return getProfile(client, member?.profileId ?? '')
+  }
+
+  /** 같은 책방 멤버에게 허용된 프로필 사진의 임시 URL을 조회해 반환한다. */
+  function fetchProfileAvatarUrl() {
+    return getProfileAvatarUrl(client, profileQuery.data?.avatarPath ?? null)
+  }
 
   if (roomQuery.isPending)
     return <MemberProfileLoadingPage message="멤버 정보를 불러오고 있어요." />
@@ -48,12 +69,10 @@ export function MemberProfilePage() {
       <AppHeader onBack={() => void navigate(`/rooms/${roomId}`)} title="멤버 프로필" />
       <section className="mt-8" aria-labelledby="member-profile-heading">
         <div className="flex items-center gap-4">
-          <div
-            aria-hidden="true"
-            className="bg-primary flex size-16 shrink-0 items-center justify-center rounded-full text-2xl font-semibold text-white"
-          >
-            {profile.displayName.slice(0, 1)}
-          </div>
+          <ProfileAvatar
+            avatarUrl={avatarUrlQuery.data ?? null}
+            displayName={profile.displayName}
+          />
           <div>
             <h1 className="text-ink text-xl font-bold" id="member-profile-heading">
               {profile.displayName}

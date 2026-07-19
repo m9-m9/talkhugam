@@ -5,12 +5,13 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { MemberProfilePage } from './MemberProfilePage'
 
-const { getProfile, getRoomManagement } = vi.hoisted(() => ({
+const { getProfile, getProfileAvatarUrl, getRoomManagement } = vi.hoisted(() => ({
   getProfile: vi.fn().mockResolvedValue({
     bio: '좋은 문장을 오래 붙잡아 두는 편이에요.',
     displayName: '수진',
     mbti: 'INFJ',
   }),
+  getProfileAvatarUrl: vi.fn().mockResolvedValue(null),
   getRoomManagement: vi.fn().mockResolvedValue({
     members: [
       {
@@ -26,7 +27,7 @@ const { getProfile, getRoomManagement } = vi.hoisted(() => ({
   }),
 }))
 
-vi.mock('../../entities/profile', () => ({ getProfile }))
+vi.mock('../../entities/profile', () => ({ getProfile, getProfileAvatarUrl }))
 vi.mock('../../entities/room-management', () => ({
   getRoomManagement,
   roomManagementKeys: { detail: (roomId: string) => ['room-management', roomId] },
@@ -43,6 +44,24 @@ describe('MemberProfilePage', () => {
     expect(await screen.findByRole('heading', { name: '수진' })).toBeInTheDocument()
     expect(screen.getByText('좋은 문장을 오래 붙잡아 두는 편이에요.')).toBeInTheDocument()
     expect(screen.getByText('INFJ')).toBeInTheDocument()
+  })
+
+  it('renders a shared member photo through a signed URL', async () => {
+    getProfile.mockResolvedValueOnce({
+      avatarPath: '00000000-0000-4000-8000-000000000002/avatar',
+      bio: '좋은 문장을 오래 붙잡아 두는 편이에요.',
+      displayName: '수진',
+      mbti: 'INFJ',
+      updatedAt: '2026-07-19T00:00:00.000+00:00',
+    })
+    getProfileAvatarUrl.mockResolvedValueOnce('https://example.test/member-avatar')
+
+    renderMemberProfilePage()
+
+    expect(await screen.findByRole('img', { name: '수진 프로필 사진' })).toHaveAttribute(
+      'src',
+      'https://example.test/member-avatar',
+    )
   })
 })
 

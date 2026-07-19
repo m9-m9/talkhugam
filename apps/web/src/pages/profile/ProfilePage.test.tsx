@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ProfilePage } from './ProfilePage'
 
-const { getMyCompletedBooks, getProfile } = vi.hoisted(() => ({
+const { getMyCompletedBooks, getProfile, getProfileAvatarUrl } = vi.hoisted(() => ({
   getMyCompletedBooks: vi.fn().mockResolvedValue([
     {
       authors: ['기시미 이치로'],
@@ -23,6 +23,7 @@ const { getMyCompletedBooks, getProfile } = vi.hoisted(() => ({
     displayName: '민규',
     mbti: 'INTP',
   }),
+  getProfileAvatarUrl: vi.fn(),
 }))
 
 vi.mock('../../entities/book-completion', () => ({
@@ -32,7 +33,7 @@ vi.mock('../../entities/book-completion', () => ({
 
 vi.mock('../../entities/book-chat', () => ({}))
 
-vi.mock('../../entities/profile', () => ({ getProfile }))
+vi.mock('../../entities/profile', () => ({ getProfile, getProfileAvatarUrl }))
 
 vi.mock('../../features/auth', () => ({
   useAuthenticatedUser: () => ({ id: '00000000-0000-0000-0000-000000000001' }),
@@ -61,6 +62,7 @@ describe('ProfilePage', () => {
       displayName: '민규',
       mbti: 'INTP',
     })
+    getProfileAvatarUrl.mockResolvedValue(null)
   })
 
   afterEach(() => {
@@ -92,6 +94,24 @@ describe('ProfilePage', () => {
     expect(
       screen.queryByRole('status', { name: '내 정보를 불러오고 있어요.' }),
     ).not.toBeInTheDocument()
+  })
+
+  it('renders a private profile photo through its signed URL when one exists', async () => {
+    getProfile.mockResolvedValue({
+      avatarPath: '00000000-0000-4000-8000-000000000001/avatar',
+      bio: '천천히 읽고 오래 남겨요.',
+      displayName: '민규',
+      mbti: 'INTP',
+      updatedAt: '2026-07-19T00:00:00.000+00:00',
+    })
+    getProfileAvatarUrl.mockResolvedValue('https://example.test/avatar')
+
+    renderProfilePage()
+
+    expect(await screen.findByRole('img', { name: '민규 프로필 사진' })).toHaveAttribute(
+      'src',
+      'https://example.test/avatar',
+    )
   })
 
   it('shows the book loader while retrying a failed profile lookup', async () => {
