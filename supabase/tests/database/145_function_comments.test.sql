@@ -52,6 +52,7 @@ with documented_function_names(function_name) as (
     ('public.set_book_chat_status'),
     ('public.transfer_room_ownership'),
     ('public.upsert_book_chat_completion'),
+    ('public.upsert_book_chat_reading_progress'),
     ('public.update_room_member_profile')
 ),
 database_functions as (
@@ -66,7 +67,7 @@ database_functions as (
 )
 select is(
   count(distinct function_name),
-  49::bigint,
+  50::bigint,
   '모든 애플리케이션 데이터베이스 함수가 존재한다'
 )
 from database_functions;
@@ -121,6 +122,7 @@ with documented_function_names(function_name) as (
     ('public.set_book_chat_status'),
     ('public.transfer_room_ownership'),
     ('public.upsert_book_chat_completion'),
+    ('public.upsert_book_chat_reading_progress'),
     ('public.update_room_member_profile')
 ),
 undocumented_functions as (

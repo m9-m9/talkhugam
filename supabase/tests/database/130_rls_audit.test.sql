@@ -10,8 +10,8 @@ select is(
     where pg_namespace.nspname = 'public'
       and pg_class.relkind = 'r'
   ),
-  18::bigint,
-  'the backend should expose exactly eighteen public tables'
+  19::bigint,
+  'the backend should expose exactly nineteen public tables'
 );
 select is(
   (
@@ -123,6 +123,7 @@ select is(
         ('room_invites'),
         ('books'),
         ('book_chats'),
+        ('book_chat_reading_progresses'),
         ('book_chat_completions'),
         ('posts'),
         ('post_labels'),
