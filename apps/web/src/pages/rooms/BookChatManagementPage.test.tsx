@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { BookChatManagementPage } from './BookChatManagementPage'
 
@@ -19,10 +19,17 @@ const { getBookChatCompletions, getManagedBookChat, upsertBookChatCompletion } =
 }))
 
 vi.mock('../../entities/book-chat', () => ({
-  bookChatKeys: { byRoom: (roomId: string) => ['book-chats', roomId] },
+  bookChatKeys: {
+    byRoom: (roomId: string) => ['book-chats', roomId],
+    myReading: (profileId: string) => ['my-reading-books', profileId],
+  },
   deleteManagedBookChat: vi.fn(),
   getManagedBookChat,
   updateBookChatStatus: vi.fn(),
+}))
+
+vi.mock('../../entities/reading-progress', () => ({
+  readingProgressKeys: { byProfile: (profileId: string) => ['reading-progresses', profileId] },
 }))
 
 vi.mock('../../entities/book-completion', () => ({
@@ -42,6 +49,21 @@ vi.mock('../../features/auth', () => ({
 vi.mock('../../shared/api/supabaseClient', () => ({ createSupabaseClient: vi.fn() }))
 
 describe('BookChatManagementPage', () => {
+  afterEach(() => {
+    cleanup()
+    vi.clearAllMocks()
+    getBookChatCompletions.mockResolvedValue([])
+    getManagedBookChat.mockResolvedValue({
+      id: '00000000-0000-0000-0000-000000000101',
+      name: '함께 읽는 책',
+      roomId: '00000000-0000-0000-0000-000000000102',
+      status: 'reading',
+      thumbnailUrl: null,
+      title: '함께 읽는 책',
+    })
+    upsertBookChatCompletion.mockResolvedValue(undefined)
+  })
+
   it('opens a review sheet before creating a personal completion record', async () => {
     renderBookChatManagementPage()
 

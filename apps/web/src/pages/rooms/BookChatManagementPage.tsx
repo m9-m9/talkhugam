@@ -11,6 +11,7 @@ import {
 } from '../../entities/book-completion'
 import { CompletionReviewForm } from '../../features/book-completion'
 import { useAuthenticatedUser } from '../../features/auth'
+import { readingProgressKeys } from '../../entities/reading-progress'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { BookCover } from '../../shared/ui/BookCover'
@@ -44,6 +45,8 @@ export function BookChatManagementPage() {
         queryClient.invalidateQueries({ queryKey: bookCompletionKeys.byChat(bookChatId ?? '') }),
         queryClient.invalidateQueries({ queryKey: bookCompletionKeys.myBooks(profileId) }),
         queryClient.invalidateQueries({ queryKey: bookCompletionKeys.myBookChatIds(profileId) }),
+        queryClient.invalidateQueries({ queryKey: bookChatKeys.myReading(profileId, []) }),
+        queryClient.invalidateQueries({ queryKey: readingProgressKeys.byProfile(profileId) }),
       ])
       setIsCompletionEditorOpen(false)
     },
