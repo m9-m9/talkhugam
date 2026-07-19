@@ -131,7 +131,7 @@ function ProfileNavigationRow({ description, label, onClick }: ProfileNavigation
   return (
     <button
       aria-label={label}
-      className="border-ink/10 hover:bg-surface-muted focus-visible:ring-primary flex min-h-16 w-full items-center justify-between gap-4 border-b px-4 py-3 text-left last:border-b-0 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+      className="border-ink/10 hover:bg-surface-muted focus-visible:ring-primary flex min-h-16 w-full cursor-pointer items-center justify-between gap-4 border-b px-4 py-3 text-left last:border-b-0 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
       onClick={onClick}
       type="button"
     >

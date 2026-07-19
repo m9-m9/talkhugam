@@ -73,7 +73,10 @@ describe('ProfilePage', () => {
   it('shows five detail destinations including service information instead of rendering details on the hub', async () => {
     renderProfilePage()
 
-    expect(await screen.findByRole('button', { name: '내 정보 수정' })).toBeInTheDocument()
+    const profileEditButton = await screen.findByRole('button', { name: '내 정보 수정' })
+
+    expect(profileEditButton).toBeInTheDocument()
+    expect(profileEditButton).toHaveClass('cursor-pointer')
     expect(screen.getByRole('button', { name: '책방 보기' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '읽고 있는 책' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '계정 설정' })).toBeInTheDocument()
