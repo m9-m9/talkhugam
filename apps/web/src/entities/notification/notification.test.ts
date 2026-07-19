@@ -9,6 +9,48 @@ const ids = {
 }
 
 describe('알림 도메인 변환', () => {
+  it('책 활동 알림을 해당 책 대화 경로와 한국어 문구로 변환한다', () => {
+    expect(
+      parseNotifications([
+        {
+          actor: { room_display_name: '수진' },
+          book_chat_id: ids.bookChat,
+          created_at: '2026-07-18T01:02:03.000Z',
+          id: ids.notification,
+          post: null,
+          post_id: null,
+          read_at: null,
+          room: { name: '금요일 아침 책방' },
+          room_id: ids.room,
+          type: 'video',
+        },
+        {
+          actor: { room_display_name: '민주' },
+          book_chat_id: ids.bookChat,
+          created_at: '2026-07-18T01:02:04.000Z',
+          id: '44444444-4444-4444-8444-444444444444',
+          post: null,
+          post_id: null,
+          read_at: null,
+          room: { name: '금요일 아침 책방' },
+          room_id: ids.room,
+          type: 'completion',
+        },
+      ]),
+    ).toMatchObject([
+      {
+        message: '수진님이 새 영상 기록을 남겼어요.',
+        targetPath: `/rooms/${ids.room}/books/${ids.bookChat}`,
+        type: 'video',
+      },
+      {
+        message: '민주님이 완독 기록을 남겼어요.',
+        targetPath: `/rooms/${ids.room}/books/${ids.bookChat}`,
+        type: 'completion',
+      },
+    ])
+  })
+
   it('연결 정보가 없는 알림도 안전하게 화면 모델로 변환한다', () => {
     expect(
       parseNotifications([

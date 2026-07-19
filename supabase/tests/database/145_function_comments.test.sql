@@ -11,6 +11,7 @@ with documented_function_names(function_name) as (
     ('private.can_access_post'),
     ('private.current_room_member_id'),
     ('private.enqueue_deletion_job'),
+    ('private.enqueue_book_chat_activity_notifications'),
     ('private.enqueue_notification'),
     ('private.generate_invite_code'),
     ('private.handle_new_auth_user'),
@@ -67,7 +68,7 @@ database_functions as (
 )
 select is(
   count(distinct function_name),
-  50::bigint,
+  51::bigint,
   '모든 애플리케이션 데이터베이스 함수가 존재한다'
 )
 from database_functions;
@@ -81,6 +82,7 @@ with documented_function_names(function_name) as (
     ('private.can_access_post'),
     ('private.current_room_member_id'),
     ('private.enqueue_deletion_job'),
+    ('private.enqueue_book_chat_activity_notifications'),
     ('private.enqueue_notification'),
     ('private.generate_invite_code'),
     ('private.handle_new_auth_user'),
