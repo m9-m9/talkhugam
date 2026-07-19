@@ -75,12 +75,13 @@ describe('BookSearchPage', () => {
     expect(searchBooks).toHaveBeenCalledOnce()
   })
 
-  it('shows up to ten vertically listed bestseller recommendations before searching', async () => {
+  it('검색 전에는 베스트셀러 추천을 두 열 카드로 보여 준다', async () => {
     renderBookSearchPage()
 
     await act(() => vi.runOnlyPendingTimersAsync())
     expect(screen.getByRole('heading', { name: '지금 많이 읽는 책' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /미움받을 용기/ })).toBeInTheDocument()
+    expect(screen.getByRole('list', { name: '이번 주 추천 도서' })).toHaveClass('grid-cols-2')
   })
 
   it('starts the current valid search when Enter is pressed in the search input', async () => {

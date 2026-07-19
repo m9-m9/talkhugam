@@ -204,7 +204,7 @@ function BookResults({
   return (
     <>
       {bookLoader}
-      <ul className="mt-6 space-y-3">
+      <ul aria-label="검색 도서" className="mt-6 grid grid-cols-2 gap-3">
         {items.map((book) => (
           <li key={`${book.title}-${book.isbn13 ?? book.isbn10 ?? book.externalUrl ?? ''}`}>
             <BookResultButton
@@ -220,7 +220,7 @@ function BookResults({
   )
 }
 
-/** 아직 검색어가 없을 때 알라딘 베스트셀러를 최대 열 권까지 세로 목록으로 안내한다. */
+/** 아직 검색어가 없을 때 추천 도서를 두 열 카드로 안내한다. */
 function BookRecommendationList({
   isCreatingId,
   items,
@@ -247,7 +247,7 @@ function BookRecommendationList({
           마음에 드는 책을 골라 책 대화를 시작해 보세요.
         </p>
       </div>
-      <ul className="space-y-3">
+      <ul aria-label="이번 주 추천 도서" className="grid grid-cols-2 gap-3">
         {items.map((book) => (
           <li key={`${book.title}-${book.isbn13 ?? book.externalUrl ?? ''}`}>
             <BookResultButton
@@ -263,7 +263,7 @@ function BookRecommendationList({
   )
 }
 
-/** 검색 또는 추천 목록의 한 권을 선택 가능한 공통 카드로 렌더링한다. */
+/** 검색 또는 추천 목록의 한 권을 두 열 카드에서 선택 가능한 형태로 렌더링한다. */
 function BookResultButton({
   book,
   isCreating,
@@ -277,12 +277,16 @@ function BookResultButton({
 }) {
   return (
     <button
-      className="border-ink/10 flex min-h-24 w-full items-center gap-3 rounded-lg border bg-white p-4 text-left"
+      className="border-ink/10 hover:border-primary focus-visible:outline-primary flex min-h-32 w-full flex-col items-start gap-2 rounded-lg border bg-white p-3 text-left"
       disabled={isDisabled}
       onClick={() => void onSelect(book)}
       type="button"
     >
-      <BookCover alt={`${book.title} 표지`} thumbnailUrl={book.thumbnailUrl} />
+      <BookCover
+        alt={`${book.title} 표지`}
+        className="h-16 w-12"
+        thumbnailUrl={book.thumbnailUrl}
+      />
       <span className="min-w-0">
         <span className="text-ink block text-sm font-bold">{book.title}</span>
         <span className="text-ink-subtle mt-1 block text-xs">
