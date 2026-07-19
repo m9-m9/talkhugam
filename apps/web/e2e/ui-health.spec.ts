@@ -817,7 +817,13 @@ async function mockAuthenticatedPageData(page: Page) {
   })
   await page.route('**/rest/v1/profiles?*', async (route) => {
     await route.fulfill({
-      body: JSON.stringify({ bio: '함께 읽고 오래 남겨요.', display_name: '민규', mbti: 'INTP' }),
+      body: JSON.stringify({
+        avatar_path: null,
+        bio: '함께 읽고 오래 남겨요.',
+        display_name: '민규',
+        mbti: 'INTP',
+        updated_at: '2026-07-19T00:00:00.000+00:00',
+      }),
       contentType: 'application/json',
       status: 200,
     })
