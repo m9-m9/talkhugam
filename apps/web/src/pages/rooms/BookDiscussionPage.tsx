@@ -33,7 +33,7 @@ import {
   type VideoThumbnailAuthorization,
 } from '../../entities/video'
 import { useVideoUpload } from '../../features/video-upload'
-import { CompletionReviewForm } from '../../features/book-completion'
+import { CompletionReviewForm, invalidateCompletionQueries } from '../../features/book-completion'
 import { useAuthenticatedUser } from '../../features/auth'
 import { readingRoomKeys } from '../../entities/reading-room'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
@@ -116,25 +116,36 @@ export function BookDiscussionPage() {
   const completionMutation = useMutation({
     mutationFn: (input: BookCompletionInput) =>
       upsertBookChatCompletion(createSupabaseClient(), input),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.refetchQueries({ queryKey: bookCompletionKeys.byChat(bookChatId ?? '') }),
-        queryClient.invalidateQueries({ queryKey: bookCompletionKeys.myBooks(profileId) }),
-        queryClient.invalidateQueries({ queryKey: bookCompletionKeys.myBookChatIds(profileId) }),
-      ])
+    onSuccess: (_result, input) => {
+      queryClient.setQueryData<BookChatCompletion[]>(
+        bookCompletionKeys.byChat(bookChatId ?? ''),
+        (completions = []) => [
+          ...completions.filter((completion) => !completion.isMe),
+          {
+            avatarPath: null,
+            completedAt: new Date().toISOString(),
+            displayName: '나',
+            isMe: true,
+            profileId,
+            rating: input.rating,
+            review: input.review,
+          },
+        ],
+      )
       setIsCompletionEditorOpen(false)
       trackAnalyticsEvent('book_completed')
+      invalidateCompletionQueries(queryClient, bookChatId ?? '', profileId)
     },
   })
   const completionRemovalMutation = useMutation({
     mutationFn: (targetBookChatId: string) =>
       removeBookChatCompletion(createSupabaseClient(), targetBookChatId),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.refetchQueries({ queryKey: bookCompletionKeys.byChat(bookChatId ?? '') }),
-        queryClient.invalidateQueries({ queryKey: bookCompletionKeys.myBooks(profileId) }),
-        queryClient.invalidateQueries({ queryKey: bookCompletionKeys.myBookChatIds(profileId) }),
-      ])
+    onSuccess: () => {
+      queryClient.setQueryData<BookChatCompletion[]>(
+        bookCompletionKeys.byChat(bookChatId ?? ''),
+        (completions = []) => completions.filter((completion) => !completion.isMe),
+      )
+      invalidateCompletionQueries(queryClient, bookChatId ?? '', profileId)
     },
   })
 
@@ -437,8 +448,7 @@ function CompletionSheet({
                   key={completion.profileId}
                 >
                   <p className="text-ink text-sm font-semibold">
-                    {completion.displayName}
-                    {completion.isMe ? ' (나)' : ''}
+                    {completion.isMe ? '나' : completion.displayName}
                   </p>
                   {completion.rating ? (
                     <p className="text-primary mt-1 text-sm" aria-label={`${completion.rating}점`}>

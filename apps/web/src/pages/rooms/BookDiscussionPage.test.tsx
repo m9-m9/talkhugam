@@ -83,6 +83,7 @@ vi.mock('../../entities/post', () => ({
 vi.mock('../../entities/book-chat', () => ({
   bookChatKeys: {
     detail: (bookChatId: string) => ['book-chat', bookChatId],
+    myReading: (profileId: string) => ['my-reading-books', profileId],
     room: (roomId: string) => ['reading-room', roomId],
   },
   getManagedBookChat,
@@ -105,6 +106,10 @@ vi.mock('../../entities/video', () => ({
 
 vi.mock('../../entities/reading-room', () => ({
   readingRoomKeys: { all: ['reading-rooms'] },
+}))
+
+vi.mock('../../entities/reading-progress', () => ({
+  readingProgressKeys: { byProfile: (profileId: string) => ['reading-progresses', profileId] },
 }))
 
 vi.mock('../../entities/book-completion', () => ({
@@ -283,6 +288,60 @@ describe('BookDiscussionPage', () => {
 
     expect(await screen.findByText('함께 읽은 기록 · 1명 완독')).toBeInTheDocument()
     expect(screen.getByText('내 완독')).toBeInTheDocument()
+  })
+
+  it('keeps the saved completion visible while the background refresh is pending', async () => {
+    const refresh = createDeferredValue<
+      Array<{
+        completedAt: string
+        displayName: string
+        isMe: boolean
+        profileId: string
+        rating: number | null
+        review: string | null
+      }>
+    >()
+    getBookChatCompletions.mockResolvedValueOnce([]).mockReturnValueOnce(refresh.promise)
+    renderBookDiscussionPage()
+
+    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
+    fireEvent.click(screen.getByRole('button', { name: '완독 기록' }))
+    fireEvent.click(await screen.findByRole('button', { name: '완독하기' }))
+    fireEvent.click(screen.getByRole('button', { name: '완독 기록 저장' }))
+
+    expect(await screen.findByText('함께 읽은 기록 · 1명 완독')).toBeInTheDocument()
+    expect(screen.getByText('내 완독')).toBeInTheDocument()
+
+    refresh.resolve([])
+  })
+
+  it('refreshes every personal reading view after saving a completion', async () => {
+    const { queryClient } = renderBookDiscussionPage()
+    const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries')
+    getBookChatCompletions.mockResolvedValueOnce([]).mockResolvedValueOnce([
+      {
+        completedAt: '2026-07-19T00:00:00.000Z',
+        displayName: '민규',
+        isMe: true,
+        profileId: '00000000-0000-0000-0000-000000000001',
+        rating: null,
+        review: null,
+      },
+    ])
+
+    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
+    fireEvent.click(screen.getByRole('button', { name: '완독 기록' }))
+    fireEvent.click(await screen.findByRole('button', { name: '완독하기' }))
+    fireEvent.click(screen.getByRole('button', { name: '완독 기록 저장' }))
+
+    await vi.waitFor(() =>
+      expect(invalidateQueries).toHaveBeenCalledWith({
+        queryKey: ['my-reading-books', '00000000-0000-0000-0000-000000000001'],
+      }),
+    )
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ['reading-progresses', '00000000-0000-0000-0000-000000000001'],
+    })
   })
 
   it('shows the personal completion marker and reopens saved values for editing', async () => {
@@ -800,7 +859,7 @@ async function insertMention(message: string) {
 
 function renderBookDiscussionPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  return render(
+  const renderResult = render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={['/rooms/room-1/books/book-1']}>
         <Routes>
@@ -813,6 +872,8 @@ function renderBookDiscussionPage() {
       </MemoryRouter>
     </QueryClientProvider>,
   )
+
+  return { queryClient, renderResult }
 }
 
 /** 테스트에서 임의 시점에 완료할 비동기 값을 만든다. */
