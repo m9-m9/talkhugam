@@ -144,6 +144,18 @@ describe('MyReadingBooksPage', () => {
     expect(screen.getByRole('button', { name: '완독 기록 저장' })).toBeInTheDocument()
   })
 
+  it('shows a recoverable message when saving personal progress fails', async () => {
+    upsertReadingProgress.mockRejectedValueOnce(new Error('RPC failed'))
+    renderMyReadingBooksPage()
+
+    fireEvent.click(await screen.findByRole('button', { name: '모순 진행률 기록하기' }))
+    fireEvent.click(screen.getByRole('button', { name: '진행률 저장' }))
+
+    expect(
+      await screen.findByText('진행률을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.'),
+    ).toBeInTheDocument()
+  })
+
   it('opens a prefilled completion record sheet from a completed book card', async () => {
     renderMyReadingBooksPage()
 

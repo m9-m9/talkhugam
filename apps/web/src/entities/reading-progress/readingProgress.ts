@@ -2,15 +2,14 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { z } from 'zod'
 
 const readingProgressSchema = z.object({
-  book_chat_id: z.string().uuid(),
+  book_chat_id: z.uuid(),
   current_page: z.number().int().nonnegative(),
   total_pages: z.number().int().positive(),
-  updated_at: z.string().datetime({ offset: true }),
+  updated_at: z.iso.datetime({ offset: true }),
 })
 
-const readingProgressInputSchema = z
+const readingPageRangeSchema = z
   .object({
-    bookChatId: z.string().uuid(),
     currentPage: z.number().int().nonnegative(),
     totalPages: z.number().int().positive(),
   })
@@ -18,6 +17,10 @@ const readingProgressInputSchema = z
     message: '현재 페이지는 전체 페이지보다 클 수 없어요.',
     path: ['currentPage'],
   })
+
+const readingProgressInputSchema = readingPageRangeSchema.extend({
+  bookChatId: z.uuid(),
+})
 
 export type ReadingProgress = {
   bookChatId: string
@@ -71,11 +74,7 @@ export function parseReadingProgresses(value: unknown): ReadingProgress[] {
 
 /** 현재·전체 페이지로 화면에 표시할 반올림 독서 진행률을 계산해 반환한다. */
 export function calculateReadingProgressPercent(currentPage: number, totalPages: number): number {
-  const parsed = readingProgressInputSchema.parse({
-    bookChatId: '00000000-0000-0000-0000-000000000000',
-    currentPage,
-    totalPages,
-  })
+  const parsed = readingPageRangeSchema.parse({ currentPage, totalPages })
   return Math.round((parsed.currentPage / parsed.totalPages) * 100)
 }
 

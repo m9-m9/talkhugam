@@ -113,11 +113,13 @@ export function MyReadingBooksPage() {
 
   /** 선택한 책을 개인 진행률 입력 시트의 편집 대상으로 저장한다. */
   function handleOpenProgress(book: ReadingBook) {
+    saveProgressMutation.reset()
     setSelectedProgressBook(book)
   }
 
   /** 열린 진행률 입력 시트를 닫고 선택된 책 상태를 초기화한다. */
   function handleCloseProgress() {
+    saveProgressMutation.reset()
     setSelectedProgressBook(null)
   }
 
@@ -183,6 +185,11 @@ export function MyReadingBooksPage() {
       ) : null}
       {selectedProgressBook ? (
         <ReadingProgressSheet
+          errorMessage={
+            saveProgressMutation.isError
+              ? '진행률을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.'
+              : ''
+          }
           isSaving={saveProgressMutation.isPending}
           onClose={handleCloseProgress}
           onSave={handleSaveProgress}
@@ -196,12 +203,14 @@ export function MyReadingBooksPage() {
 
 /** 선택한 책의 현재·전체 페이지를 입력받아 개인 진행률로 저장하는 시트를 렌더링한다. */
 function ReadingProgressSheet({
+  errorMessage: submitErrorMessage,
   isSaving,
   onClose,
   onSave,
   progress,
   selectedBook,
 }: {
+  errorMessage: string
   isSaving: boolean
   onClose: () => void
   onSave: (input: ReadingProgressInput) => void
@@ -210,7 +219,8 @@ function ReadingProgressSheet({
 }) {
   const [currentPage, setCurrentPage] = useState(String(progress?.currentPage ?? ''))
   const [totalPages, setTotalPages] = useState(String(progress?.totalPages ?? ''))
-  const [errorMessage, setErrorMessage] = useState('')
+  const [validationErrorMessage, setValidationErrorMessage] = useState('')
+  const errorMessage = validationErrorMessage || submitErrorMessage
 
   /** 사용자가 입력한 숫자 문자열을 0 이상의 정수로 변환한다. */
   function parsePage(value: string): number | null {
@@ -223,11 +233,11 @@ function ReadingProgressSheet({
     const parsedCurrentPage = parsePage(currentPage)
     const parsedTotalPages = parsePage(totalPages)
     if (parsedCurrentPage === null || parsedTotalPages === null || parsedTotalPages === 0) {
-      setErrorMessage('현재 페이지와 전체 페이지를 숫자로 입력해 주세요.')
+      setValidationErrorMessage('현재 페이지와 전체 페이지를 숫자로 입력해 주세요.')
       return
     }
     if (parsedCurrentPage > parsedTotalPages) {
-      setErrorMessage('현재 페이지는 전체 페이지보다 클 수 없어요.')
+      setValidationErrorMessage('현재 페이지는 전체 페이지보다 클 수 없어요.')
       return
     }
     onSave({
