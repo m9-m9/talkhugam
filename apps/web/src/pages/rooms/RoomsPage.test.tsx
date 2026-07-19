@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -7,6 +7,7 @@ import { RoomsPage } from './RoomsPage'
 
 const { getReadingRooms } = vi.hoisted(() => ({ getReadingRooms: vi.fn() }))
 const { getUnreadNotificationCount } = vi.hoisted(() => ({ getUnreadNotificationCount: vi.fn() }))
+const { getBookBestsellers } = vi.hoisted(() => ({ getBookBestsellers: vi.fn() }))
 
 vi.mock('../../entities/reading-room', () => ({
   formatRoomMemberSummary: () => '민규 · 1명',
@@ -23,6 +24,11 @@ vi.mock('../../entities/notification', () => ({
   notificationKeys: { unreadCount: ['notifications', 'unread-count'] },
 }))
 
+vi.mock('../../entities/bestseller', () => ({
+  bookBestsellerKeys: { current: ['book-bestsellers'] },
+  getBookBestsellers,
+}))
+
 describe('RoomsPage', () => {
   afterEach(() => {
     cleanup()
@@ -31,6 +37,7 @@ describe('RoomsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     getUnreadNotificationCount.mockResolvedValue(0)
+    getBookBestsellers.mockResolvedValue({ isConfigured: false, items: [] })
   })
 
   it('renders the rooms returned by the room repository', async () => {
@@ -50,6 +57,35 @@ describe('RoomsPage', () => {
 
     expect(await screen.findByText('금요일 아침 책방')).toBeInTheDocument()
     expect(screen.getByText('민규: 여기가 좋더라')).toBeInTheDocument()
+  })
+
+  it('shows the configured bestseller cards above the member book rooms', async () => {
+    getReadingRooms.mockResolvedValue([])
+    getBookBestsellers.mockResolvedValue({
+      isConfigured: true,
+      items: [
+        {
+          authors: ['기시미 이치로'],
+          externalUrl: 'https://www.aladin.co.kr/shop/wproduct.aspx?ItemId=1',
+          id: '9788996991342',
+          publisher: '인플루엔셜',
+          thumbnailUrl: 'https://image.aladin.co.kr/product/1/1/cover500/1.jpg',
+          title: '미움받을 용기',
+        },
+      ],
+    })
+
+    renderRoomsPage()
+
+    await waitFor(() => expect(getReadingRooms).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(getBookBestsellers).toHaveBeenCalledTimes(1))
+    expect(
+      await screen.findByRole('heading', { level: 2, name: '이번 주 베스트셀러' }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '미움받을 용기 자세히 보기' })).toHaveAttribute(
+      'href',
+      'https://www.aladin.co.kr/shop/wproduct.aspx?ItemId=1',
+    )
   })
 
   it('opens the notification inbox with the unread count in the accessible label', async () => {
