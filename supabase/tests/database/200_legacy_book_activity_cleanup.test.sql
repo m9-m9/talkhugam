@@ -1,6 +1,6 @@
 begin;
 
-select plan(3);
+select plan(5);
 
 select is(
   (
@@ -36,6 +36,30 @@ select is(
   ),
   0::bigint,
   '이전 책 활동 알림 함수가 없다'
+);
+
+select is(
+  (
+    select count(*)
+    from pg_proc as procedure
+    join pg_namespace as schema on schema.oid = procedure.pronamespace
+    where schema.nspname = 'private'
+      and procedure.proname = 'notify_completion_review'
+  ),
+  0::bigint,
+  '이전 완독 알림 트리거 함수가 없다'
+);
+
+select is(
+  (
+    select count(*)
+    from pg_proc as procedure
+    join pg_namespace as schema on schema.oid = procedure.pronamespace
+    where schema.nspname = 'private'
+      and procedure.proname = 'notify_ready_video'
+  ),
+  0::bigint,
+  '이전 영상 알림 트리거 함수가 없다'
 );
 
 select * from finish();
