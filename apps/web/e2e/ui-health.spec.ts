@@ -170,6 +170,22 @@ test('uses the bottom-navigation token as the global page bottom spacing', async
   await expect(page.locator('.app-with-bottom-navigation')).toHaveCSS('padding-bottom', '96px')
 })
 
+test('slides the highlighted bestseller card instead of replacing the page content', async ({ page }, testInfo) => {
+  await authenticatePage(page)
+  await mockAuthenticatedPageData(page)
+  await mockBestsellers(page)
+  await page.goto('/rooms')
+
+  const track = page.getByTestId('bestseller-track')
+  await expect(track).toHaveCSS('transition-duration', '0.5s')
+  await expect(track).toHaveAttribute('style', 'transform: translateX(0%);')
+
+  await page.getByRole('button', { name: '다음 추천 보기' }).click()
+
+  await expect(track).toHaveAttribute('style', 'transform: translateX(-100%);')
+  await expectPageToFitViewport(page, testInfo.project.use.viewport?.width ?? 640)
+})
+
 test('has no automated accessibility violations on authenticated account screens', async ({
   page,
 }) => {
@@ -851,6 +867,43 @@ async function mockAuthenticatedPageData(page: Page) {
       body: JSON.stringify([]),
       contentType: 'application/json',
       headers: { 'content-range': '0-0/0' },
+      status: 200,
+    })
+  })
+}
+
+/** 베스트셀러 캐러셀 전환을 검증할 수 있도록 최소 두 권의 추천 도서를 반환한다. */
+async function mockBestsellers(page: Page) {
+  await page.route('**/functions/v1/book-bestsellers', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        data: {
+          isConfigured: true,
+          items: [
+            {
+              authors: ['기시미 이치로'],
+              externalUrl: null,
+              id: 'best-1',
+              isbn13: '9788996991342',
+              publisher: '인플루엔셜',
+              thumbnailUrl: null,
+              title: '미움받을 용기',
+            },
+            {
+              authors: ['헤르만 헤세'],
+              externalUrl: null,
+              id: 'best-2',
+              isbn13: '9788937460441',
+              publisher: '민음사',
+              thumbnailUrl: null,
+              title: '싯다르타',
+            },
+          ],
+        },
+        ok: true,
+        requestId: 'bestsellers-e2e',
+      }),
+      contentType: 'application/json',
       status: 200,
     })
   })

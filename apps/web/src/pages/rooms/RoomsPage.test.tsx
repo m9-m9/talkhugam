@@ -113,6 +113,24 @@ describe('RoomsPage', () => {
     expect(await screen.findByRole('heading', { level: 3, name: '두 번째 책' })).toBeInTheDocument()
   })
 
+  it('다음 추천으로 이동할 때 카드 트랙을 부드럽게 한 칸 이동한다', async () => {
+    getReadingRooms.mockResolvedValue([])
+    getBookBestsellers.mockResolvedValue({
+      isConfigured: true,
+      items: [createBestseller('첫 번째 책'), createBestseller('두 번째 책')],
+    })
+
+    renderRoomsPage()
+
+    const track = await screen.findByTestId('bestseller-track')
+    expect(track).toHaveStyle({ transform: 'translateX(-0%)' })
+    expect(track).toHaveClass('transition-transform', 'duration-500')
+
+    fireEvent.click(screen.getByRole('button', { name: '다음 추천 보기' }))
+
+    expect(track).toHaveStyle({ transform: 'translateX(-100%)' })
+  })
+
   it('opens the notification inbox with the unread count in the accessible label', async () => {
     getReadingRooms.mockResolvedValue([])
     getUnreadNotificationCount.mockResolvedValue(3)
