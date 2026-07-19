@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import {
@@ -63,31 +64,117 @@ function BestsellerSection({ result }: { result: BookBestsellerResult | undefine
   if (!result?.isConfigured || result.items.length === 0) return null
 
   return (
-    <section aria-labelledby="bestseller-heading" className="flex flex-col gap-4">
+    <section aria-labelledby="bestseller-heading" className="flex flex-col gap-3">
       <div>
         <h2 className="text-ink text-base font-bold" id="bestseller-heading">
           이번 주 베스트셀러
         </h2>
         <p className="text-ink-subtle mt-1 text-xs">지금 많이 읽히는 책이에요.</p>
       </div>
-      <ul className="grid grid-cols-2 gap-3">
-        {result.items.map((book) => (
-          <li key={book.id}>
-            <BestsellerCard book={book} />
-          </li>
-        ))}
-      </ul>
+      <BestsellerCarousel books={result.items} />
     </section>
   )
 }
 
-/** 베스트셀러 표지와 기본 서지 정보를 알라딘 상세 페이지 링크로 렌더링한다. */
-function BestsellerCard({ book }: { book: BookBestseller }) {
+/** 현재 한 권과 이전·다음 추천 세 권을 수동으로 넘기는 베스트셀러 캐러셀을 렌더링한다. */
+function BestsellerCarousel({ books }: { books: BookBestseller[] }) {
+  const [activeIndex, setActiveIndex] = useState(0)
+  const activeBook = books[activeIndex] ?? books[0]
+  const previewBooks = getBestsellerPreviewBooks(books, activeIndex)
+
+  if (!activeBook) return null
+
+  /** 현재 선택을 이전 베스트셀러로 옮겨 큰 추천 카드를 갱신한다. */
+  function handlePreviousBook() {
+    setActiveIndex((currentIndex) => (currentIndex - 1 + books.length) % books.length)
+  }
+
+  /** 현재 선택을 다음 베스트셀러로 옮겨 큰 추천 카드를 갱신한다. */
+  function handleNextBook() {
+    setActiveIndex((currentIndex) => (currentIndex + 1) % books.length)
+  }
+
+  /** 미리보기에서 고른 책을 현재 크게 보여 줄 베스트셀러로 지정한다. */
+  function handleSelectPreviewBook(bookIndex: number) {
+    setActiveIndex(bookIndex)
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <BestsellerFeature book={activeBook} />
+      {previewBooks.length > 0 ? (
+        <ul aria-label="다른 추천 도서" className="grid grid-cols-3 gap-2">
+          {previewBooks.map(({ book, index }) => (
+            <li key={book.id}>
+              <button
+                aria-label={`${book.title} 추천 보기`}
+                className="border-ink/10 hover:border-primary focus-visible:outline-primary flex min-h-32 w-full flex-col items-start gap-2 rounded-md border bg-white p-2 text-left"
+                onClick={() => handleSelectPreviewBook(index)}
+                type="button"
+              >
+                <BookCover
+                  alt={`${book.title} 표지`}
+                  className="h-16 w-12"
+                  thumbnailUrl={book.thumbnailUrl}
+                />
+                <span className="text-ink line-clamp-2 text-xs font-semibold">{book.title}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {books.length > 1 ? (
+        <div className="flex items-center justify-between">
+          <button
+            aria-label="이전 추천 보기"
+            className="border-ink/10 text-ink hover:border-primary focus-visible:outline-primary flex min-h-11 min-w-11 items-center justify-center rounded-full border text-lg"
+            onClick={handlePreviousBook}
+            type="button"
+          >
+            ‹
+          </button>
+          <span aria-live="polite" className="text-ink-subtle text-xs">
+            {activeIndex + 1} / {books.length}
+          </span>
+          <button
+            aria-label="다음 추천 보기"
+            className="border-ink/10 text-ink hover:border-primary focus-visible:outline-primary flex min-h-11 min-w-11 items-center justify-center rounded-full border text-lg"
+            onClick={handleNextBook}
+            type="button"
+          >
+            ›
+          </button>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+/** 현재 책을 제외하고 이전 한 권과 다음 두 권을 미리보기 순서로 반환한다. */
+function getBestsellerPreviewBooks(books: BookBestseller[], activeIndex: number) {
+  const previewOffsets = [-1, 1, 2]
+  const selectedIndexes = new Set<number>()
+
+  return previewOffsets.flatMap((offset) => {
+    const index = (activeIndex + offset + books.length) % books.length
+    const book = books[index]
+    if (!book || selectedIndexes.has(index)) return []
+    selectedIndexes.add(index)
+    return [{ book, index }]
+  })
+}
+
+/** 선택된 베스트셀러의 표지와 서지 정보를 압축된 한 장의 카드로 렌더링한다. */
+function BestsellerFeature({ book }: { book: BookBestseller }) {
   const content = (
     <>
-      <BookCover alt={`${book.title} 표지`} thumbnailUrl={book.thumbnailUrl} />
+      <BookCover
+        alt={`${book.title} 표지`}
+        className="h-24 w-16 shrink-0"
+        thumbnailUrl={book.thumbnailUrl}
+      />
       <span className="min-w-0 flex-1">
-        <span className="text-ink line-clamp-2 block text-sm font-bold">{book.title}</span>
+        <h3 className="text-ink line-clamp-2 text-sm font-bold">{book.title}</h3>
         <span className="text-ink-subtle mt-1 line-clamp-2 block text-xs">
           {book.authors.join(', ') || book.publisher || '저자 정보 없음'}
         </span>
@@ -96,7 +183,7 @@ function BestsellerCard({ book }: { book: BookBestseller }) {
   )
 
   const className =
-    'border-ink/10 hover:border-primary focus-visible:outline-primary flex min-h-24 items-center gap-3 rounded-lg border bg-white p-3 text-left'
+    'border-ink/10 hover:border-primary focus-visible:outline-primary flex min-h-32 items-center gap-3 rounded-lg border bg-white p-3 text-left'
 
   if (!book.externalUrl) return <div className={className}>{content}</div>
 

@@ -8,7 +8,7 @@ import {
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { trackAnalyticsEvent } from '../../shared/analytics'
 import { BottomSheet } from '../../shared/ui/BottomSheet'
-import { BrandSymbol } from '../../shared/ui/BrandSymbol'
+import { SupportIcon } from '../../shared/ui/SupportIcon'
 
 const feedbackCategories: readonly { label: string; value: FeedbackCategory }[] = [
   { label: '불편한 점', value: 'issue' },
@@ -72,11 +72,11 @@ export function FeedbackLauncher() {
     <>
       <button
         aria-label="의견 보내기"
-        className="bg-primary focus-visible:outline-primary fixed right-4 bottom-24 z-30 flex size-12 cursor-pointer items-center justify-center rounded-full shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2"
+        className="talkhugam-feedback-launcher bg-primary focus-visible:outline-primary fixed z-30 flex size-12 cursor-pointer items-center justify-center rounded-full shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2"
         onClick={handleOpen}
         type="button"
       >
-        <BrandSymbol alt="" className="size-7" tone="inverse" />
+        <SupportIcon className="size-6 text-white" />
       </button>
       {isOpen ? (
         <BottomSheet onClose={handleClose} title="의견 보내기">

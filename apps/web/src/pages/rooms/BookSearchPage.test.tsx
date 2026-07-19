@@ -6,12 +6,46 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { BookSearchItem } from '../../entities/book-chat'
 import { BookSearchPage } from './BookSearchPage'
 
-const { searchBooks } = vi.hoisted(() => ({ searchBooks: vi.fn() }))
+const { getBookBestsellers, searchBooks } = vi.hoisted(() => ({
+  getBookBestsellers: vi.fn().mockResolvedValue({
+    isConfigured: true,
+    items: [
+      {
+        authors: ['기시미 이치로'],
+        externalUrl: 'https://example.test/aladin',
+        id: '9788996991342',
+        isbn13: '9788996991342',
+        publisher: '인플루엔셜',
+        thumbnailUrl: null,
+        title: '미움받을 용기',
+      },
+    ],
+  }),
+  searchBooks: vi.fn(),
+}))
 
 vi.mock('../../entities/book-chat', () => ({
   bookChatKeys: { byRoom: (roomId: string) => ['book-chats', roomId] },
   createBookChat: vi.fn(),
   searchBooks,
+}))
+
+vi.mock('../../entities/bestseller', () => ({
+  bookBestsellerKeys: { current: ['book-bestsellers'] },
+  getBookBestsellers,
+  mapBestsellerToBookSearchItem: (book: {
+    authors: string[]
+    externalUrl: string | null
+    isbn13: string | null
+    publisher: string | null
+    thumbnailUrl: string | null
+    title: string
+  }) => ({
+    ...book,
+    isbn10: null,
+    publishedAt: null,
+    source: 'aladin' as const,
+  }),
 }))
 
 vi.mock('../../shared/api/supabaseClient', () => ({ createSupabaseClient: vi.fn() }))
@@ -39,6 +73,15 @@ describe('BookSearchPage', () => {
 
     await act(() => vi.advanceTimersByTimeAsync(1))
     expect(searchBooks).toHaveBeenCalledOnce()
+  })
+
+  it('검색 전에는 베스트셀러 추천을 두 열 카드로 보여 준다', async () => {
+    renderBookSearchPage()
+
+    await act(() => vi.runOnlyPendingTimersAsync())
+    expect(screen.getByRole('heading', { name: '지금 많이 읽는 책' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /미움받을 용기/ })).toBeInTheDocument()
+    expect(screen.getByRole('list', { name: '이번 주 추천 도서' })).toHaveClass('grid-cols-2')
   })
 
   it('starts the current valid search when Enter is pressed in the search input', async () => {

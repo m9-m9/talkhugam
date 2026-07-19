@@ -20,7 +20,7 @@ const bookSearchItemSchema = z.object({
   isbn13: z.string().nullable(),
   publishedAt: z.string().nullable(),
   publisher: z.string().nullable(),
-  source: z.literal('kakao'),
+  source: z.enum(['kakao', 'aladin']),
   thumbnailUrl: z.string().url().nullable(),
   title: z.string(),
 })
@@ -117,6 +117,8 @@ export const bookChatKeys = {
   byRoom: (roomId: string) => ['book-chats', roomId] as const,
   /** 책방 식별자로 책방 상세 query key를 생성한다. */
   room: (roomId: string) => ['reading-room', roomId] as const,
+  /** 책 대화 식별자로 제목과 소속 책방을 조회하는 query key를 생성한다. */
+  detail: (bookChatId: string) => ['book-chat', bookChatId] as const,
   /** 프로필별 보관한 책 대화 목록 query key를 생성한다. */
   myArchived: (profileId: string) => ['archived-book-chats', profileId] as const,
   /** 프로필과 개인 완독 상태로 모든 참여 책방의 읽는 책 목록 query key를 생성한다. */

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -68,6 +68,7 @@ describe('RoomsPage', () => {
           authors: ['기시미 이치로'],
           externalUrl: 'https://www.aladin.co.kr/shop/wproduct.aspx?ItemId=1',
           id: '9788996991342',
+          isbn13: '9788996991342',
           publisher: '인플루엔셜',
           thumbnailUrl: 'https://image.aladin.co.kr/product/1/1/cover500/1.jpg',
           title: '미움받을 용기',
@@ -86,6 +87,30 @@ describe('RoomsPage', () => {
       'href',
       'https://www.aladin.co.kr/shop/wproduct.aspx?ItemId=1',
     )
+  })
+
+  it('현재 추천을 넓게 보여 주고 다음 추천 세 권을 미리 볼 수 있다', async () => {
+    getReadingRooms.mockResolvedValue([])
+    getBookBestsellers.mockResolvedValue({
+      isConfigured: true,
+      items: [
+        createBestseller('첫 번째 책'),
+        createBestseller('두 번째 책'),
+        createBestseller('세 번째 책'),
+        createBestseller('네 번째 책'),
+      ],
+    })
+
+    renderRoomsPage()
+
+    expect(await screen.findByRole('heading', { level: 3, name: '첫 번째 책' })).toBeInTheDocument()
+    const previewList = screen.getByRole('list', { name: '다른 추천 도서' })
+    expect(previewList).toHaveClass('grid-cols-3')
+    expect(within(previewList).getAllByRole('button', { name: /추천 보기$/ })).toHaveLength(3)
+
+    fireEvent.click(screen.getByRole('button', { name: '다음 추천 보기' }))
+
+    expect(await screen.findByRole('heading', { level: 3, name: '두 번째 책' })).toBeInTheDocument()
   })
 
   it('opens the notification inbox with the unread count in the accessible label', async () => {
@@ -134,4 +159,17 @@ function renderRoomsPage() {
       </MemoryRouter>
     </QueryClientProvider>,
   )
+}
+
+/** 캐러셀 테스트에 필요한 최소 베스트셀러 데이터를 만든다. */
+function createBestseller(title: string) {
+  return {
+    authors: ['테스트 저자'],
+    externalUrl: null,
+    id: title,
+    isbn13: null,
+    publisher: null,
+    thumbnailUrl: null,
+    title,
+  }
 }

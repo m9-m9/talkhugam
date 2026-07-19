@@ -26,14 +26,15 @@ select is(
     where schemaname = 'storage'
       and tablename = 'objects'
       and policyname in (
-        'avatars_select_own_or_shared_room',
+        'avatars_select_own',
+        'avatars_select_shared_room',
         'avatars_insert_own',
         'avatars_update_own',
         'avatars_delete_own'
       )
   ),
-  4::bigint,
-  '프로필 사진 객체에는 읽기와 소유자 쓰기 정책이 모두 있다'
+  5::bigint,
+  '프로필 사진 객체에는 직접 읽기·공유 읽기·소유자 쓰기 정책이 모두 있다'
 );
 
 select tests.create_supabase_user(
