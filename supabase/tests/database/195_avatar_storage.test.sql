@@ -2,7 +2,7 @@ begin;
 
 \ir ../helpers/auth.inc
 
-select plan(10);
+select plan(11);
 
 select is(
   (select public from storage.buckets where id = 'avatars'),
@@ -90,6 +90,13 @@ insert into storage.objects (bucket_id, name, owner_id)
 values (
   'avatars',
   '00000000-0000-4000-8000-000000000181/avatar',
+  '00000000-0000-4000-8000-000000000181'
+);
+
+insert into storage.objects (bucket_id, name, owner_id)
+values (
+  'avatars',
+  '00000000-0000-4000-8000-000000000181/preview',
   '00000000-0000-4000-8000-000000000181'
 );
 
