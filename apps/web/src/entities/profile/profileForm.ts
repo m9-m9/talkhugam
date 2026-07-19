@@ -31,6 +31,18 @@ export const profileFormSchema = z.object({
 
 export type ProfileForm = z.infer<typeof profileFormSchema>
 
+export const profileUpdateSchema = profileFormSchema.extend({
+  avatarPath: z
+    .string()
+    .regex(
+      /^profiles\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/avatar$/i,
+      '사진 경로 형식이 올바르지 않아요.',
+    )
+    .optional(),
+})
+
+export type ProfileUpdate = z.infer<typeof profileUpdateSchema>
+
 /** 프로필 입력 폼을 내부 표준 형식으로 정규화한다. */
 export function normalizeProfileForm(input: ProfileForm): ProfileForm {
   return {

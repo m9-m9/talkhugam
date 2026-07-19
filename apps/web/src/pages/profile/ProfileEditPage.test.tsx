@@ -5,15 +5,17 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { ProfileEditPage } from './ProfileEditPage'
 
-const { getProfile, updateProfile } = vi.hoisted(() => ({
+const { getProfile, updateProfile, uploadProfileAvatar } = vi.hoisted(() => ({
   getProfile: vi.fn(),
   updateProfile: vi.fn(),
+  uploadProfileAvatar: vi.fn(),
 }))
 
 vi.mock('../../entities/profile', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../entities/profile')>()),
   getProfile,
   updateProfile,
+  uploadProfileAvatar,
 }))
 
 vi.mock('../../features/auth', () => ({
@@ -46,6 +48,45 @@ describe('ProfileEditPage', () => {
       )
     })
     expect(await screen.findByText('내 프로필 화면')).toBeInTheDocument()
+  })
+
+  it('uploads a selected profile photo only when the profile is saved', async () => {
+    getProfile.mockResolvedValue({
+      avatarPath: null,
+      avatarUrl: null,
+      bio: '기존 소개',
+      displayName: '민규',
+      mbti: 'INTP',
+    })
+    uploadProfileAvatar.mockResolvedValue('profiles/00000000-0000-0000-0000-000000000001/avatar')
+    updateProfile.mockResolvedValue(undefined)
+
+    renderProfileEditPage()
+
+    const photo = new File(['image'], 'profile.png', { type: 'image/png' })
+    fireEvent.change(await screen.findByLabelText('프로필 사진 변경'), {
+      target: { files: [photo] },
+    })
+    fireEvent.change(screen.getByLabelText('한 줄 소개'), { target: { value: '바뀐 소개' } })
+    fireEvent.click(screen.getByRole('button', { name: '저장하기' }))
+
+    await waitFor(() => {
+      expect(uploadProfileAvatar).toHaveBeenCalledWith(
+        undefined,
+        '00000000-0000-0000-0000-000000000001',
+        photo,
+      )
+      expect(updateProfile).toHaveBeenCalledWith(
+        undefined,
+        '00000000-0000-0000-0000-000000000001',
+        {
+          avatarPath: 'profiles/00000000-0000-0000-0000-000000000001/avatar',
+          bio: '바뀐 소개',
+          displayName: '민규',
+          mbti: 'INTP',
+        },
+      )
+    })
   })
 
   it('keeps saving disabled until the user changes a profile field and offers a back button', async () => {

@@ -7,6 +7,7 @@ import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { ProfileAvatar } from '../../shared/ui/ProfileAvatar'
 import { RetryState } from '../../shared/ui/RetryState'
 
 /** 같은 책방에서 함께 읽는 멤버의 공개 프로필을 렌더링한다. */
@@ -48,12 +49,11 @@ export function MemberProfilePage() {
       <AppHeader onBack={() => void navigate(`/rooms/${roomId}`)} title="멤버 프로필" />
       <section className="mt-8" aria-labelledby="member-profile-heading">
         <div className="flex items-center gap-4">
-          <div
-            aria-hidden="true"
-            className="bg-primary flex size-16 shrink-0 items-center justify-center rounded-full text-2xl font-semibold text-white"
-          >
-            {profile.displayName.slice(0, 1)}
-          </div>
+          <ProfileAvatar
+            alt={`${profile.displayName}의 프로필 사진`}
+            displayName={profile.displayName}
+            src={profile.avatarUrl}
+          />
           <div>
             <h1 className="text-ink text-xl font-bold" id="member-profile-heading">
               {profile.displayName}

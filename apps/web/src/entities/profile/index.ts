@@ -12,5 +12,16 @@ export {
   updateNotificationPreferences,
   type NotificationPreferences,
 } from './notificationPreferences'
-export { profileFormSchema, type ProfileForm } from './profileForm'
+export {
+  profileFormSchema,
+  profileUpdateSchema,
+  type ProfileForm,
+  type ProfileUpdate,
+} from './profileForm'
+export {
+  createProfileAvatarPath,
+  getProfileAvatarUrl,
+  uploadProfileAvatar,
+  validateProfileAvatarFile,
+} from './profileAvatar'
 export { updateProfile } from './updateProfile'

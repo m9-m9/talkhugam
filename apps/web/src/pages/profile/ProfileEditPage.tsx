@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ChangeEvent } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 
@@ -8,12 +8,15 @@ import {
   getProfile,
   profileFormSchema,
   type ProfileForm,
+  uploadProfileAvatar,
   updateProfile,
+  validateProfileAvatarFile,
 } from '../../entities/profile'
 import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { ProfileAvatar } from '../../shared/ui/ProfileAvatar'
 import { RetryState } from '../../shared/ui/RetryState'
 
 const mbtiOptions = [
@@ -40,6 +43,8 @@ export function ProfileEditPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const profileId = useAuthenticatedUser().id
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const form = useForm<ProfileForm>({
     defaultValues: { displayName: '', bio: '', mbti: null },
@@ -49,7 +54,7 @@ export function ProfileEditPage() {
     queryFn: () => getProfile(createSupabaseClient(), profileId),
     queryKey: ['profile', profileId],
   })
-  const isSaveDisabled = form.formState.isSubmitting || !form.formState.isDirty
+  const isSaveDisabled = form.formState.isSubmitting || (!form.formState.isDirty && !avatarFile)
 
   useEffect(() => {
     if (!profileQuery.data) return
@@ -61,11 +66,22 @@ export function ProfileEditPage() {
     })
   }, [form, profileQuery.data])
 
+  /** 선택 사진의 임시 URL은 다음 선택 또는 화면 이탈 시 브라우저 메모리에서 해제한다. */
+  useEffect(() => {
+    return () => {
+      if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl)
+    }
+  }, [avatarPreviewUrl])
+
   /** 제출 요청이나 사용자 동작을 처리한다. */
   async function handleSubmit(values: ProfileForm) {
     setErrorMessage(null)
     try {
-      await updateProfile(createSupabaseClient(), profileId, values)
+      const client = createSupabaseClient()
+      const avatarPath = avatarFile
+        ? await uploadProfileAvatar(client, profileId, avatarFile)
+        : undefined
+      await updateProfile(client, profileId, { ...values, ...(avatarPath ? { avatarPath } : {}) })
       await queryClient.invalidateQueries({ queryKey: ['profile', profileId] })
       void navigate('/profile', { replace: true })
     } catch {
@@ -88,6 +104,22 @@ export function ProfileEditPage() {
     void profileQuery.refetch()
   }
 
+  /** 선택한 사진을 검증하고 저장 전 미리보기 상태로 반영한다. */
+  function handleAvatarChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    const validation = validateProfileAvatarFile(file)
+    if (!validation.isValid) {
+      setErrorMessage(validation.message)
+      return
+    }
+
+    setErrorMessage(null)
+    setAvatarFile(file)
+    setAvatarPreviewUrl(createAvatarPreviewUrl(file))
+  }
+
   return (
     <main className="app-page bg-surface px-4 pb-8">
       <AppHeader onBack={() => void navigate('/profile')} title="프로필 편집" />
@@ -96,6 +128,28 @@ export function ProfileEditPage() {
         <h1 className="text-ink mt-2 text-2xl font-bold">프로필 편집</h1>
         <p className="text-ink-subtle mt-2 text-sm">내 소개와 독서 취향을 알려주세요.</p>
       </header>
+
+      <section aria-label="프로필 사진" className="mt-8 flex items-center gap-4">
+        <ProfileAvatar
+          alt="선택한 프로필 사진"
+          displayName={profileQuery.data.displayName}
+          size="lg"
+          src={avatarPreviewUrl ?? profileQuery.data.avatarUrl}
+        />
+        <div className="min-w-0">
+          <label className="border-ink/10 hover:bg-surface-muted focus-within:ring-primary flex min-h-11 w-fit cursor-pointer items-center rounded-md border bg-white px-4 text-sm font-semibold focus-within:ring-2 focus-within:ring-offset-2 focus-within:outline-none">
+            사진 변경
+            <input
+              accept="image/jpeg,image/png,image/webp"
+              aria-label="프로필 사진 변경"
+              className="sr-only"
+              onChange={handleAvatarChange}
+              type="file"
+            />
+          </label>
+          <p className="text-ink-subtle mt-2 text-xs">JPG, PNG, WebP · 최대 5MB</p>
+        </div>
+      </section>
 
       <form className="mt-8 space-y-6" onSubmit={form.handleSubmit(handleSubmit)}>
         <EditField errorMessage={form.formState.errors.displayName?.message} label="이름">
@@ -163,6 +217,12 @@ export function ProfileEditPage() {
       </form>
     </main>
   )
+}
+
+/** 브라우저가 지원하는 경우 선택 파일의 로컬 미리보기 URL을 생성해 반환한다. */
+function createAvatarPreviewUrl(file: File): string | null {
+  if (typeof URL.createObjectURL !== 'function') return null
+  return URL.createObjectURL(file)
 }
 
 /** MBTI 상태인지 판별한다. */

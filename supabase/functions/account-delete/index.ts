@@ -4,6 +4,7 @@ import { parseJsonBody } from '../_shared/body.ts'
 import { createCorsHeaders, optionsResponse } from '../_shared/cors.ts'
 import { logOperationalEvent } from '../_shared/logger.ts'
 import { createAdminClient, getAuthenticatedContext } from '../_shared/supabase.ts'
+import { deleteProfileAvatar } from './avatar.ts'
 import { executeAccountDeletion, type AccountDeletionExecution } from './finalization.ts'
 import { accountDeleteInputSchema } from './schema.ts'
 
@@ -87,6 +88,9 @@ export async function handleAccountDelete(request: Request): Promise<Response> {
     const [prepared] = preparedRequestSchema.parse(prepareResponse.data)
     if (!prepared) throw new Error('Prepared deletion request is required')
     deletionRequestId = prepared.request_id
+
+    const isAvatarDeleted = await deleteProfileAvatar(admin, auth.user.id)
+    if (!isAvatarDeleted) throw new Error('Profile avatar deletion failed')
 
     const deletion = await executeAccountDeletion(
       async () => {
