@@ -481,6 +481,11 @@ begin
   on conflict (book_chat_id, profile_id) do nothing
   returning id into v_completion_id;
 
+  update public.book_chat_reading_progresses
+  set current_page = total_pages, updated_at = now()
+  where book_chat_id = p_book_chat_id
+    and profile_id = auth.uid();
+
   if v_completion_id is null then
     update public.book_chat_completions
     set

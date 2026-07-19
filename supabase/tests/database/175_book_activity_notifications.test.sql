@@ -97,6 +97,8 @@ select public.create_post(
   array['20000000-0000-0000-0000-000000000873'::uuid]
 ) as id;
 
+reset role;
+
 select is(
   (select count(*) from public.notifications where type = 'post'),
   1::bigint,
@@ -131,33 +133,30 @@ select is(
   '새 독후감 알림은 이동할 책 대화를 보관한다'
 );
 
-insert into public.posts (
-  id,
-  book_chat_id,
-  author_member_id,
-  type,
-  client_id,
-  author_name_snapshot
-)
-values (
-  '60000000-0000-0000-0000-000000000871',
-  '40000000-0000-0000-0000-000000000871',
-  '20000000-0000-0000-0000-000000000871',
-  'video',
-  '70000000-0000-0000-0000-000000000871',
-  '활동 작성자'
-);
+select tests.authenticate_as('00000000-0000-0000-0000-000000000871');
+set local role authenticated;
 
-insert into public.video_assets (post_id, mux_upload_id)
-values ('60000000-0000-0000-0000-000000000871', 'activity-upload-871');
+create temporary table video_post as
+select public.create_post(
+  '40000000-0000-0000-0000-000000000871',
+  '70000000-0000-0000-0000-000000000871',
+  'video',
+  null,
+  '[]'::jsonb,
+  '{}'::uuid[]
+) as id;
 
 reset role;
+
+insert into public.video_assets (post_id, mux_upload_id)
+select id, 'activity-upload-871'
+from video_post;
 
 select is(
   public.apply_mux_video_event(
     'activity-ready-871',
     'video.asset.ready',
-    '60000000-0000-0000-0000-000000000871',
+    (select id from video_post),
     'ready',
     'activity-asset-871',
     'activity-asset-871',
@@ -187,7 +186,7 @@ select is(
   public.apply_mux_video_event(
     'activity-ready-871',
     'video.asset.ready',
-    '60000000-0000-0000-0000-000000000871',
+    (select id from video_post),
     'ready',
     'activity-asset-871',
     'activity-asset-871',
@@ -217,11 +216,18 @@ select lives_ok(
   $$,
   '첫 완독 기록을 저장할 수 있다'
 );
+
+reset role;
+
 select is(
   (select count(*) from public.notifications where type = 'completion'),
   2::bigint,
   '첫 완독 기록은 알림을 켠 다른 책방 멤버에게만 알린다'
 );
+
+select tests.authenticate_as('00000000-0000-0000-0000-000000000871');
+set local role authenticated;
+
 select lives_ok(
   $$
     select public.upsert_book_chat_completion(
@@ -232,6 +238,9 @@ select lives_ok(
   $$,
   '기존 완독 기록을 수정할 수 있다'
 );
+
+reset role;
+
 select is(
   (select count(*) from public.notifications where type = 'completion'),
   2::bigint,
