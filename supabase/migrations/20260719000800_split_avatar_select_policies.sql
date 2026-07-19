@@ -20,7 +20,7 @@ using (
   and exists (
     select 1
     from public.profiles
-    where profiles.id::text = split_part(storage.objects.name, '/', 1)
+    where storage.objects.name = (profiles.id::text || '/avatar')
       and private.shares_active_room(profiles.id)
   )
 );

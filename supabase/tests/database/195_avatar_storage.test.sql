@@ -93,6 +93,13 @@ values (
   '00000000-0000-4000-8000-000000000181'
 );
 
+insert into storage.objects (bucket_id, name, owner_id)
+values (
+  'avatars',
+  '00000000-0000-4000-8000-000000000181/preview',
+  '00000000-0000-4000-8000-000000000181'
+);
+
 select tests.authenticate_as('00000000-0000-4000-8000-000000000181');
 set local role authenticated;
 
