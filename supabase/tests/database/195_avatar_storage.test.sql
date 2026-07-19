@@ -2,7 +2,7 @@ begin;
 
 \ir ../helpers/auth.inc
 
-select plan(11);
+select plan(10);
 
 select is(
   (select public from storage.buckets where id = 'avatars'),
