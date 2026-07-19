@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import {
@@ -63,29 +64,70 @@ function BestsellerSection({ result }: { result: BookBestsellerResult | undefine
   if (!result?.isConfigured || result.items.length === 0) return null
 
   return (
-    <section aria-labelledby="bestseller-heading" className="flex flex-col gap-4">
+    <section aria-labelledby="bestseller-heading" className="flex flex-col gap-3">
       <div>
         <h2 className="text-ink text-base font-bold" id="bestseller-heading">
           이번 주 베스트셀러
         </h2>
         <p className="text-ink-subtle mt-1 text-xs">지금 많이 읽히는 책이에요.</p>
       </div>
-      <ul className="grid grid-cols-2 gap-3">
-        {result.items.map((book) => (
-          <li key={book.id}>
-            <BestsellerCard book={book} />
-          </li>
-        ))}
-      </ul>
+      <BestsellerCarousel books={result.items} />
     </section>
   )
 }
 
-/** 베스트셀러 표지와 기본 서지 정보를 알라딘 상세 페이지 링크로 렌더링한다. */
-function BestsellerCard({ book }: { book: BookBestseller }) {
+/** 한 권을 중심으로 보여 주고 표지 목록으로 다음 베스트셀러를 고를 수 있게 렌더링한다. */
+function BestsellerCarousel({ books }: { books: BookBestseller[] }) {
+  const [activeIndex, setActiveIndex] = useState(0)
+  const activeBook = books[activeIndex] ?? books[0]
+
+  useEffect(() => {
+    if (books.length < 2 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const intervalId = window.setInterval(() => {
+      setActiveIndex((currentIndex) => (currentIndex + 1) % books.length)
+    }, 5_000)
+    return () => window.clearInterval(intervalId)
+  }, [books.length])
+
+  if (!activeBook) return null
+
+  return (
+    <div className="flex flex-col gap-3">
+      <BestsellerFeature book={activeBook} />
+      <ul aria-label="베스트셀러 선택" className="grid grid-cols-5 gap-2">
+        {books.map((book, index) => (
+          <li key={book.id}>
+            <button
+              aria-current={index === activeIndex ? 'true' : undefined}
+              aria-label={`${book.title} 보기`}
+              className={`aspect-[3/4] border-2 p-0.5 ${
+                index === activeIndex ? 'border-primary' : 'border-transparent'
+              } rounded-sm`}
+              onClick={() => setActiveIndex(index)}
+              type="button"
+            >
+              <BookCover
+                alt=""
+                className="h-full w-full rounded-none"
+                thumbnailUrl={book.thumbnailUrl}
+              />
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+/** 선택된 베스트셀러의 표지와 서지 정보를 압축된 한 장의 카드로 렌더링한다. */
+function BestsellerFeature({ book }: { book: BookBestseller }) {
   const content = (
     <>
-      <BookCover alt={`${book.title} 표지`} thumbnailUrl={book.thumbnailUrl} />
+      <BookCover
+        alt={`${book.title} 표지`}
+        className="h-24 w-16 shrink-0"
+        thumbnailUrl={book.thumbnailUrl}
+      />
       <span className="min-w-0 flex-1">
         <span className="text-ink line-clamp-2 block text-sm font-bold">{book.title}</span>
         <span className="text-ink-subtle mt-1 line-clamp-2 block text-xs">
@@ -96,7 +138,7 @@ function BestsellerCard({ book }: { book: BookBestseller }) {
   )
 
   const className =
-    'border-ink/10 hover:border-primary focus-visible:outline-primary flex min-h-24 items-center gap-3 rounded-lg border bg-white p-3 text-left'
+    'border-ink/10 hover:border-primary focus-visible:outline-primary flex min-h-28 items-center gap-3 rounded-lg border bg-white p-3 text-left'
 
   if (!book.externalUrl) return <div className={className}>{content}</div>
 

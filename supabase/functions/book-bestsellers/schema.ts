@@ -15,6 +15,7 @@ export type AladinBestseller = {
   authors: string[];
   externalUrl: string | null;
   id: string;
+  isbn13: string | null;
   publisher: string | null;
   thumbnailUrl: string | null;
   title: string;

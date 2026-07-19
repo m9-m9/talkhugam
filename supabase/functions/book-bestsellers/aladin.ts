@@ -26,7 +26,7 @@ export function createAladinBestsellerUrl(ttbKey: string): URL {
   const url = new URL(ALADIN_BESTSELLER_ENDPOINT);
   url.searchParams.set("TTBKey", ttbKey);
   url.searchParams.set("QueryType", "Bestseller");
-  url.searchParams.set("MaxResults", "6");
+  url.searchParams.set("MaxResults", "10");
   url.searchParams.set("SearchTarget", "Book");
   url.searchParams.set("output", "JS");
   url.searchParams.set("Version", "20131101");
@@ -45,6 +45,7 @@ function mapAladinBestseller(
     authors: parseAuthors(item.author),
     externalUrl,
     id: normalizeOptionalText(item.isbn13) ?? externalUrl ?? item.title,
+    isbn13: normalizeOptionalText(item.isbn13),
     publisher: normalizeOptionalText(item.publisher),
     thumbnailUrl,
     title: item.title,

@@ -8,7 +8,9 @@ import { BookDiscussionPage } from './BookDiscussionPage'
 const {
   createPost,
   createReply,
+  getManagedBookChat,
   getBookChatCompletions,
+  getReadingRoom,
   getPosts,
   getVideoFilterMembers,
   getVideoPosts,
@@ -19,8 +21,21 @@ const {
 } = vi.hoisted(() => ({
   createPost: vi.fn().mockResolvedValue('post-1'),
   createReply: vi.fn().mockResolvedValue('reply-1'),
+  getManagedBookChat: vi.fn().mockResolvedValue({
+    id: 'book-1',
+    name: '미움받을 용기',
+    roomId: 'room-1',
+    status: 'reading',
+    thumbnailUrl: null,
+    title: '미움받을 용기',
+  }),
   getBookChatCompletions: vi.fn().mockResolvedValue([]),
   getPosts: vi.fn().mockResolvedValue([]),
+  getReadingRoom: vi.fn().mockResolvedValue({
+    description: null,
+    id: 'room-1',
+    name: '금요일 아침 책방',
+  }),
   getVideoFilterMembers: vi.fn().mockResolvedValue([
     {
       displayName: '민수',
@@ -63,6 +78,15 @@ vi.mock('../../entities/post', () => ({
   parsePostForm,
   postKeys: { byBookChat: (bookChatId: string) => ['posts', bookChatId] },
   shouldSubmitMessage: () => false,
+}))
+
+vi.mock('../../entities/book-chat', () => ({
+  bookChatKeys: {
+    detail: (bookChatId: string) => ['book-chat', bookChatId],
+    room: (roomId: string) => ['reading-room', roomId],
+  },
+  getManagedBookChat,
+  getReadingRoom,
 }))
 
 vi.mock('../../entities/video', () => ({
@@ -149,6 +173,14 @@ describe('BookDiscussionPage', () => {
     expect(message.closest('article')).toHaveClass('w-fit')
   })
 
+  it('shows the bookshop in the header and the selected book as the discussion title', async () => {
+    renderBookDiscussionPage()
+
+    expect(await screen.findByText('금요일 아침 책방')).toBeInTheDocument()
+    expect(screen.getByText('책 대화')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: '미움받을 용기' })).toBeInTheDocument()
+  })
+
   it('opens a square seventy-percent video preview in the immersive player', async () => {
     getVideoPosts.mockResolvedValueOnce([
       {
@@ -228,6 +260,29 @@ describe('BookDiscussionPage', () => {
         review: '대화가 오래 남는 책이에요.',
       }),
     )
+  })
+
+  it('updates the completion count immediately after saving a personal completion', async () => {
+    const savedCompletion = {
+      completedAt: '2026-07-19T00:00:00.000Z',
+      displayName: '민규',
+      isMe: true,
+      profileId: '00000000-0000-0000-0000-000000000001',
+      rating: null,
+      review: null,
+    }
+    getBookChatCompletions
+      .mockResolvedValueOnce([])
+      .mockImplementation(() => Promise.resolve([savedCompletion]))
+    renderBookDiscussionPage()
+
+    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
+    fireEvent.click(screen.getByRole('button', { name: '완독 기록' }))
+    fireEvent.click(await screen.findByRole('button', { name: '완독하기' }))
+    fireEvent.click(screen.getByRole('button', { name: '완독 기록 저장' }))
+
+    expect(await screen.findByText('함께 읽은 기록 · 1명 완독')).toBeInTheDocument()
+    expect(screen.getByText('내 완독')).toBeInTheDocument()
   })
 
   it('shows the personal completion marker and reopens saved values for editing', async () => {

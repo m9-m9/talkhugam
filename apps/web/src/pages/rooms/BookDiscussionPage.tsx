@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState, type RefObject } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
+import { bookChatKeys, getManagedBookChat, getReadingRoom } from '../../entities/book-chat'
 import {
   createPost,
   createReply,
@@ -71,6 +72,16 @@ export function BookDiscussionPage() {
     queryFn: () => getPosts(createSupabaseClient(), bookChatId ?? ''),
     queryKey: postKeys.byBookChat(bookChatId ?? ''),
   })
+  const bookChatQuery = useQuery({
+    enabled: Boolean(bookChatId),
+    queryFn: () => getManagedBookChat(createSupabaseClient(), bookChatId ?? ''),
+    queryKey: bookChatKeys.detail(bookChatId ?? ''),
+  })
+  const roomQuery = useQuery({
+    enabled: Boolean(roomId),
+    queryFn: () => getReadingRoom(createSupabaseClient(), roomId ?? ''),
+    queryKey: bookChatKeys.room(roomId ?? ''),
+  })
   const videosQuery = useQuery({
     enabled: Boolean(bookChatId),
     queryFn: () => getVideoPosts(createSupabaseClient(), bookChatId ?? ''),
@@ -107,7 +118,7 @@ export function BookDiscussionPage() {
       upsertBookChatCompletion(createSupabaseClient(), input),
     onSuccess: async () => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: bookCompletionKeys.byChat(bookChatId ?? '') }),
+        queryClient.refetchQueries({ queryKey: bookCompletionKeys.byChat(bookChatId ?? '') }),
         queryClient.invalidateQueries({ queryKey: bookCompletionKeys.myBooks(profileId) }),
         queryClient.invalidateQueries({ queryKey: bookCompletionKeys.myBookChatIds(profileId) }),
       ])
@@ -120,7 +131,7 @@ export function BookDiscussionPage() {
       removeBookChatCompletion(createSupabaseClient(), targetBookChatId),
     onSuccess: async () => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: bookCompletionKeys.byChat(bookChatId ?? '') }),
+        queryClient.refetchQueries({ queryKey: bookCompletionKeys.byChat(bookChatId ?? '') }),
         queryClient.invalidateQueries({ queryKey: bookCompletionKeys.myBooks(profileId) }),
         queryClient.invalidateQueries({ queryKey: bookCompletionKeys.myBookChatIds(profileId) }),
       ])
@@ -216,11 +227,13 @@ export function BookDiscussionPage() {
           </button>
         }
         onBack={() => void navigate(`/rooms/${roomId}`)}
-        title="책 대화"
+        title={roomQuery.data?.name ?? '책방'}
       />
       <header className="mt-8">
         <p className="text-primary text-sm font-medium">책 대화</p>
-        <h1 className="text-ink mt-2 text-xl font-bold">읽고 느낀 걸 나눠요</h1>
+        <h1 className="text-ink mt-2 text-xl font-bold">
+          {bookChatQuery.data?.title ?? '책을 불러오고 있어요.'}
+        </h1>
       </header>
       <section className="mt-8 flex-1">
         {postsQuery.isPending && videosQuery.isPending ? (

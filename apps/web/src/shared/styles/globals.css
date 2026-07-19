@@ -75,6 +75,18 @@
   padding-bottom: var(--app-bottom-navigation-height);
 }
 
+.talkhugam-feedback-launcher {
+  bottom: calc(var(--app-bottom-navigation-height) + var(--spacing-4));
+  right: var(--spacing-4);
+}
+
+@media (min-width: 640px) {
+  .talkhugam-feedback-launcher {
+    left: calc(50% + 256px);
+    right: auto;
+  }
+}
+
 .app-bottom-navigation {
   --bottom-navigation-height: var(--app-bottom-navigation-height);
 

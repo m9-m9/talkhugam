@@ -12,7 +12,7 @@ Deno.test("createAladinBestsellerUrl keeps the TTB key in the server request and
   assertEquals(url.searchParams.get("TTBKey"), "server-secret");
   assertEquals(url.searchParams.get("QueryType"), "Bestseller");
   assertEquals(url.searchParams.get("SearchTarget"), "Book");
-  assertEquals(url.searchParams.get("MaxResults"), "6");
+  assertEquals(url.searchParams.get("MaxResults"), "10");
 });
 
 Deno.test("fetchAladinBestsellers maps only the card data needed by the app", async () => {
@@ -46,6 +46,7 @@ Deno.test("fetchAladinBestsellers maps only the card data needed by the app", as
       authors: ["기시미 이치로", "고가 후미타케"],
       externalUrl: "https://www.aladin.co.kr/shop/wproduct.aspx?ItemId=1",
       id: "9788996991342",
+      isbn13: "9788996991342",
       publisher: "인플루엔셜",
       thumbnailUrl: "https://image.aladin.co.kr/product/1/1/cover500/1.jpg",
       title: "미움받을 용기",

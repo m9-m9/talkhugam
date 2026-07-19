@@ -1,4 +1,4 @@
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { z } from 'zod'
@@ -9,6 +9,11 @@ import {
   searchBooks,
   type BookSearchItem,
 } from '../../entities/book-chat'
+import {
+  bookBestsellerKeys,
+  getBookBestsellers,
+  mapBestsellerToBookSearchItem,
+} from '../../entities/bestseller'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { trackAnalyticsEvent } from '../../shared/analytics'
 import { AppHeader } from '../../shared/ui/AppHeader'
@@ -36,6 +41,11 @@ export function BookSearchPage() {
   const [isBookLoaderVisible, setIsBookLoaderVisible] = useState(false)
   const [searchVersion, setSearchVersion] = useState(0)
   const [selectedBookId, setSelectedBookId] = useState<string | null>(null)
+  const bestsellersQuery = useQuery({
+    queryFn: () => getBookBestsellers(createSupabaseClient()),
+    queryKey: bookBestsellerKeys.current,
+    staleTime: 10 * 60 * 1_000,
+  })
 
   useEffect(() => {
     const parsed = querySchema.safeParse(query)
@@ -141,6 +151,9 @@ export function BookSearchPage() {
         </p>
       ) : null}
       <BookResults
+        bestsellerItems={(bestsellersQuery.data?.items ?? [])
+          .slice(0, 10)
+          .map(mapBestsellerToBookSearchItem)}
         hasQuery={query.trim().length >= 2}
         isBookLoaderVisible={isBookLoaderVisible}
         isCreatingId={selectedBookId}
@@ -154,6 +167,7 @@ export function BookSearchPage() {
 
 /** 책 검색 결과 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function BookResults({
+  bestsellerItems,
   hasQuery,
   isBookLoaderVisible,
   isCreatingId,
@@ -161,6 +175,7 @@ function BookResults({
   items,
   onSelect,
 }: {
+  bestsellerItems: BookSearchItem[]
   hasQuery: boolean
   isBookLoaderVisible: boolean
   isCreatingId: string | null
@@ -180,9 +195,11 @@ function BookResults({
 
   if (items.length === 0)
     return (
-      <p className="text-ink-subtle mt-12 text-center text-sm">
-        책 제목이나 저자를 두 글자 이상 입력해 주세요.
-      </p>
+      <BookRecommendationList
+        isCreatingId={isCreatingId}
+        items={bestsellerItems}
+        onSelect={onSelect}
+      />
     )
   return (
     <>
@@ -190,30 +207,95 @@ function BookResults({
       <ul className="mt-6 space-y-3">
         {items.map((book) => (
           <li key={`${book.title}-${book.isbn13 ?? book.isbn10 ?? book.externalUrl ?? ''}`}>
-            <button
-              className="border-ink/10 flex min-h-24 w-full items-center gap-3 rounded-lg border bg-white p-4 text-left"
-              disabled={isCreatingId !== null}
-              onClick={() => void onSelect(book)}
-              type="button"
-            >
-              <BookCover alt={`${book.title} 표지`} thumbnailUrl={book.thumbnailUrl} />
-              <span className="min-w-0">
-                <span className="text-ink block text-sm font-bold">{book.title}</span>
-                <span className="text-ink-subtle mt-1 block text-xs">
-                  {book.authors.join(', ')}
-                  {book.publisher ? ` · ${book.publisher}` : ''}
-                </span>
-                {isCreatingId === book.title ? (
-                  <div className="mt-2">
-                    <LoadingSpinner label="책 대화를 만들고 있어요…" size="xs" />
-                  </div>
-                ) : null}
-              </span>
-            </button>
+            <BookResultButton
+              book={book}
+              isCreating={isCreatingId === book.title}
+              isDisabled={isCreatingId !== null}
+              onSelect={onSelect}
+            />
           </li>
         ))}
       </ul>
     </>
+  )
+}
+
+/** 아직 검색어가 없을 때 알라딘 베스트셀러를 최대 열 권까지 세로 목록으로 안내한다. */
+function BookRecommendationList({
+  isCreatingId,
+  items,
+  onSelect,
+}: {
+  isCreatingId: string | null
+  items: BookSearchItem[]
+  onSelect: (book: BookSearchItem) => void
+}) {
+  if (items.length === 0)
+    return (
+      <p className="text-ink-subtle mt-12 text-center text-sm">
+        책 제목이나 저자를 두 글자 이상 입력해 주세요.
+      </p>
+    )
+
+  return (
+    <section aria-labelledby="recommended-books-heading" className="mt-8">
+      <div className="mb-3">
+        <h2 className="text-ink text-base font-bold" id="recommended-books-heading">
+          지금 많이 읽는 책
+        </h2>
+        <p className="text-ink-subtle mt-1 text-xs">
+          마음에 드는 책을 골라 책 대화를 시작해 보세요.
+        </p>
+      </div>
+      <ul className="space-y-3">
+        {items.map((book) => (
+          <li key={`${book.title}-${book.isbn13 ?? book.externalUrl ?? ''}`}>
+            <BookResultButton
+              book={book}
+              isCreating={isCreatingId === book.title}
+              isDisabled={isCreatingId !== null}
+              onSelect={onSelect}
+            />
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+/** 검색 또는 추천 목록의 한 권을 선택 가능한 공통 카드로 렌더링한다. */
+function BookResultButton({
+  book,
+  isCreating,
+  isDisabled,
+  onSelect,
+}: {
+  book: BookSearchItem
+  isCreating: boolean
+  isDisabled: boolean
+  onSelect: (book: BookSearchItem) => void
+}) {
+  return (
+    <button
+      className="border-ink/10 flex min-h-24 w-full items-center gap-3 rounded-lg border bg-white p-4 text-left"
+      disabled={isDisabled}
+      onClick={() => void onSelect(book)}
+      type="button"
+    >
+      <BookCover alt={`${book.title} 표지`} thumbnailUrl={book.thumbnailUrl} />
+      <span className="min-w-0">
+        <span className="text-ink block text-sm font-bold">{book.title}</span>
+        <span className="text-ink-subtle mt-1 block text-xs">
+          {book.authors.join(', ')}
+          {book.publisher ? ` · ${book.publisher}` : ''}
+        </span>
+        {isCreating ? (
+          <div className="mt-2">
+            <LoadingSpinner label="책 대화를 만들고 있어요…" size="xs" />
+          </div>
+        ) : null}
+      </span>
+    </button>
   )
 }
 
