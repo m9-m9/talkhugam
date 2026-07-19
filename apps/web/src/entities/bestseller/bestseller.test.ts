@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { getBookBestsellers, parseBookBestsellerResponse } from './bestseller'
+import {
+  getBookBestsellers,
+  mapBestsellerToBookSearchItem,
+  parseBookBestsellerResponse,
+} from './bestseller'
 
 describe('parseBookBestsellerResponse', () => {
   it('keeps a missing Aladin key as a configured-false empty result', () => {
@@ -62,5 +66,31 @@ describe('getBookBestsellers', () => {
       items: [],
     })
     expect(invoke).toHaveBeenCalledWith('book-bestsellers')
+  })
+})
+
+describe('mapBestsellerToBookSearchItem', () => {
+  it('알라딘 베스트셀러를 책 대화 생성에 필요한 검색 결과 형식으로 변환한다', () => {
+    expect(
+      mapBestsellerToBookSearchItem({
+        authors: ['기시미 이치로'],
+        externalUrl: 'https://www.aladin.co.kr/shop/wproduct.aspx?ItemId=1',
+        id: '9788996991342',
+        isbn13: '9788996991342',
+        publisher: '인플루엔셜',
+        thumbnailUrl: 'https://image.aladin.co.kr/product/1/1/cover500/1.jpg',
+        title: '미움받을 용기',
+      }),
+    ).toEqual({
+      authors: ['기시미 이치로'],
+      externalUrl: 'https://www.aladin.co.kr/shop/wproduct.aspx?ItemId=1',
+      isbn10: null,
+      isbn13: '9788996991342',
+      publishedAt: null,
+      publisher: '인플루엔셜',
+      source: 'aladin',
+      thumbnailUrl: 'https://image.aladin.co.kr/product/1/1/cover500/1.jpg',
+      title: '미움받을 용기',
+    })
   })
 })
