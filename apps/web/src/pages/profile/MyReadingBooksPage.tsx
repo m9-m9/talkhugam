@@ -10,6 +10,14 @@ import {
   type BookCompletionInput,
   type CompletedBook,
 } from '../../entities/book-completion'
+import {
+  calculateReadingProgressPercent,
+  getMyReadingProgresses,
+  readingProgressKeys,
+  upsertReadingProgress,
+  type ReadingProgress,
+  type ReadingProgressInput,
+} from '../../entities/reading-progress'
 import { CompletionReviewForm } from '../../features/book-completion'
 import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
@@ -31,13 +39,17 @@ type CompletionRecordSheetProps = {
 type ReadingBookCardProps = {
   book: ReadingBook
   completion: CompletedBook | undefined
+  progress: ReadingProgress | undefined
   onOpenCompletion: (book: ReadingBook) => void
+  onOpenProgress: (book: ReadingBook) => void
 }
 
 type ReadingBookGroupsProps = {
   books: ReadingBook[]
   completedBooksByChatId: ReadonlyMap<string, CompletedBook>
+  progressesByChatId: ReadonlyMap<string, ReadingProgress>
   onOpenCompletion: (book: ReadingBook) => void
+  onOpenProgress: (book: ReadingBook) => void
 }
 
 /** 참여한 모든 책방의 읽는 책을 조회하고 완독 기록을 작성하거나 수정한다. */
@@ -46,6 +58,7 @@ export function MyReadingBooksPage() {
   const profileId = useAuthenticatedUser().id
   const queryClient = useQueryClient()
   const [selectedBook, setSelectedBook] = useState<ReadingBook | null>(null)
+  const [selectedProgressBook, setSelectedProgressBook] = useState<ReadingBook | null>(null)
   const completedBooksQuery = useQuery({
     queryFn: () => getMyCompletedBooks(createSupabaseClient(), profileId),
     queryKey: bookCompletionKeys.myBooks(profileId),
@@ -56,6 +69,10 @@ export function MyReadingBooksPage() {
     queryFn: () => getMyReadingBooks(createSupabaseClient(), profileId, completedBookChatIds),
     queryKey: bookChatKeys.myReading(profileId, completedBookChatIds),
   })
+  const readingProgressesQuery = useQuery({
+    queryFn: () => getMyReadingProgresses(createSupabaseClient(), profileId),
+    queryKey: readingProgressKeys.byProfile(profileId),
+  })
   const saveCompletionMutation = useMutation({
     mutationFn: (input: BookCompletionInput) =>
       upsertBookChatCompletion(createSupabaseClient(), input),
@@ -63,14 +80,25 @@ export function MyReadingBooksPage() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: bookCompletionKeys.myBooks(profileId) }),
         queryClient.invalidateQueries({ queryKey: ['my-reading-books', profileId] }),
+        queryClient.invalidateQueries({ queryKey: readingProgressKeys.byProfile(profileId) }),
       ])
       setSelectedBook(null)
+    },
+  })
+  const saveProgressMutation = useMutation({
+    mutationFn: (input: ReadingProgressInput) =>
+      upsertReadingProgress(createSupabaseClient(), input),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: readingProgressKeys.byProfile(profileId) })
+      setSelectedProgressBook(null)
     },
   })
 
   /** 읽는 책과 완독 기록을 순서대로 다시 요청한다. */
   function handleRetry() {
     void completedBooksQuery.refetch()
+    void readingBooksQuery.refetch()
+    void readingProgressesQuery.refetch()
   }
 
   /** 선택한 책을 완독 기록 시트의 편집 대상으로 저장한다. */
@@ -83,14 +111,34 @@ export function MyReadingBooksPage() {
     setSelectedBook(null)
   }
 
+  /** 선택한 책을 개인 진행률 입력 시트의 편집 대상으로 저장한다. */
+  function handleOpenProgress(book: ReadingBook) {
+    saveProgressMutation.reset()
+    setSelectedProgressBook(book)
+  }
+
+  /** 열린 진행률 입력 시트를 닫고 선택된 책 상태를 초기화한다. */
+  function handleCloseProgress() {
+    saveProgressMutation.reset()
+    setSelectedProgressBook(null)
+  }
+
+  /** 현재 페이지와 전체 페이지 수를 선택한 책의 개인 진행률로 저장한다. */
+  function handleSaveProgress(input: ReadingProgressInput) {
+    saveProgressMutation.mutate(input)
+  }
+
   /** 별점과 총평을 현재 선택된 책의 완독 기록으로 저장한다. */
   function handleSaveCompletion(input: BookCompletionInput) {
     saveCompletionMutation.mutate(input)
   }
 
-  const isLoading = completedBooksQuery.isPending || readingBooksQuery.isPending
-  const hasError = completedBooksQuery.isError || readingBooksQuery.isError
+  const isLoading =
+    completedBooksQuery.isPending || readingBooksQuery.isPending || readingProgressesQuery.isPending
+  const hasError =
+    completedBooksQuery.isError || readingBooksQuery.isError || readingProgressesQuery.isError
   const completedBooksByChatId = createCompletedBooksByChatId(completedBooksQuery.data ?? [])
+  const progressesByChatId = createReadingProgressesByChatId(readingProgressesQuery.data ?? [])
   const selectedCompletion = selectedBook
     ? completedBooksByChatId.get(selectedBook.bookChatId)
     : undefined
@@ -100,7 +148,7 @@ export function MyReadingBooksPage() {
       <AppHeader onBack={() => void navigate('/profile')} title="읽고 있는 책" />
       <header className="mt-8">
         <p className="text-primary text-sm font-medium">책 기록</p>
-        <h1 className="text-ink mt-2 text-xl font-bold">함께 읽고 있는 책</h1>
+        <h1 className="text-ink mt-2 text-xl font-bold">읽고 있는 책</h1>
         <p className="text-ink-subtle mt-2 text-sm">참여 중인 모든 책방의 책을 모아 봐요.</p>
       </header>
 
@@ -122,6 +170,8 @@ export function MyReadingBooksPage() {
           books={readingBooksQuery.data ?? []}
           completedBooksByChatId={completedBooksByChatId}
           onOpenCompletion={handleOpenCompletion}
+          onOpenProgress={handleOpenProgress}
+          progressesByChatId={progressesByChatId}
         />
       ) : null}
       {selectedBook ? (
@@ -133,7 +183,118 @@ export function MyReadingBooksPage() {
           selectedBook={selectedBook}
         />
       ) : null}
+      {selectedProgressBook ? (
+        <ReadingProgressSheet
+          errorMessage={
+            saveProgressMutation.isError
+              ? '진행률을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.'
+              : ''
+          }
+          isSaving={saveProgressMutation.isPending}
+          onClose={handleCloseProgress}
+          onSave={handleSaveProgress}
+          progress={progressesByChatId.get(selectedProgressBook.bookChatId)}
+          selectedBook={selectedProgressBook}
+        />
+      ) : null}
     </main>
+  )
+}
+
+/** 선택한 책의 현재·전체 페이지를 입력받아 개인 진행률로 저장하는 시트를 렌더링한다. */
+function ReadingProgressSheet({
+  errorMessage: submitErrorMessage,
+  isSaving,
+  onClose,
+  onSave,
+  progress,
+  selectedBook,
+}: {
+  errorMessage: string
+  isSaving: boolean
+  onClose: () => void
+  onSave: (input: ReadingProgressInput) => void
+  progress: ReadingProgress | undefined
+  selectedBook: ReadingBook
+}) {
+  const [currentPage, setCurrentPage] = useState(String(progress?.currentPage ?? ''))
+  const [totalPages, setTotalPages] = useState(String(progress?.totalPages ?? ''))
+  const [validationErrorMessage, setValidationErrorMessage] = useState('')
+  const errorMessage = validationErrorMessage || submitErrorMessage
+
+  /** 사용자가 입력한 숫자 문자열을 0 이상의 정수로 변환한다. */
+  function parsePage(value: string): number | null {
+    const parsed = Number(value)
+    return Number.isInteger(parsed) && parsed >= 0 ? parsed : null
+  }
+
+  /** 현재 입력값을 검증해 개인 진행률 저장 요청으로 전달한다. */
+  function handleSubmit() {
+    const parsedCurrentPage = parsePage(currentPage)
+    const parsedTotalPages = parsePage(totalPages)
+    if (parsedCurrentPage === null || parsedTotalPages === null || parsedTotalPages === 0) {
+      setValidationErrorMessage('현재 페이지와 전체 페이지를 숫자로 입력해 주세요.')
+      return
+    }
+    if (parsedCurrentPage > parsedTotalPages) {
+      setValidationErrorMessage('현재 페이지는 전체 페이지보다 클 수 없어요.')
+      return
+    }
+    onSave({
+      bookChatId: selectedBook.bookChatId,
+      currentPage: parsedCurrentPage,
+      totalPages: parsedTotalPages,
+    })
+  }
+
+  return (
+    <BottomSheet onClose={onClose} title="독서 진행률 기록">
+      <p className="text-ink text-sm font-semibold">{selectedBook.title}</p>
+      <p className="text-ink-subtle mt-2 text-sm">전체 페이지는 처음 기록할 때 직접 입력해요.</p>
+      <label className="text-ink mt-4 block text-sm font-medium" htmlFor="current-reading-page">
+        현재 읽은 페이지
+      </label>
+      <input
+        className="border-ink/10 focus:border-primary mt-2 min-h-11 w-full rounded-md border px-3 text-sm outline-none"
+        id="current-reading-page"
+        inputMode="numeric"
+        min="0"
+        onChange={(event) => setCurrentPage(event.target.value)}
+        type="number"
+        value={currentPage}
+      />
+      <label className="text-ink mt-4 block text-sm font-medium" htmlFor="total-reading-pages">
+        전체 페이지
+      </label>
+      <input
+        className="border-ink/10 focus:border-primary mt-2 min-h-11 w-full rounded-md border px-3 text-sm outline-none"
+        id="total-reading-pages"
+        inputMode="numeric"
+        min="1"
+        onChange={(event) => setTotalPages(event.target.value)}
+        type="number"
+        value={totalPages}
+      />
+      {errorMessage ? <p className="text-danger mt-3 text-sm">{errorMessage}</p> : null}
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        <button
+          className="border-ink/10 text-ink min-h-11 cursor-pointer rounded-md border px-3 text-sm font-semibold"
+          disabled={isSaving}
+          onClick={onClose}
+          type="button"
+        >
+          취소
+        </button>
+        <button
+          className="bg-primary min-h-11 cursor-pointer rounded-md px-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+          disabled={isSaving}
+          onClick={handleSubmit}
+          type="button"
+        >
+          진행률 저장
+        </button>
+      </div>
+    </BottomSheet>
   )
 }
 
@@ -169,6 +330,8 @@ function ReadingBookGroups({
   books,
   completedBooksByChatId,
   onOpenCompletion,
+  onOpenProgress,
+  progressesByChatId,
 }: ReadingBookGroupsProps) {
   const groups = groupReadingBooksByRoom(books)
   if (groups.length === 0) {
@@ -196,6 +359,8 @@ function ReadingBookGroups({
                   book={book}
                   completion={completedBooksByChatId.get(book.bookChatId)}
                   onOpenCompletion={onOpenCompletion}
+                  onOpenProgress={onOpenProgress}
+                  progress={progressesByChatId.get(book.bookChatId)}
                 />
               </li>
             ))}
@@ -207,13 +372,24 @@ function ReadingBookGroups({
 }
 
 /** 하나의 읽는 책에 이동 링크와 완독 작성 또는 수정 행동을 함께 렌더링한다. */
-function ReadingBookCard({ book, completion, onOpenCompletion }: ReadingBookCardProps) {
+function ReadingBookCard({
+  book,
+  completion,
+  onOpenCompletion,
+  onOpenProgress,
+  progress,
+}: ReadingBookCardProps) {
   const isCompleted = Boolean(completion)
   const actionLabel = isCompleted ? '기록 수정' : '완독하기'
 
   /** 현재 카드의 책을 완독 기록 작성 또는 수정 대상으로 연다. */
   function handleOpenCompletion() {
     onOpenCompletion(book)
+  }
+
+  /** 현재 카드의 책을 개인 진행률 기록 대상으로 연다. */
+  function handleOpenProgress() {
+    onOpenProgress(book)
   }
 
   return (
@@ -230,27 +406,82 @@ function ReadingBookCard({ book, completion, onOpenCompletion }: ReadingBookCard
             {book.authors.join(', ') || '저자 정보 없음'}
           </span>
           {isCompleted ? <CompletionMark className="mt-2" /> : null}
+          {completion ? <CompletionSummary completion={completion} /> : null}
         </span>
         <span aria-hidden="true" className="text-ink-subtle text-lg">
           ›
         </span>
       </Link>
+      {!isCompleted ? <ReadingProgressSummary progress={progress} /> : null}
       <div className="border-ink/10 flex items-center justify-between gap-3 border-t px-3 py-2">
         <span className="text-ink-subtle text-xs">
           {isCompleted ? '완독 기록을 남겼어요.' : '별점과 총평을 남길 수 있어요.'}
         </span>
-        <button
-          aria-label={`${book.title} ${actionLabel}`}
-          className={`min-h-11 shrink-0 cursor-pointer rounded-md px-3 text-sm font-semibold ${
-            isCompleted ? 'border-primary text-primary border bg-white' : 'bg-primary text-white'
-          }`}
-          onClick={handleOpenCompletion}
-          type="button"
-        >
-          {actionLabel}
-        </button>
+        <div className="flex shrink-0 gap-2">
+          {!isCompleted ? (
+            <button
+              aria-label={`${book.title} 진행률 기록하기`}
+              className="border-primary text-primary min-h-11 cursor-pointer rounded-md border bg-white px-3 text-sm font-semibold"
+              onClick={handleOpenProgress}
+              type="button"
+            >
+              진행률 기록하기
+            </button>
+          ) : null}
+          <button
+            aria-label={`${book.title} ${actionLabel}`}
+            className={`min-h-11 cursor-pointer rounded-md px-3 text-sm font-semibold ${
+              isCompleted ? 'border-primary text-primary border bg-white' : 'bg-primary text-white'
+            }`}
+            onClick={handleOpenCompletion}
+            type="button"
+          >
+            {actionLabel}
+          </button>
+        </div>
       </div>
     </article>
+  )
+}
+
+/** 개인 진행률이 있는 책 카드에 현재 페이지와 퍼센트 막대를 렌더링한다. */
+function ReadingProgressSummary({ progress }: { progress: ReadingProgress | undefined }) {
+  if (!progress) return null
+  const percent = calculateReadingProgressPercent(progress.currentPage, progress.totalPages)
+
+  return (
+    <div className="px-3 pb-3">
+      <div className="text-ink-subtle flex items-center justify-between text-xs">
+        <span>
+          {progress.currentPage} / {progress.totalPages}쪽
+        </span>
+        <span className="text-primary font-semibold">{percent}%</span>
+      </div>
+      <div
+        aria-label={`독서 진행률 ${percent}%`}
+        aria-valuemax={100}
+        aria-valuemin={0}
+        aria-valuenow={percent}
+        className="bg-ink/10 mt-2 h-2 overflow-hidden rounded-full"
+        role="progressbar"
+      >
+        <span className="bg-primary block h-full rounded-full" style={{ width: `${percent}%` }} />
+      </div>
+    </div>
+  )
+}
+
+/** 완독한 책에 작성된 별점과 총평의 상태를 한눈에 보여 준다. */
+function CompletionSummary({ completion }: { completion: CompletedBook }) {
+  const ratingLabel = completion.rating ? `별점 ${completion.rating}점` : '별점 미작성'
+  const reviewLabel = completion.review ? '총평 작성함' : '총평 미작성'
+
+  return (
+    <span className="text-ink-subtle mt-1 flex gap-2 text-xs">
+      <span>{ratingLabel}</span>
+      <span aria-hidden="true">·</span>
+      <span>{reviewLabel}</span>
+    </span>
   )
 }
 
@@ -259,6 +490,13 @@ function createCompletedBooksByChatId(
   completedBooks: CompletedBook[],
 ): ReadonlyMap<string, CompletedBook> {
   return new Map(completedBooks.map((book) => [book.bookChatId, book]))
+}
+
+/** 개인 진행률 배열을 책 대화 식별자로 빠르게 조회할 수 있는 Map으로 변환한다. */
+function createReadingProgressesByChatId(
+  progresses: ReadingProgress[],
+): ReadonlyMap<string, ReadingProgress> {
+  return new Map(progresses.map((progress) => [progress.bookChatId, progress]))
 }
 
 /** 읽는 책 목록을 책방 순서대로 묶어 렌더링에 필요한 구조로 변환한다. */

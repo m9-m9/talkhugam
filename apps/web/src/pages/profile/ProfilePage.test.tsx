@@ -68,13 +68,14 @@ describe('ProfilePage', () => {
     vi.resetAllMocks()
   })
 
-  it('shows four detail destinations instead of rendering profile and completion details on the hub', async () => {
+  it('shows five detail destinations including service information instead of rendering details on the hub', async () => {
     renderProfilePage()
 
     expect(await screen.findByRole('button', { name: '내 정보 수정' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '책방 보기' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '읽고 있는 책 보기' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '읽고 있는 책' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '계정 설정' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '서비스 정보' })).toBeInTheDocument()
     expect(screen.queryByText('프로필 정보')).not.toBeInTheDocument()
     expect(screen.queryByText('내가 완독한 책')).not.toBeInTheDocument()
     expect(screen.queryByText('미움받을 용기')).not.toBeInTheDocument()
