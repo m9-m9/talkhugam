@@ -33,10 +33,9 @@ import {
   type VideoThumbnailAuthorization,
 } from '../../entities/video'
 import { useVideoUpload } from '../../features/video-upload'
-import { CompletionReviewForm } from '../../features/book-completion'
+import { CompletionReviewForm, invalidateCompletionQueries } from '../../features/book-completion'
 import { useAuthenticatedUser } from '../../features/auth'
 import { readingRoomKeys } from '../../entities/reading-room'
-import { readingProgressKeys } from '../../entities/reading-progress'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { trackAnalyticsEvent } from '../../shared/analytics'
 import { AppHeader } from '../../shared/ui/AppHeader'
@@ -135,13 +134,7 @@ export function BookDiscussionPage() {
       )
       setIsCompletionEditorOpen(false)
       trackAnalyticsEvent('book_completed')
-      void Promise.all([
-        queryClient.invalidateQueries({ queryKey: bookCompletionKeys.byChat(bookChatId ?? '') }),
-        queryClient.invalidateQueries({ queryKey: bookCompletionKeys.myBooks(profileId) }),
-        queryClient.invalidateQueries({ queryKey: bookCompletionKeys.myBookChatIds(profileId) }),
-        queryClient.invalidateQueries({ queryKey: bookChatKeys.myReading(profileId, []) }),
-        queryClient.invalidateQueries({ queryKey: readingProgressKeys.byProfile(profileId) }),
-      ])
+      invalidateCompletionQueries(queryClient, bookChatId ?? '', profileId)
     },
   })
   const completionRemovalMutation = useMutation({
@@ -152,13 +145,7 @@ export function BookDiscussionPage() {
         bookCompletionKeys.byChat(bookChatId ?? ''),
         (completions = []) => completions.filter((completion) => !completion.isMe),
       )
-      void Promise.all([
-        queryClient.invalidateQueries({ queryKey: bookCompletionKeys.byChat(bookChatId ?? '') }),
-        queryClient.invalidateQueries({ queryKey: bookCompletionKeys.myBooks(profileId) }),
-        queryClient.invalidateQueries({ queryKey: bookCompletionKeys.myBookChatIds(profileId) }),
-        queryClient.invalidateQueries({ queryKey: bookChatKeys.myReading(profileId, []) }),
-        queryClient.invalidateQueries({ queryKey: readingProgressKeys.byProfile(profileId) }),
-      ])
+      invalidateCompletionQueries(queryClient, bookChatId ?? '', profileId)
     },
   })
 

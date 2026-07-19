@@ -87,6 +87,19 @@ describe('BookChatManagementPage', () => {
     )
   })
 
+  it('closes the review sheet even when background completion refresh fails', async () => {
+    const { queryClient } = renderBookChatManagementPage()
+    vi.spyOn(queryClient, 'invalidateQueries').mockRejectedValueOnce(
+      new Error('background refresh failed'),
+    )
+
+    fireEvent.click(await screen.findByRole('button', { name: '완독하기' }))
+    fireEvent.click(screen.getByRole('button', { name: '완독 기록 저장' }))
+
+    await waitFor(() => expect(upsertBookChatCompletion).toHaveBeenCalled())
+    expect(screen.queryByRole('dialog', { name: '완독 기록' })).not.toBeInTheDocument()
+  })
+
   it('does not expose archive controls to a reading member', async () => {
     renderBookChatManagementPage()
 
@@ -120,7 +133,7 @@ describe('BookChatManagementPage', () => {
 /** 책 대화방 관리 화면을 서버 상태와 라우터를 포함해 렌더링한다. */
 function renderBookChatManagementPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  return render(
+  const renderResult = render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter
         initialEntries={[
@@ -136,4 +149,6 @@ function renderBookChatManagementPage() {
       </MemoryRouter>
     </QueryClientProvider>,
   )
+
+  return { queryClient, renderResult }
 }

@@ -9,9 +9,9 @@ import {
   upsertBookChatCompletion,
   type BookCompletionInput,
 } from '../../entities/book-completion'
-import { CompletionReviewForm } from '../../features/book-completion'
+import { CompletionReviewForm, invalidateCompletionQueries } from '../../features/book-completion'
 import { useAuthenticatedUser } from '../../features/auth'
-import { readingProgressKeys } from '../../entities/reading-progress'
+import { trackAnalyticsEvent } from '../../shared/analytics'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { BookCover } from '../../shared/ui/BookCover'
@@ -40,15 +40,10 @@ export function BookChatManagementPage() {
   })
   const completionMutation = useMutation({
     mutationFn: (input: BookCompletionInput) => upsertBookChatCompletion(client, input),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: bookCompletionKeys.byChat(bookChatId ?? '') }),
-        queryClient.invalidateQueries({ queryKey: bookCompletionKeys.myBooks(profileId) }),
-        queryClient.invalidateQueries({ queryKey: bookCompletionKeys.myBookChatIds(profileId) }),
-        queryClient.invalidateQueries({ queryKey: bookChatKeys.myReading(profileId, []) }),
-        queryClient.invalidateQueries({ queryKey: readingProgressKeys.byProfile(profileId) }),
-      ])
+    onSuccess: () => {
       setIsCompletionEditorOpen(false)
+      trackAnalyticsEvent('book_completed')
+      invalidateCompletionQueries(queryClient, bookChatId ?? '', profileId)
     },
   })
   const deletionMutation = useMutation({
