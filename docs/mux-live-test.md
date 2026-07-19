@@ -41,13 +41,13 @@ pnpm backend:test:mux
 
 테스트는 다음 순서로 동작한다.
 
-1. 격리된 테스트 사용자, 독서방, 책 채팅을 만든다.
+1. 격리된 테스트 사용자, 책방, 책 대화를 만든다.
 2. 인증된 사용자로 `mux-create-upload`를 호출한다.
 3. 테스트 영상을 반환된 Direct Upload URL에 업로드한다.
 4. webhook이 `video_assets`를 `ready`로 바꿀 때까지 최대 180초 기다린다.
 5. 영상 길이가 0초 초과 30초 이하인지 확인한다.
 6. `mux-playback-token`을 호출하고 signed HLS manifest를 요청한다.
-7. 독서방 삭제 RPC와 deletion worker로 Mux asset 삭제를 요청한다.
+7. 책방 삭제 RPC와 deletion worker로 Mux asset 삭제를 요청한다.
 8. 테스트 Auth 사용자를 삭제한다.
 
 ## 실패 후 확인

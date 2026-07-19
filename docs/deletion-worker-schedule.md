@@ -1,6 +1,6 @@
 # 삭제 worker 운영 스케줄
 
-독서방·영상·계정 삭제는 즉시 DB에서 숨기고, 실제 Mux 자산 삭제는 `deletion-worker`가 대기열에서 처리한다.
+책방·영상·계정 삭제는 즉시 DB에서 숨기고, 실제 Mux 자산 삭제는 `deletion-worker`가 대기열에서 처리한다.
 이 문서는 Supabase Cron이 1분마다 worker를 호출하도록 준비·검증하는 절차다.
 
 ## 구성
