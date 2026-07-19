@@ -10,8 +10,15 @@ import {
   type ReadingRoom,
   type ReadingRoomMember,
 } from '../../entities/reading-room'
+import {
+  bookBestsellerKeys,
+  getBookBestsellers,
+  type BookBestseller,
+  type BookBestsellerResult,
+} from '../../entities/bestseller'
 import { getUnreadNotificationCount, notificationKeys } from '../../entities/notification'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
+import { BookCover } from '../../shared/ui/BookCover'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 /** 참여 중인 책방을 최근 대화 순서로 보여 주는 메인 화면을 렌더링한다. */
@@ -19,6 +26,11 @@ export function RoomsPage() {
   const roomsQuery = useQuery({
     queryFn: () => getReadingRooms(createSupabaseClient()),
     queryKey: readingRoomKeys.all,
+  })
+  const bestsellersQuery = useQuery({
+    queryFn: () => getBookBestsellers(createSupabaseClient()),
+    queryKey: bookBestsellerKeys.current,
+    staleTime: 10 * 60 * 1000,
   })
 
   return (
@@ -28,18 +40,76 @@ export function RoomsPage() {
         <NotificationInboxButton />
       </header>
 
-      <section aria-labelledby="recent-rooms-heading" className="flex flex-1 flex-col gap-4 py-8">
-        <h2 className="text-ink text-base font-bold" id="recent-rooms-heading">
-          함께 읽는 책방
-        </h2>
-        <RoomsContent
-          error={roomsQuery.error}
-          isPending={roomsQuery.isPending}
-          onRetry={() => void roomsQuery.refetch()}
-          rooms={roomsQuery.data}
-        />
+      <section aria-labelledby="recent-rooms-heading" className="flex flex-1 flex-col gap-6 py-8">
+        <BestsellerSection result={bestsellersQuery.data} />
+        <div className="flex flex-col gap-4">
+          <h2 className="text-ink text-base font-bold" id="recent-rooms-heading">
+            함께 읽는 책방
+          </h2>
+          <RoomsContent
+            error={roomsQuery.error}
+            isPending={roomsQuery.isPending}
+            onRetry={() => void roomsQuery.refetch()}
+            rooms={roomsQuery.data}
+          />
+        </div>
       </section>
     </main>
+  )
+}
+
+/** 알라딘 키가 설정됐을 때만 이번 주 베스트셀러 카드를 화면 상단에 렌더링한다. */
+function BestsellerSection({ result }: { result: BookBestsellerResult | undefined }) {
+  if (!result?.isConfigured || result.items.length === 0) return null
+
+  return (
+    <section aria-labelledby="bestseller-heading" className="flex flex-col gap-4">
+      <div>
+        <h2 className="text-ink text-base font-bold" id="bestseller-heading">
+          이번 주 베스트셀러
+        </h2>
+        <p className="text-ink-subtle mt-1 text-xs">지금 많이 읽히는 책이에요.</p>
+      </div>
+      <ul className="grid grid-cols-2 gap-3">
+        {result.items.map((book) => (
+          <li key={book.id}>
+            <BestsellerCard book={book} />
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+/** 베스트셀러 표지와 기본 서지 정보를 알라딘 상세 페이지 링크로 렌더링한다. */
+function BestsellerCard({ book }: { book: BookBestseller }) {
+  const content = (
+    <>
+      <BookCover alt={`${book.title} 표지`} thumbnailUrl={book.thumbnailUrl} />
+      <span className="min-w-0 flex-1">
+        <span className="text-ink line-clamp-2 block text-sm font-bold">{book.title}</span>
+        <span className="text-ink-subtle mt-1 line-clamp-2 block text-xs">
+          {book.authors.join(', ') || book.publisher || '저자 정보 없음'}
+        </span>
+      </span>
+    </>
+  )
+
+  const className =
+    'border-ink/10 hover:border-primary focus-visible:outline-primary flex min-h-24 items-center gap-3 rounded-lg border bg-white p-3 text-left'
+
+  if (!book.externalUrl) return <div className={className}>{content}</div>
+
+  return (
+    <a
+      aria-label={`${book.title} 자세히 보기`}
+      className={className}
+      href={book.externalUrl}
+      rel="noreferrer"
+      target="_blank"
+    >
+      {content}
+    </a>
   )
 }
 
