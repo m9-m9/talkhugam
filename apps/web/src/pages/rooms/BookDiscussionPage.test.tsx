@@ -8,6 +8,8 @@ import { BookDiscussionPage } from './BookDiscussionPage'
 const {
   createPost,
   createReply,
+  createManagedRoomInvite,
+  getRoomManagement,
   getManagedBookChat,
   getBookChatCompletions,
   getReadingRoom,
@@ -21,6 +23,12 @@ const {
 } = vi.hoisted(() => ({
   createPost: vi.fn().mockResolvedValue('post-1'),
   createReply: vi.fn().mockResolvedValue('reply-1'),
+  createManagedRoomInvite: vi.fn().mockResolvedValue({
+    code: 'TALK87',
+    expiresAt: '2026-07-24T02:01:30.123+00:00',
+    id: '00000000-0000-0000-0000-000000000011',
+    token: 'a'.repeat(64),
+  }),
   getManagedBookChat: vi.fn().mockResolvedValue({
     id: 'book-1',
     name: '미움받을 용기',
@@ -28,6 +36,15 @@ const {
     status: 'reading',
     thumbnailUrl: null,
     title: '미움받을 용기',
+  }),
+  getRoomManagement: vi.fn().mockResolvedValue({
+    createdBy: '00000000-0000-0000-0000-000000000001',
+    description: null,
+    id: 'room-1',
+    isCurrentUserOwner: true,
+    members: [],
+    name: '금요일 아침 책방',
+    status: 'active',
   }),
   getBookChatCompletions: vi.fn().mockResolvedValue([]),
   getPosts: vi.fn().mockResolvedValue([]),
@@ -108,6 +125,12 @@ vi.mock('../../entities/reading-room', () => ({
   readingRoomKeys: { all: ['reading-rooms'] },
 }))
 
+vi.mock('../../entities/room-management', () => ({
+  createManagedRoomInvite,
+  getRoomManagement,
+  roomManagementKeys: { detail: (roomId: string) => ['room-management', roomId] },
+}))
+
 vi.mock('../../entities/reading-progress', () => ({
   readingProgressKeys: { byProfile: (profileId: string) => ['reading-progresses', profileId] },
 }))
@@ -176,6 +199,44 @@ describe('BookDiscussionPage', () => {
 
     expect(message.closest('article')).toHaveClass('max-w-[70%]')
     expect(message.closest('article')).toHaveClass('w-fit')
+  })
+
+  it('highlights at-sign mentions in discussion posts and replies', async () => {
+    getPosts.mockResolvedValueOnce([
+      {
+        authorName: '민수',
+        body: '@수진 이 장면은 오래 남네요.',
+        createdAt: '2026-07-19T00:00:00.000Z',
+        depth: 0,
+        id: 'post-1',
+        labels: [],
+        rootPostId: null,
+      },
+      {
+        authorName: '수진',
+        body: '@민수 저도 같은 부분이 좋았어요.',
+        createdAt: '2026-07-19T00:01:00.000Z',
+        depth: 1,
+        id: 'reply-1',
+        labels: [],
+        rootPostId: 'post-1',
+      },
+    ])
+    renderBookDiscussionPage()
+
+    expect(await screen.findByText('@수진')).toHaveClass('text-primary')
+    expect(screen.getByText('@민수')).toHaveClass('text-primary')
+  })
+
+  it('opens the bookshop invitation sheet from the plus menu without clearing a draft', async () => {
+    renderBookDiscussionPage()
+    const messageInput = screen.getByLabelText('메시지 입력')
+    fireEvent.change(messageInput, { target: { value: '이 문장을 나누고 싶어요.' } })
+    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
+    fireEvent.click(await screen.findByRole('button', { name: '책방 초대하기' }))
+
+    expect(await screen.findByRole('dialog', { name: '책방 초대하기' })).toBeInTheDocument()
+    expect(messageInput).toHaveValue('이 문장을 나누고 싶어요.')
   })
 
   it('shows the bookshop in the header and the selected book as the discussion title', async () => {
@@ -361,7 +422,7 @@ describe('BookDiscussionPage', () => {
     fireEvent.click(screen.getByRole('button', { name: '완독 기록' }))
 
     expect(await screen.findByText('내 완독')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: '수정하기' }))
+    fireEvent.click(screen.getByRole('button', { name: '완독 기록 수정' }))
 
     expect(screen.getByRole('button', { name: '4점' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByLabelText('총평 (선택)')).toHaveValue('다시 펼쳐 보고 싶은 책이에요.')

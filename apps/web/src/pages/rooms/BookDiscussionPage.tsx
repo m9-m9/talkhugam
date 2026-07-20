@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useRef, useState, type RefObject } from 'react'
+import { Fragment, useEffect, useRef, useState, type RefObject } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
 import { bookChatKeys, getManagedBookChat, getReadingRoom } from '../../entities/book-chat'
@@ -36,7 +36,24 @@ import { useVideoUpload } from '../../features/video-upload'
 import { CompletionReviewForm, invalidateCompletionQueries } from '../../features/book-completion'
 import { useAuthenticatedUser } from '../../features/auth'
 import { readingRoomKeys } from '../../entities/reading-room'
+import {
+  createManagedRoomInvite,
+  getRoomManagement,
+  roomManagementKeys,
+  type CreatedManagedRoomInvite,
+} from '../../entities/room-management'
+import {
+  copyInviteText,
+  createInviteShareData,
+  getInviteCopyText,
+  getInvitePlatformUrl,
+  InviteShareSheet,
+  shareInviteWithKakao,
+  type InviteShareData,
+  type InviteSharePlatform,
+} from '../../features/invite-sharing'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
+import { getClientEnv } from '../../app/env'
 import { trackAnalyticsEvent } from '../../shared/analytics'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { BottomSheet } from '../../shared/ui/BottomSheet'
@@ -61,7 +78,11 @@ export function BookDiscussionPage() {
   const [timelineRetryMessage, setTimelineRetryMessage] = useState<string | null>(null)
   const [isCompletionSheetOpen, setIsCompletionSheetOpen] = useState(false)
   const [isCompletionEditorOpen, setIsCompletionEditorOpen] = useState(false)
+  const [createdInvite, setCreatedInvite] = useState<CreatedManagedRoomInvite | null>(null)
+  const [inviteShareError, setInviteShareError] = useState<string | null>(null)
+  const [isInviteShareSheetOpen, setIsInviteShareSheetOpen] = useState(false)
   const completionTriggerRef = useRef<HTMLButtonElement>(null)
+  const inviteShareTriggerRef = useRef<HTMLButtonElement>(null)
   const {
     errorMessage: videoErrorMessage,
     isUploadingVideo,
@@ -81,6 +102,18 @@ export function BookDiscussionPage() {
     enabled: Boolean(roomId),
     queryFn: () => getReadingRoom(createSupabaseClient(), roomId ?? ''),
     queryKey: bookChatKeys.room(roomId ?? ''),
+  })
+  const roomManagementQuery = useQuery({
+    enabled: Boolean(roomId),
+    queryFn: () => getRoomManagement(createSupabaseClient(), roomId ?? '', profileId),
+    queryKey: roomManagementKeys.detail(roomId ?? ''),
+  })
+  const inviteMutation = useMutation({
+    mutationFn: () => createManagedRoomInvite(createSupabaseClient(), roomId ?? ''),
+    onSuccess: (invite) => {
+      setCreatedInvite(invite)
+      setIsInviteShareSheetOpen(true)
+    },
   })
   const videosQuery = useQuery({
     enabled: Boolean(bookChatId),
@@ -222,6 +255,68 @@ export function BookDiscussionPage() {
     completionRemovalMutation.mutate(bookChatId)
   }
 
+  /** 방장이 새 초대 코드를 만들거나 이미 만든 초대를 공유 시트로 연다. */
+  function handleOpenRoomInvite() {
+    if (createdInvite !== null) {
+      setIsInviteShareSheetOpen(true)
+      return
+    }
+    inviteMutation.mutate()
+  }
+
+  /** 초대 공유 시트를 닫고 메뉴의 초대 버튼에 포커스를 되돌린다. */
+  function handleCloseInviteShareSheet() {
+    setIsInviteShareSheetOpen(false)
+    window.requestAnimationFrame(() => inviteShareTriggerRef.current?.focus())
+  }
+
+  /** 선택한 채널의 지원 범위에 맞춰 초대 코드와 링크를 전달한다. */
+  async function handleShareInvite(platform: InviteSharePlatform) {
+    const room = roomQuery.data
+    if (createdInvite === null || room === null || room === undefined) return
+
+    const shareData = createInviteShareData(window.location.origin, room.name, createdInvite)
+    setInviteShareError(null)
+    try {
+      if (platform === 'kakao') {
+        const javascriptKey = getClientEnv().VITE_KAKAO_JAVASCRIPT_KEY
+        if (javascriptKey) {
+          try {
+            await shareInviteWithKakao(shareData, javascriptKey)
+          } catch {
+            await shareWithDevice(shareData)
+          }
+        } else await shareWithDevice(shareData)
+        handleCloseInviteShareSheet()
+        return
+      }
+      if (platform === 'instagram') {
+        await copyInviteText(getInviteCopyText(shareData))
+        openInvitePlatform(platform, shareData)
+        return
+      }
+      openInvitePlatform(platform, shareData)
+      handleCloseInviteShareSheet()
+    } catch (error) {
+      if (isShareCancellation(error)) return
+      setInviteShareError('초대 내용을 공유하지 못했어요. 다시 시도해 주세요.')
+    }
+  }
+
+  /** 초대 코드와 링크를 클립보드에 함께 복사한다. */
+  async function handleCopyInvite() {
+    const room = roomQuery.data
+    if (createdInvite === null || room === null || room === undefined) return
+
+    setInviteShareError(null)
+    try {
+      const shareData = createInviteShareData(window.location.origin, room.name, createdInvite)
+      await copyInviteText(getInviteCopyText(shareData))
+    } catch {
+      setInviteShareError('초대 코드와 링크를 복사하지 못했어요. 다시 시도해 주세요.')
+    }
+  }
+
   if (!roomId || !bookChatId) return <main className="bg-surface min-h-screen" />
   const roots = postsQuery.data?.filter((post) => post.depth === 0) ?? []
   return (
@@ -270,8 +365,10 @@ export function BookDiscussionPage() {
         )}
       </section>
       <ChatComposer
+        inviteTriggerRef={inviteShareTriggerRef}
         errorMessage={errorMessage ?? videoErrorMessage}
         isReplying={Boolean(replyTo)}
+        isCurrentUserOwner={roomManagementQuery.data?.isCurrentUserOwner ?? false}
         key={bookChatId}
         labels={labels}
         mentionCandidates={(membersQuery.data ?? []).filter((member) => !member.isCurrentUser)}
@@ -281,6 +378,7 @@ export function BookDiscussionPage() {
         onChangeMentionedMemberIds={setMentionedMemberIds}
         onOpenVideoArchive={() => void navigate(`/rooms/${roomId}/books/${bookChatId}/videos`)}
         onOpenCompletion={handleOpenCompletionSheet}
+        onOpenRoomInvite={handleOpenRoomInvite}
         onRetryMentionMembers={() => void membersQuery.refetch()}
         onSelectVideo={uploadVideo}
         onSubmit={() => void handleSubmit()}
@@ -307,6 +405,19 @@ export function BookDiscussionPage() {
           onRemove={handleRemoveCompletion}
           onSave={handleSaveCompletion}
         />
+      ) : null}
+      {createdInvite !== null && isInviteShareSheetOpen ? (
+        <InviteShareSheet
+          inviteCode={createdInvite.code}
+          onClose={handleCloseInviteShareSheet}
+          onCopyInvite={() => void handleCopyInvite()}
+          onShare={(platform) => void handleShareInvite(platform)}
+        />
+      ) : null}
+      {inviteMutation.isError || inviteShareError ? (
+        <p className="mt-2 text-sm text-red-600" role="alert">
+          {inviteShareError ?? '초대 코드를 만들지 못했어요. 다시 시도해 주세요.'}
+        </p>
       ) : null}
     </main>
   )
@@ -493,7 +604,7 @@ function CompletionSummary({
           onClick={onOpenEditor}
           type="button"
         >
-          {hasOwnCompletion ? '수정하기' : '완독하기'}
+          {hasOwnCompletion ? '완독 기록 수정' : '완독하기'}
         </button>
         {hasOwnCompletion ? (
           <button
@@ -516,6 +627,7 @@ function ChatComposer({
   errorMessage,
   hasMentionMemberError,
   isReplying,
+  isCurrentUserOwner,
   isUploadingVideo,
   labels,
   mentionCandidates,
@@ -524,16 +636,19 @@ function ChatComposer({
   onChangeLabels,
   onChangeMentionedMemberIds,
   onOpenCompletion,
+  onOpenRoomInvite,
   onOpenVideoArchive,
   onRetryMentionMembers,
   onSelectVideo,
   onSubmit,
   value,
+  inviteTriggerRef,
 }: {
   completionTriggerRef: RefObject<HTMLButtonElement | null>
   errorMessage: string | null
   hasMentionMemberError: boolean
   isReplying: boolean
+  isCurrentUserOwner: boolean
   isUploadingVideo: boolean
   labels: PostForm['labels']
   mentionCandidates: VideoFilterMember[]
@@ -542,11 +657,13 @@ function ChatComposer({
   onChangeLabels: (labels: PostForm['labels']) => void
   onChangeMentionedMemberIds: (mentionedMemberIds: PostForm['mentionedMemberIds']) => void
   onOpenCompletion: () => void
+  onOpenRoomInvite: () => void
   onOpenVideoArchive: () => void
   onRetryMentionMembers: () => void
   onSelectVideo: (file: File | undefined) => void
   onSubmit: () => void
   value: string
+  inviteTriggerRef: RefObject<HTMLButtonElement | null>
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const messageInputRef = useRef<HTMLTextAreaElement>(null)
@@ -787,6 +904,16 @@ function ChatComposer({
                     onOpenCompletion()
                   }}
                 />
+                {isCurrentUserOwner ? (
+                  <ActionButton
+                    buttonRef={inviteTriggerRef}
+                    label="책방 초대하기"
+                    onClick={() => {
+                      handleCloseActionTray()
+                      onOpenRoomInvite()
+                    }}
+                  />
+                ) : null}
               </div>
             </>
           )}
@@ -933,6 +1060,32 @@ function ActionButton({
   )
 }
 
+/** 기기 공유 창이 없으면 초대 문구를 복사해 카카오톡에서 바로 붙여 넣게 한다. */
+async function shareWithDevice(shareData: InviteShareData): Promise<void> {
+  if (typeof navigator.share === 'function') {
+    await navigator.share(shareData)
+    return
+  }
+  await copyInviteText(getInviteCopyText(shareData))
+}
+
+/** 카카오톡 외 채널의 공유 주소를 새 창으로 열어 초대 흐름을 이어간다. */
+function openInvitePlatform(
+  platform: Exclude<InviteSharePlatform, 'kakao'>,
+  shareData: InviteShareData,
+) {
+  const platformUrl = getInvitePlatformUrl(platform, shareData)
+  if (platformUrl === null) return
+  window.open(platformUrl, '_blank', 'noopener,noreferrer')
+}
+
+/** 사용자가 기기 공유 창을 닫은 오류인지 확인해 불필요한 실패 안내를 막는다. */
+function isShareCancellation(error: unknown): boolean {
+  return (
+    typeof error === 'object' && error !== null && 'name' in error && error.name === 'AbortError'
+  )
+}
+
 /** 대화 타임라인 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function ChatTimeline({
   allPosts,
@@ -971,7 +1124,9 @@ function ChatTimeline({
               <p className="text-ink text-sm font-medium">{message.post.authorName}</p>
               <PostLabels labels={message.post.labels} />
               {message.post.body ? (
-                <p className="text-ink mt-2 text-sm whitespace-pre-wrap">{message.post.body}</p>
+                <p className="text-ink mt-2 text-sm whitespace-pre-wrap">
+                  <HighlightedMentionText body={message.post.body} />
+                </p>
               ) : null}
               <button
                 className="text-primary mt-2 min-h-11 text-xs"
@@ -1099,12 +1254,29 @@ function Replies({ posts }: { posts: DiscussionPost[] }) {
         <li key={post.id}>
           <p className="text-ink text-xs font-medium">{post.authorName}</p>
           {post.body ? (
-            <p className="text-ink-subtle mt-1 text-xs whitespace-pre-wrap">{post.body}</p>
+            <p className="text-ink-subtle mt-1 text-xs whitespace-pre-wrap">
+              <HighlightedMentionText body={post.body} />
+            </p>
           ) : null}
         </li>
       ))}
     </ul>
   )
+}
+
+/** 메시지 본문에서 공백 뒤의 @멘션을 브랜드 색상으로 구분해 렌더링한다. */
+function HighlightedMentionText({ body }: { body: string }) {
+  return body.split(/((?:^|\s)@[^\s@]+)/u).map((segment, index) => {
+    const mention = segment.match(/^(\s?)(@[^\s@]+)$/u)
+    if (mention === null) return segment
+
+    return (
+      <Fragment key={`${mention[2]}-${index}`}>
+        {mention[1]}
+        <span className="text-primary font-semibold">{mention[2]}</span>
+      </Fragment>
+    )
+  })
 }
 
 /** 작성 중 라벨 데이터를 생성해 반환한다. */

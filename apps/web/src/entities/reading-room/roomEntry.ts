@@ -28,6 +28,9 @@ const joinRoomResultSchema = z
   )
   .length(1)
 
+const inviteCodeSchema = z.string().length(6, '6자리 초대 코드를 입력해 주세요.')
+const inviteTokenSchema = z.string().regex(/^[a-f0-9]{64}$/)
+
 export const createRoomFormSchema = z.object({
   description: z.string().trim().max(120, '소개는 120자 이내로 작성해 주세요.'),
   name: z
@@ -41,8 +44,8 @@ export const joinRoomFormSchema = z.object({
   code: z
     .string()
     .trim()
-    .transform((value) => value.toUpperCase())
-    .pipe(z.string().length(6, '6자리 초대 코드를 입력해 주세요.')),
+    .transform(normalizeInviteValue)
+    .pipe(z.union([inviteCodeSchema, inviteTokenSchema])),
 })
 
 export type CreateRoomForm = z.infer<typeof createRoomFormSchema>
@@ -52,6 +55,12 @@ export type CreatedRoomInvite = {
   code: string
   expiresAt: string
   roomId: string
+}
+
+/** URL 쿼리의 초대 토큰이 서버가 발급한 형태인지 확인한다. */
+export function parseInviteToken(value: unknown): string | null {
+  const parsedToken = inviteTokenSchema.safeParse(value)
+  return parsedToken.success ? parsedToken.data : null
 }
 
 /** 책방과 초대 코드를 함께 생성해 반환한다. */
@@ -109,6 +118,11 @@ async function createInvite(client: SupabaseClient, roomId: string) {
 
   const invite = getSingleResult(inviteResultSchema.parse(response.data))
   return { code: invite.code, expiresAt: invite.expires_at }
+}
+
+/** 6자리 코드는 대문자로 맞추고 링크 토큰은 원문 그대로 유지한다. */
+function normalizeInviteValue(value: string): string {
+  return value.length === 6 ? value.toUpperCase() : value
 }
 
 /** Supabase 응답에서 단일 결과를 검증해 반환한다. */

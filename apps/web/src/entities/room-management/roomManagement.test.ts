@@ -1,6 +1,8 @@
-import { describe, expect, it } from 'vitest'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { describe, expect, it, vi } from 'vitest'
 
 import {
+  createManagedRoomInvite,
   parseArchivedRooms,
   parseRoomInvites,
   parseRoomManagement,
@@ -136,5 +138,27 @@ describe('roomManagementKeys', () => {
   it('creates stable keys for room-specific server state', () => {
     expect(roomManagementKeys.detail(roomId)).toEqual(['room-management', roomId])
     expect(roomManagementKeys.archive).toEqual(['room-management', 'archive'])
+  })
+})
+
+describe('createManagedRoomInvite', () => {
+  it('returns the one-time token needed for a shareable invite link', async () => {
+    const token = 'a'.repeat(64)
+    const rpc = vi.fn().mockResolvedValue({
+      data: [
+        {
+          code: 'TALK87',
+          expires_at: '2026-07-24T02:01:30.123+00:00',
+          invite_id: '00ff57f4-2f7a-49bb-9c6b-0d724fcb0e55',
+          token,
+        },
+      ],
+      error: null,
+    })
+
+    const client = { rpc } as unknown as SupabaseClient
+    const invite = await createManagedRoomInvite(client, roomId)
+
+    expect(invite).toMatchObject({ code: 'TALK87', token })
   })
 })

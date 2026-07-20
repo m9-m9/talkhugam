@@ -15,6 +15,7 @@ export {
   createRoomWithInvite,
   joinRoomByCode,
   joinRoomFormSchema,
+  parseInviteToken,
   type CreatedRoomInvite,
   type CreateRoomForm,
   type JoinRoomForm,

@@ -21,6 +21,12 @@ describe('joinRoomFormSchema', () => {
     expect(joinRoomFormSchema.parse({ code: 'talk26' })).toEqual({ code: 'TALK26' })
   })
 
+  it('keeps a 64-character invite link token unchanged', () => {
+    const token = 'a'.repeat(64)
+
+    expect(joinRoomFormSchema.parse({ code: token })).toEqual({ code: token })
+  })
+
   it('requires exactly six characters', () => {
     expect(() => joinRoomFormSchema.parse({ code: 'talk2' })).toThrow()
   })

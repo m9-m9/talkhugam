@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import {
@@ -9,11 +9,22 @@ import {
   removeManagedRoomMember,
   roomManagementKeys,
   transferManagedRoomOwnership,
+  type CreatedManagedRoomInvite,
   type RoomManagementMember,
 } from '../../entities/room-management'
+import {
+  copyInviteText,
+  createInviteShareData,
+  getInviteCopyText,
+  getInvitePlatformUrl,
+  InviteShareSheet,
+  shareInviteWithKakao,
+  type InviteSharePlatform,
+} from '../../features/invite-sharing'
 import { readingRoomKeys } from '../../entities/reading-room'
 import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
+import { getClientEnv } from '../../app/env'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
@@ -29,7 +40,11 @@ export function RoomManagementPage() {
   const queryClient = useQueryClient()
   const user = useAuthenticatedUser()
   const { roomId } = useParams()
-  const [createdInviteCode, setCreatedInviteCode] = useState<string | null>(null)
+  const [createdInvite, setCreatedInvite] = useState<CreatedManagedRoomInvite | null>(null)
+  const [inviteShareError, setInviteShareError] = useState<string | null>(null)
+  const [inviteShareMessage, setInviteShareMessage] = useState<string | null>(null)
+  const [isInviteShareSheetOpen, setIsInviteShareSheetOpen] = useState(false)
+  const inviteShareTriggerRef = useRef<HTMLButtonElement>(null)
   const [pendingAction, setPendingAction] = useState<PendingAction>(null)
   const roomQuery = useQuery({
     enabled: Boolean(roomId),
@@ -38,7 +53,10 @@ export function RoomManagementPage() {
   })
   const inviteMutation = useMutation({
     mutationFn: () => createManagedRoomInvite(client, roomId ?? ''),
-    onSuccess: (invite) => setCreatedInviteCode(invite.code),
+    onSuccess: (invite) => {
+      setCreatedInvite(invite)
+      setIsInviteShareSheetOpen(true)
+    },
   })
   const memberMutation = useMutation({
     mutationFn: async (action: Exclude<PendingAction, null>) => {
@@ -59,10 +77,65 @@ export function RoomManagementPage() {
     },
   })
 
-  /** 초대 코드를 클립보드에 복사한다. */
+  /** 선택한 채널의 지원 범위에 맞춰 초대 링크와 코드를 전달한다. */
+  async function handleShareInvite(platform: InviteSharePlatform) {
+    if (createdInvite === null) return
+
+    const shareData = createInviteShareData(window.location.origin, room.name, createdInvite)
+    setInviteShareError(null)
+    setInviteShareMessage(null)
+
+    try {
+      if (platform === 'kakao') {
+        const javascriptKey = getClientEnv().VITE_KAKAO_JAVASCRIPT_KEY
+        if (javascriptKey) {
+          try {
+            await shareInviteWithKakao(shareData, javascriptKey)
+          } catch {
+            await shareWithDevice(shareData)
+          }
+        } else await shareWithDevice(shareData)
+        handleCloseInviteShareSheet()
+        setInviteShareMessage('카카오톡에서 보낼 초대 내용을 준비했어요.')
+        return
+      }
+
+      if (platform === 'instagram') {
+        await copyInviteText(getInviteCopyText(shareData))
+        openInvitePlatform(platform, shareData)
+        setInviteShareMessage('초대 문구를 복사했어요. 인스타그램에서 붙여 넣어 보내 보세요.')
+        return
+      }
+
+      openInvitePlatform(platform, shareData)
+      handleCloseInviteShareSheet()
+      setInviteShareMessage(`${getInviteSharePlatformName(platform)}으로 초대 링크를 열었어요.`)
+    } catch (error) {
+      if (isShareCancellation(error)) return
+      setInviteShareError('초대 내용을 공유하지 못했어요. 다시 시도해 주세요.')
+    }
+  }
+
+  /** 생성한 초대 코드와 링크를 한 번에 클립보드에 복사한다. */
   async function handleCopyInvite() {
-    if (createdInviteCode === null) return
-    await navigator.clipboard.writeText(createdInviteCode)
+    if (createdInvite === null) return
+
+    setInviteShareError(null)
+    setInviteShareMessage(null)
+
+    try {
+      const shareData = createInviteShareData(window.location.origin, room.name, createdInvite)
+      await copyInviteText(getInviteCopyText(shareData))
+      setInviteShareMessage('초대 코드와 링크를 복사했어요.')
+    } catch {
+      setInviteShareError('초대 링크를 복사하지 못했어요. 다시 시도해 주세요.')
+    }
+  }
+
+  /** 초대 선택 시트를 닫고 공유 버튼에 포커스를 되돌린다. */
+  function handleCloseInviteShareSheet() {
+    setIsInviteShareSheetOpen(false)
+    window.requestAnimationFrame(() => inviteShareTriggerRef.current?.focus())
   }
 
   /** 확인된 관리 동작을 서버에 요청한다. */
@@ -117,19 +190,33 @@ export function RoomManagementPage() {
               초대 코드를 만들지 못했어요. 다시 시도해 주세요.
             </p>
           ) : null}
-          {createdInviteCode ? (
+          {createdInvite ? (
             <div className="bg-surface-muted mt-4 rounded-lg p-4">
               <p className="text-ink-subtle text-xs">지금 한 번만 확인할 수 있는 초대 코드예요.</p>
               <p className="text-ink mt-2 text-2xl font-bold tracking-[0.2em]">
-                {createdInviteCode}
+                {createdInvite.code}
               </p>
               <button
-                className="text-primary mt-3 min-h-11 text-sm font-semibold"
-                onClick={() => void handleCopyInvite()}
+                className="bg-primary mt-4 min-h-12 w-full rounded-md px-4 text-sm font-semibold text-white"
+                onClick={() => setIsInviteShareSheetOpen(true)}
+                ref={inviteShareTriggerRef}
                 type="button"
               >
-                코드 복사하기
+                친구에게 공유하기
               </button>
+              <p className="text-ink-subtle mt-2 text-xs">
+                카카오톡, 문자, 인스타그램, 페이스북으로 초대할 수 있어요.
+              </p>
+              {inviteShareMessage ? (
+                <p className="text-primary mt-2 text-xs" role="status">
+                  {inviteShareMessage}
+                </p>
+              ) : null}
+              {inviteShareError ? (
+                <p className="mt-2 text-xs text-red-600" role="alert">
+                  {inviteShareError}
+                </p>
+              ) : null}
             </div>
           ) : null}
         </section>
@@ -199,6 +286,14 @@ export function RoomManagementPage() {
           onConfirm={handleConfirmAction}
         />
       ) : null}
+      {createdInvite && isInviteShareSheetOpen ? (
+        <InviteShareSheet
+          inviteCode={createdInvite.code}
+          onClose={handleCloseInviteShareSheet}
+          onCopyInvite={() => void handleCopyInvite()}
+          onShare={(platform) => void handleShareInvite(platform)}
+        />
+      ) : null}
       {memberMutation.isError ? (
         <p className="mt-4 text-sm text-red-600" role="alert">
           요청을 처리하지 못했어요. 방장 권한과 멤버 상태를 확인해 주세요.
@@ -206,6 +301,47 @@ export function RoomManagementPage() {
       ) : null}
     </main>
   )
+}
+
+/** 공유 대상을 이용자에게 자연스럽게 안내할 한국어 이름으로 반환한다. */
+function getInviteSharePlatformName(platform: InviteSharePlatform): string {
+  if (platform === 'sms') return '문자'
+  if (platform === 'kakao') return '카카오톡'
+  if (platform === 'instagram') return '인스타그램'
+  return '페이스북'
+}
+
+/** 기기 공유 API가 있으면 사용하고, 없으면 초대 문구를 복사한다. */
+async function shareWithDevice(shareData: {
+  text: string
+  title: string
+  url: string
+}): Promise<void> {
+  if (typeof navigator.share === 'function') {
+    await navigator.share(shareData)
+    return
+  }
+  await copyInviteText(getInviteCopyText(shareData))
+}
+
+/** 브라우저에서 지원하는 채널의 공유 주소를 새 창으로 연다. */
+function openInvitePlatform(
+  platform: Exclude<InviteSharePlatform, 'kakao'>,
+  shareData: {
+    text: string
+    title: string
+    url: string
+  },
+) {
+  const platformUrl = getInvitePlatformUrl(platform, shareData)
+  if (platformUrl === null) return
+  window.open(platformUrl, '_blank', 'noopener,noreferrer')
+}
+
+/** 기기 공유 시트에서 사용자가 취소한 오류인지 판별한다. */
+function isShareCancellation(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false
+  return 'name' in error && error.name === 'AbortError'
 }
 
 /** 프로필 식별자가 있는 멤버에게만 같은 책방 안의 프로필 진입 CTA를 제공한다. */

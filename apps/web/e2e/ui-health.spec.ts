@@ -329,6 +329,42 @@ test('opens completion records from the book-chat plus menu and restores focus o
   await expect(page.getByRole('dialog', { name: '완독 기록' })).toBeHidden()
   await expect(plusButton).toBeFocused()
 })
+
+test('opens the bookshop invite sheet from the plus menu without losing a draft', async ({
+  page,
+}) => {
+  await authenticatePage(page)
+  await mockRoomManagementPageData(page)
+  await page.route('**/rest/v1/rpc/create_room_invite', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify([
+        {
+          code: 'TALK87',
+          expires_at: '2026-07-27T00:00:00.000+00:00',
+          invite_id: '00000000-0000-4000-8000-000000000011',
+          token: 'a'.repeat(64),
+        },
+      ]),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+  await page.goto(`/rooms/${roomId}/books/${bookChatId}`)
+
+  const composer = page.getByRole('textbox', { name: '메시지 입력' })
+  await composer.fill('이 문장을 함께 나누고 싶어요.')
+  await page.getByRole('button', { name: '메시지 추가 메뉴 열기' }).click()
+  const actionGrid = page.locator('.talkhugam-chat-action-menu .grid')
+  expect(
+    await actionGrid.evaluate((element) =>
+      window.getComputedStyle(element).gridTemplateColumns.split(' ').filter(Boolean),
+    ),
+  ).toHaveLength(2)
+
+  await page.getByRole('button', { name: '책방 초대하기' }).click()
+  await expect(page.getByRole('dialog', { name: '책방 초대하기' })).toBeVisible()
+  await expect(composer).toHaveValue('이 문장을 함께 나누고 싶어요.')
+})
 test('selects a member by typing an at-sign in the book-chat composer', async ({ page }) => {
   await authenticatePage(page)
   await mockVideoMembers(page, [
