@@ -33,7 +33,12 @@ import {
   type VideoThumbnailAuthorization,
 } from '../../entities/video'
 import { useVideoUpload } from '../../features/video-upload'
-import { CompletionReviewForm, invalidateCompletionQueries } from '../../features/book-completion'
+import {
+  CompletionReviewForm,
+  invalidateCompletionQueries,
+  removeBookCompletionFromCache,
+  storeBookCompletionInCache,
+} from '../../features/book-completion'
 import { useAuthenticatedUser } from '../../features/auth'
 import { readingRoomKeys } from '../../entities/reading-room'
 import {
@@ -150,21 +155,7 @@ export function BookDiscussionPage() {
     mutationFn: (input: BookCompletionInput) =>
       upsertBookChatCompletion(createSupabaseClient(), input),
     onSuccess: (_result, input) => {
-      queryClient.setQueryData<BookChatCompletion[]>(
-        bookCompletionKeys.byChat(bookChatId ?? ''),
-        (completions = []) => [
-          ...completions.filter((completion) => !completion.isMe),
-          {
-            avatarPath: null,
-            completedAt: new Date().toISOString(),
-            displayName: '나',
-            isMe: true,
-            profileId,
-            rating: input.rating,
-            review: input.review,
-          },
-        ],
-      )
+      storeBookCompletionInCache(queryClient, { ...input, profileId })
       setIsCompletionEditorOpen(false)
       trackAnalyticsEvent('book_completed')
       invalidateCompletionQueries(queryClient, bookChatId ?? '', profileId)
@@ -174,10 +165,7 @@ export function BookDiscussionPage() {
     mutationFn: (targetBookChatId: string) =>
       removeBookChatCompletion(createSupabaseClient(), targetBookChatId),
     onSuccess: () => {
-      queryClient.setQueryData<BookChatCompletion[]>(
-        bookCompletionKeys.byChat(bookChatId ?? ''),
-        (completions = []) => completions.filter((completion) => !completion.isMe),
-      )
+      removeBookCompletionFromCache(queryClient, { bookChatId: bookChatId ?? '', profileId })
       invalidateCompletionQueries(queryClient, bookChatId ?? '', profileId)
     },
   })

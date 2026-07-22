@@ -11,10 +11,22 @@ export function invalidateCompletionQueries(
   profileId: string,
 ) {
   void Promise.all([
-    queryClient.invalidateQueries({ queryKey: bookCompletionKeys.byChat(bookChatId) }),
+    queryClient.invalidateQueries({
+      queryKey: bookCompletionKeys.byChat(bookChatId),
+      refetchType: 'inactive',
+    }),
     queryClient.invalidateQueries({ queryKey: bookCompletionKeys.myBooks(profileId) }),
-    queryClient.invalidateQueries({ queryKey: bookCompletionKeys.myBookChatIds(profileId) }),
-    queryClient.invalidateQueries({ queryKey: bookChatKeys.myReading(profileId, []) }),
-    queryClient.invalidateQueries({ queryKey: readingProgressKeys.byProfile(profileId) }),
+    queryClient.invalidateQueries({
+      queryKey: bookCompletionKeys.myBookChatIds(profileId),
+      refetchType: 'inactive',
+    }),
+    queryClient.invalidateQueries({
+      queryKey: bookChatKeys.myReading(profileId, []),
+      refetchType: 'inactive',
+    }),
+    queryClient.invalidateQueries({
+      queryKey: readingProgressKeys.byProfile(profileId),
+      refetchType: 'inactive',
+    }),
   ]).catch(() => undefined)
 }

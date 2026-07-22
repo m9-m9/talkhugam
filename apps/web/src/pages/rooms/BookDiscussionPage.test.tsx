@@ -174,7 +174,7 @@ describe('BookDiscussionPage', () => {
     getVideoFilterMembers.mockClear()
     getVideoPosts.mockClear()
     getVideoPosts.mockResolvedValue([])
-    getBookChatCompletions.mockClear()
+    getBookChatCompletions.mockReset()
     getBookChatCompletions.mockResolvedValue([])
     upsertBookChatCompletion.mockClear()
     upsertBookChatCompletion.mockResolvedValue(undefined)
@@ -457,15 +457,17 @@ describe('BookDiscussionPage', () => {
     await vi.waitFor(() =>
       expect(invalidateQueries).toHaveBeenCalledWith({
         queryKey: ['my-reading-books', '00000000-0000-0000-0000-000000000001'],
+        refetchType: 'inactive',
       }),
     )
     expect(invalidateQueries).toHaveBeenCalledWith({
       queryKey: ['reading-progresses', '00000000-0000-0000-0000-000000000001'],
+      refetchType: 'inactive',
     })
   })
 
   it('shows the personal completion marker and reopens saved values for editing', async () => {
-    getBookChatCompletions.mockResolvedValueOnce([
+    getBookChatCompletions.mockResolvedValue([
       {
         completedAt: '2026-07-19T00:00:00.000Z',
         displayName: '민규',
