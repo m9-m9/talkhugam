@@ -106,6 +106,30 @@ describe('알림 도메인 변환', () => {
     ])
   })
 
+  it('초대 요청 알림을 방 관리 화면으로 연결한다', () => {
+    expect(
+      parseNotifications([
+        {
+          actor: { room_display_name: '수진' },
+          created_at: '2026-07-18T01:02:03.000Z',
+          id: ids.notification,
+          post: null,
+          post_id: null,
+          read_at: null,
+          room: { name: '금요일 아침 책방' },
+          room_id: ids.room,
+          type: 'invite_request',
+        },
+      ]),
+    ).toMatchObject([
+      {
+        message: '수진님이 책방 초대를 요청했어요.',
+        targetPath: `/rooms/${ids.room}/manage`,
+        type: 'invite_request',
+      },
+    ])
+  })
+
   it('읽을 수 없는 독서방의 알림은 원본 room_id가 있어도 이동 경로를 만들지 않는다', () => {
     expect(
       parseNotifications([

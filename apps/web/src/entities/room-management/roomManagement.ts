@@ -195,6 +195,19 @@ export async function createManagedRoomInvite(
   }
 }
 
+/** 현재 멤버가 방장에게 책방 초대 요청을 전달하고 새 요청 여부를 반환한다. */
+export async function requestManagedRoomInvite(
+  client: SupabaseClient,
+  roomId: string,
+): Promise<boolean> {
+  const response = await client.rpc('request_room_invite', {
+    p_room_id: roomIdSchema.parse(roomId),
+  })
+
+  if (response.error) throw response.error
+  return z.boolean().parse(response.data)
+}
+
 /** 방장이 더 이상 쓰지 않을 초대 코드를 즉시 폐기한다. */
 export async function revokeManagedRoomInvite(
   client: SupabaseClient,

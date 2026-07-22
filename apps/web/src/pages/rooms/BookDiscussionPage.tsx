@@ -44,6 +44,7 @@ import { readingRoomKeys } from '../../entities/reading-room'
 import {
   createManagedRoomInvite,
   getRoomManagement,
+  requestManagedRoomInvite,
   roomManagementKeys,
   type CreatedManagedRoomInvite,
 } from '../../entities/room-management'
@@ -84,6 +85,7 @@ export function BookDiscussionPage() {
   const [isCompletionSheetOpen, setIsCompletionSheetOpen] = useState(false)
   const [isCompletionEditorOpen, setIsCompletionEditorOpen] = useState(false)
   const [createdInvite, setCreatedInvite] = useState<CreatedManagedRoomInvite | null>(null)
+  const [inviteRequestMessage, setInviteRequestMessage] = useState<string | null>(null)
   const [inviteShareError, setInviteShareError] = useState<string | null>(null)
   const [isInviteShareSheetOpen, setIsInviteShareSheetOpen] = useState(false)
   const completionTriggerRef = useRef<HTMLButtonElement>(null)
@@ -118,6 +120,14 @@ export function BookDiscussionPage() {
     onSuccess: (invite) => {
       setCreatedInvite(invite)
       setIsInviteShareSheetOpen(true)
+    },
+  })
+  const inviteRequestMutation = useMutation({
+    mutationFn: () => requestManagedRoomInvite(createSupabaseClient(), roomId ?? ''),
+    onSuccess: (isCreated) => {
+      setInviteRequestMessage(
+        isCreated ? '방장에게 책방 초대를 요청했어요.' : '방장이 아직 초대 요청을 확인하고 있어요.',
+      )
     },
   })
   const videosQuery = useQuery({
@@ -252,6 +262,12 @@ export function BookDiscussionPage() {
     inviteMutation.mutate()
   }
 
+  /** 현재 책방의 방장에게 친구 초대를 요청한다. */
+  function handleRequestRoomInvite() {
+    setInviteRequestMessage(null)
+    inviteRequestMutation.mutate()
+  }
+
   /** 초대 공유 시트를 닫고 메뉴의 초대 버튼에 포커스를 되돌린다. */
   function handleCloseInviteShareSheet() {
     setIsInviteShareSheetOpen(false)
@@ -368,14 +384,26 @@ export function BookDiscussionPage() {
         onOpenVideoArchive={() => void navigate(`/rooms/${roomId}/books/${bookChatId}/videos`)}
         onOpenCompletion={handleOpenCompletionSheet}
         onOpenRoomInvite={handleOpenRoomInvite}
+        onRequestRoomInvite={handleRequestRoomInvite}
         onRetryMentionMembers={() => void membersQuery.refetch()}
         onSelectVideo={uploadVideo}
         onSubmit={() => void handleSubmit()}
         completionTriggerRef={completionTriggerRef}
         hasMentionMemberError={membersQuery.isError}
+        isRequestingRoomInvite={inviteRequestMutation.isPending}
         isUploadingVideo={isUploadingVideo}
         value={draft}
       />
+      {inviteRequestMessage ? (
+        <p className="text-primary mt-2 text-sm" role="status">
+          {inviteRequestMessage}
+        </p>
+      ) : null}
+      {inviteRequestMutation.isError ? (
+        <p className="mt-2 text-sm text-red-600" role="alert">
+          방장에게 초대 요청을 보내지 못했어요. 다시 시도해 주세요.
+        </p>
+      ) : null}
       {isCompletionSheetOpen ? (
         <CompletionSheet
           bookChatId={bookChatId}
@@ -620,6 +648,7 @@ function ChatComposer({
   hasMentionMemberError,
   isReplying,
   isCurrentUserOwner,
+  isRequestingRoomInvite,
   isUploadingVideo,
   labels,
   mentionCandidates,
@@ -629,6 +658,7 @@ function ChatComposer({
   onChangeMentionedMemberIds,
   onOpenCompletion,
   onOpenRoomInvite,
+  onRequestRoomInvite,
   onOpenVideoArchive,
   onRetryMentionMembers,
   onSelectVideo,
@@ -641,6 +671,7 @@ function ChatComposer({
   hasMentionMemberError: boolean
   isReplying: boolean
   isCurrentUserOwner: boolean
+  isRequestingRoomInvite: boolean
   isUploadingVideo: boolean
   labels: PostForm['labels']
   mentionCandidates: VideoFilterMember[]
@@ -650,6 +681,7 @@ function ChatComposer({
   onChangeMentionedMemberIds: (mentionedMemberIds: PostForm['mentionedMemberIds']) => void
   onOpenCompletion: () => void
   onOpenRoomInvite: () => void
+  onRequestRoomInvite: () => void
   onOpenVideoArchive: () => void
   onRetryMentionMembers: () => void
   onSelectVideo: (file: File | undefined) => void
@@ -905,7 +937,16 @@ function ChatComposer({
                       onOpenRoomInvite()
                     }}
                   />
-                ) : null}
+                ) : (
+                  <ActionButton
+                    disabled={isRequestingRoomInvite}
+                    label="초대 요청"
+                    onClick={() => {
+                      handleCloseActionTray()
+                      onRequestRoomInvite()
+                    }}
+                  />
+                )}
               </div>
             </>
           )}

@@ -6,6 +6,7 @@ export {
   parseArchivedRooms,
   parseRoomInvites,
   parseRoomManagement,
+  requestManagedRoomInvite,
   removeManagedRoomMember,
   revokeManagedRoomInvite,
   roomManagementKeys,

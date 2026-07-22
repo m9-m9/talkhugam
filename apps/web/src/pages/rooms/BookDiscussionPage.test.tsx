@@ -18,6 +18,7 @@ const {
   getVideoPosts,
   getVideoThumbnailAuthorizations,
   parsePostForm,
+  requestManagedRoomInvite,
   upsertBookChatCompletion,
   videoUploadState,
 } = vi.hoisted(() => ({
@@ -84,6 +85,7 @@ const {
       return { body, labels: normalizedLabels, mentionedMemberIds }
     },
   ),
+  requestManagedRoomInvite: vi.fn().mockResolvedValue(true),
   upsertBookChatCompletion: vi.fn().mockResolvedValue(undefined),
   videoUploadState: { isUploadingVideo: false },
 }))
@@ -128,6 +130,7 @@ vi.mock('../../entities/reading-room', () => ({
 vi.mock('../../entities/room-management', () => ({
   createManagedRoomInvite,
   getRoomManagement,
+  requestManagedRoomInvite,
   roomManagementKeys: { detail: (roomId: string) => ['room-management', roomId] },
 }))
 
@@ -174,6 +177,8 @@ describe('BookDiscussionPage', () => {
     getVideoFilterMembers.mockClear()
     getVideoPosts.mockClear()
     getVideoPosts.mockResolvedValue([])
+    requestManagedRoomInvite.mockClear()
+    requestManagedRoomInvite.mockResolvedValue(true)
     getBookChatCompletions.mockReset()
     getBookChatCompletions.mockResolvedValue([])
     upsertBookChatCompletion.mockClear()
@@ -296,6 +301,29 @@ describe('BookDiscussionPage', () => {
 
     expect(await screen.findByRole('dialog', { name: '책방 초대하기' })).toBeInTheDocument()
     expect(messageInput).toHaveValue('이 문장을 나누고 싶어요.')
+  })
+
+  it('lets a non-owner request an invite from the room owner', async () => {
+    getRoomManagement.mockResolvedValueOnce({
+      createdBy: '00000000-0000-0000-0000-000000000001',
+      description: null,
+      id: 'room-1',
+      isCurrentUserOwner: false,
+      members: [],
+      name: '금요일 아침 책방',
+      status: 'active',
+    })
+    renderBookDiscussionPage()
+
+    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
+
+    fireEvent.click(await screen.findByRole('button', { name: '초대 요청' }))
+
+    await vi.waitFor(() =>
+      expect(requestManagedRoomInvite).toHaveBeenCalledWith(undefined, 'room-1'),
+    )
+    expect(await screen.findByText('방장에게 책방 초대를 요청했어요.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '책방 초대하기' })).not.toBeInTheDocument()
   })
 
   it('shows the bookshop in the header and the selected book as the discussion title', async () => {
