@@ -201,6 +201,65 @@ describe('BookDiscussionPage', () => {
     expect(message.closest('article')).toHaveClass('w-fit')
   })
 
+  it('aligns my text, reply, and video messages to the right', async () => {
+    getPosts.mockResolvedValueOnce([
+      {
+        authorMemberId: '0ce71cea-b4ea-4e18-a605-bf2088d4ba15',
+        authorName: '나',
+        body: '내 독후감',
+        createdAt: '2026-07-18T00:00:00.000Z',
+        depth: 0,
+        id: 'post-1',
+        labels: [],
+        rootPostId: null,
+      },
+      {
+        authorMemberId: '0ce71cea-b4ea-4e18-a605-bf2088d4ba15',
+        authorName: '나',
+        body: '내 답글',
+        createdAt: '2026-07-18T00:01:00.000Z',
+        depth: 1,
+        id: 'reply-1',
+        labels: [],
+        rootPostId: 'post-1',
+      },
+      {
+        authorMemberId: 'b3c8b282-6092-45f8-b15f-523a9dcd0eab',
+        authorName: '민수',
+        body: '다른 멤버의 독후감',
+        createdAt: '2026-07-18T00:02:00.000Z',
+        depth: 0,
+        id: 'post-2',
+        labels: [],
+        rootPostId: null,
+      },
+    ])
+    getVideoPosts.mockResolvedValueOnce([
+      {
+        authorMemberId: '0ce71cea-b4ea-4e18-a605-bf2088d4ba15',
+        authorName: '나',
+        body: null,
+        createdAt: '2026-07-18T00:03:00.000Z',
+        id: 'video-1',
+        status: 'failed',
+      },
+    ])
+    renderBookDiscussionPage()
+
+    expect((await screen.findByText('내 독후감')).closest('li')).toHaveClass('justify-end')
+    expect(screen.getByText('내 답글').closest('li')).toHaveClass('justify-end')
+    expect(screen.getByText('다른 멤버의 독후감').closest('li')).toHaveClass('justify-start')
+    expect(
+      screen.getByText('영상 처리를 완료하지 못했어요. 잠시 후 다시 시도해 주세요.').closest('li'),
+    ).toHaveClass('justify-end')
+  })
+
+  it('keeps the chat input at sixteen pixels to prevent mobile Safari zoom', () => {
+    renderBookDiscussionPage()
+
+    expect(screen.getByLabelText('메시지 입력')).toHaveClass('text-base')
+  })
+
   it('highlights at-sign mentions in discussion posts and replies', async () => {
     getPosts.mockResolvedValueOnce([
       {

@@ -85,6 +85,7 @@ describe('post parser', () => {
     expect(
       parsePosts([
         {
+          author_member_id: 'b3c8b282-6092-45f8-b15f-523a9dcd0eab',
           author_name_snapshot: '민규',
           body: '감상',
           created_at: '2026-07-17T02:01:30.123+00:00',
@@ -99,6 +100,7 @@ describe('post parser', () => {
       ]),
     ).toEqual([
       {
+        authorMemberId: 'b3c8b282-6092-45f8-b15f-523a9dcd0eab',
         authorName: '민규',
         body: '감상',
         createdAt: '2026-07-17T02:01:30.123+00:00',
