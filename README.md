@@ -2,7 +2,20 @@
 
 가까운 사람들과 비공개 책방에서 책에 관한 대화와 30초 독서 순간 영상을 쌓는 기록형 서비스입니다.
 
-## Phase 1
+## 제품 로드맵
+
+### Phase 1 · 관계 기반 독서 기록 MVP (구현)
+
+- 최대 6명의 지인이 비공개 **책방**에서 책별 대화·답글·멘션과 30초 독서 영상을 함께 축적
+- 초대 코드 참여, 소셜 로그인, 개인 완독·별점·총평, 멤버·계정 관리까지 모바일 웹 흐름 완성
+- Supabase RLS·Realtime과 Mux를 연결하고 320px/640px Playwright 검증으로 출시 품질 기준 마련
+
+### Phase 2 · 앱 전환과 재방문 경험 확장 (계획)
+
+- Capacitor 기반 iOS·Android 패키징, 네이티브 카메라·파일 선택, APNs·FCM 푸시 알림 도입
+- 앱 딥링크와 초대 링크를 연결하고, Draft 서버 동기화·공개방·GPS 장소 태그를 단계적으로 검증
+
+## Phase 1 상세
 
 - 모바일 우선 웹
 - 책방 최대 6명
@@ -56,9 +69,9 @@ PR에서는 Frontend CI가 위 웹 품질 검증과 브라우저 UI 검사를, B
 브라우저용 값은 `apps/web/.env.local`, Edge Function용 비밀값은 `supabase/functions/.env.local`에 둡니다.
 각 `.env.example`에 있는 키만 복사하고, 실제 키·토큰·사용자 정보는 커밋하지 않습니다.
 
-| 구분 | 파일 | 예시 키 |
-| --- | --- | --- |
-| 웹 공개 설정 | `apps/web/.env.local` | `VITE_SUPABASE_URL`, `VITE_GA_MEASUREMENT_ID`, `VITE_CLARITY_PROJECT_ID` |
-| 서버 비밀값 | `supabase/functions/.env.local` | `MUX_TOKEN_SECRET`, `NAVER_CLIENT_SECRET`, `DELETION_WORKER_SECRET` |
+| 구분         | 파일                            | 예시 키                                                                  |
+| ------------ | ------------------------------- | ------------------------------------------------------------------------ |
+| 웹 공개 설정 | `apps/web/.env.local`           | `VITE_SUPABASE_URL`, `VITE_GA_MEASUREMENT_ID`, `VITE_CLARITY_PROJECT_ID` |
+| 서버 비밀값  | `supabase/functions/.env.local` | `MUX_TOKEN_SECRET`, `NAVER_CLIENT_SECRET`, `DELETION_WORKER_SECRET`      |
 
 운영 환경의 동일한 값은 Vercel과 Supabase Edge Function Secrets에 각각 설정합니다. 세부 입력 위치는 [출시 정책·문의 화면 계획](docs/legal-launch.md)을 따릅니다.

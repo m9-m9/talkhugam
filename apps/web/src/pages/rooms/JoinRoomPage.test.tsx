@@ -55,14 +55,33 @@ describe('JoinRoomPage', () => {
     )
     expect(screen.getByLabelText('6자리 초대 코드')).toBeEnabled()
   })
+
+  it('uses an invite token in the link without asking the visitor to copy a code', async () => {
+    const token = 'a'.repeat(64)
+    joinRoomByCode.mockResolvedValue('room-1')
+
+    renderJoinRoomPage(`/rooms/join?invite=${token}`)
+
+    expect(screen.queryByLabelText('6자리 초대 코드')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '초대받은 책방에 참여하기' }))
+
+    await waitFor(() => {
+      expect(joinRoomByCode).toHaveBeenCalledWith(
+        undefined,
+        '00000000-0000-0000-0000-000000000001',
+        { code: token },
+      )
+    })
+    expect(await screen.findByText('내 독서방 화면')).toBeInTheDocument()
+  })
 })
 
 /** 독서방 참여 화면의 라우터와 서버 상태 Provider를 구성해 렌더링한다. */
-function renderJoinRoomPage() {
+function renderJoinRoomPage(initialEntry = '/rooms/join') {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={['/rooms/join']}>
+      <MemoryRouter initialEntries={[initialEntry]}>
         <Routes>
           <Route path="/rooms/join" element={<JoinRoomPage />} />
           <Route path="/rooms" element={<p>내 독서방 화면</p>} />

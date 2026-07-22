@@ -44,6 +44,7 @@ const createdInviteRowSchema = z
       code: z.string().length(6),
       expires_at: z.string().datetime({ offset: true }),
       invite_id: z.string().uuid(),
+      token: z.string().regex(/^[a-f0-9]{64}$/),
     }),
   )
   .length(1)
@@ -95,6 +96,7 @@ export type CreatedManagedRoomInvite = {
   code: string
   expiresAt: string
   id: string
+  token: string
 }
 
 export type UpdateManagedRoom = z.infer<typeof updateRoomSchema>
@@ -185,7 +187,12 @@ export async function createManagedRoomInvite(
   if (response.error) throw response.error
 
   const invite = getSingleResult(createdInviteRowSchema.parse(response.data))
-  return { code: invite.code, expiresAt: invite.expires_at, id: invite.invite_id }
+  return {
+    code: invite.code,
+    expiresAt: invite.expires_at,
+    id: invite.invite_id,
+    token: invite.token,
+  }
 }
 
 /** 방장이 더 이상 쓰지 않을 초대 코드를 즉시 폐기한다. */

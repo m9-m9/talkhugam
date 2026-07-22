@@ -11,6 +11,7 @@ const clientEnvSchema = z.object({
     .string()
     .regex(/^[a-z0-9]+$/i)
     .optional(),
+  VITE_KAKAO_JAVASCRIPT_KEY: z.string().min(1).optional(),
   VITE_SUPPORT_EMAIL: z.string().email().optional(),
 })
 

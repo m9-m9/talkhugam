@@ -2,11 +2,12 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import {
   joinRoomByCode,
   joinRoomFormSchema,
+  parseInviteToken,
   readingRoomKeys,
   type JoinRoomForm,
 } from '../../entities/reading-room'
@@ -19,11 +20,13 @@ import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
 /** 초대 코드로 책방에 참여하는 화면을 렌더링한다. */
 export function JoinRoomPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const queryClient = useQueryClient()
   const user = useAuthenticatedUser()
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const inviteToken = parseInviteToken(searchParams.get('invite'))
   const form = useForm<JoinRoomForm>({
-    defaultValues: { code: '' },
+    defaultValues: { code: inviteToken ?? '' },
     resolver: zodResolver(joinRoomFormSchema),
   })
 
@@ -51,24 +54,32 @@ export function JoinRoomPage() {
         </p>
         <h1 className="text-ink mt-4 text-2xl font-bold">책방 초대장을 받았어요</h1>
         <p className="text-ink-subtle mt-3 text-sm whitespace-pre-line">
-          {'친구가 보내준 6자리 코드를 넣으면,\n무슨 책을 읽는 방인지 미리 볼 수 있어요'}
+          {inviteToken
+            ? '친구가 보낸 초대 링크예요.\n참여하면 함께 읽는 책방 목록에 바로 추가돼요.'
+            : '친구가 보내준 6자리 코드를 넣으면,\n무슨 책을 읽는 방인지 미리 볼 수 있어요'}
         </p>
       </header>
 
       <form className="mt-12" onSubmit={form.handleSubmit(handleSubmit)}>
-        <label className="block">
-          <span className="sr-only">6자리 초대 코드</span>
-          <input
-            aria-invalid={Boolean(errorMessage || form.formState.errors.code)}
-            autoCapitalize="characters"
-            autoComplete="one-time-code"
-            className="border-ink/10 focus:border-primary min-h-12 w-full rounded-md border bg-white px-4 text-center text-xl font-bold tracking-widest uppercase outline-none"
-            maxLength={6}
-            placeholder="ABC123"
-            {...form.register('code')}
-          />
-        </label>
-        <p className="text-ink-subtle mt-3 text-center text-xs">대문자·소문자는 안 가려도 돼요</p>
+        {inviteToken ? null : (
+          <>
+            <label className="block">
+              <span className="sr-only">6자리 초대 코드</span>
+              <input
+                aria-invalid={Boolean(errorMessage || form.formState.errors.code)}
+                autoCapitalize="characters"
+                autoComplete="one-time-code"
+                className="border-ink/10 focus:border-primary min-h-12 w-full rounded-md border bg-white px-4 text-center text-xl font-bold tracking-widest uppercase outline-none"
+                maxLength={6}
+                placeholder="ABC123"
+                {...form.register('code')}
+              />
+            </label>
+            <p className="text-ink-subtle mt-3 text-center text-xs">
+              대문자·소문자는 안 가려도 돼요
+            </p>
+          </>
+        )}
         {form.formState.errors.code?.message ? (
           <p className="mt-4 text-sm text-red-600" role="alert">
             {form.formState.errors.code.message}
@@ -89,6 +100,8 @@ export function JoinRoomPage() {
               <LoadingSpinner label="책방에 들어가고 있어요." showLabel={false} size="xs" />
               입장하고 있어요…
             </span>
+          ) : inviteToken ? (
+            '초대받은 책방에 참여하기'
           ) : (
             '함께 읽기 시작하기'
           )}
