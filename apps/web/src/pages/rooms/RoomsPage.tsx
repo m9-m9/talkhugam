@@ -107,11 +107,7 @@ function BestsellerCarousel({ books }: { books: BookBestseller[] }) {
           style={{ transform: `translateX(-${activeIndex * 100}%)` }}
         >
           {books.map((book, index) => (
-            <div
-              aria-hidden={index !== activeIndex}
-              className="w-full shrink-0"
-              key={book.id}
-            >
+            <div aria-hidden={index !== activeIndex} className="w-full shrink-0" key={book.id}>
               <BestsellerFeature book={book} isActive={index === activeIndex} />
             </div>
           ))}

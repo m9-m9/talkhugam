@@ -170,7 +170,9 @@ test('uses the bottom-navigation token as the global page bottom spacing', async
   await expect(page.locator('.app-with-bottom-navigation')).toHaveCSS('padding-bottom', '96px')
 })
 
-test('slides the highlighted bestseller card instead of replacing the page content', async ({ page }, testInfo) => {
+test('slides the highlighted bestseller card instead of replacing the page content', async ({
+  page,
+}, testInfo) => {
   await authenticatePage(page)
   await mockAuthenticatedPageData(page)
   await mockBestsellers(page)
