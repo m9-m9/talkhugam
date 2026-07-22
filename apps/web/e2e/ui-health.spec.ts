@@ -329,6 +329,29 @@ test('keeps the chat input readable and aligns my discussion records to the righ
   await expectPageToFitViewport(page, testInfo.project.use.viewport?.width ?? 640)
 })
 
+test('lets a non-owner request a bookshop invite from the plus menu', async ({ page }) => {
+  let inviteRequestCount = 0
+  await authenticatePage(page)
+  await mockVideoMembers(page, [
+    createVideoMember('8fc963a4-da01-4696-995c-755fe145776f', '민규', true),
+  ])
+  await page.route('**/rest/v1/rpc/request_room_invite', async (route) => {
+    inviteRequestCount += 1
+    await route.fulfill({
+      body: JSON.stringify(true),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+  await page.goto(`/rooms/${roomId}/books/${bookChatId}`)
+
+  await page.getByRole('button', { name: '메시지 추가 메뉴 열기' }).click()
+  await page.getByRole('button', { name: '초대 요청' }).click()
+
+  await expect(page.getByText('방장에게 책방 초대를 요청했어요.')).toBeVisible()
+  await expect.poll(() => inviteRequestCount).toBe(1)
+})
+
 test('closes the account deletion dialog by Escape and backdrop while restoring trigger focus', async ({
   page,
 }) => {

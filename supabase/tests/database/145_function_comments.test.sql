@@ -35,6 +35,7 @@ with documented_function_names(function_name) as (
     ('public.create_reading_room'),
     ('public.create_reply'),
     ('public.create_room_invite'),
+    ('public.request_room_invite'),
     ('public.delete_book_chat'),
     ('public.delete_reading_room'),
     ('public.delete_video_post'),
@@ -68,7 +69,7 @@ database_functions as (
 )
 select is(
   count(distinct function_name),
-  51::bigint,
+  52::bigint,
   '모든 애플리케이션 데이터베이스 함수가 존재한다'
 )
 from database_functions;
@@ -106,6 +107,7 @@ with documented_function_names(function_name) as (
     ('public.create_reading_room'),
     ('public.create_reply'),
     ('public.create_room_invite'),
+    ('public.request_room_invite'),
     ('public.delete_book_chat'),
     ('public.delete_reading_room'),
     ('public.delete_video_post'),

@@ -6,6 +6,7 @@ import {
   parseArchivedRooms,
   parseRoomInvites,
   parseRoomManagement,
+  requestManagedRoomInvite,
   roomManagementKeys,
 } from './roomManagement'
 
@@ -160,5 +161,16 @@ describe('createManagedRoomInvite', () => {
     const invite = await createManagedRoomInvite(client, roomId)
 
     expect(invite).toMatchObject({ code: 'TALK87', token })
+  })
+})
+
+describe('requestManagedRoomInvite', () => {
+  it('asks the room owner for an invite through the protected RPC', async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: true, error: null })
+    const client = { rpc } as unknown as SupabaseClient
+
+    await expect(requestManagedRoomInvite(client, roomId)).resolves.toBe(true)
+
+    expect(rpc).toHaveBeenCalledWith('request_room_invite', { p_room_id: roomId })
   })
 })

@@ -8,6 +8,7 @@ const notificationTypeSchema = z.enum([
   'video',
   'completion',
   'invite',
+  'invite_request',
   'removed',
   'ownership_transfer',
   'system',
@@ -114,6 +115,7 @@ function mapNotification(row: z.infer<typeof notificationRowSchema>): AppNotific
     message: createNotificationMessage(row.type, actorName),
     roomName: row.room?.name ?? null,
     targetPath: createNotificationTargetPath(
+      row.type,
       row.room === null ? null : row.room_id,
       row.book_chat_id ?? row.post?.book_chat_id ?? null,
     ),
@@ -129,6 +131,7 @@ function createNotificationMessage(
   const actor = actorName ?? '누군가'
   const messages = {
     invite: `${actor}님이 책방에 초대했어요.`,
+    invite_request: `${actor}님이 책방 초대를 요청했어요.`,
     mention: `${actor}님이 회원님을 멘션했어요.`,
     post: `${actor}님이 새 독후감을 남겼어요.`,
     video: `${actor}님이 새 영상 기록을 남겼어요.`,
@@ -143,10 +146,12 @@ function createNotificationMessage(
 
 /** 알림에 연결된 방 또는 책 대화의 앱 내 이동 경로를 반환한다. */
 function createNotificationTargetPath(
+  type: z.infer<typeof notificationTypeSchema>,
   roomId: string | null,
   bookChatId: string | null,
 ): string | null {
   if (roomId === null) return null
+  if (type === 'invite_request') return `/rooms/${roomId}/manage`
   if (bookChatId === null) return `/rooms/${roomId}`
   return `/rooms/${roomId}/books/${bookChatId}`
 }
