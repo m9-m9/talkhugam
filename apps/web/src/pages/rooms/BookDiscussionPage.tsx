@@ -353,6 +353,7 @@ export function BookDiscussionPage() {
             isRetrying={isRetryingTimeline}
             onReply={setReplyTo}
             posts={roots}
+            currentMemberId={getCurrentUserMemberId(membersQuery.data ?? [])}
             onRetry={handleRetryTimeline}
             retryMessage={timelineRetryMessage}
             videos={videosQuery.data ?? []}
@@ -426,6 +427,7 @@ export function BookDiscussionPage() {
 /** 독후감과 영상 조회 상태에 따라 대화 또는 재시도 안내를 렌더링한다. */
 function DiscussionTimeline({
   allPosts,
+  currentMemberId,
   hasPostError,
   hasPendingQuery,
   hasVideoError,
@@ -440,6 +442,7 @@ function DiscussionTimeline({
   videos,
 }: {
   allPosts: DiscussionPost[]
+  currentMemberId: string | null
   hasPostError: boolean
   hasPendingQuery: boolean
   hasVideoError: boolean
@@ -465,6 +468,7 @@ function DiscussionTimeline({
       ) : null}
       <ChatTimeline
         allPosts={allPosts}
+        currentMemberId={currentMemberId}
         onReply={onReply}
         isThumbnailLoading={isThumbnailLoading}
         onOpenVideo={onOpenVideo}
@@ -996,7 +1000,7 @@ function ChatComposer({
           <textarea
             aria-autocomplete="list"
             aria-controls={shouldShowMentionMenu ? 'mention-candidates' : undefined}
-            className="border-ink/10 focus:border-primary block min-h-11 w-full resize-none rounded-md border bg-white px-3 py-2 text-sm outline-none"
+            className="border-ink/10 focus:border-primary block min-h-11 w-full resize-none rounded-md border bg-white px-3 py-2 text-base outline-none"
             id="discussion-message"
             onChange={(event) => handleChangeMessage(event.target.value)}
             onKeyDown={(event) => {
@@ -1089,6 +1093,7 @@ function isShareCancellation(error: unknown): boolean {
 /** 대화 타임라인 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function ChatTimeline({
   allPosts,
+  currentMemberId,
   isThumbnailLoading,
   onOpenVideo,
   onReply,
@@ -1098,6 +1103,7 @@ function ChatTimeline({
   videos,
 }: {
   allPosts: DiscussionPost[]
+  currentMemberId: string | null
   isThumbnailLoading: boolean
   onOpenVideo: (videoId: string) => void
   onReply: (id: string) => void
@@ -1119,7 +1125,14 @@ function ChatTimeline({
     <ul className="space-y-4">
       {messages.map((message) =>
         message.type === 'text' ? (
-          <li className="flex" key={message.post.id}>
+          <li
+            className={`flex ${
+              isCurrentMemberMessage(message.post.authorMemberId, currentMemberId)
+                ? 'justify-end'
+                : 'justify-start'
+            }`}
+            key={message.post.id}
+          >
             <article className="border-ink/10 w-fit max-w-[70%] rounded-lg border bg-white px-4 py-3">
               <p className="text-ink text-sm font-medium">{message.post.authorName}</p>
               <PostLabels labels={message.post.labels} />
@@ -1135,11 +1148,21 @@ function ChatTimeline({
               >
                 답글 남기기
               </button>
-              <Replies posts={allPosts.filter((reply) => reply.rootPostId === message.post.id)} />
+              <Replies
+                currentMemberId={currentMemberId}
+                posts={allPosts.filter((reply) => reply.rootPostId === message.post.id)}
+              />
             </article>
           </li>
         ) : (
-          <li className="flex" key={message.video.id}>
+          <li
+            className={`flex ${
+              isCurrentMemberMessage(message.video.authorMemberId, currentMemberId)
+                ? 'justify-end'
+                : 'justify-start'
+            }`}
+            key={message.video.id}
+          >
             <VideoMessage
               isThumbnailLoading={isThumbnailLoading}
               onOpen={() => onOpenVideo(message.video.id)}
@@ -1246,18 +1269,33 @@ function PostLabels({ labels }: { labels: DiscussionPost['labels'] }) {
 }
 
 /** 답글 목록 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
-function Replies({ posts }: { posts: DiscussionPost[] }) {
+function Replies({
+  currentMemberId,
+  posts,
+}: {
+  currentMemberId: string | null
+  posts: DiscussionPost[]
+}) {
   if (posts.length === 0) return null
   return (
     <ul className="border-ink/10 mt-3 space-y-3 border-l pl-3">
       {posts.map((post) => (
-        <li key={post.id}>
-          <p className="text-ink text-xs font-medium">{post.authorName}</p>
-          {post.body ? (
-            <p className="text-ink-subtle mt-1 text-xs whitespace-pre-wrap">
-              <HighlightedMentionText body={post.body} />
-            </p>
-          ) : null}
+        <li
+          className={`flex ${
+            isCurrentMemberMessage(post.authorMemberId, currentMemberId)
+              ? 'justify-end'
+              : 'justify-start'
+          }`}
+          key={post.id}
+        >
+          <div className="w-fit max-w-[70%]">
+            <p className="text-ink text-xs font-medium">{post.authorName}</p>
+            {post.body ? (
+              <p className="text-ink-subtle mt-1 text-xs whitespace-pre-wrap">
+                <HighlightedMentionText body={post.body} />
+              </p>
+            ) : null}
+          </div>
         </li>
       ))}
     </ul>
@@ -1335,6 +1373,19 @@ function getMatchingMentionCandidates(
   return candidates.filter((candidate) =>
     candidate.displayName.toLocaleLowerCase('ko-KR').includes(normalizedQuery),
   )
+}
+
+/** 멤버 목록에서 현재 로그인한 사용자의 책방 멤버 식별자를 반환한다. */
+function getCurrentUserMemberId(candidates: readonly VideoFilterMember[]): string | null {
+  return candidates.find((candidate) => candidate.isCurrentUser)?.id ?? null
+}
+
+/** 메시지 작성자가 현재 책방 멤버인지 안전하게 비교한다. */
+function isCurrentMemberMessage(
+  authorMemberId: string | null,
+  currentMemberId: string | null,
+): boolean {
+  return authorMemberId !== null && authorMemberId === currentMemberId
 }
 
 /** 메시지 본문에 실제로 완성된 @이름과 일치하는 멤버 식별자를 최대 여섯 명까지 반환한다. */

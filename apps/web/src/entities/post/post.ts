@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { z } from 'zod'
 
 const postRowSchema = z.object({
+  author_member_id: z.string().uuid().nullable(),
   author_name_snapshot: z.string(),
   body: z.string().nullable(),
   created_at: z.string().datetime({ offset: true }),
@@ -35,6 +36,7 @@ const postFormSchema = z
   })
 
 export type DiscussionPost = {
+  authorMemberId: string | null
   authorName: string
   body: string | null
   createdAt: string
@@ -63,7 +65,7 @@ export async function getPosts(
   const response = await client
     .from('posts')
     .select(
-      'id, body, depth, root_post_id, author_name_snapshot, created_at, post_labels(kind, value, sort_order)',
+      'id, body, depth, root_post_id, author_member_id, author_name_snapshot, created_at, post_labels(kind, value, sort_order)',
     )
     .eq('book_chat_id', bookChatId)
     .eq('type', 'text')
@@ -116,6 +118,7 @@ export function parsePostForm(value: unknown): PostForm {
 /** 원본 데이터를 대화 메시지 도메인 모델로 변환한다. */
 function mapDiscussionPost(row: z.infer<typeof postRowSchema>): DiscussionPost {
   return {
+    authorMemberId: row.author_member_id,
     authorName: row.author_name_snapshot,
     body: row.body,
     createdAt: row.created_at,

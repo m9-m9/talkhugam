@@ -259,6 +259,76 @@ test('aligns the book-chat composer controls on one 44px row', async ({ page }) 
   expect(Math.round(sendBox.x - (inputBox.x + inputBox.width))).toBe(8)
 })
 
+test('keeps the chat input readable and aligns my discussion records to the right', async ({
+  page,
+}, testInfo) => {
+  const currentMemberId = '8fc963a4-da01-4696-995c-755fe145776f'
+  await authenticatePage(page)
+  await mockVideoMembers(page, [
+    createVideoMember(currentMemberId, '민규', true),
+    createVideoMember('b21f0060-cd1d-40db-a6ae-fd2eb3e9f862', '수진'),
+  ])
+  await page.route('**/rest/v1/posts?*', async (route) => {
+    const type = new URL(route.request().url()).searchParams.get('type')
+    const posts =
+      type === 'eq.video'
+        ? [
+            {
+              author_member_id: currentMemberId,
+              author_name_snapshot: '민규',
+              body: null,
+              created_at: '2026-07-18T00:02:00.000+00:00',
+              id: 'e45b7500-b6bd-43d6-8438-e5b643c84282',
+              video_assets: { status: 'failed' },
+            },
+          ]
+        : [
+            {
+              author_member_id: currentMemberId,
+              author_name_snapshot: '민규',
+              body: '@수진 같이 읽고 싶어요.',
+              created_at: '2026-07-18T00:00:00.000+00:00',
+              depth: 0,
+              id: '4b7227b2-5350-4a61-9114-b2d0c915fd1b',
+              post_labels: [],
+              root_post_id: null,
+            },
+            {
+              author_member_id: 'b21f0060-cd1d-40db-a6ae-fd2eb3e9f862',
+              author_name_snapshot: '수진',
+              body: '저도 좋아요.',
+              created_at: '2026-07-18T00:01:00.000+00:00',
+              depth: 0,
+              id: 'c4cf2891-1d05-44f4-b9bf-2c2b4d302456',
+              post_labels: [],
+              root_post_id: null,
+            },
+          ]
+    await route.fulfill({
+      body: JSON.stringify(posts),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+  await page.goto(`/rooms/${roomId}/books/${bookChatId}`)
+
+  const composer = page.getByRole('textbox', { name: '메시지 입력' })
+  await expect(composer).toHaveCSS('font-size', '16px')
+  await expect(page.getByText('@수진', { exact: true })).toHaveClass(/text-primary/)
+  await expect(page.getByText('같이 읽고 싶어요.').locator('xpath=ancestor::li[1]')).toHaveClass(
+    /justify-end/,
+  )
+  await expect(page.getByText('저도 좋아요.').locator('xpath=ancestor::li[1]')).toHaveClass(
+    /justify-start/,
+  )
+  await expect(
+    page
+      .getByText('영상 처리를 완료하지 못했어요. 잠시 후 다시 시도해 주세요.')
+      .locator('xpath=ancestor::li[1]'),
+  ).toHaveClass(/justify-end/)
+  await expectPageToFitViewport(page, testInfo.project.use.viewport?.width ?? 640)
+})
+
 test('closes the account deletion dialog by Escape and backdrop while restoring trigger focus', async ({
   page,
 }) => {
