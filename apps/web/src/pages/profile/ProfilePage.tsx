@@ -1,12 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { ActionButton } from '@seed-design/react'
 
 import { getProfile, getProfileAvatarUrl } from '../../entities/profile'
 import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
-import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { BrandLoadingSpinner } from '../../shared/ui/LoadingSpinner'
 import { RetryState } from '../../shared/ui/RetryState'
 import { ProfileAvatar } from '../../shared/ui/ProfileAvatar'
 
@@ -129,11 +130,13 @@ export function ProfilePage() {
 /** 상세 화면으로 이동하는 메뉴 한 줄을 설명과 함께 렌더링한다. */
 function ProfileNavigationRow({ description, label, onClick }: ProfileNavigationRowProps) {
   return (
-    <button
+    <ActionButton
       aria-label={label}
-      className="border-ink/10 hover:bg-surface-muted focus-visible:ring-primary flex min-h-16 w-full cursor-pointer items-center justify-between gap-4 border-b px-4 py-3 text-left last:border-b-0 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+      className="hover:!bg-surface-muted !h-auto min-h-16 w-full !justify-between gap-4 !rounded-none !border-0 !border-b !border-[#e7ded7] !bg-white px-4 py-3 text-left last:!border-b-0"
       onClick={onClick}
+      size="large"
       type="button"
+      variant="neutralWeak"
     >
       <span className="min-w-0">
         <span className="text-ink block text-sm font-semibold">{label}</span>
@@ -142,7 +145,7 @@ function ProfileNavigationRow({ description, label, onClick }: ProfileNavigation
       <span aria-hidden="true" className="text-ink-subtle text-lg">
         ›
       </span>
-    </button>
+    </ActionButton>
   )
 }
 
@@ -150,7 +153,7 @@ function ProfileNavigationRow({ description, label, onClick }: ProfileNavigation
 function ProfileState({ message }: { message: string }) {
   return (
     <main className="app-page bg-surface flex items-center justify-center px-4">
-      <LoadingSpinner label={message} />
+      <BrandLoadingSpinner label={message} />
     </main>
   )
 }
@@ -168,7 +171,7 @@ function ProfileRetryState({
   return (
     <main className="app-page bg-surface flex flex-col items-center justify-center gap-4 px-4">
       <RetryState isRetrying={isRetrying} message={message} onRetry={onRetry} />
-      {isRetrying ? <LoadingSpinner label="내 정보를 다시 불러오고 있어요." /> : null}
+      {isRetrying ? <BrandLoadingSpinner label="내 정보를 다시 불러오고 있어요." /> : null}
     </main>
   )
 }

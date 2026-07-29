@@ -35,7 +35,7 @@ describe('OnboardingPage', () => {
     renderOnboardingPage()
 
     expect(await screen.findByDisplayValue('민규')).toBeInTheDocument()
-    fireEvent.change(screen.getByLabelText('한 줄 소개'), { target: { value: '함께 읽어요.' } })
+    fireEvent.change(screen.getByLabelText(/^한 줄 소개/), { target: { value: '함께 읽어요.' } })
     fireEvent.click(screen.getByRole('button', { name: '시작하기' }))
 
     await waitFor(() => {
@@ -56,6 +56,31 @@ describe('OnboardingPage', () => {
     expect(
       await screen.findByText('프로필 정보를 불러오지 못했어요. 다시 시도해 주세요.'),
     ).toBeInTheDocument()
+  })
+
+  it('marks invalid onboarding fields for assistive technology after submission', async () => {
+    getProfile.mockResolvedValue({ bio: '', displayName: '', mbti: null })
+
+    renderOnboardingPage()
+
+    const nameInput = await screen.findByLabelText('이름')
+    fireEvent.click(screen.getByRole('button', { name: '시작하기' }))
+
+    expect(await screen.findByText('이름을 입력해 주세요.')).toBeInTheDocument()
+    expect(nameInput).toHaveAttribute('data-invalid', '')
+  })
+
+  it('opens the MBTI picker as a SEED sheet and restores focus to its trigger', async () => {
+    getProfile.mockResolvedValue({ bio: '', displayName: '민규', mbti: 'INTP' })
+
+    renderOnboardingPage()
+
+    const mbtiTrigger = await screen.findByRole('button', { name: 'MBTI: INTP' })
+    fireEvent.click(mbtiTrigger)
+
+    expect(await screen.findByRole('dialog', { name: 'MBTI 선택' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'ENFP' }))
+    expect(mbtiTrigger).toHaveTextContent('ENFP')
   })
 
   it('retries the initial profile preparation without asking the member to refresh', async () => {

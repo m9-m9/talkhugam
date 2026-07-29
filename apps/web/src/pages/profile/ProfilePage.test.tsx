@@ -76,7 +76,8 @@ describe('ProfilePage', () => {
     const profileEditButton = await screen.findByRole('button', { name: '내 정보 수정' })
 
     expect(profileEditButton).toBeInTheDocument()
-    expect(profileEditButton).toHaveClass('cursor-pointer')
+    expect(profileEditButton).toHaveClass(/seed-action-button/)
+    expect(profileEditButton).toHaveClass('!justify-between')
     expect(screen.getByRole('button', { name: '책방 보기' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '읽고 있는 책' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '계정 설정' })).toBeInTheDocument()

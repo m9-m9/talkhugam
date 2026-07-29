@@ -55,6 +55,35 @@ describe('CreateRoomPage', () => {
       '책방을 만들지 못했어요. 잠시 후 다시 시도해 주세요.',
     )
   })
+
+  it('marks an invalid room name so the error is conveyed with the field', async () => {
+    renderCreateRoomPage()
+
+    const roomNameInput = screen.getByLabelText('책방 이름')
+    fireEvent.click(screen.getByRole('button', { name: '책방 만들기' }))
+
+    expect(await screen.findByText('책방 이름을 입력해 주세요.')).toBeInTheDocument()
+    expect(roomNameInput).toHaveAttribute('data-invalid', '')
+  })
+
+  it('uses white information surfaces for room details and the generated invite code', async () => {
+    createRoomWithInvite.mockResolvedValue({ code: 'TALK87', roomId: 'room-1' })
+    renderCreateRoomPage()
+
+    expect(
+      screen.getByLabelText('책방 이름').closest('.talkhugam-information-field'),
+    ).not.toBeNull()
+    expect(
+      screen.getByRole('textbox', { name: /한 줄 소개/ }).closest('.talkhugam-information-field'),
+    ).not.toBeNull()
+
+    fireEvent.change(screen.getByLabelText('책방 이름'), { target: { value: '금요일 아침 책방' } })
+    fireEvent.click(screen.getByRole('button', { name: '책방 만들기' }))
+
+    expect(
+      (await screen.findByText('TALK87')).closest('.talkhugam-information-surface'),
+    ).not.toBeNull()
+  })
 })
 
 /** 독서방 생성 화면의 라우터와 서버 상태 Provider를 구성해 렌더링한다. */

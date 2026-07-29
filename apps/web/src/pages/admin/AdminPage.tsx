@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
+import { ActionButton, ToggleButton } from '@seed-design/react'
 
 import {
   formatFeedbackCategory,
@@ -11,7 +12,7 @@ import {
 } from '../../entities/feedback'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { BottomSheet } from '../../shared/ui/BottomSheet'
-import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { BrandLoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 const statusFilters: readonly { label: string; value: FeedbackStatus | undefined }[] = [
   { label: '전체', value: undefined },
@@ -69,24 +70,20 @@ export function AdminPage() {
       <section className="pt-6" aria-label="피드백 상태 필터">
         <div className="flex gap-2 overflow-x-auto pb-1">
           {statusFilters.map((filter) => (
-            <button
-              aria-pressed={statusFilter === filter.value}
-              className={`min-h-11 shrink-0 cursor-pointer rounded-full px-4 text-sm font-semibold ${
-                statusFilter === filter.value
-                  ? 'bg-primary text-white'
-                  : 'border-border text-ink border bg-white'
-              }`}
+            <ToggleButton
+              className="talkhugam-foundation-toggle shrink-0"
               key={filter.label}
               onClick={() => handleStatusFilterChange(filter.value)}
-              type="button"
+              pressed={statusFilter === filter.value}
+              variant="neutralWeak"
             >
               {filter.label}
-            </button>
+            </ToggleButton>
           ))}
         </div>
       </section>
       <section className="pt-6" aria-live="polite">
-        {feedbackQuery.isPending ? <LoadingSpinner label="의견을 불러오고 있어요." /> : null}
+        {feedbackQuery.isPending ? <BrandLoadingSpinner label="의견을 불러오고 있어요." /> : null}
         {feedbackQuery.isError ? (
           <p className="text-danger text-sm">
             운영함을 불러오지 못했어요. 새로고침 후 다시 확인해 주세요.
@@ -100,10 +97,12 @@ export function AdminPage() {
         <ul className="space-y-3">
           {feedbackQuery.data?.map((ticket) => (
             <li key={ticket.id}>
-              <button
-                className="border-border focus-visible:outline-primary w-full cursor-pointer rounded-lg border bg-white p-4 text-left focus-visible:outline-2 focus-visible:outline-offset-2"
+              <ActionButton
+                className="border-border h-auto w-full justify-start rounded-lg border bg-white p-4 text-left"
                 onClick={() => handleOpenTicket(ticket)}
+                size="large"
                 type="button"
+                variant="neutralWeak"
               >
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-primary text-xs font-bold">
@@ -115,7 +114,7 @@ export function AdminPage() {
                 </div>
                 <p className="text-ink mt-3 line-clamp-2 text-sm leading-6">{ticket.body}</p>
                 <p className="text-ink-subtle mt-3 text-xs">{formatDateTime(ticket.createdAt)}</p>
-              </button>
+              </ActionButton>
             </li>
           ))}
         </ul>
@@ -141,20 +140,16 @@ export function AdminPage() {
             <p className="text-ink mt-6 text-sm font-semibold">처리 상태</p>
             <div className="mt-3 grid grid-cols-3 gap-2">
               {statusFilters.slice(1).map((filter) => (
-                <button
-                  aria-pressed={selectedTicket.status === filter.value}
-                  className={`min-h-11 cursor-pointer rounded-md border px-2 text-sm font-semibold ${
-                    selectedTicket.status === filter.value
-                      ? 'border-primary bg-primary text-white'
-                      : 'border-border text-ink bg-white'
-                  }`}
+                <ToggleButton
+                  className="talkhugam-foundation-toggle w-full"
                   disabled={statusMutation.isPending}
                   key={filter.label}
                   onClick={() => filter.value && handleUpdateStatus(filter.value)}
-                  type="button"
+                  pressed={selectedTicket.status === filter.value}
+                  variant="neutralWeak"
                 >
                   {filter.label}
-                </button>
+                </ToggleButton>
               ))}
             </div>
             {statusMutation.isError ? (

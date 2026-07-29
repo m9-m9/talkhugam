@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react'
 
-import { LoadingSpinner } from './LoadingSpinner'
+import { BookLoadingIndicator } from './LoadingSpinner'
 
 const MuxVideoPlayer = lazy(() => import('./MuxVideoPlayer'))
 
@@ -34,7 +34,7 @@ export function LazyMuxVideoPlayer({
     <Suspense
       fallback={
         <div className={`${className} flex items-center justify-center`}>
-          <LoadingSpinner label="재생기를 불러오고 있어요." size="sm" tone={tone} variant="book" />
+          <BookLoadingIndicator label="재생기를 불러오고 있어요." size="sm" tone={tone} />
         </div>
       }
     >

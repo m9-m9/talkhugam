@@ -109,22 +109,18 @@ describe('AppBottomNavigation', () => {
     expect(screen.getByText('/rooms/join')).toBeInTheDocument()
   })
 
-  it('navigates to the reading-group main page from the Talk후감 logo', () => {
+  it('removes the central Talk후감 logo destination while keeping the room action trigger', () => {
     render(
       <MemoryRouter initialEntries={['/profile']}>
         <AppBottomNavigation />
-        <Routes>
-          <Route path="*" element={<CurrentPath />} />
-        </Routes>
       </MemoryRouter>,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Talk후감 메인으로' }))
-
-    expect(screen.getByText('/rooms')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Talk후감 메인으로' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '책방 시작 메뉴 열기' })).toBeInTheDocument()
   })
 
-  it('marks the current top-level destination', () => {
+  it('marks the current top-level destination in the compact navigation', () => {
     const { container } = render(
       <MemoryRouter initialEntries={['/profile']}>
         <AppBottomNavigation />
@@ -132,6 +128,7 @@ describe('AppBottomNavigation', () => {
     )
 
     expect(screen.getByRole('button', { name: '내 정보' })).toHaveAttribute('aria-current', 'page')
-    expect(container.querySelector('img')).toHaveAttribute('src', '/brand/talkhugam-symbol.svg')
+    expect(container.querySelector('nav')).toHaveClass('app-bottom-navigation--compact')
+    expect(container.querySelector('img')).not.toBeInTheDocument()
   })
 })

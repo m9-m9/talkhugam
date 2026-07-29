@@ -18,6 +18,7 @@ describe('AppHeader', () => {
     fireEvent.click(screen.getByRole('button', { name: '이전 화면으로' }))
 
     expect(handleBack).toHaveBeenCalledOnce()
+    expect(screen.getByRole('button', { name: '이전 화면으로' })).toHaveClass('seed-action-button')
     expect(screen.queryByText('뒤로')).not.toBeInTheDocument()
   })
 

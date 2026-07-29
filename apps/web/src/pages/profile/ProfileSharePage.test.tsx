@@ -30,6 +30,14 @@ describe('ProfileSharePage', () => {
 
     expect(share).toHaveBeenCalledWith(expect.objectContaining({ title: '민규의 Talk후감 프로필' }))
   })
+
+  it('uses SEED action buttons for sharing and returning from an unavailable card', async () => {
+    renderProfileSharePage()
+
+    const shareButton = await screen.findByRole('button', { name: '공유하기' })
+    expect(shareButton).toHaveClass(/seed-action-button/)
+    expect(shareButton).toHaveClass('!mt-8')
+  })
 })
 
 /** 공유 카드 화면에 필요한 라우터와 서버 상태 Provider를 구성한다. */

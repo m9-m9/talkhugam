@@ -1,32 +1,34 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { useRef, useState } from 'react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { BottomSheet } from './BottomSheet'
 
 describe('BottomSheet', () => {
   afterEach(cleanup)
 
-  it('closes with Escape and restores focus to the sheet trigger', () => {
+  it('closes from the SEED close action and restores focus to the sheet trigger', async () => {
     render(<BottomSheetHarness />)
 
     const trigger = screen.getByRole('button', { name: '완독 기록 열기' })
+    trigger.focus()
     fireEvent.click(trigger)
 
-    expect(screen.getByRole('dialog', { name: '완독 기록' })).toBeInTheDocument()
-    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(screen.getByRole('dialog', { name: '완독 기록' })).toHaveClass(
+      'seed-menu-sheet__content',
+    )
+    expect(screen.getByRole('dialog', { name: '완독 기록' })).toHaveClass('talkhugam-bottom-sheet')
+    fireEvent.click(screen.getByRole('button', { name: '완독 기록 닫기' }))
 
     expect(screen.queryByRole('dialog', { name: '완독 기록' })).not.toBeInTheDocument()
-    expect(trigger).toHaveFocus()
+    await vi.waitFor(() => expect(trigger).toHaveFocus())
   })
 
-  it('closes when the user presses the outside backdrop', () => {
+  it('renders the SEED backdrop for outside dismissal', () => {
     render(<BottomSheetHarness />)
 
     fireEvent.click(screen.getByRole('button', { name: '완독 기록 열기' }))
-    fireEvent.pointerDown(screen.getByRole('button', { name: '완독 기록 창 닫기' }))
-
-    expect(screen.queryByRole('dialog', { name: '완독 기록' })).not.toBeInTheDocument()
+    expect(screen.getByTestId('bottom-sheet-backdrop')).toHaveClass('seed-menu-sheet__backdrop')
   })
 })
 

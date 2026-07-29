@@ -1,7 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useEffect, useRef, useState } from 'react'
+import { useForm, useWatch } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
+
+import { ActionButton, FieldButton, TextField, ToggleButton } from '@seed-design/react'
 
 import {
   completeOnboarding,
@@ -13,7 +15,9 @@ import {
 import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { trackAnalyticsEvent } from '../../shared/analytics'
-import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { BrandLoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { BottomSheet } from '../../shared/ui/BottomSheet'
+import { FormField } from '../../shared/ui/FormField'
 import { RetryState } from '../../shared/ui/RetryState'
 
 const mbtiOptions = [
@@ -43,10 +47,14 @@ export function OnboardingPage() {
   const [loadAttempt, setLoadAttempt] = useState(0)
   const [profileErrorMessage, setProfileErrorMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [isMbtiSheetOpen, setIsMbtiSheetOpen] = useState(false)
+  const mbtiFieldButtonRef = useRef<HTMLButtonElement>(null)
   const form = useForm<ProfileForm>({
     defaultValues: createInitialProfileForm(undefined),
     resolver: zodResolver(profileFormSchema),
   })
+  const watchedMbti = useWatch({ control: form.control, name: 'mbti' })
+  const selectedMbti = watchedMbti ?? 'none'
 
   useEffect(() => {
     /** 현재 사용자의 프로필을 불러와 온보딩 입력값을 채운다. */
@@ -94,6 +102,28 @@ export function OnboardingPage() {
     }
   }
 
+  /** MBTI 선택 시트를 열어 선택지를 별도 레이어에 표시한다. */
+  function handleOpenMbtiSheet() {
+    setIsMbtiSheetOpen(true)
+  }
+
+  /** MBTI 선택 시트를 닫고 원래 입력 필드에 키보드 포커스를 돌려준다. */
+  function handleCloseMbtiSheet() {
+    setIsMbtiSheetOpen(false)
+  }
+
+  /** MBTI 선택을 폼 상태에 반영하고 시트를 닫는다. */
+  function handleMbtiOptionSelect(value: string) {
+    if (value !== 'none' && !isMbti(value)) return
+
+    form.setValue('mbti', value === 'none' ? null : value, {
+      shouldDirty: true,
+      shouldValidate: true,
+    })
+    setIsMbtiSheetOpen(false)
+    window.setTimeout(() => mbtiFieldButtonRef.current?.focus(), 200)
+  }
+
   if (isLoading) return <OnboardingState message="프로필을 준비하고 있어요." />
   if (profileErrorMessage)
     return <OnboardingErrorState message={profileErrorMessage} onRetry={handleRetryProfile} />
@@ -107,71 +137,99 @@ export function OnboardingPage() {
       </header>
 
       <form className="mt-8 space-y-6" onSubmit={form.handleSubmit(handleSubmit)}>
-        <Field label="이름" errorMessage={form.formState.errors.displayName?.message}>
-          <input
-            aria-invalid={Boolean(form.formState.errors.displayName)}
-            className="focus:border-primary min-h-11 w-full rounded-md border border-black/10 bg-white px-3 text-sm outline-none"
-            {...form.register('displayName')}
-          />
-        </Field>
-        <Field label="한 줄 소개" errorMessage={form.formState.errors.bio?.message}>
-          <textarea
-            className="focus:border-primary min-h-24 w-full resize-none rounded-md border border-black/10 bg-white px-3 py-3 text-sm outline-none"
-            maxLength={80}
-            {...form.register('bio')}
-          />
-        </Field>
-        <Field label="MBTI (선택)" errorMessage={form.formState.errors.mbti?.message}>
-          <div className="relative">
-            <select
-              className="focus:border-primary min-h-11 w-full appearance-none rounded-md border border-black/10 bg-white px-3 pr-12 text-sm outline-none"
-              {...form.register('mbti', {
-                setValueAs: (value: string) => value || null,
-              })}
+        <FormField
+          errorMessage={form.formState.errors.displayName?.message}
+          label="이름"
+          name="displayName"
+        >
+          <TextField.Root>
+            <TextField.Input {...form.register('displayName')} />
+          </TextField.Root>
+        </FormField>
+        <FormField
+          errorMessage={form.formState.errors.bio?.message}
+          label="한 줄 소개"
+          name="bio"
+          optional
+        >
+          <TextField.Root>
+            <TextField.Textarea autoresize={false} maxLength={80} {...form.register('bio')} />
+          </TextField.Root>
+        </FormField>
+        <FieldButton.Root invalid={Boolean(form.formState.errors.mbti)} name="mbti">
+          <FieldButton.Header>
+            <FieldButton.Label>
+              MBTI <FieldButton.IndicatorText aria-hidden="true">선택</FieldButton.IndicatorText>
+            </FieldButton.Label>
+          </FieldButton.Header>
+          <FieldButton.Control>
+            <FieldButton.Button
+              aria-label={`MBTI: ${getMbtiDisplayValue(watchedMbti)}`}
+              onClick={handleOpenMbtiSheet}
+              ref={mbtiFieldButtonRef}
+              type="button"
             >
-              <option value="">선택 안 함</option>
-              {mbtiOptions.map((mbti) => (
-                <option key={mbti} value={mbti}>
-                  {mbti}
-                </option>
-              ))}
-            </select>
-            <svg
-              aria-hidden="true"
-              className="text-ink pointer-events-none absolute top-1/2 right-6 size-4 -translate-y-1/2"
-              fill="none"
-              viewBox="0 0 16 16"
-            >
-              <path
-                d="m3 6 5 5 5-5"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="1.5"
+              <FieldButton.Value>{getMbtiDisplayValue(watchedMbti)}</FieldButton.Value>
+              <FieldButton.SuffixIcon
+                svg={
+                  <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+                    <path
+                      d="m6 9 6 6 6-6"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="1.8"
+                    />
+                  </svg>
+                }
               />
-            </svg>
-          </div>
-        </Field>
+            </FieldButton.Button>
+          </FieldButton.Control>
+        </FieldButton.Root>
         {errorMessage ? (
           <p className="text-sm text-red-600" role="alert">
             {errorMessage}
           </p>
         ) : null}
-        <button
-          className="bg-primary min-h-11 w-full rounded-md px-4 text-sm font-semibold text-white disabled:opacity-50"
+        <ActionButton
+          className="talkhugam-primary-action w-full"
           disabled={form.formState.isSubmitting}
+          loading={form.formState.isSubmitting}
+          size="large"
           type="submit"
+          variant="brandSolid"
         >
           {form.formState.isSubmitting ? (
             <span className="flex items-center justify-center gap-2">
-              <LoadingSpinner label="프로필을 저장하고 있어요." showLabel={false} size="xs" />
+              <BrandLoadingSpinner label="프로필을 저장하고 있어요." showLabel={false} size="xs" />
               저장하고 있어요…
             </span>
           ) : (
             '시작하기'
           )}
-        </button>
+        </ActionButton>
       </form>
+      {isMbtiSheetOpen ? (
+        <BottomSheet
+          onClose={handleCloseMbtiSheet}
+          returnFocusRef={mbtiFieldButtonRef}
+          title="MBTI 선택"
+        >
+          <div aria-label="MBTI 선택지" className="grid grid-cols-3 gap-2" role="group">
+            {['none', ...mbtiOptions].map((mbti) => (
+              <ToggleButton
+                className="talkhugam-foundation-toggle w-full"
+                key={mbti}
+                onClick={() => handleMbtiOptionSelect(mbti)}
+                pressed={selectedMbti === mbti}
+                variant="neutralWeak"
+              >
+                {mbti === 'none' ? '선택 안 함' : mbti}
+              </ToggleButton>
+            ))}
+          </div>
+        </BottomSheet>
+      ) : null}
     </main>
   )
 }
@@ -181,30 +239,16 @@ function isMbti(value: string | null): value is (typeof mbtiOptions)[number] {
   return value !== null && mbtiOptions.includes(value as (typeof mbtiOptions)[number])
 }
 
-/** 입력 필드 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
-function Field({
-  children,
-  errorMessage,
-  label,
-}: {
-  children: React.ReactNode
-  errorMessage: string | undefined
-  label: string
-}) {
-  return (
-    <label className="block space-y-2">
-      <span className="text-ink text-sm font-medium">{label}</span>
-      {children}
-      {errorMessage ? <span className="text-sm text-red-600">{errorMessage}</span> : null}
-    </label>
-  )
+/** MBTI 저장값을 입력 필드와 보조 기술에 표시할 문구로 바꾼다. */
+function getMbtiDisplayValue(value: ProfileForm['mbti']) {
+  return value ?? '선택 안 함'
 }
 
 /** 온보딩 상태 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function OnboardingState({ message }: { message: string }) {
   return (
     <main className="app-page bg-surface flex items-center justify-center px-4">
-      <LoadingSpinner label={message} />
+      <BrandLoadingSpinner label={message} />
     </main>
   )
 }

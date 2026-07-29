@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { z } from 'zod'
 
+import { ActionButton, TextField } from '@seed-design/react'
+
 import {
   bookChatKeys,
   createBookChat,
@@ -18,7 +20,8 @@ import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { trackAnalyticsEvent } from '../../shared/analytics'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { BookCover } from '../../shared/ui/BookCover'
-import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { FormField } from '../../shared/ui/FormField'
+import { BookLoadingIndicator, BrandLoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 const querySchema = z
   .string()
@@ -129,27 +132,32 @@ export function BookSearchPage() {
         <h1 className="text-ink text-xl font-bold">무슨 책으로 이야기 나눌까요?</h1>
         <p className="text-ink-subtle mt-2 text-sm">책 제목이나 저자를 검색해 보세요.</p>
       </header>
-      <div className="mt-8 flex gap-2">
-        <input
-          className="border-ink/10 focus:border-primary min-h-12 min-w-0 flex-1 rounded-md border bg-white px-4 text-sm outline-none"
-          onChange={(event) => handleQueryChange(event.target.value)}
-          onKeyDown={handleSearchInputKeyDown}
-          placeholder="책 제목이나 저자"
-          value={query}
-        />
-        <button
-          className="bg-primary min-h-12 rounded-md px-4 text-sm font-semibold text-white"
-          onClick={handleSearch}
-          type="button"
+      <div className="mt-8">
+        <FormField
+          errorMessage={errorMessage ?? undefined}
+          label="책 제목 또는 저자"
+          name="book-search"
         >
-          검색
-        </button>
+          <div className="flex items-end gap-2" data-testid="book-search-controls">
+            <TextField.Root className="min-w-0 flex-1" invalid={Boolean(errorMessage)}>
+              <TextField.Input
+                onChange={(event) => handleQueryChange(event.target.value)}
+                onKeyDown={handleSearchInputKeyDown}
+                placeholder="책 제목이나 저자"
+                value={query}
+              />
+            </TextField.Root>
+            <ActionButton
+              className="talkhugam-primary-action shrink-0"
+              onClick={handleSearch}
+              size="large"
+              type="button"
+            >
+              검색
+            </ActionButton>
+          </div>
+        </FormField>
       </div>
-      {errorMessage ? (
-        <p className="mt-4 text-sm text-red-600" role="alert">
-          {errorMessage}
-        </p>
-      ) : null}
       <BookResults
         bestsellerItems={(bestsellersQuery.data?.items ?? [])
           .slice(0, 10)
@@ -185,7 +193,7 @@ function BookResults({
 }) {
   const bookLoader = isBookLoaderVisible ? (
     <div className="mt-6">
-      <LoadingSpinner label="책을 찾고 있어요…" size="sm" variant="book" />
+      <BookLoadingIndicator label="책을 찾고 있어요…" size="sm" />
     </div>
   ) : null
 
@@ -276,11 +284,13 @@ function BookResultButton({
   onSelect: (book: BookSearchItem) => void
 }) {
   return (
-    <button
-      className="border-ink/10 hover:border-primary focus-visible:outline-primary flex min-h-32 w-full flex-col items-start gap-2 rounded-lg border bg-white p-3 text-left"
+    <ActionButton
+      className="border-ink/10 hover:!border-primary h-auto min-h-32 w-full flex-col items-start gap-2 rounded-lg border bg-white p-3 text-left"
       disabled={isDisabled}
       onClick={() => void onSelect(book)}
+      size="large"
       type="button"
+      variant="neutralWeak"
     >
       <BookCover
         alt={`${book.title} 표지`}
@@ -295,11 +305,11 @@ function BookResultButton({
         </span>
         {isCreating ? (
           <div className="mt-2">
-            <LoadingSpinner label="책 대화를 만들고 있어요…" size="xs" />
+            <BrandLoadingSpinner label="책 대화를 만들고 있어요…" size="xs" />
           </div>
         ) : null}
       </span>
-    </button>
+    </ActionButton>
   )
 }
 

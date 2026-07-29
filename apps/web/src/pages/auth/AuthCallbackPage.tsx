@@ -6,7 +6,7 @@ import { getOnboardingCompletedAt } from '../../entities/profile'
 import { resolveAuthDestination } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { trackAnalyticsEvent } from '../../shared/analytics'
-import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { BookLoadingIndicator } from '../../shared/ui/LoadingSpinner'
 
 /** 인증 callback 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 export function AuthCallbackPage() {
@@ -51,7 +51,7 @@ export function AuthCallbackPage() {
           {errorMessage}
         </p>
       ) : (
-        <LoadingSpinner label="로그인 정보를 확인하고 있어요." />
+        <BookLoadingIndicator label="로그인 정보를 확인하고 있어요." size="sm" />
       )}
     </main>
   )

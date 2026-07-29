@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { MemberProfilePage } from './MemberProfilePage'
 
@@ -38,6 +38,8 @@ vi.mock('../../features/auth', () => ({
 vi.mock('../../shared/api/supabaseClient', () => ({ createSupabaseClient: vi.fn() }))
 
 describe('MemberProfilePage', () => {
+  afterEach(cleanup)
+
   it('shows only the selected active room member profile', async () => {
     renderMemberProfilePage()
 
@@ -62,6 +64,13 @@ describe('MemberProfilePage', () => {
       'src',
       'https://example.test/member-avatar',
     )
+  })
+
+  it('separates the room return action from the profile information block', async () => {
+    renderMemberProfilePage()
+
+    const roomReturnActions = await screen.findAllByRole('button', { name: '책방으로 돌아가기' })
+    expect(roomReturnActions.at(-1)?.parentElement).toHaveClass('mt-12')
   })
 })
 

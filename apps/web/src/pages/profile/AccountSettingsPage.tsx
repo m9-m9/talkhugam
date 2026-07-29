@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useRef, useState } from 'react'
+import { forwardRef, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { ActionButton, Checkbox, Dialog, Switch, ToggleButton } from '@seed-design/react'
 
 import {
   AccountDeletionError,
@@ -14,8 +15,7 @@ import {
 import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
-import { trapDialogFocus } from '../../shared/ui/dialogFocus'
-import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { BrandLoadingSpinner } from '../../shared/ui/LoadingSpinner'
 import { RetryState } from '../../shared/ui/RetryState'
 
 type AccountIdentity = {
@@ -89,7 +89,7 @@ export function AccountSettingsPage() {
   function handleCloseDeletionDialog() {
     if (accountDeletionMutation.isPending) return
     setIsDeletionDialogOpen(false)
-    deletionTriggerRef.current?.focus()
+    window.setTimeout(() => deletionTriggerRef.current?.focus(), 200)
   }
 
   /** 계정 삭제 방식을 서버에 요청한다. */
@@ -152,14 +152,16 @@ export function AccountSettingsPage() {
           계정 삭제
         </h2>
         <p className="text-ink-subtle mt-2 text-sm">삭제한 계정은 되돌릴 수 없어요.</p>
-        <button
-          className="border-danger text-danger mt-4 min-h-11 w-full cursor-pointer rounded-md border bg-white px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+        <ActionButton
+          className="border-danger text-danger mt-4 w-full"
           onClick={handleOpenDeletionDialog}
           ref={deletionTriggerRef}
+          size="large"
           type="button"
+          variant="neutralOutline"
         >
           계정 삭제
-        </button>
+        </ActionButton>
       </section>
 
       {isDeletionDialogOpen ? (
@@ -207,7 +209,7 @@ function AccountInformation({
 }) {
   return (
     <section className="mt-8" aria-label="계정 정보">
-      <dl className="border-ink/10 overflow-hidden rounded-lg border bg-white">
+      <dl className="talkhugam-information-surface border-ink/10 overflow-hidden rounded-lg border bg-white">
         <AccountDetail label="이메일" value={account.email} />
         <AccountDetail
           label="로그인 수단"
@@ -215,10 +217,12 @@ function AccountInformation({
         />
       </dl>
       {account.hasNaverProvider ? (
-        <button
-          className="border-ink/10 mt-4 flex min-h-12 w-full items-center justify-between rounded-lg border bg-white px-4 text-left"
+        <ActionButton
+          className="border-ink/10 mt-4 h-auto min-h-12 w-full justify-between rounded-lg border bg-white px-4 text-left"
           onClick={onShowNaverInfo}
+          size="large"
           type="button"
+          variant="neutralWeak"
         >
           <span>
             <span className="text-ink block text-sm font-semibold">Naver 제공 정보</span>
@@ -229,7 +233,7 @@ function AccountInformation({
           <span aria-hidden="true" className="text-ink-subtle text-lg">
             ›
           </span>
-        </button>
+        </ActionButton>
       ) : null}
     </section>
   )
@@ -263,10 +267,10 @@ function NotificationPreferencesSection({
       <p className="text-ink-subtle mt-2 text-sm">원하지 않는 알림은 언제든 끌 수 있어요.</p>
       {isLoading ? (
         <div className="mt-4">
-          <LoadingSpinner label="알림 설정을 불러오고 있어요." size="xs" />
+          <BrandLoadingSpinner label="알림 설정을 불러오고 있어요." size="xs" />
         </div>
       ) : preferences ? (
-        <ul className="border-ink/10 mt-4 overflow-hidden rounded-lg border bg-white">
+        <ul className="talkhugam-information-surface border-ink/10 mt-4 overflow-hidden rounded-lg border bg-white">
           {(Object.keys(notificationPreferenceLabels) as NotificationPreferenceKey[]).map((key) => (
             <li className="border-ink/10 border-b last:border-b-0" key={key}>
               <NotificationPreferenceToggle
@@ -284,7 +288,7 @@ function NotificationPreferencesSection({
           <RetryState isRetrying={isRetrying} message={queryErrorMessage} onRetry={onRetry} />
           {isRetrying ? (
             <div className="mt-4">
-              <LoadingSpinner label="알림 설정을 다시 불러오고 있어요." size="xs" />
+              <BrandLoadingSpinner label="알림 설정을 다시 불러오고 있어요." size="xs" />
             </div>
           ) : null}
         </div>
@@ -311,23 +315,18 @@ function NotificationPreferenceToggle({
   onChange: () => void
 }) {
   return (
-    <label className="flex min-h-12 cursor-pointer items-center justify-between gap-4 px-4 py-2 has-[:disabled]:cursor-not-allowed">
-      <span className="text-ink text-sm font-medium">{label}</span>
-      <span className="relative flex size-11 items-center justify-center">
-        <input
-          aria-label={label}
-          checked={checked}
-          className="peer sr-only"
-          disabled={disabled}
-          onChange={onChange}
-          type="checkbox"
-        />
-        <span
-          aria-hidden="true"
-          className="bg-ink/20 after:bg-surface peer-focus-visible:ring-primary peer-checked:bg-primary relative h-6 w-10 rounded-full transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2 peer-disabled:opacity-40 after:absolute after:top-1 after:left-1 after:size-4 after:rounded-full after:transition-transform peer-checked:after:translate-x-4"
-        />
-      </span>
-    </label>
+    <Switch.Root
+      checked={checked}
+      className="flex min-h-12 items-center justify-between gap-4 px-4 py-2"
+      disabled={disabled}
+      onCheckedChange={onChange}
+    >
+      <Switch.Label className="text-ink text-sm font-medium">{label}</Switch.Label>
+      <Switch.Control>
+        <Switch.Thumb />
+      </Switch.Control>
+      <Switch.HiddenInput aria-label={label} />
+    </Switch.Root>
   )
 }
 
@@ -345,25 +344,11 @@ function AccountDeletionDialog({
 }) {
   const [hasConfirmed, setHasConfirmed] = useState(false)
   const [mode, setMode] = useState<AccountDeletionMode | null>(null)
-  const dialogRef = useRef<HTMLElement>(null)
-  const firstModeRef = useRef<HTMLInputElement>(null)
+  const firstModeRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     firstModeRef.current?.focus()
-
-    /** Escape 키 입력으로 삭제 확인창을 닫는다. */
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        event.preventDefault()
-        onClose()
-        return
-      }
-      if (event.key === 'Tab') trapDialogFocus(event, dialogRef.current)
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [onClose])
+  }, [])
 
   /** 계정 삭제 최종 확인 요청이나 사용자 동작을 처리한다. */
   function handleConfirm() {
@@ -371,130 +356,129 @@ function AccountDeletionDialog({
     onConfirm(mode)
   }
 
-  /** 배경을 눌렀을 때만 계정 삭제 확인창을 닫는다. */
-  function handleBackdropMouseDown(event: React.MouseEvent<HTMLDivElement>) {
-    if (event.currentTarget !== event.target) return
-    event.preventDefault()
+  /** SEED 대화상자가 닫힘을 요청했을 때 삭제 요청 중이 아닌 경우에만 부모 상태를 갱신한다. */
+  function handleOpenChange(open: boolean) {
+    if (open || isDeleting) return
     onClose()
   }
 
   return (
-    <div
-      aria-hidden="false"
-      className="bg-ink/40 fixed inset-0 z-50 flex items-end justify-center px-4 pb-4 sm:items-center"
-      onMouseDown={handleBackdropMouseDown}
-    >
-      <section
-        aria-labelledby="account-deletion-dialog-heading"
-        aria-modal="true"
-        className="bg-surface w-full max-w-md rounded-lg p-6 shadow-xl"
-        ref={dialogRef}
-        role="dialog"
-      >
-        <p className="text-danger text-sm font-semibold">되돌릴 수 없는 작업</p>
-        <h2 className="text-ink mt-2 text-xl font-bold" id="account-deletion-dialog-heading">
-          계정 삭제
-        </h2>
-        <p className="text-ink-subtle mt-3 text-sm">
-          방장인 책방은 먼저 다른 멤버에게 방장을 넘겨야 해요.
-        </p>
-        <fieldset className="mt-6 space-y-3">
-          <legend className="text-ink text-sm font-semibold">기록을 어떻게 처리할까요?</legend>
-          <DeletionModeOption
-            checked={mode === 'anonymize'}
-            description="작성자 이름만 ‘탈퇴한 사용자’로 바꾸고 대화는 남겨요."
-            disabled={isDeleting}
-            label="대화 기록은 남기고 탈퇴"
-            onChange={() => setMode('anonymize')}
-            inputRef={firstModeRef}
-            value="anonymize"
-          />
-          <DeletionModeOption
-            checked={mode === 'delete_content'}
-            description="내가 남긴 메시지와 영상도 함께 삭제해요."
-            disabled={isDeleting}
-            label="내 대화도 함께 삭제"
-            onChange={() => setMode('delete_content')}
-            value="delete_content"
-          />
-        </fieldset>
-        <label className="mt-4 flex min-h-11 cursor-pointer items-center gap-3 text-sm has-[:disabled]:cursor-not-allowed">
-          <input
-            aria-label="선택한 방식으로 계정을 삭제하는 데 동의합니다."
+    <Dialog.Root onOpenChange={handleOpenChange} open>
+      <Dialog.Positioner>
+        <Dialog.Backdrop onClick={() => handleOpenChange(false)} />
+        <Dialog.Content className="talkhugam-account-deletion-dialog">
+          <Dialog.Header>
+            <p className="text-danger text-sm font-semibold">되돌릴 수 없는 작업</p>
+            <Dialog.Title>계정 삭제</Dialog.Title>
+            <Dialog.Description>
+              방장인 책방은 먼저 다른 멤버에게 방장을 넘겨야 해요.
+            </Dialog.Description>
+          </Dialog.Header>
+          <fieldset className="mt-6 space-y-3 px-5">
+            <legend className="text-ink text-sm font-semibold">기록을 어떻게 처리할까요?</legend>
+            <DeletionModeButton
+              description="작성자 이름만 ‘탈퇴한 사용자’로 바꾸고 대화는 남겨요."
+              disabled={isDeleting}
+              isSelected={mode === 'anonymize'}
+              label="대화 기록은 남기고 탈퇴"
+              onSelect={() => setMode('anonymize')}
+              ref={firstModeRef}
+            />
+            <DeletionModeButton
+              description="내가 남긴 메시지와 영상도 함께 삭제해요."
+              disabled={isDeleting}
+              isSelected={mode === 'delete_content'}
+              label="내 대화도 함께 삭제"
+              onSelect={() => setMode('delete_content')}
+            />
+          </fieldset>
+          <Checkbox.Root
             checked={hasConfirmed}
-            className="accent-danger size-5"
+            className="mt-4 flex min-h-11 items-center gap-3 px-5"
             disabled={isDeleting}
-            onChange={(event) => setHasConfirmed(event.target.checked)}
-            type="checkbox"
-          />
-          <span className="text-ink">선택한 방식으로 계정을 삭제하는 데 동의합니다.</span>
-        </label>
-        {error ? (
-          <p className="mt-4 text-sm text-red-600" role="alert">
-            {getDeletionErrorMessage(error)}
-          </p>
-        ) : null}
-        <div className="mt-6 flex gap-3">
-          <button
-            className="border-ink/10 text-ink min-h-11 flex-1 cursor-pointer rounded-md border bg-white px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={isDeleting}
-            onClick={onClose}
-            type="button"
+            onCheckedChange={setHasConfirmed}
+            size="large"
           >
-            취소
-          </button>
-          <button
-            className="bg-danger min-h-11 flex-1 cursor-pointer rounded-md px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={!mode || !hasConfirmed || isDeleting}
-            onClick={handleConfirm}
-            type="button"
-          >
-            {isDeleting ? '삭제하고 있어요…' : '계정 삭제하기'}
-          </button>
-        </div>
-      </section>
-    </div>
+            <Checkbox.HiddenInput aria-label="선택한 방식으로 계정을 삭제하는 데 동의합니다." />
+            <Checkbox.Control>
+              <Checkbox.Indicator
+                checked={
+                  <svg aria-hidden="true" fill="none" viewBox="0 0 16 16">
+                    <path
+                      d="m3.25 8.25 3 3 6.5-6.5"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="1.75"
+                    />
+                  </svg>
+                }
+              />
+            </Checkbox.Control>
+            <Checkbox.Label className="text-ink text-sm">
+              선택한 방식으로 계정을 삭제하는 데 동의합니다.
+            </Checkbox.Label>
+          </Checkbox.Root>
+          {error ? (
+            <p className="mt-4 text-sm text-red-600" role="alert">
+              {getDeletionErrorMessage(error)}
+            </p>
+          ) : null}
+          <Dialog.Footer className="talkhugam-dialog-actions">
+            <ActionButton
+              disabled={isDeleting}
+              onClick={onClose}
+              size="large"
+              type="button"
+              variant="neutralOutline"
+            >
+              취소
+            </ActionButton>
+            <ActionButton
+              disabled={!mode || !hasConfirmed || isDeleting}
+              loading={isDeleting}
+              onClick={handleConfirm}
+              size="large"
+              type="button"
+              variant="criticalSolid"
+            >
+              계정 삭제하기
+            </ActionButton>
+          </Dialog.Footer>
+        </Dialog.Content>
+      </Dialog.Positioner>
+    </Dialog.Root>
   )
 }
 
-/** 계정 삭제 방식 하나를 선택 가능한 카드로 렌더링한다. */
-function DeletionModeOption({
-  checked,
-  description,
-  disabled,
-  label,
-  onChange,
-  inputRef,
-  value,
-}: {
-  checked: boolean
-  description: string
-  disabled: boolean
-  label: string
-  onChange: () => void
-  inputRef?: React.RefObject<HTMLInputElement | null>
-  value: AccountDeletionMode
-}) {
+/** 계정 삭제 방식 하나를 SEED 토글 버튼으로 선택 가능하게 렌더링한다. */
+const DeletionModeButton = forwardRef<
+  HTMLButtonElement,
+  {
+    description: string
+    disabled: boolean
+    isSelected: boolean
+    label: string
+    onSelect: () => void
+  }
+>(function DeletionModeButton({ description, disabled, isSelected, label, onSelect }, ref) {
   return (
-    <label className="border-ink/10 has-[:checked]:border-primary flex cursor-pointer gap-3 rounded-md border p-3 has-[:disabled]:cursor-not-allowed">
-      <input
-        aria-label={label}
-        checked={checked}
-        className="accent-primary mt-0.5 size-4"
-        disabled={disabled}
-        name="account-deletion-mode"
-        onChange={onChange}
-        ref={inputRef}
-        type="radio"
-        value={value}
-      />
-      <span>
-        <span className="text-ink block text-sm font-semibold">{label}</span>
-        <span className="text-ink-subtle mt-1 block text-xs">{description}</span>
+    <ToggleButton
+      aria-label={label}
+      className="talkhugam-foundation-toggle !h-auto min-h-16 w-full !justify-start overflow-hidden rounded-md px-3 py-3 text-left whitespace-normal"
+      disabled={disabled}
+      onClick={onSelect}
+      pressed={isSelected}
+      ref={ref}
+      variant="neutralWeak"
+    >
+      <span className="min-w-0 break-words whitespace-normal">
+        <span className="block text-sm font-semibold">{label}</span>
+        <span className="mt-1 block text-xs">{description}</span>
       </span>
-    </label>
+    </ToggleButton>
   )
-}
+})
 
 /** 계정 삭제 오류를 사용자 행동이 가능한 문구로 변환한다. */
 function getDeletionErrorMessage(error: Error): string {

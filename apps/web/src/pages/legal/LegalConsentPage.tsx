@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
+import { ActionButton, Checkbox } from '@seed-design/react'
+
 import { getRequiredLegalDocuments, saveRequiredLegalConsents } from '../../entities/legal'
 import { getOnboardingCompletedAt } from '../../entities/profile'
 import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
-import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { BrandLoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 /** 필수 약관과 개인정보처리방침 동의를 수집한다. */
 export function LegalConsentPage() {
@@ -60,25 +62,37 @@ export function LegalConsentPage() {
         {documents.map((document) => {
           const isChecked = agreedDocumentIds.has(document.id)
           return (
-            <label
-              className="border-border flex min-h-16 cursor-pointer items-center gap-3 rounded-md border bg-white px-3 py-3"
+            <Checkbox.Root
+              checked={isChecked}
+              className="border-border flex min-h-16 w-full items-center gap-3 rounded-md border bg-white px-3 py-3"
               key={document.id}
+              onCheckedChange={() => handleToggleDocument(document.id)}
+              size="large"
             >
-              <input
-                aria-label={`${document.shortTitle}에 동의합니다.`}
-                checked={isChecked}
-                className="accent-primary size-5"
-                onChange={() => handleToggleDocument(document.id)}
-                type="checkbox"
-              />
-              <span className="min-w-0 flex-1">
+              <Checkbox.HiddenInput aria-label={`${document.shortTitle}에 동의합니다.`} />
+              <Checkbox.Control>
+                <Checkbox.Indicator
+                  checked={
+                    <svg aria-hidden="true" fill="none" viewBox="0 0 16 16">
+                      <path
+                        d="m3.25 8.25 3 3 6.5-6.5"
+                        stroke="currentColor"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="1.75"
+                      />
+                    </svg>
+                  }
+                />
+              </Checkbox.Control>
+              <Checkbox.Label className="min-w-0 flex-1">
                 <span className="text-ink block text-sm font-semibold">
                   [필수] {document.shortTitle} 동의
                 </span>
                 <span className="text-ink-subtle mt-1 block text-xs">
                   시행일 · {document.version}
                 </span>
-              </span>
+              </Checkbox.Label>
               <Link
                 className="text-primary min-h-11 shrink-0 content-center text-sm font-medium"
                 onClick={(event) => event.stopPropagation()}
@@ -86,7 +100,7 @@ export function LegalConsentPage() {
               >
                 보기
               </Link>
-            </label>
+            </Checkbox.Root>
           )
         })}
       </fieldset>
@@ -95,18 +109,21 @@ export function LegalConsentPage() {
           {errorMessage}
         </p>
       ) : null}
-      <button
-        className="bg-primary mt-6 flex min-h-12 w-full items-center justify-center rounded-md px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+      <ActionButton
+        className="talkhugam-primary-action mt-6 w-full"
         disabled={!hasAgreedToAll || isSubmitting}
+        loading={isSubmitting}
         onClick={() => void handleSubmit()}
+        size="large"
         type="button"
+        variant="brandSolid"
       >
         {isSubmitting ? (
-          <LoadingSpinner label="동의를 저장하고 있어요." showLabel={false} size="xs" />
+          <BrandLoadingSpinner label="동의를 저장하고 있어요." showLabel={false} size="xs" />
         ) : (
           '동의하고 계속하기'
         )}
-      </button>
+      </ActionButton>
     </main>
   )
 }

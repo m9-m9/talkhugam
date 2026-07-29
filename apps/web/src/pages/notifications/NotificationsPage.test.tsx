@@ -96,6 +96,19 @@ describe('NotificationsPage', () => {
 
     await waitFor(() => expect(getNotifications).toHaveBeenCalledTimes(2))
   })
+
+  it('SEED 액션 버튼과 목록 항목으로 알림 조작 요소를 렌더링한다', async () => {
+    getNotifications.mockResolvedValue([createNotification()])
+    getUnreadNotificationCount.mockResolvedValue(1)
+    renderNotificationsPage()
+
+    expect(await screen.findByRole('button', { name: '모두 읽음' })).toHaveClass(
+      'seed-action-button',
+    )
+    expect(await screen.findByRole('button', { name: /수진님이 답글을 남겼어요/ })).toHaveClass(
+      'seed-action-button',
+    )
+  })
 })
 
 /** 알림 화면 상호작용을 확인할 수 있는 기본 알림 모델을 생성한다. */

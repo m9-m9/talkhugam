@@ -1,9 +1,8 @@
-type LoadingSpinnerProps = {
+type LoadingIndicatorProps = {
   label: string
   size?: 'xs' | 'sm' | 'md' | 'lg'
   showLabel?: boolean
   tone?: 'default' | 'inverse'
-  variant?: 'brand' | 'book'
 }
 
 const bookSizeClasses = {
@@ -25,17 +24,27 @@ const labelClasses = {
   inverse: 'text-white',
 } as const
 
-/** 로딩 스피너 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
-export function LoadingSpinner({
+/** 일반적인 짧은 대기 상태에 사용할 브랜드 스피너를 렌더링한다. */
+export function BrandLoadingSpinner(props: LoadingIndicatorProps) {
+  return <LoadingIndicator {...props} indicator="brand" />
+}
+
+/** 책방, 책, 영상처럼 독서 맥락을 보여 줄 긴 대기 상태에 사용할 책 로더를 렌더링한다. */
+export function BookLoadingIndicator(props: LoadingIndicatorProps) {
+  return <LoadingIndicator {...props} indicator="book" />
+}
+
+/** 선택된 로더의 공통 접근성 레이블과 보조 문구를 렌더링한다. */
+function LoadingIndicator({
   label,
   showLabel = true,
   size = 'md',
   tone = 'default',
-  variant = 'brand',
-}: LoadingSpinnerProps) {
+  indicator,
+}: LoadingIndicatorProps & { indicator: 'brand' | 'book' }) {
   return (
     <div aria-label={label} className="flex flex-col items-center gap-3 text-center" role="status">
-      {variant === 'book' ? (
+      {indicator === 'book' ? (
         <div aria-hidden="true" className={`talkhugam-book-loader ${bookSizeClasses[size]}`}>
           <div className="talkhugam-book-loader__stage">
             <div className="talkhugam-book-loader__bubbles">
