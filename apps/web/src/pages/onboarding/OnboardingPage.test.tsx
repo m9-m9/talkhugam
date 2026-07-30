@@ -93,6 +93,7 @@ describe('OnboardingPage', () => {
         '.talkhugam-mbti-field',
       ),
     ).not.toBeNull()
+    expect(screen.getByText('선택 안 함')).toHaveClass('talkhugam-mbti-field__value')
   })
 
   it('retries the initial profile preparation without asking the member to refresh', async () => {

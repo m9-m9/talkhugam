@@ -124,7 +124,8 @@
   background: white;
 }
 
-.talkhugam-mbti-field .seed-input-button__value {
+.talkhugam-mbti-field__value {
+  padding-left: var(--spacing-4);
   text-align: left;
 }
 

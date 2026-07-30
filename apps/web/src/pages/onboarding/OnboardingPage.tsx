@@ -173,7 +173,9 @@ export function OnboardingPage() {
               ref={mbtiFieldButtonRef}
               type="button"
             >
-              <FieldButton.Value>{getMbtiDisplayValue(watchedMbti)}</FieldButton.Value>
+              <FieldButton.Value className="talkhugam-mbti-field__value">
+                {getMbtiDisplayValue(watchedMbti)}
+              </FieldButton.Value>
               <FieldButton.SuffixIcon
                 svg={
                   <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
