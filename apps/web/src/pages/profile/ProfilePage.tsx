@@ -132,7 +132,7 @@ function ProfileNavigationRow({ description, label, onClick }: ProfileNavigation
   return (
     <ActionButton
       aria-label={label}
-      className="hover:!bg-surface-muted !h-auto min-h-16 w-full !justify-between gap-4 !rounded-none !border-0 !border-b !border-[#e7ded7] !bg-white px-4 py-3 text-left last:!border-b-0"
+      className="hover:!bg-surface-muted !h-auto min-h-16 w-full !justify-between gap-4 !rounded-none !border-0 !border-b !border-[#e7ded7] !bg-white px-4 py-3 text-left !whitespace-normal last:!border-b-0"
       onClick={onClick}
       size="large"
       type="button"

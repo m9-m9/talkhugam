@@ -218,7 +218,7 @@ function AccountInformation({
       </dl>
       {account.hasNaverProvider ? (
         <ActionButton
-          className="border-ink/10 mt-4 h-auto min-h-12 w-full justify-between rounded-lg border bg-white px-4 text-left"
+          className="border-ink/10 mt-4 h-auto min-h-12 w-full justify-between rounded-lg border bg-white px-4 text-left !whitespace-normal"
           onClick={onShowNaverInfo}
           size="large"
           type="button"

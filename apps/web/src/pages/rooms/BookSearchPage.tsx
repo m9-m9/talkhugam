@@ -285,7 +285,7 @@ function BookResultButton({
 }) {
   return (
     <ActionButton
-      className="border-ink/10 hover:!border-primary h-auto min-h-32 w-full flex-col items-start gap-2 rounded-lg border bg-white p-3 text-left"
+      className="border-ink/10 hover:!border-primary h-auto min-h-32 w-full flex-col items-start gap-2 rounded-lg border bg-white p-3 text-left !whitespace-normal"
       disabled={isDisabled}
       onClick={() => void onSelect(book)}
       size="large"

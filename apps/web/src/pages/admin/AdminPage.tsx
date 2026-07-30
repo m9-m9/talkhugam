@@ -98,7 +98,7 @@ export function AdminPage() {
           {feedbackQuery.data?.map((ticket) => (
             <li key={ticket.id}>
               <ActionButton
-                className="border-border h-auto w-full justify-start rounded-lg border bg-white p-4 text-left"
+                className="border-border h-auto w-full justify-start rounded-lg border bg-white p-4 text-left !whitespace-normal"
                 onClick={() => handleOpenTicket(ticket)}
                 size="large"
                 type="button"

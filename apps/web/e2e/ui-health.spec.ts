@@ -420,6 +420,10 @@ test('renders room detail command controls with SEED components', async ({ page 
   await page.goto(`/rooms/${roomId}`)
 
   await expect(page.getByRole('heading', { name: '금요일 아침 책방' })).toBeVisible()
+  await expect(page.getByText('미움받을 용기', { exact: true })).toHaveCSS(
+    'white-space',
+    'normal',
+  )
   await page.screenshot({
     path: `artifacts/seed-comparison/14-room-detail-after-${testInfo.project.name}.png`,
   })
