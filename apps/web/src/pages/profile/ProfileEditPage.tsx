@@ -235,7 +235,7 @@ export function ProfileEditPage() {
               MBTI <FieldButton.IndicatorText aria-hidden="true">선택</FieldButton.IndicatorText>
             </FieldButton.Label>
           </FieldButton.Header>
-          <FieldButton.Control>
+          <FieldButton.Control className="talkhugam-mbti-field__control">
             <FieldButton.Button
               aria-label={`MBTI: ${getMbtiDisplayValue(watchedMbti)}`}
               onClick={handleOpenMbtiSheet}

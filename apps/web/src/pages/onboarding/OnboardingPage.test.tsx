@@ -93,6 +93,9 @@ describe('OnboardingPage', () => {
         '.talkhugam-mbti-field',
       ),
     ).not.toBeNull()
+    expect(screen.getByRole('button', { name: 'MBTI: 선택 안 함' }).parentElement).toHaveClass(
+      'talkhugam-mbti-field__control',
+    )
     expect(screen.getByText('선택 안 함')).toHaveClass('talkhugam-mbti-field__value')
   })
 
