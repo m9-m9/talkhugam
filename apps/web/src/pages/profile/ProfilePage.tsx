@@ -97,7 +97,7 @@ export function ProfilePage() {
         </h2>
         <div className="border-ink/10 mt-4 border-y bg-white">
           <ProfileNavigationRow
-            description="이름과 소개, MBTI를 바꿔요."
+            description="이름과 소개를 바꿔요."
             label="내 정보 수정"
             onClick={() => void navigate('/profile/edit')}
           />

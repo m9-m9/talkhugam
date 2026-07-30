@@ -1,9 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
-import { useForm, useWatch } from 'react-hook-form'
+import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
-import { ActionButton, FieldButton, TextField, ToggleButton } from '@seed-design/react'
+import { ActionButton, TextField } from '@seed-design/react'
 
 import {
   getProfile,
@@ -16,30 +16,10 @@ import {
 import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
-import { BottomSheet } from '../../shared/ui/BottomSheet'
 import { FormField } from '../../shared/ui/FormField'
 import { BrandLoadingSpinner } from '../../shared/ui/LoadingSpinner'
 import { ProfileAvatar } from '../../shared/ui/ProfileAvatar'
 import { RetryState } from '../../shared/ui/RetryState'
-
-const mbtiOptions = [
-  'ISTJ',
-  'ISFJ',
-  'INFJ',
-  'INTJ',
-  'ISTP',
-  'ISFP',
-  'INFP',
-  'INTP',
-  'ESTP',
-  'ESFP',
-  'ENFP',
-  'ENTP',
-  'ESTJ',
-  'ESFJ',
-  'ENFJ',
-  'ENTJ',
-] as const
 
 /** 프로필 편집 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 export function ProfileEditPage() {
@@ -48,15 +28,11 @@ export function ProfileEditPage() {
   const profileId = useAuthenticatedUser().id
   const client = createSupabaseClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const mbtiFieldButtonRef = useRef<HTMLButtonElement>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [isMbtiSheetOpen, setIsMbtiSheetOpen] = useState(false)
   const form = useForm<ProfileForm>({
-    defaultValues: { displayName: '', bio: '', mbti: null },
+    defaultValues: { displayName: '', bio: '' },
     resolver: zodResolver(profileFormSchema),
   })
-  const watchedMbti = useWatch({ control: form.control, name: 'mbti' })
-  const selectedMbti = watchedMbti ?? 'none'
   const profileQuery = useQuery({
     queryFn: () => getProfile(client, profileId),
     queryKey: ['profile', profileId],
@@ -84,7 +60,6 @@ export function ProfileEditPage() {
     form.reset({
       displayName: profileQuery.data.displayName,
       bio: profileQuery.data.bio ?? '',
-      mbti: isMbti(profileQuery.data.mbti) ? profileQuery.data.mbti : null,
     })
   }, [form, profileQuery.data])
 
@@ -136,33 +111,6 @@ export function ProfileEditPage() {
     avatarUploadMutation.mutate(file)
   }
 
-  /** MBTI 선택값을 폼 상태의 선택 또는 미선택 값으로 변환한다. */
-  function handleMbtiValueChange(value: string) {
-    if (value !== 'none' && !isMbti(value)) return
-
-    form.setValue('mbti', value === 'none' ? null : value, {
-      shouldDirty: true,
-      shouldValidate: true,
-    })
-  }
-
-  /** MBTI 선택을 반영하고 선택 시트를 닫아 편집 화면으로 돌아간다. */
-  function handleMbtiOptionSelect(value: string) {
-    handleMbtiValueChange(value)
-    setIsMbtiSheetOpen(false)
-    window.setTimeout(() => mbtiFieldButtonRef.current?.focus(), 200)
-  }
-
-  /** MBTI 선택 시트를 열어 입력 필드의 선택지를 별도 레이어에 표시한다. */
-  function handleOpenMbtiSheet() {
-    setIsMbtiSheetOpen(true)
-  }
-
-  /** MBTI 선택 시트를 닫고 트리거 필드로 포커스를 복귀한다. */
-  function handleCloseMbtiSheet() {
-    setIsMbtiSheetOpen(false)
-  }
-
   if (profileQuery.isPending) return <ProfileEditState message="프로필을 준비하고 있어요." />
   if (profileQuery.isError)
     return (
@@ -183,7 +131,7 @@ export function ProfileEditPage() {
       <header className="mt-8">
         <p className="text-primary text-sm font-medium">프로필</p>
         <h1 className="text-ink mt-2 text-2xl font-bold">프로필 편집</h1>
-        <p className="text-ink-subtle mt-2 text-sm">내 소개와 독서 취향을 알려주세요.</p>
+        <p className="text-ink-subtle mt-2 text-sm">나를 소개할 한 줄을 적어 주세요.</p>
       </header>
 
       <section aria-label="프로필 사진" className="mt-8 flex items-center gap-4">
@@ -229,38 +177,6 @@ export function ProfileEditPage() {
             <TextField.Textarea autoresize={false} maxLength={80} {...form.register('bio')} />
           </TextField.Root>
         </FormField>
-        <FieldButton.Root className="talkhugam-information-field talkhugam-mbti-field" name="mbti">
-          <FieldButton.Header>
-            <FieldButton.Label>
-              MBTI <FieldButton.IndicatorText aria-hidden="true">선택</FieldButton.IndicatorText>
-            </FieldButton.Label>
-          </FieldButton.Header>
-          <FieldButton.Control className="talkhugam-mbti-field__control">
-            <FieldButton.Button
-              aria-label={`MBTI: ${getMbtiDisplayValue(watchedMbti)}`}
-              onClick={handleOpenMbtiSheet}
-              ref={mbtiFieldButtonRef}
-              type="button"
-            >
-              <FieldButton.Value className="talkhugam-mbti-field__value">
-                {getMbtiDisplayValue(watchedMbti)}
-              </FieldButton.Value>
-              <FieldButton.SuffixIcon
-                svg={
-                  <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
-                    <path
-                      d="m6 9 6 6 6-6"
-                      stroke="currentColor"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="1.8"
-                    />
-                  </svg>
-                }
-              />
-            </FieldButton.Button>
-          </FieldButton.Control>
-        </FieldButton.Root>
         {errorMessage ? (
           <p className="text-sm text-red-600" role="alert">
             {errorMessage}
@@ -277,43 +193,8 @@ export function ProfileEditPage() {
           저장하기
         </ActionButton>
       </form>
-      {isMbtiSheetOpen ? (
-        <BottomSheet
-          onClose={handleCloseMbtiSheet}
-          returnFocusRef={mbtiFieldButtonRef}
-          title="MBTI 선택"
-        >
-          <div aria-label="MBTI 선택지" className="grid grid-cols-3 gap-2" role="group">
-            {['none', ...mbtiOptions].map((mbti) => {
-              const isSelected = selectedMbti === mbti
-
-              return (
-                <ToggleButton
-                  className="talkhugam-foundation-toggle w-full"
-                  key={mbti}
-                  onClick={() => handleMbtiOptionSelect(mbti)}
-                  pressed={isSelected}
-                  variant="neutralWeak"
-                >
-                  {mbti === 'none' ? '선택 안 함' : mbti}
-                </ToggleButton>
-              )
-            })}
-          </div>
-        </BottomSheet>
-      ) : null}
     </main>
   )
-}
-
-/** MBTI 상태인지 판별한다. */
-function isMbti(value: string | null): value is (typeof mbtiOptions)[number] {
-  return value !== null && mbtiOptions.includes(value as (typeof mbtiOptions)[number])
-}
-
-/** 저장된 MBTI 값을 선택 필드에 표시할 수 있는 한글 문구로 만든다. */
-function getMbtiDisplayValue(value: ProfileForm['mbti']) {
-  return value ?? '선택 안 함'
 }
 
 /** 프로필 편집 상태 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */

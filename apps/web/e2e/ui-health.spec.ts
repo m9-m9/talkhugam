@@ -179,29 +179,6 @@ test('renders profile edit controls with the current profile values', async ({
   await page.screenshot({
     path: `artifacts/seed-comparison/9-profile-edit-after-${testInfo.project.name}.png`,
   })
-  const mbtiButton = page.getByRole('button', { name: 'MBTI: INTP' })
-  await expect(mbtiButton).toBeVisible()
-  await mbtiButton.click()
-  await expect(page.getByRole('dialog', { name: 'MBTI 선택' })).toBeVisible()
-  await page.keyboard.press('Escape')
-  await expect(mbtiButton).toBeFocused()
-})
-
-test('uses a SEED MBTI selection sheet during onboarding', async ({ page }, testInfo) => {
-  await authenticatePage(page)
-  await mockOnboardingProfile(page)
-  await page.goto('/onboarding')
-
-  const mbtiTrigger = page.getByRole('button', { name: 'MBTI: INTP' })
-  await expect(mbtiTrigger).toHaveClass(/seed-input-button/)
-  await mbtiTrigger.click()
-  await expect(page.getByRole('dialog', { name: 'MBTI 선택' })).toBeVisible()
-  await page.waitForTimeout(300)
-  await page.screenshot({
-    path: `artifacts/seed-comparison/16-onboarding-after-${testInfo.project.name}.png`,
-  })
-  await page.getByRole('button', { name: 'ENFP' }).click()
-  await expect(page.getByRole('button', { name: 'MBTI: ENFP' })).toHaveText('ENFP')
 })
 
 test('uses SEED commands on the profile share card', async ({ page }, testInfo) => {
@@ -1302,7 +1279,6 @@ async function mockAuthenticatedPageData(page: Page) {
         avatar_path: null,
         bio: '함께 읽고 오래 남겨요.',
         display_name: '민규',
-        mbti: 'INTP',
         updated_at: '2026-07-19T00:00:00.000+00:00',
       }),
       contentType: 'application/json',
@@ -1332,23 +1308,6 @@ async function mockAuthenticatedPageData(page: Page) {
       body: JSON.stringify([]),
       contentType: 'application/json',
       headers: { 'content-range': '0-0/0' },
-      status: 200,
-    })
-  })
-}
-
-/** 온보딩에서 이어서 수정할 수 있는 미완료 프로필 응답을 고정한다. */
-async function mockOnboardingProfile(page: Page) {
-  await page.route('**/rest/v1/profiles?*', async (route) => {
-    await route.fulfill({
-      body: JSON.stringify({
-        avatar_path: null,
-        bio: '함께 읽고 오래 남겨요.',
-        display_name: '민규',
-        mbti: 'INTP',
-        updated_at: '2026-07-19T00:00:00.000+00:00',
-      }),
-      contentType: 'application/json',
       status: 200,
     })
   })

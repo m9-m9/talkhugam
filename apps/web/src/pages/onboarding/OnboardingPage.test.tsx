@@ -29,7 +29,7 @@ describe('OnboardingPage', () => {
   })
 
   it('saves the prepared profile and sends the member to their reading rooms', async () => {
-    getProfile.mockResolvedValue({ bio: '느리게 읽어요.', displayName: '민규', mbti: 'INTP' })
+    getProfile.mockResolvedValue({ bio: '느리게 읽어요.', displayName: '민규' })
     completeOnboarding.mockResolvedValue(undefined)
 
     renderOnboardingPage()
@@ -42,7 +42,7 @@ describe('OnboardingPage', () => {
       expect(completeOnboarding).toHaveBeenCalledWith(
         undefined,
         '00000000-0000-0000-0000-000000000001',
-        { bio: '함께 읽어요.', displayName: '민규', mbti: 'INTP' },
+        { bio: '함께 읽어요.', displayName: '민규' },
       )
     })
     expect(await screen.findByText('내 독서방 화면')).toBeInTheDocument()
@@ -59,7 +59,7 @@ describe('OnboardingPage', () => {
   })
 
   it('marks invalid onboarding fields for assistive technology after submission', async () => {
-    getProfile.mockResolvedValue({ bio: '', displayName: '', mbti: null })
+    getProfile.mockResolvedValue({ bio: '', displayName: '' })
 
     renderOnboardingPage()
 
@@ -70,33 +70,13 @@ describe('OnboardingPage', () => {
     expect(nameInput).toHaveAttribute('data-invalid', '')
   })
 
-  it('opens the MBTI picker as a SEED sheet and restores focus to its trigger', async () => {
-    getProfile.mockResolvedValue({ bio: '', displayName: '민규', mbti: 'INTP' })
+  it('does not ask for MBTI during onboarding', async () => {
+    getProfile.mockResolvedValue({ bio: '', displayName: '민규' })
 
     renderOnboardingPage()
 
-    const mbtiTrigger = await screen.findByRole('button', { name: 'MBTI: INTP' })
-    fireEvent.click(mbtiTrigger)
-
-    expect(await screen.findByRole('dialog', { name: 'MBTI 선택' })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'ENFP' }))
-    expect(mbtiTrigger).toHaveTextContent('ENFP')
-  })
-
-  it('marks the MBTI field for the app-wide left value and right icon alignment rule', async () => {
-    getProfile.mockResolvedValue({ bio: '', displayName: '민규', mbti: null })
-
-    renderOnboardingPage()
-
-    expect(
-      (await screen.findByRole('button', { name: 'MBTI: 선택 안 함' })).closest(
-        '.talkhugam-mbti-field',
-      ),
-    ).not.toBeNull()
-    expect(screen.getByRole('button', { name: 'MBTI: 선택 안 함' }).parentElement).toHaveClass(
-      'talkhugam-mbti-field__control',
-    )
-    expect(screen.getByText('선택 안 함')).toHaveClass('talkhugam-mbti-field__value')
+    expect(await screen.findByDisplayValue('민규')).toBeInTheDocument()
+    expect(screen.queryByText('MBTI')).not.toBeInTheDocument()
   })
 
   it('retries the initial profile preparation without asking the member to refresh', async () => {
@@ -115,7 +95,7 @@ describe('OnboardingPage', () => {
     ).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: '다시 시도' })).not.toBeInTheDocument()
 
-    deferredProfile.resolve({ bio: '느리게 읽어요.', displayName: '민규', mbti: 'INTP' })
+    deferredProfile.resolve({ bio: '느리게 읽어요.', displayName: '민규' })
 
     expect(await screen.findByDisplayValue('민규')).toBeInTheDocument()
     expect(getProfile).toHaveBeenCalledTimes(2)
@@ -139,7 +119,7 @@ function renderOnboardingPage() {
 
 /** 테스트에서 재시도 완료 시점을 제어할 수 있는 프로필 Promise를 만든다. */
 function createDeferredProfile() {
-  type Profile = { bio: string; displayName: string; mbti: string }
+  type Profile = { bio: string; displayName: string }
   let resolve: (profile: Profile) => void = () => undefined
   const promise = new Promise<Profile>((complete) => {
     resolve = complete

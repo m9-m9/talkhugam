@@ -15,7 +15,6 @@
 @import '@seed-design/css/recipes/menu-sheet-item.css';
 @import '@seed-design/css/recipes/bottom-sheet-handle.css';
 @import '@seed-design/css/recipes/text-input.css';
-@import '@seed-design/css/recipes/input-button.css';
 @import '@seed-design/css/recipes/toggle-button.css';
 @import '@seed-design/css/recipes/switch.css';
 @import '@seed-design/css/recipes/switchmark.css';
@@ -122,26 +121,6 @@
 .talkhugam-information-field .seed-input-button__button,
 .talkhugam-information-surface {
   background: white;
-}
-
-.talkhugam-mbti-field__control {
-  align-items: center;
-  display: flex;
-  min-height: var(--spacing-12);
-  padding-inline: var(--spacing-4);
-}
-
-.talkhugam-mbti-field__value {
-  align-items: center;
-  display: flex;
-  min-height: var(--spacing-12);
-  text-align: left;
-}
-
-.talkhugam-mbti-field .seed-input-button__suffixIcon {
-  align-self: center;
-  display: block;
-  margin-left: auto;
 }
 
 .talkhugam-balanced-copy {

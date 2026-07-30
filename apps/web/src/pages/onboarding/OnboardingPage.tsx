@@ -1,9 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect, useRef, useState } from 'react'
-import { useForm, useWatch } from 'react-hook-form'
+import { useEffect, useState } from 'react'
+import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 
-import { ActionButton, FieldButton, TextField, ToggleButton } from '@seed-design/react'
+import { ActionButton, TextField } from '@seed-design/react'
 
 import {
   completeOnboarding,
@@ -16,28 +16,8 @@ import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { trackAnalyticsEvent } from '../../shared/analytics'
 import { BrandLoadingSpinner } from '../../shared/ui/LoadingSpinner'
-import { BottomSheet } from '../../shared/ui/BottomSheet'
 import { FormField } from '../../shared/ui/FormField'
 import { RetryState } from '../../shared/ui/RetryState'
-
-const mbtiOptions = [
-  'ISTJ',
-  'ISFJ',
-  'INFJ',
-  'INTJ',
-  'ISTP',
-  'ISFP',
-  'INFP',
-  'INTP',
-  'ESTP',
-  'ESFP',
-  'ENFP',
-  'ENTP',
-  'ESTJ',
-  'ESFJ',
-  'ENFJ',
-  'ENTJ',
-] as const
 
 /** 온보딩 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 export function OnboardingPage() {
@@ -47,14 +27,10 @@ export function OnboardingPage() {
   const [loadAttempt, setLoadAttempt] = useState(0)
   const [profileErrorMessage, setProfileErrorMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [isMbtiSheetOpen, setIsMbtiSheetOpen] = useState(false)
-  const mbtiFieldButtonRef = useRef<HTMLButtonElement>(null)
   const form = useForm<ProfileForm>({
     defaultValues: createInitialProfileForm(undefined),
     resolver: zodResolver(profileFormSchema),
   })
-  const watchedMbti = useWatch({ control: form.control, name: 'mbti' })
-  const selectedMbti = watchedMbti ?? 'none'
 
   useEffect(() => {
     /** 현재 사용자의 프로필을 불러와 온보딩 입력값을 채운다. */
@@ -68,7 +44,6 @@ export function OnboardingPage() {
         form.reset({
           displayName: profile.displayName,
           bio: profile.bio ?? '',
-          mbti: isMbti(profile.mbti) ? profile.mbti : null,
         })
       } catch {
         setProfileErrorMessage('프로필 정보를 불러오지 못했어요. 다시 시도해 주세요.')
@@ -100,28 +75,6 @@ export function OnboardingPage() {
     } catch {
       setErrorMessage('저장하지 못했어요. 잠시 후 다시 시도해 주세요.')
     }
-  }
-
-  /** MBTI 선택 시트를 열어 선택지를 별도 레이어에 표시한다. */
-  function handleOpenMbtiSheet() {
-    setIsMbtiSheetOpen(true)
-  }
-
-  /** MBTI 선택 시트를 닫고 원래 입력 필드에 키보드 포커스를 돌려준다. */
-  function handleCloseMbtiSheet() {
-    setIsMbtiSheetOpen(false)
-  }
-
-  /** MBTI 선택을 폼 상태에 반영하고 시트를 닫는다. */
-  function handleMbtiOptionSelect(value: string) {
-    if (value !== 'none' && !isMbti(value)) return
-
-    form.setValue('mbti', value === 'none' ? null : value, {
-      shouldDirty: true,
-      shouldValidate: true,
-    })
-    setIsMbtiSheetOpen(false)
-    window.setTimeout(() => mbtiFieldButtonRef.current?.focus(), 200)
   }
 
   if (isLoading) return <OnboardingState message="프로필을 준비하고 있어요." />
@@ -156,42 +109,6 @@ export function OnboardingPage() {
             <TextField.Textarea autoresize={false} maxLength={80} {...form.register('bio')} />
           </TextField.Root>
         </FormField>
-        <FieldButton.Root
-          className="talkhugam-mbti-field"
-          invalid={Boolean(form.formState.errors.mbti)}
-          name="mbti"
-        >
-          <FieldButton.Header>
-            <FieldButton.Label>
-              MBTI <FieldButton.IndicatorText aria-hidden="true">선택</FieldButton.IndicatorText>
-            </FieldButton.Label>
-          </FieldButton.Header>
-          <FieldButton.Control className="talkhugam-mbti-field__control">
-            <FieldButton.Button
-              aria-label={`MBTI: ${getMbtiDisplayValue(watchedMbti)}`}
-              onClick={handleOpenMbtiSheet}
-              ref={mbtiFieldButtonRef}
-              type="button"
-            >
-              <FieldButton.Value className="talkhugam-mbti-field__value">
-                {getMbtiDisplayValue(watchedMbti)}
-              </FieldButton.Value>
-              <FieldButton.SuffixIcon
-                svg={
-                  <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
-                    <path
-                      d="m6 9 6 6 6-6"
-                      stroke="currentColor"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="1.8"
-                    />
-                  </svg>
-                }
-              />
-            </FieldButton.Button>
-          </FieldButton.Control>
-        </FieldButton.Root>
         {errorMessage ? (
           <p className="text-sm text-red-600" role="alert">
             {errorMessage}
@@ -215,39 +132,8 @@ export function OnboardingPage() {
           )}
         </ActionButton>
       </form>
-      {isMbtiSheetOpen ? (
-        <BottomSheet
-          onClose={handleCloseMbtiSheet}
-          returnFocusRef={mbtiFieldButtonRef}
-          title="MBTI 선택"
-        >
-          <div aria-label="MBTI 선택지" className="grid grid-cols-3 gap-2" role="group">
-            {['none', ...mbtiOptions].map((mbti) => (
-              <ToggleButton
-                className="talkhugam-foundation-toggle w-full"
-                key={mbti}
-                onClick={() => handleMbtiOptionSelect(mbti)}
-                pressed={selectedMbti === mbti}
-                variant="neutralWeak"
-              >
-                {mbti === 'none' ? '선택 안 함' : mbti}
-              </ToggleButton>
-            ))}
-          </div>
-        </BottomSheet>
-      ) : null}
     </main>
   )
-}
-
-/** MBTI 상태인지 판별한다. */
-function isMbti(value: string | null): value is (typeof mbtiOptions)[number] {
-  return value !== null && mbtiOptions.includes(value as (typeof mbtiOptions)[number])
-}
-
-/** MBTI 저장값을 입력 필드와 보조 기술에 표시할 문구로 바꾼다. */
-function getMbtiDisplayValue(value: ProfileForm['mbti']) {
-  return value ?? '선택 안 함'
 }
 
 /** 온보딩 상태 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */

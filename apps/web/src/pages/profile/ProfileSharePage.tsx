@@ -69,7 +69,6 @@ export function ProfileSharePage() {
           {profile.bio || '읽고 느낀 마음을 함께 나눠요.'}
         </p>
         <div className="border-primary/30 mt-12 border-t pt-4">
-          <p className="text-ink-subtle text-sm">{profile.mbti || '나만의 독서 취향'}</p>
           <p className="text-ink mt-1 text-sm font-semibold">함께 읽고, 함께 나누는 Talk후감</p>
         </div>
       </section>

@@ -7,17 +7,15 @@ describe('profileFormSchema', () => {
     const form = profileFormSchema.parse({
       displayName: '  민규  ',
       bio: '   ',
-      mbti: 'INTP',
     })
 
     expect(normalizeProfileForm(form)).toEqual({
       displayName: '민규',
       bio: undefined,
-      mbti: 'INTP',
     })
   })
 
   it('rejects a blank display name', () => {
-    expect(() => profileFormSchema.parse({ displayName: '   ', mbti: null })).toThrow()
+    expect(() => profileFormSchema.parse({ displayName: '   ' })).toThrow()
   })
 })
