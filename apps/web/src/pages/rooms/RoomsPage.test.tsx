@@ -148,11 +148,21 @@ describe('RoomsPage', () => {
     expect(await findByRole('heading', { level: 2, name: '함께 읽는 책방' })).toBeInTheDocument()
   })
 
-  it('keeps the reading room heading while the room list is loading', () => {
+  it('waits for the room list and bestseller response before rendering main content', () => {
     getReadingRooms.mockReturnValue(new Promise<never>(() => undefined))
-    const { getByRole } = renderRoomsPage()
+    const { getByRole, queryByRole } = renderRoomsPage()
 
-    expect(getByRole('heading', { level: 2, name: '함께 읽는 책방' })).toBeInTheDocument()
+    expect(getByRole('status', { name: '책방을 준비하고 있어요.' })).toBeInTheDocument()
+    expect(queryByRole('heading', { level: 2, name: '함께 읽는 책방' })).not.toBeInTheDocument()
+  })
+
+  it('keeps the main content hidden while the bestseller response is still loading', () => {
+    getReadingRooms.mockResolvedValue([])
+    getBookBestsellers.mockReturnValue(new Promise<never>(() => undefined))
+    const { getByRole, queryByRole } = renderRoomsPage()
+
+    expect(getByRole('status', { name: '책방을 준비하고 있어요.' })).toBeInTheDocument()
+    expect(queryByRole('heading', { level: 2, name: '함께 읽는 책방' })).not.toBeInTheDocument()
   })
 
   it('keeps the reading room heading when the room list cannot be loaded', async () => {

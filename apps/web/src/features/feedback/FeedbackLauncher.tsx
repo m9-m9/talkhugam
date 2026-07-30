@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ActionButton, TextField, ToggleButton } from '@seed-design/react'
 
 import {
   parseFeedbackSubmission,
@@ -70,14 +71,15 @@ export function FeedbackLauncher() {
 
   return (
     <>
-      <button
+      <ActionButton
         aria-label="의견 보내기"
-        className="talkhugam-feedback-launcher bg-primary focus-visible:outline-primary fixed z-30 flex size-12 cursor-pointer items-center justify-center rounded-full shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2"
+        className="talkhugam-feedback-launcher talkhugam-primary-action fixed z-30 size-12 rounded-full p-0 shadow-lg"
         onClick={handleOpen}
         type="button"
+        variant="brandSolid"
       >
-        <SupportIcon className="size-6 text-white" />
-      </button>
+        <SupportIcon className="text-ink size-6" />
+      </ActionButton>
       {isOpen ? (
         <BottomSheet onClose={handleClose} title="의견 보내기">
           {isSubmitted ? (
@@ -86,13 +88,14 @@ export function FeedbackLauncher() {
               <p className="text-ink-subtle mt-2 text-sm leading-6">
                 확인이 필요하면 로그인 이메일로 답변드릴게요.
               </p>
-              <button
-                className="bg-primary mt-6 min-h-11 w-full cursor-pointer rounded-md px-4 text-sm font-bold text-white"
+              <ActionButton
+                className="talkhugam-primary-action mt-6 w-full"
                 onClick={handleClose}
                 type="button"
+                variant="brandSolid"
               >
                 닫기
-              </button>
+              </ActionButton>
             </section>
           ) : (
             <form className="pt-6" onSubmit={handleSubmit}>
@@ -100,33 +103,33 @@ export function FeedbackLauncher() {
                 <legend className="text-ink text-sm font-semibold">어떤 의견인가요?</legend>
                 <div className="mt-3 grid grid-cols-3 gap-2">
                   {feedbackCategories.map((item) => (
-                    <button
-                      aria-pressed={category === item.value}
-                      className={`min-h-11 cursor-pointer rounded-md border px-2 text-sm font-semibold ${
-                        category === item.value
-                          ? 'border-primary bg-primary text-white'
-                          : 'border-border text-ink bg-white'
-                      }`}
+                    <ToggleButton
+                      className="talkhugam-foundation-toggle w-full"
+                      onPressedChange={(pressed) => {
+                        if (pressed) handleCategoryChange(item.value)
+                      }}
                       key={item.value}
-                      onClick={() => handleCategoryChange(item.value)}
-                      type="button"
+                      pressed={category === item.value}
+                      variant="neutralWeak"
                     >
                       {item.label}
-                    </button>
+                    </ToggleButton>
                   ))}
                 </div>
               </fieldset>
               <label className="text-ink mt-6 block text-sm font-semibold" htmlFor="feedback-body">
                 의견 내용
               </label>
-              <textarea
-                className="border-border text-ink focus-visible:outline-primary mt-3 min-h-32 w-full resize-y rounded-md border bg-white p-3 text-sm leading-6 focus-visible:outline-2 focus-visible:outline-offset-2"
-                id="feedback-body"
-                maxLength={2000}
-                onChange={(event) => setBody(event.target.value)}
-                placeholder="불편했던 점이나 바라는 기능을 편하게 알려 주세요."
-                value={body}
-              />
+              <TextField.Root className="mt-3">
+                <TextField.Textarea
+                  aria-label="의견 내용"
+                  id="feedback-body"
+                  maxLength={2000}
+                  onChange={(event) => setBody(event.target.value)}
+                  placeholder="불편했던 점이나 바라는 기능을 편하게 알려 주세요."
+                  value={body}
+                />
+              </TextField.Root>
               <p className="text-ink-subtle mt-2 text-xs leading-5">
                 답변이 필요하면 로그인에 사용한 이메일로 연락드려요. 비밀번호·인증 코드는 적지
                 마세요.
@@ -136,13 +139,14 @@ export function FeedbackLauncher() {
                   {errorMessage}
                 </p>
               ) : null}
-              <button
-                className="bg-primary mt-6 min-h-11 w-full cursor-pointer rounded-md px-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+              <ActionButton
+                className="talkhugam-primary-action mt-6 w-full"
                 disabled={isSubmitting}
                 type="submit"
+                variant="brandSolid"
               >
                 {isSubmitting ? '보내고 있어요…' : '의견 보내기'}
-              </button>
+              </ActionButton>
             </form>
           )}
         </BottomSheet>

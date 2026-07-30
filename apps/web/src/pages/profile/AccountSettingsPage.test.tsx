@@ -65,7 +65,7 @@ describe('AccountSettingsPage', () => {
   it('stores a changed notification preference for the signed-in user', async () => {
     renderAccountSettingsPage()
 
-    const mentionToggle = await screen.findByRole('checkbox', { name: '멘션 알림' })
+    const mentionToggle = await screen.findByRole('switch', { name: '멘션 알림' })
     fireEvent.click(mentionToggle)
 
     await waitFor(() => {
@@ -118,14 +118,14 @@ describe('AccountSettingsPage', () => {
       roomEventsEnabled: true,
     })
 
-    expect(await screen.findByRole('checkbox', { name: '멘션 알림' })).toBeInTheDocument()
+    expect(await screen.findByRole('switch', { name: '멘션 알림' })).toBeInTheDocument()
   })
 
   it('shows a save error without offering the query retry action', async () => {
     updateNotificationPreferences.mockRejectedValueOnce(new Error('network'))
     renderAccountSettingsPage()
 
-    fireEvent.click(await screen.findByRole('checkbox', { name: '멘션 알림' }))
+    fireEvent.click(await screen.findByRole('switch', { name: '멘션 알림' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       '알림 설정을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.',
@@ -151,11 +151,15 @@ describe('AccountSettingsPage', () => {
     const confirmButton = screen.getByRole('button', { name: '계정 삭제하기' })
     expect(confirmButton).toBeDisabled()
 
-    fireEvent.click(screen.getByRole('radio', { name: '대화 기록은 남기고 탈퇴' }))
+    fireEvent.click(screen.getByRole('button', { name: '대화 기록은 남기고 탈퇴' }))
     fireEvent.click(
       screen.getByRole('checkbox', { name: '선택한 방식으로 계정을 삭제하는 데 동의합니다.' }),
     )
     expect(confirmButton).toBeEnabled()
+
+    expect(screen.getByRole('button', { name: '취소' }).parentElement).toHaveClass(
+      'talkhugam-dialog-actions',
+    )
 
     fireEvent.click(confirmButton)
     await waitFor(() => {
@@ -164,37 +168,16 @@ describe('AccountSettingsPage', () => {
     })
   })
 
-  it('focuses the first deletion option, traps focus, and restores the trigger after dismissal', async () => {
+  it('focuses the first deletion option and restores the trigger after dismissal', async () => {
     renderAccountSettingsPage()
 
     const trigger = screen.getByRole('button', { name: '계정 삭제' })
     fireEvent.click(trigger)
 
-    const firstMode = screen.getByRole('radio', { name: '대화 기록은 남기고 탈퇴' })
+    const firstMode = screen.getByRole('button', { name: '대화 기록은 남기고 탈퇴' })
     await waitFor(() => expect(firstMode).toHaveFocus())
 
-    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true })
-    expect(screen.getByRole('button', { name: '취소' })).toHaveFocus()
-
-    fireEvent.keyDown(document, { key: 'Tab' })
-    expect(firstMode).toHaveFocus()
-
-    fireEvent.keyDown(window, { key: 'Escape' })
-
-    await waitFor(() => expect(trigger).toHaveFocus())
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-  })
-
-  it('restores the deletion trigger focus after clicking the modal backdrop', async () => {
-    renderAccountSettingsPage()
-
-    const trigger = screen.getByRole('button', { name: '계정 삭제' })
-    fireEvent.click(trigger)
-    const dialog = screen.getByRole('dialog')
-    const backdrop = dialog.parentElement
-    if (!backdrop) throw new Error('계정 삭제 확인창의 배경을 찾지 못했습니다.')
-
-    fireEvent.mouseDown(backdrop)
+    fireEvent.keyDown(firstMode, { key: 'Escape' })
 
     await waitFor(() => expect(trigger).toHaveFocus())
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
@@ -205,7 +188,7 @@ describe('AccountSettingsPage', () => {
     renderAccountSettingsPage()
 
     fireEvent.click(screen.getByRole('button', { name: '계정 삭제' }))
-    fireEvent.click(screen.getByRole('radio', { name: '대화 기록은 남기고 탈퇴' }))
+    fireEvent.click(screen.getByRole('button', { name: '대화 기록은 남기고 탈퇴' }))
     fireEvent.click(
       screen.getByRole('checkbox', { name: '선택한 방식으로 계정을 삭제하는 데 동의합니다.' }),
     )

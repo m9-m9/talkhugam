@@ -115,7 +115,6 @@ function translateFunctionTarget(target) {
     List: '목록',
     Loading: '로딩',
     Logo: '로고',
-    Mbti: 'MBTI',
     Menu: '메뉴',
     Messages: '메시지 목록',
     Name: '이름',

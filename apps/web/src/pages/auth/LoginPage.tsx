@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
+import { ActionButton } from '@seed-design/react'
+
 import { getClientEnv } from '../../app/env'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
-import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { BrandLoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 type Provider = 'google' | 'kakao' | 'naver'
 
@@ -83,44 +85,62 @@ type SocialLoginButtonProps = {
 function SocialLoginButton({ disabled, onClick, provider }: SocialLoginButtonProps) {
   if (provider === 'kakao') {
     return (
-      <button
+      <ActionButton
         aria-label="카카오로 로그인"
-        className="text-ink flex h-12 w-full items-center justify-center gap-3 rounded-md bg-[#fee500] px-4 text-sm font-medium disabled:opacity-50"
+        className="talkhugam-social-login-button talkhugam-social-login-button--kakao"
         disabled={disabled}
         onClick={onClick}
+        size="medium"
         type="button"
+        variant="neutralSolid"
       >
-        <KakaoLogo />
-        카카오로 계속하기
-      </button>
+        <span className="talkhugam-social-login-button__content">
+          <span className="talkhugam-social-login-button__icon">
+            <KakaoLogo />
+          </span>
+          <span>카카오로 계속하기</span>
+        </span>
+      </ActionButton>
     )
   }
 
   if (provider === 'naver') {
     return (
-      <button
+      <ActionButton
         aria-label="네이버로 로그인"
-        className="text-ink flex h-12 w-full items-center justify-center gap-3 rounded-md bg-[#03c75a] px-4 text-sm font-medium disabled:opacity-50"
+        className="talkhugam-social-login-button talkhugam-social-login-button--naver"
         disabled={disabled}
         onClick={onClick}
+        size="medium"
         type="button"
+        variant="neutralSolid"
       >
-        <NaverLogo />
-        네이버로 계속하기
-      </button>
+        <span className="talkhugam-social-login-button__content">
+          <span className="talkhugam-social-login-button__icon">
+            <NaverLogo />
+          </span>
+          <span>네이버로 계속하기</span>
+        </span>
+      </ActionButton>
     )
   }
 
   return (
-    <button
-      className="text-ink flex h-12 w-full items-center justify-center gap-3 rounded-md border border-[#747775] bg-white px-4 text-sm font-medium disabled:opacity-50"
+    <ActionButton
+      className="talkhugam-social-login-button talkhugam-social-login-button--google"
       disabled={disabled}
       onClick={onClick}
+      size="medium"
       type="button"
+      variant="neutralOutline"
     >
-      <GoogleLogo />
-      Google로 계속하기
-    </button>
+      <span className="talkhugam-social-login-button__content">
+        <span className="talkhugam-social-login-button__icon">
+          <GoogleLogo />
+        </span>
+        <span>Google로 계속하기</span>
+      </span>
+    </ActionButton>
   )
 }
 
@@ -155,50 +175,55 @@ export function LoginPage() {
   }
 
   return (
-    <main className="app-page bg-surface flex flex-col justify-center gap-12 px-4">
-      <div className="space-y-4">
-        <p className="text-primary text-sm font-medium">Talk후감</p>
-        <h1 className="text-ink text-3xl font-semibold break-keep">
-          읽고 느낀 마음을
-          <br />
-          함께 나눠요
-        </h1>
-        <p className="text-ink-subtle text-sm">
-          같은 책을 읽고 느낀 점을 편하게 나누는 책방이에요.
+    <main className="app-page talkhugam-login-page bg-surface flex items-center px-4 py-12">
+      <section aria-label="Talk후감 로그인" className="talkhugam-login-content">
+        <div className="space-y-4">
+          <p className="text-primary text-sm font-medium">Talk후감</p>
+          <h1 className="text-ink text-3xl font-semibold break-keep">
+            읽고 느낀 마음을
+            <br />
+            함께 나눠요
+          </h1>
+          <p className="text-ink-subtle text-sm">
+            같은 책을 읽고 느낀 점을 편하게 나누는 책방이에요.
+          </p>
+          {wasAccountDeleted ? (
+            <p className="text-primary text-sm" role="status">
+              계정 삭제 요청이 완료됐어요. Talk후감에 다시 오고 싶을 때 언제든 로그인해 주세요.
+            </p>
+          ) : null}
+        </div>
+        <div className="flex flex-col gap-2">
+          {(['kakao', 'google', 'naver'] as const).map((provider) => (
+            <SocialLoginButton
+              disabled={isPending}
+              key={provider}
+              onClick={() => void handleLogin(provider)}
+              provider={provider}
+            />
+          ))}
+        </div>
+        <p className="text-ink-subtle text-center text-xs leading-5">
+          계속하면{' '}
+          <Link className="text-primary font-medium underline underline-offset-2" to="/legal/terms">
+            이용약관
+          </Link>{' '}
+          및{' '}
+          <Link
+            className="text-primary font-medium underline underline-offset-2"
+            to="/legal/privacy"
+          >
+            개인정보처리방침
+          </Link>
+          에 동의하게 됩니다.
         </p>
-        {wasAccountDeleted ? (
-          <p className="text-primary text-sm" role="status">
-            계정 삭제 요청이 완료됐어요. Talk후감에 다시 오고 싶을 때 언제든 로그인해 주세요.
+        {isPending ? <BrandLoadingSpinner label="로그인을 연결하고 있어요." size="sm" /> : null}
+        {errorMessage ? (
+          <p role="alert" className="text-sm text-red-600">
+            {errorMessage}
           </p>
         ) : null}
-      </div>
-      <div className="space-y-3">
-        {(['kakao', 'google', 'naver'] as const).map((provider) => (
-          <SocialLoginButton
-            disabled={isPending}
-            key={provider}
-            onClick={() => void handleLogin(provider)}
-            provider={provider}
-          />
-        ))}
-      </div>
-      <p className="text-ink-subtle text-center text-xs leading-5">
-        계속하면{' '}
-        <Link className="text-primary font-medium underline underline-offset-2" to="/legal/terms">
-          이용약관
-        </Link>{' '}
-        및{' '}
-        <Link className="text-primary font-medium underline underline-offset-2" to="/legal/privacy">
-          개인정보처리방침
-        </Link>
-        에 동의하게 됩니다.
-      </p>
-      {isPending ? <LoadingSpinner label="로그인을 연결하고 있어요." size="sm" /> : null}
-      {errorMessage ? (
-        <p role="alert" className="text-sm text-red-600">
-          {errorMessage}
-        </p>
-      ) : null}
+      </section>
     </main>
   )
 }

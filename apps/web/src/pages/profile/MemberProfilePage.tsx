@@ -1,12 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
+import { ActionButton } from '@seed-design/react'
 
 import { getProfile, getProfileAvatarUrl } from '../../entities/profile'
 import { getRoomManagement, roomManagementKeys } from '../../entities/room-management'
 import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
-import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { BrandLoadingSpinner } from '../../shared/ui/LoadingSpinner'
 import { RetryState } from '../../shared/ui/RetryState'
 import { ProfileAvatar } from '../../shared/ui/ProfileAvatar'
 
@@ -46,6 +47,11 @@ export function MemberProfilePage() {
   /** 같은 책방 멤버에게 허용된 프로필 사진의 임시 URL을 조회해 반환한다. */
   function fetchProfileAvatarUrl() {
     return getProfileAvatarUrl(client, profileQuery.data?.avatarPath ?? null)
+  }
+
+  /** 현재 멤버 프로필을 닫고 해당 책방 상세 화면으로 돌아간다. */
+  function handleReturnToRoom() {
+    void navigate(`/rooms/${roomId}`)
   }
 
   if (roomQuery.isPending)
@@ -91,16 +97,20 @@ export function MemberProfilePage() {
             label="한 줄 소개"
             value={profile.bio || '아직 소개를 작성하지 않았어요.'}
           />
-          <MemberProfileDetail label="MBTI" value={profile.mbti || '선택 안 함'} />
         </dl>
       </section>
 
-      <Link
-        className="bg-primary mt-12 flex min-h-11 w-full items-center justify-center rounded-md px-4 text-sm font-semibold text-white"
-        to={`/rooms/${roomId}`}
-      >
-        책방으로 돌아가기
-      </Link>
+      <div className="mt-12">
+        <ActionButton
+          className="talkhugam-primary-action w-full"
+          onClick={handleReturnToRoom}
+          size="large"
+          type="button"
+          variant="brandSolid"
+        >
+          책방으로 돌아가기
+        </ActionButton>
+      </div>
     </main>
   )
 }
@@ -119,7 +129,7 @@ function MemberProfileDetail({ label, value }: { label: string; value: string })
 function MemberProfileLoadingPage({ message }: { message: string }) {
   return (
     <main className="app-page bg-surface flex min-h-screen items-center justify-center px-4">
-      <LoadingSpinner label={message} />
+      <BrandLoadingSpinner label={message} />
     </main>
   )
 }
@@ -129,13 +139,15 @@ function MemberProfileUnavailablePage({ onBack }: { onBack: () => void }) {
   return (
     <main className="app-page bg-surface flex min-h-screen flex-col items-center justify-center gap-4 px-4 text-center">
       <p className="text-ink text-lg font-bold">이 멤버 정보를 찾을 수 없어요.</p>
-      <button
-        className="bg-primary min-h-11 rounded-md px-4 text-sm font-semibold text-white"
+      <ActionButton
+        className="talkhugam-primary-action"
         onClick={onBack}
+        size="large"
         type="button"
+        variant="brandSolid"
       >
         내 책방으로
-      </button>
+      </ActionButton>
     </main>
   )
 }
@@ -148,13 +160,15 @@ function MemberProfileErrorPage({ onBack, onRetry }: { onBack: () => void; onRet
         message="멤버 프로필을 불러오지 못했어요. 잠시 후 다시 시도해 주세요."
         onRetry={onRetry}
       />
-      <button
-        className="border-ink/10 min-h-11 rounded-md border bg-white px-4 text-sm font-semibold"
+      <ActionButton
+        className="talkhugam-foundation-action--outline"
         onClick={onBack}
+        size="large"
         type="button"
+        variant="neutralOutline"
       >
         책방으로 돌아가기
-      </button>
+      </ActionButton>
     </main>
   )
 }

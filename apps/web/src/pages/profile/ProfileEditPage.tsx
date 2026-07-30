@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
+import { ActionButton, TextField } from '@seed-design/react'
 
 import {
   getProfile,
@@ -15,28 +16,10 @@ import {
 import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
-import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { FormField } from '../../shared/ui/FormField'
+import { BrandLoadingSpinner } from '../../shared/ui/LoadingSpinner'
 import { ProfileAvatar } from '../../shared/ui/ProfileAvatar'
 import { RetryState } from '../../shared/ui/RetryState'
-
-const mbtiOptions = [
-  'ISTJ',
-  'ISFJ',
-  'INFJ',
-  'INTJ',
-  'ISTP',
-  'ISFP',
-  'INFP',
-  'INTP',
-  'ESTP',
-  'ESFP',
-  'ENFP',
-  'ENTP',
-  'ESTJ',
-  'ESFJ',
-  'ENFJ',
-  'ENTJ',
-] as const
 
 /** 프로필 편집 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 export function ProfileEditPage() {
@@ -47,7 +30,7 @@ export function ProfileEditPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const form = useForm<ProfileForm>({
-    defaultValues: { displayName: '', bio: '', mbti: null },
+    defaultValues: { displayName: '', bio: '' },
     resolver: zodResolver(profileFormSchema),
   })
   const profileQuery = useQuery({
@@ -77,7 +60,6 @@ export function ProfileEditPage() {
     form.reset({
       displayName: profileQuery.data.displayName,
       bio: profileQuery.data.bio ?? '',
-      mbti: isMbti(profileQuery.data.mbti) ? profileQuery.data.mbti : null,
     })
   }, [form, profileQuery.data])
 
@@ -149,7 +131,7 @@ export function ProfileEditPage() {
       <header className="mt-8">
         <p className="text-primary text-sm font-medium">프로필</p>
         <h1 className="text-ink mt-2 text-2xl font-bold">프로필 편집</h1>
-        <p className="text-ink-subtle mt-2 text-sm">내 소개와 독서 취향을 알려주세요.</p>
+        <p className="text-ink-subtle mt-2 text-sm">나를 소개할 한 줄을 적어 주세요.</p>
       </header>
 
       <section aria-label="프로필 사진" className="mt-8 flex items-center gap-4">
@@ -158,14 +140,16 @@ export function ProfileEditPage() {
           displayName={profileQuery.data?.displayName ?? ''}
         />
         <div>
-          <button
-            className="border-ink/10 hover:bg-surface-muted focus-visible:ring-primary min-h-11 rounded-md border bg-white px-4 text-sm font-semibold focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+          <ActionButton
+            className="talkhugam-foundation-action--outline"
             disabled={avatarUploadMutation.isPending}
             onClick={handleSelectAvatar}
+            size="medium"
             type="button"
+            variant="neutralOutline"
           >
             {avatarUploadMutation.isPending ? '사진 올리는 중…' : '사진 변경'}
-          </button>
+          </ActionButton>
           <p className="text-ink-subtle mt-2 text-xs">JPG, PNG, WebP · 최대 5MB</p>
         </div>
         <input
@@ -178,95 +162,38 @@ export function ProfileEditPage() {
         />
       </section>
 
-      <form className="mt-8 space-y-6" onSubmit={form.handleSubmit(handleSubmit)}>
-        <EditField errorMessage={form.formState.errors.displayName?.message} label="이름">
-          <input
-            aria-invalid={Boolean(form.formState.errors.displayName)}
-            className="focus:border-primary min-h-11 w-full rounded-md border border-black/10 bg-white px-3 text-sm outline-none"
-            {...form.register('displayName')}
-          />
-        </EditField>
-        <EditField errorMessage={form.formState.errors.bio?.message} label="한 줄 소개">
-          <textarea
-            className="focus:border-primary min-h-24 w-full resize-none rounded-md border border-black/10 bg-white px-3 py-3 text-sm outline-none"
-            maxLength={80}
-            {...form.register('bio')}
-          />
-        </EditField>
-        <EditField errorMessage={form.formState.errors.mbti?.message} label="MBTI (선택)">
-          <div className="relative">
-            <select
-              className="focus:border-primary min-h-11 w-full appearance-none rounded-md border border-black/10 bg-white px-3 pr-12 text-sm outline-none"
-              {...form.register('mbti', { setValueAs: (value: string) => value || null })}
-            >
-              <option value="">선택 안 함</option>
-              {mbtiOptions.map((mbti) => (
-                <option key={mbti} value={mbti}>
-                  {mbti}
-                </option>
-              ))}
-            </select>
-            <svg
-              aria-hidden="true"
-              className="text-ink pointer-events-none absolute top-1/2 right-6 size-4 -translate-y-1/2"
-              fill="none"
-              viewBox="0 0 16 16"
-            >
-              <path
-                d="m3 6 5 5 5-5"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="1.5"
-              />
-            </svg>
-          </div>
-        </EditField>
+      <form className="mt-6 space-y-4" onSubmit={form.handleSubmit(handleSubmit)}>
+        <FormField
+          errorMessage={form.formState.errors.displayName?.message}
+          label="이름"
+          name="displayName"
+        >
+          <TextField.Root className="talkhugam-information-field">
+            <TextField.Input {...form.register('displayName')} />
+          </TextField.Root>
+        </FormField>
+        <FormField errorMessage={form.formState.errors.bio?.message} label="한 줄 소개" name="bio">
+          <TextField.Root className="talkhugam-information-field">
+            <TextField.Textarea autoresize={false} maxLength={80} {...form.register('bio')} />
+          </TextField.Root>
+        </FormField>
         {errorMessage ? (
           <p className="text-sm text-red-600" role="alert">
             {errorMessage}
           </p>
         ) : null}
-        <button
-          className="bg-primary min-h-11 w-full rounded-md px-4 text-sm font-semibold text-white disabled:opacity-50"
+        <ActionButton
+          className="talkhugam-primary-action w-full"
           disabled={isSaveDisabled}
+          loading={form.formState.isSubmitting}
+          size="large"
           type="submit"
+          variant="brandSolid"
         >
-          {form.formState.isSubmitting ? (
-            <span className="flex items-center justify-center gap-2">
-              <LoadingSpinner label="프로필을 저장하고 있어요." showLabel={false} size="xs" />
-              저장하고 있어요…
-            </span>
-          ) : (
-            '저장하기'
-          )}
-        </button>
+          저장하기
+        </ActionButton>
       </form>
     </main>
-  )
-}
-
-/** MBTI 상태인지 판별한다. */
-function isMbti(value: string | null): value is (typeof mbtiOptions)[number] {
-  return value !== null && mbtiOptions.includes(value as (typeof mbtiOptions)[number])
-}
-
-/** 편집 입력 필드 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
-function EditField({
-  children,
-  errorMessage,
-  label,
-}: {
-  children: React.ReactNode
-  errorMessage: string | undefined
-  label: string
-}) {
-  return (
-    <label className="block space-y-2">
-      <span className="text-ink text-sm font-medium">{label}</span>
-      {children}
-      {errorMessage ? <span className="text-sm text-red-600">{errorMessage}</span> : null}
-    </label>
   )
 }
 
@@ -274,7 +201,7 @@ function EditField({
 function ProfileEditState({ message }: { message: string }) {
   return (
     <main className="app-page bg-surface flex items-center justify-center px-4">
-      <LoadingSpinner label={message} />
+      <BrandLoadingSpinner label={message} />
     </main>
   )
 }

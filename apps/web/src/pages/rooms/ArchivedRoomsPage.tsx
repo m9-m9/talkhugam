@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { getArchivedRooms, roomManagementKeys } from '../../entities/room-management'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
-import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { BookLoadingIndicator } from '../../shared/ui/LoadingSpinner'
 import { RetryState } from '../../shared/ui/RetryState'
 
 /** 보관한 책방을 시간순으로 보여 주는 지난 기록 화면을 렌더링한다. */
@@ -24,7 +24,7 @@ export function ArchivedRoomsPage() {
       </header>
       {archiveQuery.isPending ? (
         <div className="mt-12">
-          <LoadingSpinner label="지난 기록을 불러오고 있어요." variant="book" />
+          <BookLoadingIndicator label="지난 기록을 불러오고 있어요." />
         </div>
       ) : null}
       {archiveQuery.isError ? (
@@ -36,7 +36,7 @@ export function ArchivedRoomsPage() {
         </div>
       ) : null}
       {archiveQuery.data?.length === 0 ? (
-        <div className="bg-surface-muted mt-12 rounded-lg p-6 text-center">
+        <div className="talkhugam-information-surface border-ink/10 mt-12 rounded-lg border p-6 text-center">
           <p className="text-ink font-semibold">아직 보관한 책방이 없어요</p>
           <p className="text-ink-subtle mt-2 text-sm">
             마지막 방장은 방을 보관한 뒤 나갈 수 있어요.

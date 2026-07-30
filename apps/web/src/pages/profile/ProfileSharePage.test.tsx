@@ -9,7 +9,6 @@ const getProfile = vi.hoisted(() =>
   vi.fn().mockResolvedValue({
     bio: '느리게 읽고 오래 남겨요.',
     displayName: '민규',
-    mbti: 'INTP',
   }),
 )
 
@@ -26,9 +25,18 @@ describe('ProfileSharePage', () => {
     renderProfileSharePage()
 
     expect(await screen.findByRole('heading', { name: '민규의 독서 카드' })).toBeInTheDocument()
+    expect(screen.queryByText('INTP')).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: '공유하기' }))
 
     expect(share).toHaveBeenCalledWith(expect.objectContaining({ title: '민규의 Talk후감 프로필' }))
+  })
+
+  it('uses SEED action buttons for sharing and returning from an unavailable card', async () => {
+    renderProfileSharePage()
+
+    const shareButton = await screen.findByRole('button', { name: '공유하기' })
+    expect(shareButton).toHaveClass(/seed-action-button/)
+    expect(shareButton).toHaveClass('!mt-8')
   })
 })
 

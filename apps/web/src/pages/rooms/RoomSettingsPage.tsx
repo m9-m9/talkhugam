@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { useNavigate, useParams } from 'react-router-dom'
 import { z } from 'zod'
+import { ActionButton, TextField } from '@seed-design/react'
 
 import {
   getRoomManagement,
@@ -12,7 +13,8 @@ import {
 import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
-import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { FormField } from '../../shared/ui/FormField'
+import { BookLoadingIndicator } from '../../shared/ui/LoadingSpinner'
 
 const roomSettingsSchema = z.object({
   description: z.string().trim().max(120, '소개는 120자 이내로 작성해 주세요.'),
@@ -66,40 +68,35 @@ export function RoomSettingsPage() {
         <p className="text-ink-subtle mt-2 text-sm">이 방에 참여한 사람들이 함께 볼 정보예요.</p>
       </header>
       <form className="mt-12 space-y-6" onSubmit={form.handleSubmit(handleSubmit)}>
-        <label className="block space-y-2">
-          <span className="text-ink text-sm font-semibold">책방 이름</span>
-          <input
-            className="border-ink/10 focus:border-primary min-h-12 w-full rounded-md border bg-white px-4 text-sm outline-none"
-            {...form.register('name')}
-          />
-          {form.formState.errors.name?.message ? (
-            <span className="text-sm text-red-600">{form.formState.errors.name.message}</span>
-          ) : null}
-        </label>
-        <label className="block space-y-2">
-          <span className="text-ink text-sm font-semibold">한 줄 소개</span>
-          <textarea
-            className="border-ink/10 focus:border-primary min-h-24 w-full resize-none rounded-md border bg-white px-4 py-3 text-sm outline-none"
-            {...form.register('description')}
-          />
-          {form.formState.errors.description?.message ? (
-            <span className="text-sm text-red-600">
-              {form.formState.errors.description.message}
-            </span>
-          ) : null}
-        </label>
+        <FormField errorMessage={form.formState.errors.name?.message} label="책방 이름" name="name">
+          <TextField.Root className="talkhugam-information-field">
+            <TextField.Input {...form.register('name')} />
+          </TextField.Root>
+        </FormField>
+        <FormField
+          errorMessage={form.formState.errors.description?.message}
+          label="한 줄 소개"
+          name="description"
+        >
+          <TextField.Root className="talkhugam-information-field">
+            <TextField.Textarea autoresize={false} {...form.register('description')} />
+          </TextField.Root>
+        </FormField>
         {saveMutation.isError ? (
           <p className="text-sm text-red-600" role="alert">
             방 정보를 저장하지 못했어요. 다시 시도해 주세요.
           </p>
         ) : null}
-        <button
-          className="bg-primary min-h-12 w-full rounded-md px-4 text-sm font-semibold text-white disabled:opacity-50"
+        <ActionButton
+          className="talkhugam-primary-action w-full"
           disabled={saveMutation.isPending}
+          loading={saveMutation.isPending}
+          size="large"
           type="submit"
+          variant="brandSolid"
         >
-          {saveMutation.isPending ? '저장 중…' : '저장하기'}
-        </button>
+          저장하기
+        </ActionButton>
       </form>
     </main>
   )
@@ -109,7 +106,7 @@ export function RoomSettingsPage() {
 function RoomSettingsLoadingPage() {
   return (
     <main className="app-page bg-surface flex min-h-screen items-center justify-center">
-      <LoadingSpinner label="방 설정을 불러오고 있어요." variant="book" />
+      <BookLoadingIndicator label="방 설정을 불러오고 있어요." />
     </main>
   )
 }
@@ -119,13 +116,15 @@ function RoomSettingsUnavailablePage({ onBack }: { onBack: () => void }) {
   return (
     <main className="app-page bg-surface flex min-h-screen flex-col items-center justify-center px-4 text-center">
       <p className="text-ink text-lg font-bold">방 설정 권한이 없어요</p>
-      <button
-        className="bg-primary mt-6 min-h-11 rounded-md px-4 text-sm font-semibold text-white"
+      <ActionButton
+        className="talkhugam-primary-action mt-6"
         onClick={onBack}
+        size="large"
         type="button"
+        variant="brandSolid"
       >
         방 정보로
-      </button>
+      </ActionButton>
     </main>
   )
 }

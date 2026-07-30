@@ -51,8 +51,8 @@ export function ContactPage() {
             {supportEmail}
           </a>
         ) : (
-          <p className="text-ink-subtle mt-3 text-sm leading-6">
-            문의 이메일은 출시 전에 이 화면에 공개됩니다.
+          <p className="talkhugam-balanced-copy text-ink-subtle mt-3 text-sm leading-6">
+            문의 이메일은 출시 전에 안내됩니다.
           </p>
         )}
         <p className="text-ink-subtle mt-3 text-xs leading-5">

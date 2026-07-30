@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 
+import { ActionButton, TextField } from '@seed-design/react'
+
 import {
   createRoomFormSchema,
   createRoomWithInvite,
@@ -15,7 +17,8 @@ import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { trackAnalyticsEvent } from '../../shared/analytics'
 import { AppHeader } from '../../shared/ui/AppHeader'
-import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { FormField } from '../../shared/ui/FormField'
+import { BrandLoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 /** 새 책방을 만들고 초대 코드를 생성하는 화면을 렌더링한다. */
 export function CreateRoomPage() {
@@ -62,24 +65,25 @@ export function CreateRoomPage() {
       </header>
 
       <form className="mt-12 space-y-6" onSubmit={form.handleSubmit(handleSubmit)}>
-        <FormField errorMessage={form.formState.errors.name?.message} label="책방 이름">
-          <input
-            aria-invalid={Boolean(form.formState.errors.name)}
-            className="border-ink/10 focus:border-primary min-h-12 w-full rounded-md border bg-white px-4 text-sm outline-none"
-            placeholder="예: 금요일 아침 책방"
-            {...form.register('name')}
-          />
+        <FormField errorMessage={form.formState.errors.name?.message} label="책방 이름" name="name">
+          <TextField.Root className="talkhugam-information-field">
+            <TextField.Input placeholder="예: 금요일 아침 책방" {...form.register('name')} />
+          </TextField.Root>
         </FormField>
 
         <FormField
           errorMessage={form.formState.errors.description?.message}
-          label="한 줄 소개 (선택)"
+          label="한 줄 소개"
+          name="description"
+          optional
         >
-          <textarea
-            className="border-ink/10 focus:border-primary min-h-24 w-full resize-none rounded-md border bg-white px-4 py-3 text-sm outline-none"
-            placeholder="예: 이번 달 함께 읽는 책들"
-            {...form.register('description')}
-          />
+          <TextField.Root className="talkhugam-information-field">
+            <TextField.Textarea
+              autoresize={false}
+              placeholder="예: 이번 달 함께 읽는 책들"
+              {...form.register('description')}
+            />
+          </TextField.Root>
         </FormField>
 
         <p className="text-ink-subtle text-xs">초대받은 사람만 참여할 수 있는 비공개 방이에요.</p>
@@ -88,20 +92,23 @@ export function CreateRoomPage() {
             {errorMessage}
           </p>
         ) : null}
-        <button
-          className="bg-primary min-h-12 w-full rounded-md px-4 text-sm font-semibold text-white disabled:opacity-45"
+        <ActionButton
+          className="talkhugam-primary-action w-full"
           disabled={form.formState.isSubmitting}
+          loading={form.formState.isSubmitting}
+          size="large"
           type="submit"
+          variant="brandSolid"
         >
           {form.formState.isSubmitting ? (
             <span className="flex items-center justify-center gap-2">
-              <LoadingSpinner label="책방을 만들고 있어요." showLabel={false} size="xs" />
+              <BrandLoadingSpinner label="책방을 만들고 있어요." showLabel={false} size="xs" />
               책방을 만들고 있어요…
             </span>
           ) : (
             '책방 만들기'
           )}
-        </button>
+        </ActionButton>
       </form>
     </main>
   )
@@ -125,13 +132,15 @@ function RoomCreatedPage({ invite, onClose }: { invite: CreatedRoomInvite; onClo
     <main className="app-page bg-surface flex flex-col px-4 pb-8">
       <AppHeader
         action={
-          <button
-            className="text-primary min-h-11 px-3 text-sm font-medium"
+          <ActionButton
+            className="text-primary"
             onClick={onClose}
+            size="medium"
             type="button"
+            variant="ghost"
           >
             나중에
-          </button>
+          </ActionButton>
         }
         title="책방 만들기 완료"
       />
@@ -144,37 +153,20 @@ function RoomCreatedPage({ invite, onClose }: { invite: CreatedRoomInvite; onClo
         <p className="text-ink-subtle mt-3 text-sm">
           초대 코드를 보내고 함께 읽을 친구를 불러보세요.
         </p>
-        <div className="bg-surface-muted mt-8 w-full rounded-lg p-6">
+        <div className="talkhugam-information-surface border-border mt-8 w-full rounded-lg border p-6">
           <p className="text-ink-subtle text-xs">초대 코드</p>
           <p className="text-ink mt-2 text-3xl font-bold tracking-widest">{invite.code}</p>
         </div>
-        <button
-          className="bg-primary mt-6 min-h-12 w-full rounded-md px-4 text-sm font-semibold text-white"
+        <ActionButton
+          className="talkhugam-primary-action mt-6 w-full"
           onClick={() => void handleCopyInvite()}
+          size="large"
           type="button"
+          variant="brandSolid"
         >
           {isCopied ? '초대 코드 복사 완료' : '초대 코드 복사하기'}
-        </button>
+        </ActionButton>
       </div>
     </main>
-  )
-}
-
-/** 입력 폼 입력 필드 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
-function FormField({
-  children,
-  errorMessage,
-  label,
-}: {
-  children: React.ReactNode
-  errorMessage: string | undefined
-  label: string
-}) {
-  return (
-    <label className="block space-y-2">
-      <span className="text-ink text-sm font-medium">{label}</span>
-      {children}
-      {errorMessage ? <span className="text-sm text-red-600">{errorMessage}</span> : null}
-    </label>
   )
 }

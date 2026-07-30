@@ -363,14 +363,18 @@ describe('BookDiscussionPage', () => {
     expect(screen.getByText('몰입형 영상 화면')).toBeInTheDocument()
   })
 
-  it('opens the message actions as a speech bubble above the composer', () => {
+  it('opens the message actions in a SEED action sheet', () => {
     renderBookDiscussionPage()
 
     fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
 
-    const actionMenu = screen.getByText('페이지 라벨').closest('.talkhugam-chat-action-menu')
-    expect(actionMenu).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: '메시지 추가' })).toHaveClass(
+      'seed-menu-sheet__content',
+    )
     expect(screen.getByRole('button', { name: '영상 올리기' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '페이지 라벨' })).toHaveClass(
+      'talkhugam-action-sheet-choice',
+    )
   })
 
   it('keeps every chat action in the same two-column grid', () => {
@@ -386,7 +390,7 @@ describe('BookDiscussionPage', () => {
 
     const input = screen.getByLabelText('메시지 입력')
 
-    expect(input.parentElement?.parentElement).toHaveClass('talkhugam-chat-composer-row')
+    expect(input.closest('.talkhugam-chat-composer-row')).toBeInTheDocument()
   })
 
   it('opens the completion review form from the plus menu before it saves a personal completion record', async () => {
@@ -518,24 +522,6 @@ describe('BookDiscussionPage', () => {
     expect(screen.getByRole('button', { name: '완독 기록 수정' })).toBeInTheDocument()
   })
 
-  it('closes the action bubble when the user taps outside it', () => {
-    renderBookDiscussionPage()
-    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
-
-    fireEvent.pointerDown(document.body)
-
-    expect(screen.queryByText('페이지 라벨')).not.toBeInTheDocument()
-  })
-
-  it('closes the action bubble with Escape', () => {
-    renderBookDiscussionPage()
-    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
-
-    fireEvent.keyDown(window, { key: 'Escape' })
-
-    expect(screen.queryByText('페이지 라벨')).not.toBeInTheDocument()
-  })
-
   it('shows matching members from an at-sign typed in the message input', async () => {
     renderBookDiscussionPage()
     fireEvent.change(screen.getByLabelText('메시지 입력'), { target: { value: '@민' } })
@@ -561,30 +547,12 @@ describe('BookDiscussionPage', () => {
     expect(screen.getByLabelText('메시지 입력')).toHaveValue('@민')
   })
 
-  it('preserves the draft, labels, and mentions after an outside click closes the menu', async () => {
-    renderBookDiscussionPage()
-    await prepareComposerState()
-
-    fireEvent.pointerDown(document.body)
-
-    expectComposerState()
-  })
-
-  it('preserves the draft, labels, and mentions after Escape closes the menu', async () => {
-    renderBookDiscussionPage()
-    await prepareComposerState()
-
-    fireEvent.keyDown(window, { key: 'Escape' })
-
-    expectComposerState()
-  })
-
-  it('preserves the draft, labels, and mentions after the plus button closes the menu', async () => {
+  it('preserves the draft, labels, and mentions after closing the SEED action sheet', async () => {
     renderBookDiscussionPage()
     await prepareComposerState()
 
     fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
-    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 닫기' }))
+    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 닫기' }))
 
     expectComposerState()
   })
@@ -853,34 +821,24 @@ describe('BookDiscussionPage', () => {
     expect(screen.getByLabelText('메시지 입력')).toHaveValue('@민수 저도요')
   })
 
-  it.each([
-    ['outside click', () => fireEvent.pointerDown(document.body)],
-    [
-      'close button',
-      () => fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 닫기' })),
-    ],
-    ['Escape', () => fireEvent.keyDown(window, { key: 'Escape' })],
-  ])(
-    'returns to label selection and keeps only the message draft after closing with %s',
-    (_, closeMenu) => {
-      renderBookDiscussionPage()
-      openPageLabelEditor()
-      fireEvent.change(screen.getByLabelText('페이지 번호'), { target: { value: '87' } })
-      fireEvent.change(screen.getByLabelText('메시지 입력'), {
-        target: { value: '이 문장을 기억할게요' },
-      })
+  it('returns to label selection and keeps only the message draft after closing the SEED sheet', () => {
+    renderBookDiscussionPage()
+    openPageLabelEditor()
+    fireEvent.change(screen.getByLabelText('페이지 번호'), { target: { value: '87' } })
+    fireEvent.change(screen.getByLabelText('메시지 입력'), {
+      target: { value: '이 문장을 기억할게요' },
+    })
 
-      closeMenu()
-      fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
+    fireEvent.click(screen.getByRole('button', { name: '페이지 라벨 닫기' }))
+    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
 
-      expect(screen.getByRole('button', { name: '페이지 라벨' })).toBeInTheDocument()
-      expect(screen.queryByLabelText('페이지 번호')).not.toBeInTheDocument()
-      expect(screen.getByLabelText('메시지 입력')).toHaveValue('이 문장을 기억할게요')
+    expect(screen.getByRole('button', { name: '페이지 라벨' })).toBeInTheDocument()
+    expect(screen.queryByLabelText('페이지 번호')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('메시지 입력')).toHaveValue('이 문장을 기억할게요')
 
-      fireEvent.click(screen.getByRole('button', { name: '페이지 라벨' }))
-      expect(screen.getByLabelText('페이지 번호')).toHaveValue('')
-    },
-  )
+    fireEvent.click(screen.getByRole('button', { name: '페이지 라벨' }))
+    expect(screen.getByLabelText('페이지 번호')).toHaveValue('')
+  })
 
   it('keeps separate label drafts while returning inside the still-open action menu', () => {
     renderBookDiscussionPage()
@@ -912,7 +870,7 @@ describe('BookDiscussionPage', () => {
     )
   })
 
-  it('clears only the submitted label draft, closes the menu, and focuses the message input', () => {
+  it('clears only the submitted label draft, closes the menu, and focuses the message input', async () => {
     renderBookDiscussionPage()
     openPageLabelEditor()
     fireEvent.change(screen.getByLabelText('페이지 번호'), { target: { value: '87' } })
@@ -921,14 +879,14 @@ describe('BookDiscussionPage', () => {
 
     expect(screen.getByText('페이지 87')).toBeInTheDocument()
     expect(screen.queryByLabelText('페이지 번호')).not.toBeInTheDocument()
-    expect(screen.getByLabelText('메시지 입력')).toHaveFocus()
+    await vi.waitFor(() => expect(screen.getByLabelText('메시지 입력')).toHaveFocus())
 
     fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
     fireEvent.click(screen.getByRole('button', { name: '페이지 라벨' }))
     expect(screen.getByLabelText('페이지 번호')).toHaveValue('')
   })
 
-  it('adds a label when Enter is pressed in the label input', () => {
+  it('adds a label when Enter is pressed in the label input', async () => {
     renderBookDiscussionPage()
     openPageLabelEditor()
     fireEvent.change(screen.getByLabelText('페이지 번호'), { target: { value: '87' } })
@@ -936,7 +894,7 @@ describe('BookDiscussionPage', () => {
     fireEvent.keyDown(screen.getByLabelText('페이지 번호'), { key: 'Enter' })
 
     expect(screen.getByText('페이지 87')).toBeInTheDocument()
-    expect(screen.getByLabelText('메시지 입력')).toHaveFocus()
+    await vi.waitFor(() => expect(screen.getByLabelText('메시지 입력')).toHaveFocus())
   })
 
   it('keeps an invalid label draft open so the user can correct it', () => {
@@ -947,10 +905,7 @@ describe('BookDiscussionPage', () => {
     fireEvent.click(screen.getByRole('button', { name: '라벨 추가' }))
 
     expect(screen.getByLabelText('페이지 번호')).toHaveValue('   ')
-    expect(screen.getByRole('button', { name: '메시지 추가 메뉴 닫기' })).toHaveAttribute(
-      'aria-expanded',
-      'true',
-    )
+    expect(screen.getByRole('dialog', { name: '페이지 라벨' })).toBeInTheDocument()
   })
 
   it('uses the book loader while the selected video is uploading', () => {
