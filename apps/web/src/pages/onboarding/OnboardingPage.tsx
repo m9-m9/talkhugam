@@ -156,7 +156,11 @@ export function OnboardingPage() {
             <TextField.Textarea autoresize={false} maxLength={80} {...form.register('bio')} />
           </TextField.Root>
         </FormField>
-        <FieldButton.Root invalid={Boolean(form.formState.errors.mbti)} name="mbti">
+        <FieldButton.Root
+          className="talkhugam-mbti-field"
+          invalid={Boolean(form.formState.errors.mbti)}
+          name="mbti"
+        >
           <FieldButton.Header>
             <FieldButton.Label>
               MBTI <FieldButton.IndicatorText aria-hidden="true">선택</FieldButton.IndicatorText>

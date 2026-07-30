@@ -229,7 +229,7 @@ export function ProfileEditPage() {
             <TextField.Textarea autoresize={false} maxLength={80} {...form.register('bio')} />
           </TextField.Root>
         </FormField>
-        <FieldButton.Root className="talkhugam-information-field" name="mbti">
+        <FieldButton.Root className="talkhugam-information-field talkhugam-mbti-field" name="mbti">
           <FieldButton.Header>
             <FieldButton.Label>
               MBTI <FieldButton.IndicatorText aria-hidden="true">선택</FieldButton.IndicatorText>

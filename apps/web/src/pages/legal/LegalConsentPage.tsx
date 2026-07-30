@@ -57,7 +57,7 @@ export function LegalConsentPage() {
           서비스 이용에 꼭 필요한 두 가지 약관이에요. 마케팅 알림 동의는 받지 않아요.
         </p>
       </section>
-      <fieldset className="mt-8 space-y-3">
+      <fieldset className="mt-8 space-y-6">
         <legend className="sr-only">필수 정책 동의</legend>
         {documents.map((document) => {
           const isChecked = agreedDocumentIds.has(document.id)
@@ -109,21 +109,23 @@ export function LegalConsentPage() {
           {errorMessage}
         </p>
       ) : null}
-      <ActionButton
-        className="talkhugam-primary-action mt-6 w-full"
-        disabled={!hasAgreedToAll || isSubmitting}
-        loading={isSubmitting}
-        onClick={() => void handleSubmit()}
-        size="large"
-        type="button"
-        variant="brandSolid"
-      >
-        {isSubmitting ? (
-          <BrandLoadingSpinner label="동의를 저장하고 있어요." showLabel={false} size="xs" />
-        ) : (
-          '동의하고 계속하기'
-        )}
-      </ActionButton>
+      <div className="mt-8">
+        <ActionButton
+          className="talkhugam-primary-action w-full"
+          disabled={!hasAgreedToAll || isSubmitting}
+          loading={isSubmitting}
+          onClick={() => void handleSubmit()}
+          size="large"
+          type="button"
+          variant="brandSolid"
+        >
+          {isSubmitting ? (
+            <BrandLoadingSpinner label="동의를 저장하고 있어요." showLabel={false} size="xs" />
+          ) : (
+            '동의하고 계속하기'
+          )}
+        </ActionButton>
+      </div>
     </main>
   )
 }

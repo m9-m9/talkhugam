@@ -83,6 +83,18 @@ describe('OnboardingPage', () => {
     expect(mbtiTrigger).toHaveTextContent('ENFP')
   })
 
+  it('marks the MBTI field for the app-wide left value and right icon alignment rule', async () => {
+    getProfile.mockResolvedValue({ bio: '', displayName: '민규', mbti: null })
+
+    renderOnboardingPage()
+
+    expect(
+      (await screen.findByRole('button', { name: 'MBTI: 선택 안 함' })).closest(
+        '.talkhugam-mbti-field',
+      ),
+    ).not.toBeNull()
+  })
+
   it('retries the initial profile preparation without asking the member to refresh', async () => {
     const deferredProfile = createDeferredProfile()
     getProfile
