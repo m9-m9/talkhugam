@@ -323,6 +323,13 @@ test('slides the highlighted bestseller card instead of replacing the page conte
   const track = page.getByTestId('bestseller-track')
   await expect(track).toHaveCSS('transition-duration', '0.5s')
   await expect(track).toHaveAttribute('style', 'transform: translateX(0%);')
+  await expect(page.locator('[aria-label="다른 추천 도서"] .line-clamp-2').first()).toHaveCSS(
+    'white-space',
+    'normal',
+  )
+  await page.screenshot({
+    path: `artifacts/seed-comparison/main-bestseller-after-${testInfo.project.name}.png`,
+  })
 
   await page.getByRole('button', { name: '다음 추천 보기' }).click()
 

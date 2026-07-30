@@ -132,10 +132,10 @@ function BestsellerCarousel({ books }: { books: BookBestseller[] }) {
       {previewBooks.length > 0 ? (
         <ul aria-label="다른 추천 도서" className="grid grid-cols-3 gap-2">
           {previewBooks.map(({ book, index }) => (
-            <li key={book.id}>
+            <li className="min-w-0" key={book.id}>
               <ActionButton
                 aria-label={`${book.title} 추천 보기`}
-                className="border-ink/10 hover:!border-primary h-auto min-h-32 w-full flex-col items-start gap-2 rounded-md border bg-white p-2 text-left"
+                className="border-ink/10 hover:!border-primary !flex !h-auto min-h-32 w-full !flex-col !items-start !justify-start gap-2 overflow-hidden rounded-md border !bg-white p-2 text-left"
                 onClick={() => handleSelectPreviewBook(index)}
                 size="large"
                 type="button"
@@ -146,7 +146,9 @@ function BestsellerCarousel({ books }: { books: BookBestseller[] }) {
                   className="h-16 w-12"
                   thumbnailUrl={book.thumbnailUrl}
                 />
-                <span className="text-ink line-clamp-2 text-xs font-semibold">{book.title}</span>
+                <span className="text-ink line-clamp-2 block w-full min-w-0 !whitespace-normal text-xs font-semibold">
+                  {book.title}
+                </span>
               </ActionButton>
             </li>
           ))}
