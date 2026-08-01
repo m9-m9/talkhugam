@@ -292,40 +292,6 @@ describe('BookDiscussionPage', () => {
     expect(screen.getByText('@민수')).toHaveClass('text-primary')
   })
 
-  it('opens the bookshop invitation sheet from the plus menu without clearing a draft', async () => {
-    renderBookDiscussionPage()
-    const messageInput = screen.getByLabelText('메시지 입력')
-    fireEvent.change(messageInput, { target: { value: '이 문장을 나누고 싶어요.' } })
-    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
-    fireEvent.click(await screen.findByRole('button', { name: '책방 초대하기' }))
-
-    expect(await screen.findByRole('dialog', { name: '책방 초대하기' })).toBeInTheDocument()
-    expect(messageInput).toHaveValue('이 문장을 나누고 싶어요.')
-  })
-
-  it('lets a non-owner request an invite from the room owner', async () => {
-    getRoomManagement.mockResolvedValueOnce({
-      createdBy: '00000000-0000-0000-0000-000000000001',
-      description: null,
-      id: 'room-1',
-      isCurrentUserOwner: false,
-      members: [],
-      name: '금요일 아침 책방',
-      status: 'active',
-    })
-    renderBookDiscussionPage()
-
-    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
-
-    fireEvent.click(await screen.findByRole('button', { name: '초대 요청' }))
-
-    await vi.waitFor(() =>
-      expect(requestManagedRoomInvite).toHaveBeenCalledWith(undefined, 'room-1'),
-    )
-    expect(await screen.findByText('방장에게 책방 초대를 요청했어요.')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: '책방 초대하기' })).not.toBeInTheDocument()
-  })
-
   it('shows the bookshop in the header and the selected book as the discussion title', async () => {
     renderBookDiscussionPage()
 
@@ -363,7 +329,7 @@ describe('BookDiscussionPage', () => {
     expect(screen.getByText('몰입형 영상 화면')).toBeInTheDocument()
   })
 
-  it('opens the message actions in a SEED action sheet', () => {
+  it('opens only label registration and the current book video archive in the message sheet', () => {
     renderBookDiscussionPage()
 
     fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
@@ -371,18 +337,24 @@ describe('BookDiscussionPage', () => {
     expect(screen.getByRole('dialog', { name: '메시지 추가' })).toHaveClass(
       'seed-menu-sheet__content',
     )
-    expect(screen.getByRole('button', { name: '영상 올리기' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '페이지 라벨' })).toHaveClass(
+    expect(screen.getByRole('button', { name: '라벨 등록' })).toHaveClass(
       'talkhugam-action-sheet-choice',
     )
+    expect(screen.getByRole('button', { name: '영상 기록' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '영상 올리기' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '완독 기록' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '책방 초대하기' })).not.toBeInTheDocument()
   })
 
-  it('keeps every chat action in the same two-column grid', () => {
+  it('opens the label kind choices only after selecting label registration', () => {
     renderBookDiscussionPage()
 
     fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
 
-    expect(screen.getByRole('button', { name: '완독 기록' })).not.toHaveClass('col-span-2')
+    fireEvent.click(screen.getByRole('button', { name: '라벨 등록' }))
+
+    expect(screen.getByRole('button', { name: '페이지 라벨' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '챕터 라벨' })).toBeInTheDocument()
   })
 
   it('aligns the add button, message input, and send button in one composer grid', () => {
@@ -393,133 +365,13 @@ describe('BookDiscussionPage', () => {
     expect(input.closest('.talkhugam-chat-composer-row')).toBeInTheDocument()
   })
 
-  it('opens the completion review form from the plus menu before it saves a personal completion record', async () => {
+  it('keeps the completion action out of the plus menu', async () => {
     renderBookDiscussionPage()
 
     expect(screen.queryByRole('button', { name: '완독하기' })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
-    fireEvent.click(screen.getByRole('button', { name: '완독 기록' }))
-
-    expect(await screen.findByRole('dialog', { name: '완독 기록' })).toBeInTheDocument()
-
+    expect(screen.queryByRole('button', { name: '완독 기록' })).not.toBeInTheDocument()
     expect(upsertBookChatCompletion).not.toHaveBeenCalled()
-    fireEvent.click(await screen.findByRole('button', { name: '완독하기' }))
-    fireEvent.click(screen.getByRole('button', { name: '5점' }))
-    fireEvent.change(screen.getByLabelText('총평 (선택)'), {
-      target: { value: '대화가 오래 남는 책이에요.' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: '완독 기록 저장' }))
-
-    await vi.waitFor(() =>
-      expect(upsertBookChatCompletion).toHaveBeenCalledWith(undefined, {
-        bookChatId: 'book-1',
-        rating: 5,
-        review: '대화가 오래 남는 책이에요.',
-      }),
-    )
-  })
-
-  it('updates the completion count immediately after saving a personal completion', async () => {
-    const savedCompletion = {
-      completedAt: '2026-07-19T00:00:00.000Z',
-      displayName: '민규',
-      isMe: true,
-      profileId: '00000000-0000-0000-0000-000000000001',
-      rating: null,
-      review: null,
-    }
-    getBookChatCompletions
-      .mockResolvedValueOnce([])
-      .mockImplementation(() => Promise.resolve([savedCompletion]))
-    renderBookDiscussionPage()
-
-    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
-    fireEvent.click(screen.getByRole('button', { name: '완독 기록' }))
-    fireEvent.click(await screen.findByRole('button', { name: '완독하기' }))
-    fireEvent.click(screen.getByRole('button', { name: '완독 기록 저장' }))
-
-    expect(await screen.findByText('함께 읽은 기록 · 1명 완독')).toBeInTheDocument()
-    expect(screen.getByText('내 완독')).toBeInTheDocument()
-  })
-
-  it('keeps the saved completion visible while the background refresh is pending', async () => {
-    const refresh = createDeferredValue<
-      Array<{
-        completedAt: string
-        displayName: string
-        isMe: boolean
-        profileId: string
-        rating: number | null
-        review: string | null
-      }>
-    >()
-    getBookChatCompletions.mockResolvedValueOnce([]).mockReturnValueOnce(refresh.promise)
-    renderBookDiscussionPage()
-
-    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
-    fireEvent.click(screen.getByRole('button', { name: '완독 기록' }))
-    fireEvent.click(await screen.findByRole('button', { name: '완독하기' }))
-    fireEvent.click(screen.getByRole('button', { name: '완독 기록 저장' }))
-
-    expect(await screen.findByText('함께 읽은 기록 · 1명 완독')).toBeInTheDocument()
-    expect(screen.getByText('내 완독')).toBeInTheDocument()
-
-    refresh.resolve([])
-  })
-
-  it('refreshes every personal reading view after saving a completion', async () => {
-    const { queryClient } = renderBookDiscussionPage()
-    const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries')
-    getBookChatCompletions.mockResolvedValueOnce([]).mockResolvedValueOnce([
-      {
-        completedAt: '2026-07-19T00:00:00.000Z',
-        displayName: '민규',
-        isMe: true,
-        profileId: '00000000-0000-0000-0000-000000000001',
-        rating: null,
-        review: null,
-      },
-    ])
-
-    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
-    fireEvent.click(screen.getByRole('button', { name: '완독 기록' }))
-    fireEvent.click(await screen.findByRole('button', { name: '완독하기' }))
-    fireEvent.click(screen.getByRole('button', { name: '완독 기록 저장' }))
-
-    await vi.waitFor(() =>
-      expect(invalidateQueries).toHaveBeenCalledWith({
-        queryKey: ['my-reading-books', '00000000-0000-0000-0000-000000000001'],
-        refetchType: 'inactive',
-      }),
-    )
-    expect(invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ['reading-progresses', '00000000-0000-0000-0000-000000000001'],
-      refetchType: 'inactive',
-    })
-  })
-
-  it('shows the personal completion marker and reopens saved values for editing', async () => {
-    getBookChatCompletions.mockResolvedValue([
-      {
-        completedAt: '2026-07-19T00:00:00.000Z',
-        displayName: '민규',
-        isMe: true,
-        profileId: '00000000-0000-0000-0000-000000000001',
-        rating: 4,
-        review: '다시 펼쳐 보고 싶은 책이에요.',
-      },
-    ])
-    renderBookDiscussionPage()
-
-    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
-    fireEvent.click(screen.getByRole('button', { name: '완독 기록' }))
-
-    expect(await screen.findByText('내 완독')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: '완독 기록 수정' }))
-
-    expect(screen.getByRole('button', { name: '4점' })).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByLabelText('총평 (선택)')).toHaveValue('다시 펼쳐 보고 싶은 책이에요.')
-    expect(screen.getByRole('button', { name: '완독 기록 수정' })).toBeInTheDocument()
   })
 
   it('shows matching members from an at-sign typed in the message input', async () => {
@@ -831,6 +683,7 @@ describe('BookDiscussionPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '페이지 라벨 닫기' }))
     fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
+    fireEvent.click(screen.getByRole('button', { name: '라벨 등록' }))
 
     expect(screen.getByRole('button', { name: '페이지 라벨' })).toBeInTheDocument()
     expect(screen.queryByLabelText('페이지 번호')).not.toBeInTheDocument()
@@ -882,6 +735,7 @@ describe('BookDiscussionPage', () => {
     await vi.waitFor(() => expect(screen.getByLabelText('메시지 입력')).toHaveFocus())
 
     fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
+    fireEvent.click(screen.getByRole('button', { name: '라벨 등록' }))
     fireEvent.click(screen.getByRole('button', { name: '페이지 라벨' }))
     expect(screen.getByLabelText('페이지 번호')).toHaveValue('')
   })
@@ -935,6 +789,7 @@ describe('BookDiscussionPage', () => {
 
 function openPageLabelEditor() {
   fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
+  fireEvent.click(screen.getByRole('button', { name: '라벨 등록' }))
   fireEvent.click(screen.getByRole('button', { name: '페이지 라벨' }))
 }
 

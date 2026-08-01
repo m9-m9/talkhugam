@@ -15,6 +15,7 @@ import {
   invalidateCompletionQueries,
   storeBookCompletionInCache,
 } from '../../features/book-completion'
+import { readingProgressKeys, upsertReadingProgress } from '../../entities/reading-progress'
 import { useAuthenticatedUser } from '../../features/auth'
 import { trackAnalyticsEvent } from '../../shared/analytics'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
@@ -23,6 +24,7 @@ import { BookCover } from '../../shared/ui/BookCover'
 import { BottomSheet } from '../../shared/ui/BottomSheet'
 import { CompletionMark } from '../../shared/ui/CompletionMark'
 import { BookLoadingIndicator } from '../../shared/ui/LoadingSpinner'
+import { ReadingStatus } from '../../shared/ui/ReadingStatus'
 
 /** 책 대화방의 개인 완독 기록과 삭제 요청을 관리하는 화면을 렌더링한다. */
 export function BookChatManagementPage() {
@@ -33,6 +35,8 @@ export function BookChatManagementPage() {
   const { bookChatId, roomId } = useParams()
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isCompletionEditorOpen, setIsCompletionEditorOpen] = useState(false)
+  const [currentPage, setCurrentPage] = useState('')
+  const [totalPages, setTotalPages] = useState('')
   const bookChatQuery = useQuery({
     enabled: Boolean(bookChatId),
     queryFn: () => getManagedBookChat(client, bookChatId ?? ''),
@@ -58,6 +62,15 @@ export function BookChatManagementPage() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: bookChatKeys.byRoom(roomId ?? '') })
       void navigate(`/rooms/${roomId}`, { replace: true })
+    },
+  })
+  const readingProgressMutation = useMutation({
+    mutationFn: ({ currentPage, totalPages }: { currentPage: number; totalPages: number }) =>
+      upsertReadingProgress(client, { bookChatId: bookChatId ?? '', currentPage, totalPages }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: readingProgressKeys.byProfile(profileId),
+      })
     },
   })
 
@@ -97,6 +110,24 @@ export function BookChatManagementPage() {
     completionMutation.mutate(input)
   }
 
+  /** 입력한 현재·전체 페이지를 검증 가능한 숫자로 바꿔 개인 진행률로 저장한다. */
+  function handleSaveReadingProgress() {
+    const parsedCurrentPage = Number(currentPage)
+    const parsedTotalPages = Number(totalPages)
+    if (!Number.isInteger(parsedCurrentPage) || !Number.isInteger(parsedTotalPages)) return
+    readingProgressMutation.mutate({ currentPage: parsedCurrentPage, totalPages: parsedTotalPages })
+  }
+
+  /** 페이지 입력값을 문자열 상태로 보관해 사용자가 숫자를 완성할 때까지 유지한다. */
+  function handleChangeCurrentPage(event: ChangeEvent<HTMLInputElement>) {
+    setCurrentPage(event.target.value)
+  }
+
+  /** 전체 페이지 입력값을 문자열 상태로 보관해 사용자가 숫자를 완성할 때까지 유지한다. */
+  function handleChangeTotalPages(event: ChangeEvent<HTMLInputElement>) {
+    setTotalPages(event.target.value)
+  }
+
   return (
     <main className="app-page bg-surface px-4 pb-8">
       <AppHeader
@@ -115,6 +146,62 @@ export function BookChatManagementPage() {
         </div>
         {ownCompletion ? <CompletionMark label="내 완독" /> : null}
       </section>
+      <section className="mt-8" aria-labelledby="reading-progress-heading">
+        <h2 className="text-ink text-base font-bold" id="reading-progress-heading">
+          내 읽기 진행률
+        </h2>
+        <div className="talkhugam-information-surface mt-4 rounded-lg border border-ink/10 bg-white p-4">
+          <div className="grid grid-cols-2 gap-3">
+            <label className="text-ink text-sm font-medium" htmlFor="reading-current-page">
+              현재 페이지
+              <TextField.Root className="talkhugam-information-field mt-2">
+                <TextField.Input
+                  aria-label="현재 페이지"
+                  id="reading-current-page"
+                  inputMode="numeric"
+                  min="0"
+                  onChange={handleChangeCurrentPage}
+                  type="number"
+                  value={currentPage}
+                />
+              </TextField.Root>
+            </label>
+            <label className="text-ink text-sm font-medium" htmlFor="reading-total-pages">
+              전체 페이지
+              <TextField.Root className="talkhugam-information-field mt-2">
+                <TextField.Input
+                  aria-label="전체 페이지"
+                  id="reading-total-pages"
+                  inputMode="numeric"
+                  min="1"
+                  onChange={handleChangeTotalPages}
+                  type="number"
+                  value={totalPages}
+                />
+              </TextField.Root>
+            </label>
+          </div>
+          {Number.isInteger(Number(currentPage)) && Number.isInteger(Number(totalPages)) && Number(totalPages) > 0 ? (
+            <ReadingStatus currentPage={Number(currentPage)} totalPages={Number(totalPages)} />
+          ) : null}
+          <ActionButton
+            className="talkhugam-primary-action mt-4 w-full"
+            disabled={readingProgressMutation.isPending}
+            loading={readingProgressMutation.isPending}
+            onClick={handleSaveReadingProgress}
+            size="large"
+            type="button"
+            variant="brandSolid"
+          >
+            진행률 저장
+          </ActionButton>
+          {readingProgressMutation.isError ? (
+            <p className="mt-3 text-sm text-red-600" role="alert">
+              진행률을 저장하지 못했어요. 현재 페이지와 전체 페이지를 확인해 주세요.
+            </p>
+          ) : null}
+        </div>
+      </section>
       <section className="mt-12" aria-labelledby="book-chat-actions">
         <h2 className="text-ink text-base font-bold" id="book-chat-actions">
           채팅방 관리
@@ -128,8 +215,9 @@ export function BookChatManagementPage() {
             type="button"
             variant="neutralOutline"
           >
-            {ownCompletion ? '수정하기' : '완독하기'}
+            {ownCompletion ? '완독 기록 수정' : '완독 기록 남기기'}
           </ActionButton>
+          <div className="pt-4">
           <ActionButton
             className="text-danger w-full justify-start"
             disabled={deletionMutation.isPending}
@@ -140,6 +228,7 @@ export function BookChatManagementPage() {
           >
             삭제 요청
           </ActionButton>
+          </div>
         </div>
       </section>
       {isDeleteDialogOpen ? (

@@ -13,7 +13,6 @@ import {
   type CompletedBook,
 } from '../../entities/book-completion'
 import {
-  calculateReadingProgressPercent,
   getMyReadingProgresses,
   readingProgressKeys,
   upsertReadingProgress,
@@ -30,9 +29,9 @@ import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { BookCover } from '../../shared/ui/BookCover'
 import { BottomSheet } from '../../shared/ui/BottomSheet'
-import { CompletionMark } from '../../shared/ui/CompletionMark'
 import { FormField } from '../../shared/ui/FormField'
 import { BookLoadingIndicator } from '../../shared/ui/LoadingSpinner'
+import { ReadingStatus } from '../../shared/ui/ReadingStatus'
 import { RetryState } from '../../shared/ui/RetryState'
 
 type CompletionRecordSheetProps = {
@@ -427,14 +426,18 @@ function ReadingBookCard({
           <span className="text-ink-subtle mt-1 block truncate text-xs">
             {book.authors.join(', ') || '저자 정보 없음'}
           </span>
-          {isCompleted ? <CompletionMark className="mt-2" /> : null}
+          {isCompleted ? <ReadingStatus isCompleted /> : null}
           {completion ? <CompletionSummary completion={completion} /> : null}
         </span>
         <span aria-hidden="true" className="text-ink-subtle text-lg">
           ›
         </span>
       </Link>
-      {!isCompleted ? <ReadingProgressSummary progress={progress} /> : null}
+      {!isCompleted ? (
+        <div className="px-3 pb-3">
+          <ReadingStatus currentPage={progress?.currentPage} totalPages={progress?.totalPages} />
+        </div>
+      ) : null}
       <div className="border-ink/10 flex items-center justify-between gap-3 border-t px-3 py-2">
         <span className="text-ink-subtle text-xs">
           {isCompleted ? '완독 기록을 남겼어요.' : '별점과 총평을 남길 수 있어요.'}
@@ -462,33 +465,6 @@ function ReadingBookCard({
         </div>
       </div>
     </article>
-  )
-}
-
-/** 개인 진행률이 있는 책 카드에 현재 페이지와 퍼센트 막대를 렌더링한다. */
-function ReadingProgressSummary({ progress }: { progress: ReadingProgress | undefined }) {
-  if (!progress) return null
-  const percent = calculateReadingProgressPercent(progress.currentPage, progress.totalPages)
-
-  return (
-    <div className="px-3 pb-3">
-      <div className="text-ink-subtle flex items-center justify-between text-xs">
-        <span>
-          {progress.currentPage} / {progress.totalPages}쪽
-        </span>
-        <span className="text-primary font-semibold">{percent}%</span>
-      </div>
-      <div
-        aria-label={`독서 진행률 ${percent}%`}
-        aria-valuemax={100}
-        aria-valuemin={0}
-        aria-valuenow={percent}
-        className="bg-ink/10 mt-2 h-2 overflow-hidden rounded-full"
-        role="progressbar"
-      >
-        <span className="bg-primary block h-full rounded-full" style={{ width: `${percent}%` }} />
-      </div>
-    </div>
   )
 }
 

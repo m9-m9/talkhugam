@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { BookChatManagementPage } from './BookChatManagementPage'
 
-const { getBookChatCompletions, getManagedBookChat, upsertBookChatCompletion } = vi.hoisted(() => ({
+const { getBookChatCompletions, getManagedBookChat, upsertBookChatCompletion, upsertReadingProgress } = vi.hoisted(() => ({
   getBookChatCompletions: vi.fn().mockResolvedValue([]),
   getManagedBookChat: vi.fn().mockResolvedValue({
     id: '00000000-0000-0000-0000-000000000101',
@@ -16,6 +16,7 @@ const { getBookChatCompletions, getManagedBookChat, upsertBookChatCompletion } =
     title: '함께 읽는 책',
   }),
   upsertBookChatCompletion: vi.fn().mockResolvedValue(undefined),
+  upsertReadingProgress: vi.fn().mockResolvedValue(undefined),
 }))
 
 vi.mock('../../entities/book-chat', () => ({
@@ -30,6 +31,7 @@ vi.mock('../../entities/book-chat', () => ({
 
 vi.mock('../../entities/reading-progress', () => ({
   readingProgressKeys: { byProfile: (profileId: string) => ['reading-progresses', profileId] },
+  upsertReadingProgress,
 }))
 
 vi.mock('../../entities/book-completion', () => ({
@@ -62,12 +64,13 @@ describe('BookChatManagementPage', () => {
       title: '함께 읽는 책',
     })
     upsertBookChatCompletion.mockResolvedValue(undefined)
+    upsertReadingProgress.mockResolvedValue(undefined)
   })
 
   it('opens a review sheet before creating a personal completion record', async () => {
     renderBookChatManagementPage()
 
-    fireEvent.click(await screen.findByRole('button', { name: '완독하기' }))
+    fireEvent.click(await screen.findByRole('button', { name: '완독 기록 남기기' }))
 
     expect(upsertBookChatCompletion).not.toHaveBeenCalled()
     expect(await screen.findByRole('dialog', { name: '완독 기록' })).toBeInTheDocument()
@@ -87,14 +90,30 @@ describe('BookChatManagementPage', () => {
     )
   })
 
+  it('saves my current reading progress from the book chat management page', async () => {
+    renderBookChatManagementPage()
+
+    fireEvent.change(await screen.findByLabelText('현재 페이지'), { target: { value: '87' } })
+    fireEvent.change(screen.getByLabelText('전체 페이지'), { target: { value: '312' } })
+    fireEvent.click(screen.getByRole('button', { name: '진행률 저장' }))
+
+    await waitFor(() =>
+      expect(upsertReadingProgress).toHaveBeenCalledWith(undefined, {
+        bookChatId: '00000000-0000-0000-0000-000000000101',
+        currentPage: 87,
+        totalPages: 312,
+      }),
+    )
+  })
+
   it('keeps my completion visible immediately even before a later room refresh', async () => {
     renderBookChatManagementPage()
 
-    fireEvent.click(await screen.findByRole('button', { name: '완독하기' }))
+    fireEvent.click(await screen.findByRole('button', { name: '완독 기록 남기기' }))
     fireEvent.click(screen.getByRole('button', { name: '완독 기록 저장' }))
 
     expect(await screen.findByText('내 완독')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '수정하기' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '완독 기록 수정' })).toBeInTheDocument()
   })
 
   it('closes the review sheet even when background completion refresh fails', async () => {
@@ -103,7 +122,7 @@ describe('BookChatManagementPage', () => {
       new Error('background refresh failed'),
     )
 
-    fireEvent.click(await screen.findByRole('button', { name: '완독하기' }))
+    fireEvent.click(await screen.findByRole('button', { name: '완독 기록 남기기' }))
     fireEvent.click(screen.getByRole('button', { name: '완독 기록 저장' }))
 
     await waitFor(() => expect(upsertBookChatCompletion).toHaveBeenCalled())
@@ -113,7 +132,7 @@ describe('BookChatManagementPage', () => {
   it('does not expose archive controls to a reading member', async () => {
     renderBookChatManagementPage()
 
-    expect(await screen.findByRole('button', { name: '완독하기' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: '완독 기록 남기기' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: '아카이브로 이동' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: '다시 읽는 중으로' })).not.toBeInTheDocument()
   })
@@ -132,7 +151,7 @@ describe('BookChatManagementPage', () => {
     renderBookChatManagementPage()
 
     expect(await screen.findByText('내 완독')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: '수정하기' }))
+    fireEvent.click(screen.getByRole('button', { name: '완독 기록 수정' }))
 
     expect(screen.getByRole('button', { name: '3점' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByLabelText('총평 (선택)')).toHaveValue('친구와 이야기하기 좋은 책이에요.')

@@ -117,6 +117,7 @@ export function BookDiscussionPage() {
     queryFn: () => getRoomManagement(createSupabaseClient(), roomId ?? '', profileId),
     queryKey: roomManagementKeys.detail(roomId ?? ''),
   })
+  void roomManagementQuery
   const inviteMutation = useMutation({
     mutationFn: () => createManagedRoomInvite(createSupabaseClient(), roomId ?? ''),
     onSuccess: (invite) => {
@@ -269,6 +270,9 @@ export function BookDiscussionPage() {
     setInviteRequestMessage(null)
     inviteRequestMutation.mutate()
   }
+  void handleOpenCompletionSheet
+  void handleOpenRoomInvite
+  void handleRequestRoomInvite
 
   /** 초대 공유 시트를 닫고 메뉴의 초대 버튼에 포커스를 되돌린다. */
   function handleCloseInviteShareSheet() {
@@ -374,10 +378,8 @@ export function BookDiscussionPage() {
         )}
       </section>
       <ChatComposer
-        inviteTriggerRef={inviteShareTriggerRef}
         errorMessage={errorMessage ?? videoErrorMessage}
         isReplying={Boolean(replyTo)}
-        isCurrentUserOwner={roomManagementQuery.data?.isCurrentUserOwner ?? false}
         key={bookChatId}
         labels={labels}
         mentionCandidates={(membersQuery.data ?? []).filter((member) => !member.isCurrentUser)}
@@ -386,15 +388,10 @@ export function BookDiscussionPage() {
         onChangeLabels={setLabels}
         onChangeMentionedMemberIds={setMentionedMemberIds}
         onOpenVideoArchive={() => void navigate(`/rooms/${roomId}/books/${bookChatId}/videos`)}
-        onOpenCompletion={handleOpenCompletionSheet}
-        onOpenRoomInvite={handleOpenRoomInvite}
-        onRequestRoomInvite={handleRequestRoomInvite}
         onRetryMentionMembers={() => void membersQuery.refetch()}
         onSelectVideo={uploadVideo}
         onSubmit={() => void handleSubmit()}
-        completionTriggerRef={completionTriggerRef}
         hasMentionMemberError={membersQuery.isError}
-        isRequestingRoomInvite={inviteRequestMutation.isPending}
         isUploadingVideo={isUploadingVideo}
         value={draft}
       />
@@ -652,12 +649,9 @@ function CompletionSummary({
 
 /** 대화 입력창 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function ChatComposer({
-  completionTriggerRef,
   errorMessage,
   hasMentionMemberError,
   isReplying,
-  isCurrentUserOwner,
-  isRequestingRoomInvite,
   isUploadingVideo,
   labels,
   mentionCandidates,
@@ -665,22 +659,15 @@ function ChatComposer({
   onChangeDraft,
   onChangeLabels,
   onChangeMentionedMemberIds,
-  onOpenCompletion,
-  onOpenRoomInvite,
-  onRequestRoomInvite,
   onOpenVideoArchive,
   onRetryMentionMembers,
   onSelectVideo,
   onSubmit,
   value,
-  inviteTriggerRef,
 }: {
-  completionTriggerRef: RefObject<HTMLButtonElement | null>
   errorMessage: string | null
   hasMentionMemberError: boolean
   isReplying: boolean
-  isCurrentUserOwner: boolean
-  isRequestingRoomInvite: boolean
   isUploadingVideo: boolean
   labels: PostForm['labels']
   mentionCandidates: VideoFilterMember[]
@@ -688,15 +675,11 @@ function ChatComposer({
   onChangeDraft: (value: string) => void
   onChangeLabels: (labels: PostForm['labels']) => void
   onChangeMentionedMemberIds: (mentionedMemberIds: PostForm['mentionedMemberIds']) => void
-  onOpenCompletion: () => void
-  onOpenRoomInvite: () => void
-  onRequestRoomInvite: () => void
   onOpenVideoArchive: () => void
   onRetryMentionMembers: () => void
   onSelectVideo: (file: File | undefined) => void
   onSubmit: () => void
   value: string
-  inviteTriggerRef: RefObject<HTMLButtonElement | null>
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const messageInputRef = useRef<HTMLTextAreaElement>(null)
@@ -705,6 +688,7 @@ function ChatComposer({
   const mentionMenuRef = useRef<HTMLDivElement>(null)
   const shouldRestoreActionTrayFocusRef = useRef(true)
   const [isActionTrayOpen, setIsActionTrayOpen] = useState(false)
+  const [isLabelKindSelectionOpen, setIsLabelKindSelectionOpen] = useState(false)
   const [labelKind, setLabelKind] = useState<LabelKind | null>(null)
   const [isMentionMenuDismissed, setIsMentionMenuDismissed] = useState(false)
   const [labelDrafts, setLabelDrafts] = useState<Record<LabelKind, string>>({
@@ -753,6 +737,7 @@ function ChatComposer({
   /** 복귀 To 라벨 선택 요청이나 사용자 동작을 처리한다. */
   function handleReturnToLabelSelection() {
     setLabelKind(null)
+    setIsLabelKindSelectionOpen(true)
     window.requestAnimationFrame(() => firstActionButtonRef.current?.focus())
   }
 
@@ -889,12 +874,15 @@ function ChatComposer({
                 </SeedActionButton>
               </div>
             </div>
-          ) : (
+          ) : isLabelKindSelectionOpen ? (
             <div className="grid grid-cols-2 gap-2">
               <SeedActionButton
                 className="talkhugam-action-sheet-choice"
                 disabled={isReplying}
-                onClick={() => setLabelKind('page')}
+                onClick={() => {
+                  setLabelKind('page')
+                  setIsLabelKindSelectionOpen(false)
+                }}
                 ref={firstActionButtonRef}
                 variant="neutralWeak"
               >
@@ -903,20 +891,25 @@ function ChatComposer({
               <SeedActionButton
                 className="talkhugam-action-sheet-choice"
                 disabled={isReplying}
-                onClick={() => setLabelKind('chapter')}
+                onClick={() => {
+                  setLabelKind('chapter')
+                  setIsLabelKindSelectionOpen(false)
+                }}
                 variant="neutralWeak"
               >
                 챕터 라벨
               </SeedActionButton>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
               <SeedActionButton
                 className="talkhugam-action-sheet-choice"
-                onClick={() => {
-                  handleCloseActionTray(false)
-                  fileInputRef.current?.click()
-                }}
+                disabled={isReplying}
+                onClick={() => setIsLabelKindSelectionOpen(true)}
+                ref={firstActionButtonRef}
                 variant="neutralWeak"
               >
-                영상 올리기
+                라벨 등록
               </SeedActionButton>
               <SeedActionButton
                 className="talkhugam-action-sheet-choice"
@@ -928,42 +921,6 @@ function ChatComposer({
               >
                 영상 기록
               </SeedActionButton>
-              <SeedActionButton
-                className="talkhugam-action-sheet-choice"
-                onClick={() => {
-                  completionTriggerRef.current = actionMenuButtonRef.current
-                  handleCloseActionTray(false)
-                  onOpenCompletion()
-                }}
-                variant="neutralWeak"
-              >
-                완독 기록
-              </SeedActionButton>
-              {isCurrentUserOwner ? (
-                <SeedActionButton
-                  className="talkhugam-action-sheet-choice"
-                  onClick={() => {
-                    handleCloseActionTray(false)
-                    onOpenRoomInvite()
-                  }}
-                  ref={inviteTriggerRef}
-                  variant="neutralWeak"
-                >
-                  책방 초대하기
-                </SeedActionButton>
-              ) : (
-                <SeedActionButton
-                  className="talkhugam-action-sheet-choice"
-                  disabled={isRequestingRoomInvite}
-                  onClick={() => {
-                    handleCloseActionTray()
-                    onRequestRoomInvite()
-                  }}
-                  variant="neutralWeak"
-                >
-                  초대 요청
-                </SeedActionButton>
-              )}
             </div>
           )}
         </BottomSheet>
