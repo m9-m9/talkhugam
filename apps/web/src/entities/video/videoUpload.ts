@@ -54,6 +54,13 @@ const videoPostRowSchema = z.object({
   video_assets: z.union([videoPostAssetSchema, z.array(videoPostAssetSchema).max(1)]).nullable(),
 })
 
+const roomVideoPostRowSchema = videoPostRowSchema.extend({
+  book_chats: z.object({
+    books: z.object({ title: z.string().min(1) }),
+    id: z.string().uuid(),
+  }),
+})
+
 const videoFilterMemberRowSchema = z.object({
   id: z.string().uuid(),
   profile_id: z.string().uuid().nullable(),
@@ -83,6 +90,7 @@ export type VideoPost = {
   id: string
   status: VideoAsset['status']
 }
+export type RoomVideoPost = VideoPost & { bookChatId: string; bookTitle: string }
 export type VideoFilterMember = {
   displayName: string
   id: string
@@ -98,6 +106,8 @@ type CurrentRoomMemberPermission = {
 export type VideoPostFilter =
   { kind: 'all' } | { kind: 'member'; memberId: string } | { kind: 'mine'; memberId: string | null }
 export const videoKeys = {
+  /** 책방 전체 영상 기록을 식별하는 query key를 반환한다. */
+  byRoom: (roomId: string) => ['video-posts', 'room', roomId] as const,
   /** 책 대화방 식별자로 안정적인 query key를 생성한다. */
   byBookChat: (bookChatId: string) => ['video-posts', bookChatId] as const,
   /** 책방 식별자로 영상 필터 멤버 query key를 생성한다. */
@@ -165,6 +175,26 @@ export async function getVideoPosts(
     .order('created_at', { ascending: false })
   if (response.error) throw response.error
   return parseVideoPosts(response.data)
+}
+
+/** 책방 안의 모든 책 대화에서 남긴 영상을 최신순으로 조회한다. */
+export async function getRoomVideoPosts(
+  client: SupabaseClient,
+  roomId: string,
+): Promise<RoomVideoPost[]> {
+  const response = await client
+    .from('posts')
+    .select('id, body, author_member_id, author_name_snapshot, created_at, video_assets(status), book_chats!inner(id, books!inner(title))')
+    .eq('book_chats.room_id', z.string().uuid().parse(roomId))
+    .eq('type', 'video')
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false })
+  if (response.error) throw response.error
+  return z.array(roomVideoPostRowSchema).parse(response.data).map((row) => ({
+    ...mapVideoPost(row),
+    bookChatId: row.book_chats.id,
+    bookTitle: row.book_chats.books.title,
+  }))
 }
 
 /** 영상 메시지 데이터를 조회하거나 계산해 반환한다. */

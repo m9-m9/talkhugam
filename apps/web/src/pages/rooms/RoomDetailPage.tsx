@@ -93,6 +93,23 @@ export function RoomDetailPage() {
           roomId={roomId}
         />
       </section>
+      <section className="mt-12" aria-labelledby="room-videos-heading">
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="text-ink text-base font-bold" id="room-videos-heading">
+            함께 남긴 영상
+          </h2>
+          <ActionButton
+            className="text-primary"
+            onClick={() => void navigate(`/rooms/${roomId}/videos`)}
+            size="small"
+            type="button"
+            variant="ghost"
+          >
+            전체 영상 기록
+          </ActionButton>
+        </div>
+        <p className="text-ink-subtle mt-2 text-sm">읽었던 책의 영상 기록을 한곳에서 볼 수 있어요.</p>
+      </section>
     </main>
   )
 }

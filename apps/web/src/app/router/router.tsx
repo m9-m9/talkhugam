@@ -24,6 +24,7 @@ import { BookChatManagementPage } from '../../pages/rooms/BookChatManagementPage
 import { CreateRoomPage } from '../../pages/rooms/CreateRoomPage'
 import { JoinRoomPage } from '../../pages/rooms/JoinRoomPage'
 import { RoomDetailPage } from '../../pages/rooms/RoomDetailPage'
+import { RoomVideoArchivePage } from '../../pages/rooms/RoomVideoArchivePage'
 import { RoomManagementPage } from '../../pages/rooms/RoomManagementPage'
 import { ArchivedRoomsPage } from '../../pages/rooms/ArchivedRoomsPage'
 import { RoomSettingsPage } from '../../pages/rooms/RoomSettingsPage'
@@ -81,6 +82,7 @@ export const router = createBrowserRouter([
                   { path: '/rooms/archive', element: <ArchivedRoomsPage /> },
                   { path: '/rooms/:roomId', element: <RoomDetailPage /> },
                   { path: '/rooms/:roomId/manage', element: <RoomManagementPage /> },
+                  { path: '/rooms/:roomId/videos', element: <RoomVideoArchivePage /> },
                   { path: '/rooms/:roomId/manage/settings', element: <RoomSettingsPage /> },
                   { path: '/rooms/:roomId/members/:profileId', element: <MemberProfilePage /> },
                   { path: '/rooms/:roomId/books/new', element: <BookSearchPage /> },
