@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { ActionButton } from '@seed-design/react'
 
 type RouteRecoveryKind = 'error' | 'not-found'
 
@@ -24,13 +25,15 @@ export function RouteRecoveryPage({ kind }: { kind: RouteRecoveryKind }) {
           {title}
         </h1>
         <p className="text-ink-subtle mt-3 text-sm">{description}</p>
-        <button
-          className="bg-primary text-ink hover:bg-primary/90 focus-visible:ring-primary mt-6 min-h-11 cursor-pointer rounded-lg px-4 text-sm font-semibold focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+        <ActionButton
+          className="talkhugam-primary-action mt-6"
           onClick={handleReturnToRooms}
+          size="large"
           type="button"
+          variant="brandSolid"
         >
           책방으로 돌아가기
-        </button>
+        </ActionButton>
       </section>
     </main>
   )

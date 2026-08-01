@@ -65,6 +65,33 @@ describe('LoginPage', () => {
       '/legal/privacy',
     )
   })
+
+  it('keeps every provider icon in the same fixed slot before its label', () => {
+    renderLoginPage()
+
+    for (const provider of ['카카오로 로그인', 'Google로 계속하기', '네이버로 로그인']) {
+      const button = screen.getByRole('button', { name: provider })
+      expect(button.querySelector('.talkhugam-social-login-button__content')).toBeInTheDocument()
+      expect(button.querySelector('.talkhugam-social-login-button__icon')).toBeInTheDocument()
+    }
+  })
+
+  it('keeps an eight-pixel gap between stacked provider buttons', () => {
+    renderLoginPage()
+
+    expect(screen.getByRole('button', { name: '카카오로 로그인' }).parentElement).toHaveClass(
+      'gap-2',
+    )
+  })
+
+  it('groups the login content in a centered readable column', () => {
+    renderLoginPage()
+
+    expect(screen.getByRole('main')).toHaveClass('talkhugam-login-page')
+    expect(screen.getByRole('region', { name: 'Talk후감 로그인' })).toHaveClass(
+      'talkhugam-login-content',
+    )
+  })
 })
 
 /** 로그인 화면을 라우터가 필요한 공개 링크와 함께 렌더링한다. */

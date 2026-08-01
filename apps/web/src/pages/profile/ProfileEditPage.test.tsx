@@ -31,7 +31,7 @@ describe('ProfileEditPage', () => {
   })
 
   it('updates the loaded profile and returns to my profile', async () => {
-    getProfile.mockResolvedValue({ bio: '기존 소개', displayName: '민규', mbti: 'INTP' })
+    getProfile.mockResolvedValue({ bio: '기존 소개', displayName: '민규' })
     updateProfile.mockResolvedValue(undefined)
 
     renderProfileEditPage()
@@ -44,14 +44,14 @@ describe('ProfileEditPage', () => {
       expect(updateProfile).toHaveBeenCalledWith(
         undefined,
         '00000000-0000-0000-0000-000000000001',
-        { bio: '기존 소개', displayName: '정민규', mbti: 'INTP' },
+        { bio: '기존 소개', displayName: '정민규' },
       )
     })
     expect(await screen.findByText('내 프로필 화면')).toBeInTheDocument()
   })
 
   it('keeps saving disabled until the user changes a profile field and offers a back button', async () => {
-    getProfile.mockResolvedValue({ bio: '기존 소개', displayName: '민규', mbti: 'INTP' })
+    getProfile.mockResolvedValue({ bio: '기존 소개', displayName: '민규' })
 
     renderProfileEditPage()
 
@@ -64,8 +64,20 @@ describe('ProfileEditPage', () => {
     expect(screen.getByRole('button', { name: '저장하기' })).toBeEnabled()
   })
 
+  it('uses SEED controls for profile changes without showing MBTI', async () => {
+    getProfile.mockResolvedValue({ bio: '기존 소개', displayName: '민규' })
+
+    renderProfileEditPage()
+
+    expect(await screen.findByDisplayValue('민규')).toHaveClass('seed-text-input__value')
+    expect(screen.getByLabelText('한 줄 소개')).toHaveClass('seed-text-input__value')
+    expect(screen.getByRole('button', { name: '사진 변경' })).toHaveClass('seed-action-button')
+    expect(screen.queryByText('MBTI')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '저장하기' })).toHaveClass('seed-action-button')
+  })
+
   it('keeps the form visible and shows a retry message when saving fails', async () => {
-    getProfile.mockResolvedValue({ bio: null, displayName: '민규', mbti: null })
+    getProfile.mockResolvedValue({ bio: null, displayName: '민규' })
     updateProfile.mockRejectedValue(new Error('update unavailable'))
 
     renderProfileEditPage()
@@ -83,7 +95,7 @@ describe('ProfileEditPage', () => {
   it('retries the initial profile query after it fails', async () => {
     getProfile
       .mockRejectedValueOnce(new Error('profile unavailable'))
-      .mockResolvedValueOnce({ bio: '기존 소개', displayName: '민규', mbti: 'INTP' })
+      .mockResolvedValueOnce({ bio: '기존 소개', displayName: '민규' })
 
     renderProfileEditPage()
 
@@ -95,7 +107,7 @@ describe('ProfileEditPage', () => {
   })
 
   it('uploads an allowed profile photo immediately after the user chooses it', async () => {
-    getProfile.mockResolvedValue({ bio: null, displayName: '민규', mbti: null })
+    getProfile.mockResolvedValue({ bio: null, displayName: '민규' })
     uploadProfileAvatar.mockResolvedValue('00000000-0000-0000-0000-000000000001/avatar')
 
     renderProfileEditPage()
@@ -111,6 +123,15 @@ describe('ProfileEditPage', () => {
         photo,
       )
     })
+  })
+
+  it('uses white information surfaces for editable profile values', async () => {
+    getProfile.mockResolvedValue({ bio: null, displayName: '민규' })
+    renderProfileEditPage()
+
+    expect(
+      (await screen.findByDisplayValue('민규')).closest('.talkhugam-information-field'),
+    ).not.toBeNull()
   })
 })
 

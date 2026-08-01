@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { ActionButton, List } from '@seed-design/react'
 
 import {
   getNotifications,
@@ -12,7 +13,7 @@ import {
 } from '../../entities/notification'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
-import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { BrandLoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 /** 앱 내부 알림을 확인하고 읽음 처리와 관련 화면 이동을 제공한다. */
 export function NotificationsPage() {
@@ -75,14 +76,16 @@ export function NotificationsPage() {
     <main className="app-page bg-surface px-4 pb-8">
       <AppHeader
         action={
-          <button
-            className="text-primary min-h-11 cursor-pointer px-3 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
+          <ActionButton
+            className="text-primary"
             disabled={!hasUnreadNotifications || readMutation.isPending}
             onClick={() => void handleMarkAllRead()}
+            size="small"
             type="button"
+            variant="ghost"
           >
             모두 읽음
-          </button>
+          </ActionButton>
         }
         onBack={() => void navigate('/rooms')}
         title="알림"
@@ -134,7 +137,7 @@ function NotificationsContent({
 function NotificationsLoadingState() {
   return (
     <div className="flex min-h-64 items-center justify-center">
-      <LoadingSpinner label="알림을 불러오고 있어요." />
+      <BrandLoadingSpinner label="알림을 불러오고 있어요." />
     </div>
   )
 }
@@ -145,13 +148,14 @@ function NotificationsErrorState({ onRetry }: { onRetry: () => void }) {
     <div className="flex min-h-64 flex-col items-center justify-center text-center">
       <p className="text-ink text-base font-semibold">알림을 불러오지 못했어요</p>
       <p className="text-ink-subtle mt-2 text-sm">잠시 후 다시 시도해 주세요.</p>
-      <button
-        className="bg-primary mt-6 min-h-11 cursor-pointer rounded-md px-4 text-sm font-semibold text-white"
+      <ActionButton
+        className="talkhugam-primary-action mt-6"
         onClick={onRetry}
         type="button"
+        variant="brandSolid"
       >
         다시 시도하기
-      </button>
+      </ActionButton>
     </div>
   )
 }
@@ -178,15 +182,16 @@ function NotificationsList({
 }) {
   return (
     <section aria-label="알림 목록" className="py-6">
-      <ul className="border-ink/10 overflow-hidden rounded-lg border bg-white">
+      <List.Root className="border-ink/10 overflow-hidden rounded-lg border bg-white" gap="0">
         {notifications.map((notification) => (
-          <li className="border-ink/10 border-b last:border-b-0" key={notification.id}>
-            <button
+          <List.Item className="border-ink/10 border-b last:border-b-0" key={notification.id}>
+            <ActionButton
               aria-label={notification.message}
-              className="hover:bg-surface-muted focus-visible:ring-primary flex min-h-20 w-full cursor-pointer items-start gap-3 px-4 py-4 text-left transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset disabled:cursor-wait"
+              className="hover:bg-surface-muted min-h-20 w-full justify-start gap-3 px-4 py-4 text-left"
               disabled={isReading}
               onClick={() => void onOpen(notification)}
               type="button"
+              variant="ghost"
             >
               <span
                 aria-hidden="true"
@@ -215,10 +220,10 @@ function NotificationsList({
                   ›
                 </span>
               ) : null}
-            </button>
-          </li>
+            </ActionButton>
+          </List.Item>
         ))}
-      </ul>
+      </List.Root>
     </section>
   )
 }

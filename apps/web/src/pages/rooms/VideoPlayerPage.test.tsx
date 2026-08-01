@@ -123,6 +123,20 @@ describe('VideoPlayerPage', () => {
     expect(screen.queryByRole('button', { name: '삭제' })).not.toBeInTheDocument()
   })
 
+  it('uses SEED action buttons for player deletion and archive return actions', async () => {
+    renderPlayerPage()
+
+    expect(await screen.findByRole('button', { name: '삭제' })).toHaveClass('seed-action-button')
+
+    cleanup()
+    getVideoPost.mockResolvedValueOnce(null)
+    renderPlayerPage()
+
+    expect(await screen.findByRole('button', { name: '영상 기록으로 가기' })).toHaveClass(
+      'seed-action-button',
+    )
+  })
+
   it('checks deletion permission with the current room and video author identifiers', async () => {
     renderPlayerPage()
 
@@ -151,6 +165,15 @@ describe('VideoPlayerPage', () => {
 
     await vi.waitFor(() => expect(deleteVideoPost).toHaveBeenCalledTimes(1))
     expect(await screen.findByText('영상 기록 화면')).toBeInTheDocument()
+  })
+
+  it('uses SEED dialog and action controls for video deletion', async () => {
+    renderPlayerPage()
+
+    fireEvent.click(await screen.findByRole('button', { name: '삭제' }))
+
+    expect(screen.getByRole('dialog', { name: '영상 삭제' })).toHaveClass('seed-dialog__content')
+    expect(screen.getByRole('button', { name: '영상 삭제하기' })).toHaveClass('seed-action-button')
   })
 
   it('dismisses the video deletion dialog by Escape or its backdrop without deleting', async () => {

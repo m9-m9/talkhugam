@@ -3,7 +3,7 @@ import { Navigate, Outlet } from 'react-router-dom'
 import { z } from 'zod'
 
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
-import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { BookLoadingIndicator } from '../../shared/ui/LoadingSpinner'
 import { authenticatedUserContext, type AuthenticatedUser } from './authenticatedUser'
 
 const authenticatedUserSchema = z.object({
@@ -47,7 +47,7 @@ export function AuthenticatedRoute() {
   if (user === undefined)
     return (
       <main className="bg-surface flex min-h-screen items-center justify-center px-4">
-        <LoadingSpinner label="로그인 정보를 확인하고 있어요." />
+        <BookLoadingIndicator label="로그인 정보를 확인하고 있어요." size="sm" />
       </main>
     )
   if (user === null) return <Navigate replace to="/" />

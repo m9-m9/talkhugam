@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { ActionButton, Menu, ToggleButton } from '@seed-design/react'
 
 import {
   createMuxThumbnailUrl,
@@ -18,9 +19,13 @@ import {
 import { useVideoUpload } from '../../features/video-upload'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
-import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { BookLoadingIndicator } from '../../shared/ui/LoadingSpinner'
 import { RetryState } from '../../shared/ui/RetryState'
-import { SelectMenu } from '../../shared/ui/SelectMenu'
+
+type MemberFilterMenuOption = {
+  label: string
+  value: string
+}
 
 /** 영상 보관함 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 export function VideoArchivePage() {
@@ -113,15 +118,17 @@ export function VideoArchivePage() {
           type="file"
         />
         {hasVideos ? (
-          <button
-            className="border-primary/50 bg-surface-muted text-ink hover:border-primary focus-visible:ring-primary flex min-h-11 shrink-0 cursor-pointer items-center gap-2 rounded-lg border px-3 text-sm font-medium focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+          <ActionButton
+            className="talkhugam-foundation-action talkhugam-foundation-action--outline shrink-0"
             disabled={isUploadingVideo}
             onClick={handleOpenVideoPicker}
+            size="medium"
             type="button"
+            variant="neutralWeak"
           >
             <VideoCameraIcon />
             영상 추가
-          </button>
+          </ActionButton>
         ) : null}
       </header>
       {errorMessage ? (
@@ -134,7 +141,7 @@ export function VideoArchivePage() {
       ) : null}
       {isUploadingVideo ? (
         <div className="mt-4">
-          <LoadingSpinner label="영상을 올리고 있어요…" size="sm" variant="book" />
+          <BookLoadingIndicator label="영상을 올리고 있어요…" size="sm" />
         </div>
       ) : null}
       {membersQuery.isError ? <MemberFilterLoadError onRetry={handleRetryMembers} /> : null}
@@ -149,7 +156,7 @@ export function VideoArchivePage() {
       ) : null}
       {videosQuery.isPending && !isRetryingVideos ? (
         <div className="mt-12">
-          <LoadingSpinner label="영상을 불러오고 있어요." variant="book" />
+          <BookLoadingIndicator label="영상을 불러오고 있어요." />
         </div>
       ) : hasVideos ? (
         filteredVideos.length > 0 ? (
@@ -168,22 +175,26 @@ export function VideoArchivePage() {
         ) : (
           <div className="mt-8 flex flex-col items-center gap-3 py-8 text-center">
             <p className="text-ink-subtle text-sm">선택한 멤버의 영상이 없어요.</p>
-            <button
-              className="text-primary min-h-11 cursor-pointer px-3 text-sm font-medium"
+            <ActionButton
+              className="text-primary"
               onClick={() => setFilter({ kind: 'all' })}
+              size="medium"
               type="button"
+              variant="ghost"
             >
               전체 영상 보기
-            </button>
+            </ActionButton>
           </div>
         )
       ) : shouldShowVideoLoadError ? null : (
-        <button
+        <ActionButton
           aria-label="첫 영상 올리기"
-          className="border-primary/50 bg-surface-muted hover:border-primary focus-visible:ring-primary mt-8 flex min-h-40 w-full cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border border-dashed transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+          className="talkhugam-foundation-action talkhugam-foundation-action--outline mt-8 min-h-40 w-full flex-col gap-3 border-dashed"
           disabled={isUploadingVideo}
           onClick={handleOpenVideoPicker}
+          size="large"
           type="button"
+          variant="neutralOutline"
         >
           <span
             aria-hidden="true"
@@ -192,7 +203,7 @@ export function VideoArchivePage() {
             <PlusIcon className="size-6" />
           </span>
           <span className="text-ink text-sm font-semibold">첫 영상 올리기</span>
-        </button>
+        </ActionButton>
       )}
     </main>
   )
@@ -218,7 +229,7 @@ function VideoArchiveLoadError({
       />
       {isRetrying ? (
         <div className="mt-4">
-          <LoadingSpinner label="영상을 다시 불러오고 있어요." size="sm" variant="book" />
+          <BookLoadingIndicator label="영상을 다시 불러오고 있어요." size="sm" />
         </div>
       ) : null}
     </div>
@@ -247,37 +258,38 @@ function VideoFilters({
   return (
     <div className={containerClassName}>
       <div className="flex items-center gap-2 pb-1">
-        <button
-          aria-pressed={filter.kind === 'all'}
-          className={getFilterButtonClassName(filter.kind === 'all')}
-          onClick={() => onChange({ kind: 'all' })}
-          type="button"
+        <ToggleButton
+          className="talkhugam-foundation-toggle talkhugam-video-filter-toggle"
+          onPressedChange={(pressed) => {
+            if (pressed) onChange({ kind: 'all' })
+          }}
+          pressed={filter.kind === 'all'}
+          size="small"
+          variant="neutralWeak"
         >
           전체
-        </button>
-        <button
-          aria-pressed={filter.kind === 'mine'}
-          className={getFilterButtonClassName(filter.kind === 'mine')}
+        </ToggleButton>
+        <ToggleButton
+          className="talkhugam-foundation-toggle talkhugam-video-filter-toggle"
           disabled={isMemberFilterDisabled}
-          onClick={() => onChange({ kind: 'mine', memberId: null })}
-          type="button"
+          onPressedChange={(pressed) => {
+            if (pressed) onChange({ kind: 'mine', memberId: null })
+          }}
+          pressed={filter.kind === 'mine'}
+          size="small"
+          variant="neutralWeak"
         >
           내 영상
-        </button>
-        <SelectMenu
+        </ToggleButton>
+        <MemberFilterMenu
           disabled={isMemberFilterDisabled}
           label="멤버 필터"
-          menuTitle="누구의 영상?"
           onChange={(memberId) => {
             onChange(memberId ? { kind: 'member', memberId } : { kind: 'all' })
           }}
           options={[
             { label: '모든 멤버', value: '' },
-            ...members.map((member) => ({
-              badge: member.displayName.slice(0, 1),
-              label: member.displayName,
-              value: member.id,
-            })),
+            ...members.map((member) => ({ label: member.displayName, value: member.id })),
           ]}
           value={selectedMemberId}
         />
@@ -286,28 +298,70 @@ function VideoFilters({
   )
 }
 
+/** SEED 메뉴로 책방 멤버별 영상 필터를 선택하고 선택값을 부모 화면에 전달한다. */
+function MemberFilterMenu({
+  disabled,
+  label,
+  onChange,
+  options,
+  value,
+}: {
+  disabled: boolean
+  label: string
+  onChange: (value: string) => void
+  options: readonly MemberFilterMenuOption[]
+  value: string
+}) {
+  const selectedOption = options.find((option) => option.value === value) ?? options[0]
+
+  return (
+    <Menu.Root disabled={disabled} placement="bottom-end">
+      <Menu.Trigger asChild>
+        <ActionButton
+          aria-label={`${label}: ${selectedOption?.label ?? ''}`}
+          className="talkhugam-foundation-action talkhugam-foundation-action--outline"
+          disabled={disabled}
+          size="small"
+          type="button"
+          variant="neutralOutline"
+        >
+          {selectedOption?.label}
+        </ActionButton>
+      </Menu.Trigger>
+      <Menu.Positioner>
+        <Menu.Content aria-label={label}>
+          <Menu.Group>
+            <Menu.GroupLabel>누구의 영상?</Menu.GroupLabel>
+            {options.map((option) => (
+              <Menu.Item key={option.value} onClick={() => onChange(option.value)}>
+                <Menu.ItemBody>
+                  <Menu.ItemLabel>{option.label}</Menu.ItemLabel>
+                </Menu.ItemBody>
+              </Menu.Item>
+            ))}
+          </Menu.Group>
+        </Menu.Content>
+      </Menu.Positioner>
+    </Menu.Root>
+  )
+}
+
 /** 멤버 필터를 불러오지 못했을 때 안내와 재시도 동작을 제공한다. */
 function MemberFilterLoadError({ onRetry }: { onRetry: () => void }) {
   return (
     <div className="mt-6 flex items-center justify-between gap-2" role="alert">
       <p className="text-sm text-red-600">멤버를 불러오지 못했어요. 다시 시도해 주세요.</p>
-      <button
-        className="text-primary min-h-11 shrink-0 cursor-pointer px-3 text-sm font-medium"
+      <ActionButton
+        className="text-primary shrink-0"
         onClick={onRetry}
+        size="small"
         type="button"
+        variant="ghost"
       >
         멤버 다시 시도
-      </button>
+      </ActionButton>
     </div>
   )
-}
-
-/** 필터 버튼 Class 이름 데이터를 조회하거나 계산해 반환한다. */
-function getFilterButtonClassName(isActive: boolean): string {
-  const colorClassName = isActive
-    ? 'border-primary bg-primary text-ink'
-    : 'border-ink/20 bg-surface text-ink-subtle'
-  return `${colorClassName} focus-visible:ring-primary min-h-11 shrink-0 cursor-pointer rounded-lg border px-3 text-sm font-medium focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50`
 }
 
 /** 영상 갤러리 항목 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
@@ -326,14 +380,16 @@ function VideoGalleryItem({
   const placeholderMessage = getThumbnailPlaceholderMessage(video.status, isThumbnailLoading)
 
   return (
-    <button
+    <ActionButton
       aria-label={
         isReady ? `${video.authorName}님의 영상 보기` : `${video.authorName}님의 영상 상태`
       }
-      className="focus-visible:ring-primary relative block w-full cursor-pointer focus-visible:z-10 focus-visible:ring-2 focus-visible:outline-none disabled:cursor-default"
+      className="relative block h-auto w-full rounded-none p-0 disabled:cursor-default"
       disabled={!isReady}
       onClick={onOpen}
+      size="large"
       type="button"
+      variant="ghost"
     >
       <div className="bg-ink relative aspect-square overflow-hidden">
         {thumbnailAuthorization ? (
@@ -350,7 +406,7 @@ function VideoGalleryItem({
           {video.authorName}
         </span>
       </div>
-    </button>
+    </ActionButton>
   )
 }
 
@@ -398,7 +454,7 @@ function VideoPlaceholder({ isLoading, message }: { isLoading: boolean; message:
   return (
     <div className="bg-ink absolute inset-0 flex items-center justify-center px-4 text-center">
       {isLoading ? (
-        <LoadingSpinner label={message} size="sm" tone="inverse" variant="book" />
+        <BookLoadingIndicator label={message} size="sm" tone="inverse" />
       ) : (
         <p className="text-sm font-medium text-white">{message}</p>
       )}

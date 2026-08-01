@@ -162,12 +162,196 @@ test('keeps core authenticated pages within the supported viewport', async ({ pa
   }
 })
 
+test('renders profile edit controls with the current profile values', async ({
+  page,
+}, testInfo) => {
+  await authenticatePage(page)
+  await mockAuthenticatedPageData(page)
+  await page.goto('/profile/edit')
+
+  await expect(page.getByRole('heading', { name: '프로필 편집' })).toBeVisible()
+  await expect(page.getByLabel('이름')).toHaveValue('민규')
+  await expect(page.getByLabel('한 줄 소개')).toHaveValue('함께 읽고 오래 남겨요.')
+  await expect(page.getByLabel('이름').locator('xpath=..')).toHaveCSS(
+    'background-color',
+    'rgb(255, 255, 255)',
+  )
+  await page.screenshot({
+    path: `artifacts/seed-comparison/9-profile-edit-after-${testInfo.project.name}.png`,
+  })
+})
+
+test('uses SEED commands on the profile share card', async ({ page }, testInfo) => {
+  await authenticatePage(page)
+  await mockAuthenticatedPageData(page)
+  await page.goto('/profile/share')
+
+  await expect(page.getByRole('heading', { name: '공유 카드' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '공유하기' })).toHaveClass(/seed-action-button/)
+  const feedbackLauncherBox = await page.getByRole('button', { name: '의견 보내기' }).boundingBox()
+  if (!feedbackLauncherBox) throw new Error('의견 보내기 버튼 위치를 읽지 못했어요.')
+  expect(feedbackLauncherBox.x).toBeGreaterThanOrEqual(
+    (testInfo.project.use.viewport?.width ?? 320) - 64,
+  )
+  await page.screenshot({
+    path: `artifacts/seed-comparison/17-profile-share-after-${testInfo.project.name}.png`,
+  })
+})
+
+test('uses SEED menu rows on the profile hub', async ({ page }, testInfo) => {
+  await authenticatePage(page)
+  await mockAuthenticatedPageData(page)
+  await page.goto('/profile')
+
+  await expect(page.getByRole('heading', { name: '민규' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '내 정보 수정' })).toHaveClass(/seed-action-button/)
+  await page.screenshot({
+    path: `artifacts/seed-comparison/18-profile-hub-after-${testInfo.project.name}.png`,
+  })
+})
+
+test('renders account settings controls with current preferences', async ({ page }, testInfo) => {
+  await authenticatePage(page)
+  await mockAuthenticatedPageData(page)
+  await page.goto('/profile/settings')
+
+  await expect(page.getByRole('heading', { name: '계정 설정' })).toBeVisible()
+  await expect(page.getByText('e2e@example.com')).toBeVisible()
+  await page.screenshot({
+    path: `artifacts/seed-comparison/10-account-settings-after-${testInfo.project.name}.png`,
+  })
+  await expect(page.getByText('e2e@example.com').locator('xpath=ancestor::dl')).toHaveCSS(
+    'background-color',
+    'rgb(255, 255, 255)',
+  )
+  await expect(page.getByRole('switch', { name: '멘션 알림' })).toBeChecked()
+})
+
+test('renders room settings with SEED form controls', async ({ page }, testInfo) => {
+  await authenticatePage(page)
+  await mockRoomManagementPageData(page)
+  await page.goto(`/rooms/${roomId}/manage/settings`)
+
+  await expect(page.getByRole('heading', { name: '책방을 소개해 주세요' })).toBeVisible()
+  await page.screenshot({
+    path: `artifacts/seed-comparison/12-room-settings-after-${testInfo.project.name}.png`,
+  })
+  await expect(page.getByLabel('책방 이름').locator('xpath=..')).toHaveClass(/seed-text-input/)
+  await expect(page.getByLabel('책방 이름').locator('xpath=..')).toHaveCSS(
+    'background-color',
+    'rgb(255, 255, 255)',
+  )
+  await expect(page.getByRole('button', { name: '저장하기' })).toHaveClass(/seed-action-button/)
+})
+
+test('renders room creation with white SEED information fields', async ({ page }, testInfo) => {
+  await authenticatePage(page)
+  await page.goto('/rooms/create')
+
+  await expect(page.getByRole('heading', { name: '책방 만들기' })).toBeVisible()
+  await expect(page.getByLabel('책방 이름').locator('xpath=..')).toHaveCSS(
+    'background-color',
+    'rgb(255, 255, 255)',
+  )
+  await page.screenshot({
+    path: `artifacts/seed-comparison/19-create-room-after-${testInfo.project.name}.png`,
+  })
+})
+
+test('shares a newly created room from the completion screen', async ({ page }, testInfo) => {
+  await authenticatePage(page)
+  await page.context().grantPermissions(['clipboard-write'])
+  await mockAuthenticatedPageData(page)
+  await page.route('**/rest/v1/rpc/create_reading_room', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify([{ room_id: '00000000-0000-4000-8000-000000000101' }]),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+  await page.route('**/rest/v1/rpc/create_room_invite', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify([
+        {
+          code: 'TALK87',
+          expires_at: '2026-08-02T00:00:00+00:00',
+          token: 'a'.repeat(64),
+        },
+      ]),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+  await page.goto('/rooms/create')
+
+  await page.getByLabel('책방 이름').fill('금요일 아침 책방')
+  await page.getByRole('button', { name: '책방 만들기' }).click()
+
+  await expect(page.getByRole('heading', { name: '책방 만들기 완료' })).toBeVisible()
+  await expect(page.getByText('TALK87')).toBeVisible()
+  await expect(page.getByRole('button', { name: '카카오톡으로 초대 보내기' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '인스타그램으로 초대 보내기' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '페이스북으로 초대 보내기' })).toBeVisible()
+  await page.getByRole('button', { name: '초대 코드 복사하기' }).click()
+  await expect(page.getByText('초대 코드를 복사했어요.')).toBeVisible()
+  await page.screenshot({
+    path: `artifacts/invite-sharing/room-created-${testInfo.project.name}.png`,
+    fullPage: true,
+  })
+})
+
+test('renders invite-code entry with a white SEED information field', async ({
+  page,
+}, testInfo) => {
+  await authenticatePage(page)
+  await page.goto('/rooms/join')
+
+  await expect(page.getByRole('heading', { name: '책방 초대장을 받았어요' })).toBeVisible()
+  await expect(page.getByLabel('6자리 초대 코드').locator('xpath=..')).toHaveCSS(
+    'background-color',
+    'rgb(255, 255, 255)',
+  )
+  await page.screenshot({
+    path: `artifacts/seed-comparison/20-join-room-after-${testInfo.project.name}.png`,
+  })
+})
+
+test('captures the remaining SEED information screens together', async ({ page }, testInfo) => {
+  await authenticatePage(page)
+  await mockAuthenticatedPageData(page)
+  await mockRoomManagementPageData(page)
+
+  await page.goto('/rooms/archive')
+  await expect(page.getByText('아직 보관한 책방이 없어요')).toBeVisible()
+  await page.screenshot({
+    path: `artifacts/seed-comparison/21-archived-rooms-after-${testInfo.project.name}.png`,
+  })
+
+  await page.goto(`/rooms/${roomId}/members/00000000-0000-4000-8000-000000000001`)
+  await expect(page.getByRole('heading', { name: '민규' })).toBeVisible()
+  await page.screenshot({
+    path: `artifacts/seed-comparison/22-member-profile-after-${testInfo.project.name}.png`,
+  })
+
+  await page.goto('/notifications')
+  await expect(page.getByText('아직 새로운 알림이 없어요')).toBeVisible()
+  await page.screenshot({
+    path: `artifacts/seed-comparison/23-notifications-after-${testInfo.project.name}.png`,
+  })
+
+  await page.goto('/contact')
+  await expect(page.getByRole('heading', { name: '서비스 정보' })).toBeVisible()
+  await page.screenshot({
+    path: `artifacts/seed-comparison/24-contact-after-${testInfo.project.name}.png`,
+  })
+})
+
 test('uses the bottom-navigation token as the global page bottom spacing', async ({ page }) => {
   await authenticatePage(page)
   await mockAuthenticatedPageData(page)
   await page.goto('/rooms')
 
-  await expect(page.locator('.app-with-bottom-navigation')).toHaveCSS('padding-bottom', '96px')
+  await expect(page.locator('.app-with-bottom-navigation')).toHaveCSS('padding-bottom', '72px')
 })
 
 test('slides the highlighted bestseller card instead of replacing the page content', async ({
@@ -181,6 +365,13 @@ test('slides the highlighted bestseller card instead of replacing the page conte
   const track = page.getByTestId('bestseller-track')
   await expect(track).toHaveCSS('transition-duration', '0.5s')
   await expect(track).toHaveAttribute('style', 'transform: translateX(0%);')
+  await expect(page.locator('[aria-label="다른 추천 도서"] .line-clamp-2').first()).toHaveCSS(
+    'white-space',
+    'normal',
+  )
+  await page.screenshot({
+    path: `artifacts/seed-comparison/main-bestseller-after-${testInfo.project.name}.png`,
+  })
 
   await page.getByRole('button', { name: '다음 추천 보기' }).click()
 
@@ -219,6 +410,97 @@ test('keeps room management and archived-room screens within the supported viewp
   }
 })
 
+test('uses SEED commands and a confirmation dialog in room management', async ({
+  page,
+}, testInfo) => {
+  await authenticatePage(page)
+  await mockRoomManagementPageData(page)
+  await page.goto(`/rooms/${roomId}/manage`)
+
+  await expect(page.getByRole('button', { name: '초대 코드 만들기' })).toHaveClass(
+    /seed-action-button/,
+  )
+  await page.getByRole('button', { name: '방 보관하고 나가기' }).click()
+  await expect(page.getByRole('dialog', { name: '이 방을 보관할까요?' })).toBeVisible()
+  await page.waitForTimeout(300)
+  await expect(page.getByRole('button', { name: '취소' }).locator('..')).toHaveCSS('gap', '8px')
+  await page.screenshot({
+    path: `artifacts/seed-comparison/13-room-management-after-${testInfo.project.name}.png`,
+  })
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog', { name: '이 방을 보관할까요?' })).toBeHidden()
+})
+
+test('renders room detail command controls with SEED components', async ({ page }, testInfo) => {
+  await authenticatePage(page)
+  await page.route('**/rest/v1/reading_rooms?*', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({ description: '함께 읽는 책들', id: roomId, name: '금요일 아침 책방' }),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+  await page.route('**/rest/v1/book_chats?*', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify([
+        {
+          books: { authors: ['기시미 이치로'], thumbnail_url: null, title: '미움받을 용기' },
+          id: bookChatId,
+          name: '미움받을 용기',
+        },
+      ]),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+  await page.route('**/rest/v1/book_chat_completions?*', async (route) => {
+    await route.fulfill({ body: JSON.stringify([]), contentType: 'application/json', status: 200 })
+  })
+  await page.route('**/rest/v1/book_chat_reading_progresses?*', async (route) => {
+    await route.fulfill({ body: JSON.stringify([]), contentType: 'application/json', status: 200 })
+  })
+  await page.goto(`/rooms/${roomId}`)
+
+  await expect(page.getByRole('heading', { name: '금요일 아침 책방' })).toBeVisible()
+  await expect(page.getByText('미움받을 용기', { exact: true })).toHaveCSS('white-space', 'normal')
+  await page.screenshot({
+    path: `artifacts/seed-comparison/14-room-detail-after-${testInfo.project.name}.png`,
+  })
+  await expect(page.getByRole('button', { name: '새 책' })).toHaveClass(/seed-action-button/)
+})
+
+test('renders book-chat management deletion controls with SEED components', async ({
+  page,
+}, testInfo) => {
+  await authenticatePage(page)
+  await page.route('**/rest/v1/book_chats?*', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        books: { thumbnail_url: null, title: '미움받을 용기' },
+        id: bookChatId,
+        name: '미움받을 용기',
+        room_id: roomId,
+        status: 'reading',
+      }),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+  await page.route('**/rest/v1/book_chat_completions?*', async (route) => {
+    await route.fulfill({ body: JSON.stringify([]), contentType: 'application/json', status: 200 })
+  })
+  await page.goto(`/rooms/${roomId}/books/${bookChatId}/manage`)
+
+  await expect(page.getByRole('heading', { name: '미움받을 용기' })).toBeVisible()
+  await page.getByRole('button', { name: '삭제 요청' }).click()
+  await expect(page.getByRole('dialog')).toBeVisible()
+  await page.waitForTimeout(300)
+  await page.screenshot({
+    path: `artifacts/seed-comparison/15-book-chat-management-after-${testInfo.project.name}.png`,
+  })
+  await expect(page.getByLabel('삭제할 책 이름').locator('xpath=..')).toHaveClass(/seed-text-input/)
+})
+
 test('recovers from an unknown authenticated route by returning to reading rooms', async ({
   page,
 }) => {
@@ -239,6 +521,35 @@ test('closes the action book by Escape and outside click while returning focus t
   await page.goto('/rooms')
 
   const actionMenuButton = page.getByRole('button', { name: '책방 시작 메뉴 열기' })
+  const roomsNavigationButton = page.getByRole('button', { name: '책방', exact: true })
+  const profileNavigationButton = page.getByRole('button', { name: '내 정보', exact: true })
+  const navigationBox = await page.getByRole('navigation', { name: '주요 메뉴' }).boundingBox()
+  const actionButtonBox = await actionMenuButton.boundingBox()
+  const roomsNavigationButtonBox = await roomsNavigationButton.boundingBox()
+  const profileNavigationButtonBox = await profileNavigationButton.boundingBox()
+
+  expect(navigationBox).not.toBeNull()
+  expect(actionButtonBox).not.toBeNull()
+  expect(roomsNavigationButtonBox).not.toBeNull()
+  expect(profileNavigationButtonBox).not.toBeNull()
+  expect(
+    Math.abs(actionButtonBox!.y + actionButtonBox!.height / 2 - navigationBox!.y),
+  ).toBeLessThanOrEqual(1)
+  expect(
+    Math.abs(
+      roomsNavigationButtonBox!.x +
+        roomsNavigationButtonBox!.width / 2 -
+        (navigationBox!.x + navigationBox!.width * 0.25),
+    ),
+  ).toBeLessThanOrEqual(1)
+  expect(
+    Math.abs(
+      profileNavigationButtonBox!.x +
+        profileNavigationButtonBox!.width / 2 -
+        (navigationBox!.x + navigationBox!.width * 0.75),
+    ),
+  ).toBeLessThanOrEqual(1)
+
   await actionMenuButton.click()
   await expect(page.getByRole('dialog', { name: '책방 시작 방식 선택' })).toBeVisible()
   await expect(page.getByRole('button', { name: '새 책방 만들기' })).toBeFocused()
@@ -372,7 +683,7 @@ test('lets a non-owner request a bookshop invite from the plus menu', async ({ p
 
 test('closes the account deletion dialog by Escape and backdrop while restoring trigger focus', async ({
   page,
-}) => {
+}, testInfo) => {
   await authenticatePage(page)
   await mockAuthenticatedPageData(page)
   await page.goto('/profile/settings')
@@ -380,51 +691,66 @@ test('closes the account deletion dialog by Escape and backdrop while restoring 
   const deletionTrigger = page.getByRole('button', { name: '계정 삭제', exact: true })
   await deletionTrigger.click()
   await expect(page.getByRole('dialog', { name: '계정 삭제' })).toBeVisible()
-  await expect(page.getByRole('radio', { name: '대화 기록은 남기고 탈퇴' })).toBeFocused()
+  await page.waitForTimeout(300)
+  await page.screenshot({
+    path: `artifacts/seed-comparison/11-account-deletion-after-${testInfo.project.name}.png`,
+  })
+  await expect(page.getByRole('button', { name: '대화 기록은 남기고 탈퇴' })).toBeFocused()
 
   await page.keyboard.press('Escape')
   await expect(page.getByRole('dialog', { name: '계정 삭제' })).toBeHidden()
   await expect(deletionTrigger).toBeFocused()
 
   await deletionTrigger.click()
-  await page.mouse.click(4, 4)
+  await page.locator('.seed-dialog__backdrop').click({ position: { x: 4, y: 4 } })
   await expect(page.getByRole('dialog', { name: '계정 삭제' })).toBeHidden()
   await expect(deletionTrigger).toBeFocused()
 })
 
 test('resets a dismissed book-chat label editor while keeping the message draft', async ({
   page,
-}) => {
+}, testInfo) => {
   await authenticatePage(page)
   await page.goto(`/rooms/${roomId}/books/${bookChatId}`)
 
   await page.getByRole('button', { name: '메시지 추가 메뉴 열기' }).click()
+  await expectDialogToFitViewport(page, '메시지 추가', testInfo.project.use.viewport?.height ?? 900)
+  await expect(page.getByRole('button', { name: '페이지 라벨' })).toHaveCSS(
+    'background-color',
+    'rgb(255, 241, 236)',
+  )
+  await page.screenshot({
+    path: `artifacts/seed-comparison/8-book-discussion-action-menu-after-${testInfo.project.name}.png`,
+  })
   await page.getByRole('button', { name: '페이지 라벨' }).click()
   await page.getByRole('textbox', { name: '페이지 번호' }).fill('87')
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('textbox', { name: '페이지 번호' })).toBeHidden()
 
   const composer = page.getByRole('textbox', { name: '메시지 입력' })
   await composer.fill('이 문장을 기억할게요')
-  await composer.click()
-  await expect(page.getByRole('textbox', { name: '페이지 번호' })).toBeHidden()
 
   await page.getByRole('button', { name: '메시지 추가 메뉴 열기' }).click()
   await expect(page.getByRole('button', { name: '페이지 라벨' })).toBeVisible()
   await expect(page.getByRole('textbox', { name: '페이지 번호' })).toBeHidden()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog', { name: '메시지 추가' })).toBeHidden()
   await expect(composer).toHaveValue('이 문장을 기억할게요')
 
+  await page.getByRole('button', { name: '메시지 추가 메뉴 열기' }).click()
   await page.getByRole('button', { name: '페이지 라벨' }).click()
   await expect(page.getByRole('textbox', { name: '페이지 번호' })).toHaveValue('')
 
   const accessibilityScanResults = await new AxeBuilder({ page }).analyze()
   expect(accessibilityScanResults.violations).toEqual([])
 
-  await page.getByRole('button', { name: '메시지 추가 메뉴 닫기' }).click()
+  await page.keyboard.press('Escape')
   await expect(page.getByRole('textbox', { name: '페이지 번호' })).toBeHidden()
 })
 
 test('opens completion records from the book-chat plus menu and restores focus on close', async ({
   page,
-}) => {
+}, testInfo) => {
   await authenticatePage(page)
   await mockBookCompletionRecords(page)
   await page.goto(`/rooms/${roomId}/books/${bookChatId}`)
@@ -435,6 +761,10 @@ test('opens completion records from the book-chat plus menu and restores focus o
 
   await expect(page.getByRole('dialog', { name: '완독 기록' })).toBeVisible()
   await expect(page.getByRole('button', { name: '완독하기' })).toBeVisible()
+  await expectDialogToFitViewport(page, '완독 기록', testInfo.project.use.viewport?.height ?? 900)
+  await page.screenshot({
+    path: `artifacts/seed-comparison/7-book-discussion-completion-sheet-after-${testInfo.project.name}.png`,
+  })
 
   await page.keyboard.press('Escape')
   await expect(page.getByRole('dialog', { name: '완독 기록' })).toBeHidden()
@@ -465,7 +795,7 @@ test('opens the bookshop invite sheet from the plus menu without losing a draft'
   const composer = page.getByRole('textbox', { name: '메시지 입력' })
   await composer.fill('이 문장을 함께 나누고 싶어요.')
   await page.getByRole('button', { name: '메시지 추가 메뉴 열기' }).click()
-  const actionGrid = page.locator('.talkhugam-chat-action-menu .grid')
+  const actionGrid = page.getByRole('dialog', { name: '메시지 추가' }).locator('.grid')
   expect(
     await actionGrid.evaluate((element) =>
       window.getComputedStyle(element).gridTemplateColumns.split(' ').filter(Boolean),
@@ -474,6 +804,8 @@ test('opens the bookshop invite sheet from the plus menu without losing a draft'
 
   await page.getByRole('button', { name: '책방 초대하기' }).click()
   await expect(page.getByRole('dialog', { name: '책방 초대하기' })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog', { name: '책방 초대하기' })).toBeHidden()
   await expect(composer).toHaveValue('이 문장을 함께 나누고 싶어요.')
 })
 test('selects a member by typing an at-sign in the book-chat composer', async ({ page }) => {
@@ -500,7 +832,7 @@ test('shows global navigation outside the book chat and hides it inside', async 
   await authenticatePage(page)
 
   await page.goto('/rooms/create')
-  await expect(page.getByRole('navigation', { name: '주요 메뉴' })).toBeVisible()
+  await expect(page.locator('nav[aria-label="주요 메뉴"]')).toBeVisible()
 
   await page.goto(`/rooms/${roomId}/books/${bookChatId}`)
   await expect(page.getByRole('navigation', { name: '주요 메뉴' })).toBeHidden()
@@ -562,7 +894,7 @@ test('opens reading books from the profile hub and edits a personal completion r
   await expect(page.getByRole('textbox', { name: '총평 (선택)' })).toHaveValue(
     '다시 읽고 싶은 문장이 많아요.',
   )
-  await expect(page.getByRole('navigation', { name: '주요 메뉴' })).toBeVisible()
+  await expect(page.locator('nav[aria-label="주요 메뉴"]')).toBeVisible()
 })
 
 test('opens service information from the fifth profile destination', async ({ page }) => {
@@ -749,7 +1081,7 @@ test('does not paint an unused grid slot when the video archive has one item', a
   await expect(gallery).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
 })
 
-test('filters saved videos with the custom member selection menu', async ({ page }) => {
+test('filters saved videos with the SEED member menu', async ({ page }, testInfo) => {
   await authenticatePage(page)
   await mockVideoMembers(page)
   await mockVideoPosts(page, [
@@ -761,13 +1093,42 @@ test('filters saved videos with the custom member selection menu', async ({ page
   ])
   await page.goto(`/rooms/${roomId}/books/${bookChatId}/videos`)
 
+  await expect(page.getByRole('button', { name: '전체' })).toHaveCSS(
+    'background-color',
+    'rgb(255, 131, 95)',
+  )
+  await expect(page.getByRole('button', { name: '내 영상' })).toHaveCSS(
+    'background-color',
+    'rgb(255, 255, 255)',
+  )
+  await page.screenshot({
+    path: `artifacts/seed-comparison/5-video-archive-after-${testInfo.project.name}.png`,
+  })
+
   await page.getByRole('button', { name: '멤버 필터: 모든 멤버' }).click()
-  await expect(page.getByRole('listbox', { name: '멤버 필터' })).toBeVisible()
+  await expect(page.getByRole('menu', { name: '멤버 필터: 모든 멤버' })).toBeVisible()
   await expect(page.getByText('누구의 영상?')).toBeVisible()
-  await page.getByRole('option', { name: '민규' }).click()
+  await page.getByRole('menuitem', { name: '민규' }).click()
 
   await expect(page.getByRole('list', { name: '영상 기록' }).getByRole('listitem')).toHaveCount(1)
   await expect(page.getByRole('button', { name: '멤버 필터: 민규' })).toBeVisible()
+})
+
+test('dismisses the SEED member menu with outside click and Escape', async ({ page }) => {
+  await authenticatePage(page)
+  await mockVideoMembers(page)
+  await mockVideoPosts(page, [createVideoPostRow('4b7227b2-5350-4a61-9114-b2d0c915fd1b', '민규')])
+  await page.goto(`/rooms/${roomId}/books/${bookChatId}/videos`)
+
+  await page.getByRole('button', { name: '멤버 필터: 모든 멤버' }).click()
+  await expect(page.getByRole('menu', { name: '멤버 필터: 모든 멤버' })).toBeVisible()
+  await page.getByRole('heading', { name: '함께 남긴 독서 순간' }).click()
+  await expect(page.getByRole('menu', { name: '멤버 필터: 모든 멤버' })).not.toBeVisible()
+
+  await page.getByRole('button', { name: '멤버 필터: 모든 멤버' }).click()
+  await expect(page.getByRole('menu', { name: '멤버 필터: 모든 멤버' })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('menu', { name: '멤버 필터: 모든 멤버' })).not.toBeVisible()
 })
 
 test('opens a gallery thumbnail in the immersive video viewer', async ({ page }) => {
@@ -968,7 +1329,6 @@ async function mockAuthenticatedPageData(page: Page) {
         avatar_path: null,
         bio: '함께 읽고 오래 남겨요.',
         display_name: '민규',
-        mbti: 'INTP',
         updated_at: '2026-07-19T00:00:00.000+00:00',
       }),
       contentType: 'application/json',
@@ -1117,6 +1477,15 @@ async function mockRoomManagementPageData(page: Page) {
 /** 현재 페이지의 문서 가로 폭이 지원 viewport 폭을 넘지 않는지 검사한다. */
 async function expectPageToFitViewport(page: Page, viewportWidth: number) {
   await expect(page.locator('html')).toHaveJSProperty('scrollWidth', viewportWidth)
+}
+
+/** 열린 SEED 시트가 현재 viewport 안에서 스크롤 가능한 전체 높이를 확보했는지 검사한다. */
+async function expectDialogToFitViewport(page: Page, name: string, viewportHeight: number) {
+  await page.waitForTimeout(350)
+  const dialogBox = await page.getByRole('dialog', { name }).boundingBox()
+  if (!dialogBox) throw new Error(`${name} 시트의 위치를 읽지 못했어요.`)
+
+  expect(Math.ceil(dialogBox.y + dialogBox.height)).toBeLessThanOrEqual(viewportHeight)
 }
 
 /** 현재 페이지의 axe-core 자동 접근성 위반을 검사하되, 별도 h1 검증과 중복되는 규칙은 제외한다. */

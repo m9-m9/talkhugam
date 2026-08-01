@@ -29,20 +29,20 @@ describe('OnboardingPage', () => {
   })
 
   it('saves the prepared profile and sends the member to their reading rooms', async () => {
-    getProfile.mockResolvedValue({ bio: '느리게 읽어요.', displayName: '민규', mbti: 'INTP' })
+    getProfile.mockResolvedValue({ bio: '느리게 읽어요.', displayName: '민규' })
     completeOnboarding.mockResolvedValue(undefined)
 
     renderOnboardingPage()
 
     expect(await screen.findByDisplayValue('민규')).toBeInTheDocument()
-    fireEvent.change(screen.getByLabelText('한 줄 소개'), { target: { value: '함께 읽어요.' } })
+    fireEvent.change(screen.getByLabelText(/^한 줄 소개/), { target: { value: '함께 읽어요.' } })
     fireEvent.click(screen.getByRole('button', { name: '시작하기' }))
 
     await waitFor(() => {
       expect(completeOnboarding).toHaveBeenCalledWith(
         undefined,
         '00000000-0000-0000-0000-000000000001',
-        { bio: '함께 읽어요.', displayName: '민규', mbti: 'INTP' },
+        { bio: '함께 읽어요.', displayName: '민규' },
       )
     })
     expect(await screen.findByText('내 독서방 화면')).toBeInTheDocument()
@@ -56,6 +56,27 @@ describe('OnboardingPage', () => {
     expect(
       await screen.findByText('프로필 정보를 불러오지 못했어요. 다시 시도해 주세요.'),
     ).toBeInTheDocument()
+  })
+
+  it('marks invalid onboarding fields for assistive technology after submission', async () => {
+    getProfile.mockResolvedValue({ bio: '', displayName: '' })
+
+    renderOnboardingPage()
+
+    const nameInput = await screen.findByLabelText('이름')
+    fireEvent.click(screen.getByRole('button', { name: '시작하기' }))
+
+    expect(await screen.findByText('이름을 입력해 주세요.')).toBeInTheDocument()
+    expect(nameInput).toHaveAttribute('data-invalid', '')
+  })
+
+  it('does not ask for MBTI during onboarding', async () => {
+    getProfile.mockResolvedValue({ bio: '', displayName: '민규' })
+
+    renderOnboardingPage()
+
+    expect(await screen.findByDisplayValue('민규')).toBeInTheDocument()
+    expect(screen.queryByText('MBTI')).not.toBeInTheDocument()
   })
 
   it('retries the initial profile preparation without asking the member to refresh', async () => {
@@ -74,7 +95,7 @@ describe('OnboardingPage', () => {
     ).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: '다시 시도' })).not.toBeInTheDocument()
 
-    deferredProfile.resolve({ bio: '느리게 읽어요.', displayName: '민규', mbti: 'INTP' })
+    deferredProfile.resolve({ bio: '느리게 읽어요.', displayName: '민규' })
 
     expect(await screen.findByDisplayValue('민규')).toBeInTheDocument()
     expect(getProfile).toHaveBeenCalledTimes(2)
@@ -98,7 +119,7 @@ function renderOnboardingPage() {
 
 /** 테스트에서 재시도 완료 시점을 제어할 수 있는 프로필 Promise를 만든다. */
 function createDeferredProfile() {
-  type Profile = { bio: string; displayName: string; mbti: string }
+  type Profile = { bio: string; displayName: string }
   let resolve: (profile: Profile) => void = () => undefined
   const promise = new Promise<Profile>((complete) => {
     resolve = complete
