@@ -18,6 +18,8 @@
 @import '@seed-design/css/recipes/toggle-button.css';
 @import '@seed-design/css/recipes/switch.css';
 @import '@seed-design/css/recipes/switchmark.css';
+@import '@seed-design/css/recipes/snackbar.css';
+@import '@seed-design/css/recipes/snackbar-region.css';
 @import 'tailwindcss';
 
 @theme {
@@ -171,6 +173,10 @@
 .talkhugam-bottom-sheet {
   max-height: calc(100dvh - var(--spacing-4));
   overflow-y: auto;
+}
+
+.talkhugam-bottom-navigation-snackbar {
+  --snackbar-region-offset: var(--app-bottom-navigation-height);
 }
 
 .talkhugam-social-login-button__content {

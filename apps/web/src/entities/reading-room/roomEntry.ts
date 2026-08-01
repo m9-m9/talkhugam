@@ -3,6 +3,9 @@ import { z } from 'zod'
 
 import { getProfile } from '../profile'
 
+const inviteCodeSchema = z.string().length(6, '6자리 초대 코드를 입력해 주세요.')
+const inviteTokenSchema = z.string().regex(/^[a-f0-9]{64}$/)
+
 const createRoomResultSchema = z
   .array(
     z.object({
@@ -16,6 +19,7 @@ const inviteResultSchema = z
     z.object({
       code: z.string().length(6),
       expires_at: z.string().datetime({ offset: true }),
+      token: inviteTokenSchema,
     }),
   )
   .length(1)
@@ -27,9 +31,6 @@ const joinRoomResultSchema = z
     }),
   )
   .length(1)
-
-const inviteCodeSchema = z.string().length(6, '6자리 초대 코드를 입력해 주세요.')
-const inviteTokenSchema = z.string().regex(/^[a-f0-9]{64}$/)
 
 export const createRoomFormSchema = z.object({
   description: z.string().trim().max(120, '소개는 120자 이내로 작성해 주세요.'),
@@ -55,6 +56,7 @@ export type CreatedRoomInvite = {
   code: string
   expiresAt: string
   roomId: string
+  token: string
 }
 
 /** URL 쿼리의 초대 토큰이 서버가 발급한 형태인지 확인한다. */
@@ -73,7 +75,7 @@ export async function createRoomWithInvite(
   const roomId = await createReadingRoom(client, values, profile.displayName)
   const invite = await createInvite(client, roomId)
 
-  return { code: invite.code, expiresAt: invite.expiresAt, roomId }
+  return { code: invite.code, expiresAt: invite.expiresAt, roomId, token: invite.token }
 }
 
 /** 초대 코드를 검증해 현재 사용자를 책방 멤버로 참여시킨다. */
@@ -117,7 +119,7 @@ async function createInvite(client: SupabaseClient, roomId: string) {
   if (response.error) throw response.error
 
   const invite = getSingleResult(inviteResultSchema.parse(response.data))
-  return { code: invite.code, expiresAt: invite.expires_at }
+  return { code: invite.code, expiresAt: invite.expires_at, token: invite.token }
 }
 
 /** 6자리 코드는 대문자로 맞추고 링크 토큰은 원문 그대로 유지한다. */

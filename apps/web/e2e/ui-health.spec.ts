@@ -258,6 +258,48 @@ test('renders room creation with white SEED information fields', async ({ page }
   })
 })
 
+test('shares a newly created room from the completion screen', async ({ page }, testInfo) => {
+  await authenticatePage(page)
+  await page.context().grantPermissions(['clipboard-write'])
+  await mockAuthenticatedPageData(page)
+  await page.route('**/rest/v1/rpc/create_reading_room', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify([{ room_id: '00000000-0000-4000-8000-000000000101' }]),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+  await page.route('**/rest/v1/rpc/create_room_invite', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify([
+        {
+          code: 'TALK87',
+          expires_at: '2026-08-02T00:00:00+00:00',
+          token: 'a'.repeat(64),
+        },
+      ]),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+  await page.goto('/rooms/create')
+
+  await page.getByLabel('책방 이름').fill('금요일 아침 책방')
+  await page.getByRole('button', { name: '책방 만들기' }).click()
+
+  await expect(page.getByRole('heading', { name: '책방 만들기 완료' })).toBeVisible()
+  await expect(page.getByText('TALK87')).toBeVisible()
+  await expect(page.getByRole('button', { name: '카카오톡으로 초대 보내기' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '인스타그램으로 초대 보내기' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '페이스북으로 초대 보내기' })).toBeVisible()
+  await page.getByRole('button', { name: '초대 코드 복사하기' }).click()
+  await expect(page.getByText('초대 코드를 복사했어요.')).toBeVisible()
+  await page.screenshot({
+    path: `artifacts/invite-sharing/room-created-${testInfo.project.name}.png`,
+    fullPage: true,
+  })
+})
+
 test('renders invite-code entry with a white SEED information field', async ({
   page,
 }, testInfo) => {
@@ -420,10 +462,7 @@ test('renders room detail command controls with SEED components', async ({ page 
   await page.goto(`/rooms/${roomId}`)
 
   await expect(page.getByRole('heading', { name: '금요일 아침 책방' })).toBeVisible()
-  await expect(page.getByText('미움받을 용기', { exact: true })).toHaveCSS(
-    'white-space',
-    'normal',
-  )
+  await expect(page.getByText('미움받을 용기', { exact: true })).toHaveCSS('white-space', 'normal')
   await page.screenshot({
     path: `artifacts/seed-comparison/14-room-detail-after-${testInfo.project.name}.png`,
   })

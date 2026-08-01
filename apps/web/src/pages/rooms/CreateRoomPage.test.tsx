@@ -25,7 +25,11 @@ describe('CreateRoomPage', () => {
   })
 
   it('shows the shareable invite after creating a reading room', async () => {
-    createRoomWithInvite.mockResolvedValue({ code: 'TALK87', roomId: 'room-1' })
+    createRoomWithInvite.mockResolvedValue({
+      code: 'TALK87',
+      roomId: 'room-1',
+      token: 'a'.repeat(64),
+    })
 
     renderCreateRoomPage()
 
@@ -41,6 +45,9 @@ describe('CreateRoomPage', () => {
     })
     expect(await screen.findByText('TALK87')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '초대 코드 복사하기' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '카카오톡으로 초대 보내기' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '인스타그램으로 초대 보내기' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '페이스북으로 초대 보내기' })).toBeInTheDocument()
   })
 
   it('explains when the room cannot be created', async () => {
@@ -67,7 +74,11 @@ describe('CreateRoomPage', () => {
   })
 
   it('uses white information surfaces for room details and the generated invite code', async () => {
-    createRoomWithInvite.mockResolvedValue({ code: 'TALK87', roomId: 'room-1' })
+    createRoomWithInvite.mockResolvedValue({
+      code: 'TALK87',
+      roomId: 'room-1',
+      token: 'a'.repeat(64),
+    })
     renderCreateRoomPage()
 
     expect(
@@ -83,6 +94,26 @@ describe('CreateRoomPage', () => {
     expect(
       (await screen.findByText('TALK87')).closest('.talkhugam-information-surface'),
     ).not.toBeNull()
+  })
+
+  it('shows a snackbar after copying the invite code', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.assign(navigator, { clipboard: { writeText } })
+    createRoomWithInvite.mockResolvedValue({
+      code: 'TALK87',
+      roomId: 'room-1',
+      token: 'a'.repeat(64),
+    })
+    renderCreateRoomPage()
+
+    fireEvent.change(screen.getByLabelText('책방 이름'), { target: { value: '금요일 아침 책방' } })
+    fireEvent.click(screen.getByRole('button', { name: '책방 만들기' }))
+    fireEvent.click(await screen.findByRole('button', { name: '초대 코드 복사하기' }))
+
+    await waitFor(() => {
+      expect(writeText).toHaveBeenCalledWith('TALK87')
+    })
+    expect(await screen.findByText('초대 코드를 복사했어요.')).toBeInTheDocument()
   })
 })
 

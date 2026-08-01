@@ -5,7 +5,9 @@ import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 
 import { ActionButton, TextField } from '@seed-design/react'
+import { Snackbar, useSnackbarContext } from '@seed-design/react-snackbar'
 
+import { getClientEnv } from '../../app/env'
 import {
   createRoomFormSchema,
   createRoomWithInvite,
@@ -14,6 +16,14 @@ import {
   type CreateRoomForm,
 } from '../../entities/reading-room'
 import { useAuthenticatedUser } from '../../features/auth'
+import {
+  copyInviteText,
+  createInviteShareData,
+  getInviteCopyText,
+  getInvitePlatformUrl,
+  shareInviteWithKakao,
+  type InviteSharePlatform,
+} from '../../features/invite-sharing'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { trackAnalyticsEvent } from '../../shared/analytics'
 import { AppHeader } from '../../shared/ui/AppHeader'
@@ -52,6 +62,7 @@ export function CreateRoomPage() {
       <RoomCreatedPage
         invite={createdRoom}
         onClose={() => void navigate('/rooms', { replace: true })}
+        roomName={form.getValues('name')}
       />
     )
   }
@@ -115,21 +126,87 @@ export function CreateRoomPage() {
 }
 
 /** 책방 생성 직후 초대 코드를 공유할 수 있는 완료 화면을 렌더링한다. */
-function RoomCreatedPage({ invite, onClose }: { invite: CreatedRoomInvite; onClose: () => void }) {
-  const [isCopied, setIsCopied] = useState(false)
+function RoomCreatedPage({
+  invite,
+  onClose,
+  roomName,
+}: {
+  invite: CreatedRoomInvite
+  onClose: () => void
+  roomName: string
+}) {
+  return (
+    <Snackbar.RootProvider>
+      <RoomCreatedContent invite={invite} onClose={onClose} roomName={roomName} />
+    </Snackbar.RootProvider>
+  )
+}
+
+/** 생성된 초대 정보를 복사하거나 채널별 공유 동작으로 전달하는 완료 내용을 렌더링한다. */
+function RoomCreatedContent({
+  invite,
+  onClose,
+  roomName,
+}: {
+  invite: CreatedRoomInvite
+  onClose: () => void
+  roomName: string
+}) {
+  const snackbar = useSnackbarContext()
+
+  /** 짧은 결과 메시지를 SEED Snackbar로 화면 하단에 표시한다. */
+  function showSnackbar(message: string) {
+    snackbar.create({
+      render: () => <p className="seed-snackbar__message">{message}</p>,
+      timeout: 3000,
+    })
+  }
 
   /** 복사 초대 요청이나 사용자 동작을 처리한다. */
   async function handleCopyInvite() {
     try {
-      await navigator.clipboard.writeText(invite.code)
-      setIsCopied(true)
+      await copyInviteText(invite.code)
+      showSnackbar('초대 코드를 복사했어요.')
     } catch {
-      setIsCopied(false)
+      showSnackbar('초대 코드를 복사하지 못했어요.')
+    }
+  }
+
+  /** 선택한 채널에 맞춰 초대 링크와 안내 문구를 전달한다. */
+  async function handleShareInvite(platform: Exclude<InviteSharePlatform, 'sms'>) {
+    const shareData = createInviteShareData(window.location.origin, roomName, invite)
+
+    try {
+      if (platform === 'kakao') {
+        const javascriptKey = getClientEnv().VITE_KAKAO_JAVASCRIPT_KEY
+        if (javascriptKey) {
+          try {
+            await shareInviteWithKakao(shareData, javascriptKey)
+          } catch {
+            await shareWithDevice(shareData)
+          }
+        } else await shareWithDevice(shareData)
+        showSnackbar('카카오톡에서 보낼 초대 내용을 준비했어요.')
+        return
+      }
+
+      if (platform === 'instagram') {
+        await copyInviteText(getInviteCopyText(shareData))
+        openInvitePlatform(platform, shareData)
+        showSnackbar('초대 링크를 복사했어요. 인스타그램에서 붙여 넣어 보내세요.')
+        return
+      }
+
+      openInvitePlatform(platform, shareData)
+      showSnackbar('페이스북 공유 창을 열었어요.')
+    } catch (error) {
+      if (isShareCancellation(error)) return
+      showSnackbar('초대 내용을 공유하지 못했어요. 다시 시도해 주세요.')
     }
   }
 
   return (
-    <main className="app-page bg-surface flex flex-col px-4 pb-8">
+    <main className="app-page bg-surface flex flex-col px-4 pb-16">
       <AppHeader
         action={
           <ActionButton
@@ -164,9 +241,82 @@ function RoomCreatedPage({ invite, onClose }: { invite: CreatedRoomInvite; onClo
           type="button"
           variant="brandSolid"
         >
-          {isCopied ? '초대 코드 복사 완료' : '초대 코드 복사하기'}
+          초대 코드 복사하기
         </ActionButton>
+        <section className="mt-8 mb-16 w-full text-left" aria-labelledby="room-invite-share-title">
+          <h2 className="text-ink text-sm font-semibold" id="room-invite-share-title">
+            바로 공유하기
+          </h2>
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            <ActionButton
+              aria-label="카카오톡으로 초대 보내기"
+              className="w-full px-2 text-xs"
+              onClick={() => void handleShareInvite('kakao')}
+              size="medium"
+              type="button"
+              variant="neutralOutline"
+            >
+              카카오
+            </ActionButton>
+            <ActionButton
+              aria-label="인스타그램으로 초대 보내기"
+              className="w-full px-2 text-xs"
+              onClick={() => void handleShareInvite('instagram')}
+              size="medium"
+              type="button"
+              variant="neutralOutline"
+            >
+              인스타
+            </ActionButton>
+            <ActionButton
+              aria-label="페이스북으로 초대 보내기"
+              className="w-full px-2 text-xs"
+              onClick={() => void handleShareInvite('facebook')}
+              size="medium"
+              type="button"
+              variant="neutralOutline"
+            >
+              페이스북
+            </ActionButton>
+          </div>
+        </section>
       </div>
+      <Snackbar.Region className="talkhugam-bottom-navigation-snackbar seed-snackbar-region fixed">
+        {snackbar.currentSnackbar ? (
+          <Snackbar.Root className="seed-snackbar__root">
+            <Snackbar.Renderer />
+          </Snackbar.Root>
+        ) : null}
+      </Snackbar.Region>
     </main>
   )
+}
+
+/** 기기 공유 API가 있으면 사용하고, 없으면 초대 문구를 복사한다. */
+async function shareWithDevice(shareData: {
+  text: string
+  title: string
+  url: string
+}): Promise<void> {
+  if (typeof navigator.share === 'function') {
+    await navigator.share(shareData)
+    return
+  }
+  await copyInviteText(getInviteCopyText(shareData))
+}
+
+/** 브라우저에서 지원하는 채널의 공유 주소를 새 창으로 연다. */
+function openInvitePlatform(
+  platform: Exclude<InviteSharePlatform, 'kakao' | 'sms'>,
+  shareData: { text: string; title: string; url: string },
+) {
+  const platformUrl = getInvitePlatformUrl(platform, shareData)
+  if (platformUrl === null) return
+  window.open(platformUrl, '_blank', 'noopener,noreferrer')
+}
+
+/** 기기 공유 시트에서 사용자가 취소한 오류인지 판별한다. */
+function isShareCancellation(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false
+  return 'name' in error && error.name === 'AbortError'
 }
