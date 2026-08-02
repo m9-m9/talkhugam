@@ -22,6 +22,7 @@ export function RetryState({
         onClick={onRetry}
         size="medium"
         type="button"
+        className="talkhugam-foundation-action--outline"
         variant="brandOutline"
       >
         {retryLabel}

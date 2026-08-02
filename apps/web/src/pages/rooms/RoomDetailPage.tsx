@@ -108,7 +108,9 @@ export function RoomDetailPage() {
             전체 영상 기록
           </ActionButton>
         </div>
-        <p className="text-ink-subtle mt-2 text-sm">읽었던 책의 영상 기록을 한곳에서 볼 수 있어요.</p>
+        <p className="text-ink-subtle mt-2 text-sm">
+          읽었던 책의 영상 기록을 한곳에서 볼 수 있어요.
+        </p>
       </section>
     </main>
   )

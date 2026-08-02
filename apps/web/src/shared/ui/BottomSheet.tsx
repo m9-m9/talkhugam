@@ -34,7 +34,7 @@ export function BottomSheet({
       onOpenChange={handleOpenChange}
       open
     >
-      <SwipeableMenuSheet.Positioner>
+      <SwipeableMenuSheet.Positioner className="talkhugam-bottom-sheet-positioner">
         <SwipeableMenuSheet.Backdrop data-testid="bottom-sheet-backdrop" />
         <SwipeableMenuSheet.Content className="talkhugam-bottom-sheet max-w-[640px]">
           <SwipeableMenuSheet.Handle />

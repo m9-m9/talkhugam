@@ -146,7 +146,7 @@ function BestsellerCarousel({ books }: { books: BookBestseller[] }) {
                   className="h-16 w-12"
                   thumbnailUrl={book.thumbnailUrl}
                 />
-                <span className="text-ink line-clamp-2 block w-full min-w-0 !whitespace-normal text-xs font-semibold">
+                <span className="text-ink line-clamp-2 block w-full min-w-0 text-xs font-semibold !whitespace-normal">
                   {book.title}
                 </span>
               </ActionButton>
@@ -357,62 +357,73 @@ function EmptyRoomsState() {
 
 /** 최근 대화가 있는 순서로 책방 카드를 렌더링한다. */
 function RoomsList({ rooms }: { rooms: ReadingRoom[] }) {
-  const navigate = useNavigate()
-
   return (
     <List.Root gap="12px">
       {rooms.map((room) => (
-        <List.Item className="border-ink/10 rounded-lg border bg-white" key={room.id}>
-          <List.Prefix>
-            <RoomMemberAvatars members={room.members} />
-          </List.Prefix>
-          <List.Content asChild gap="6px">
-            <ActionButton
-              className="h-auto w-full justify-start p-0 text-left"
-              onClick={() => void navigate(`/rooms/${room.id}`)}
-              size="large"
-              type="button"
-              variant="ghost"
-            >
-              <List.Title>
-                <Text color="fg.neutral" maxLines={1} textStyle="t5Bold">
-                  {room.name}
-                </Text>
-              </List.Title>
-              <List.Detail>
-                <Text color="fg.neutralSubtle" maxLines={1} textStyle="t3Regular">
-                  {formatRoomMessagePreview(room)}
-                </Text>
-              </List.Detail>
-              <List.Detail>
-                <Text color="fg.neutralMuted" maxLines={1} textStyle="t3Medium">
-                  {formatRoomMemberSummary(room.members)}
-                </Text>
-              </List.Detail>
-            </ActionButton>
-          </List.Content>
-          <List.Suffix gap="6px">
-            <Text color="fg.neutralSubtle" textStyle="t4Medium">
-              {formatRoomMessageTime(room.lastMessage?.createdAt ?? null) ?? '새 책방'}
-            </Text>
-            <Icon
-              size="20px"
-              svg={
-                <svg fill="none" viewBox="0 0 24 24">
-                  <path
-                    d="m9 18 6-6-6-6"
-                    stroke="currentColor"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                  />
-                </svg>
-              }
-            />
-          </List.Suffix>
-        </List.Item>
+        <RoomListItem key={room.id} room={room} />
       ))}
     </List.Root>
+  )
+}
+
+/** 책방 한 행의 정보와 이동 동작을 SEED 목록 구조 안에서 렌더링한다. */
+function RoomListItem({ room }: { room: ReadingRoom }) {
+  const navigate = useNavigate()
+
+  /** 선택한 책방의 상세 화면으로 이동한다. */
+  function handleOpenRoom() {
+    void navigate(`/rooms/${room.id}`)
+  }
+
+  return (
+    <List.Item className="border-ink/10 rounded-lg border bg-white" key={room.id}>
+      <List.Prefix>
+        <RoomMemberAvatars members={room.members} />
+      </List.Prefix>
+      <List.Content asChild className="min-w-0" gap="6px">
+        <button
+          aria-label={`${room.name} 책방 열기`}
+          className="focus-visible:outline-primary min-w-0 flex-1 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+          onClick={handleOpenRoom}
+          type="button"
+        >
+          <List.Title>
+            <Text color="fg.neutral" maxLines={1} textStyle="t5Bold">
+              {room.name}
+            </Text>
+          </List.Title>
+          <List.Detail>
+            <Text color="fg.neutralSubtle" maxLines={1} textStyle="t3Regular">
+              {formatRoomMessagePreview(room)}
+            </Text>
+          </List.Detail>
+          <List.Detail>
+            <Text color="fg.neutralMuted" maxLines={1} textStyle="t3Medium">
+              {formatRoomMemberSummary(room.members)}
+            </Text>
+          </List.Detail>
+        </button>
+      </List.Content>
+      <List.Suffix gap="6px">
+        <Text color="fg.neutralSubtle" textStyle="t4Medium">
+          {formatRoomMessageTime(room.lastMessage?.createdAt ?? null) ?? '새 책방'}
+        </Text>
+        <Icon
+          size="20px"
+          svg={
+            <svg fill="none" viewBox="0 0 24 24">
+              <path
+                d="m9 18 6-6-6-6"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+              />
+            </svg>
+          }
+        />
+      </List.Suffix>
+    </List.Item>
   )
 }
 

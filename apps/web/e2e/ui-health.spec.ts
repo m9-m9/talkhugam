@@ -156,7 +156,7 @@ test('keeps core authenticated pages within the supported viewport', async ({ pa
     '/profile/settings/naver-info',
     '/notifications',
   ]) {
-    await page.goto(path)
+    await page.goto(path, { waitUntil: 'domcontentloaded' })
     await expect(page.locator('main')).toBeVisible()
     await expectPageToFitViewport(page, testInfo.project.use.viewport?.width ?? 640)
   }
@@ -165,13 +165,25 @@ test('keeps core authenticated pages within the supported viewport', async ({ pa
 test('renders profile edit controls with the current profile values', async ({
   page,
 }, testInfo) => {
+  let avatarUploadRequestCount = 0
   await authenticatePage(page)
   await mockAuthenticatedPageData(page)
+  page.on('request', (request) => {
+    if (request.url().includes('/storage/v1/object/avatars/')) avatarUploadRequestCount += 1
+  })
   await page.goto('/profile/edit')
 
   await expect(page.getByRole('heading', { name: '프로필 편집' })).toBeVisible()
   await expect(page.getByLabel('이름')).toHaveValue('민규')
   await expect(page.getByLabel('한 줄 소개')).toHaveValue('함께 읽고 오래 남겨요.')
+  await page.getByLabel('프로필 사진 선택').setInputFiles({
+    buffer: Buffer.from('profile-image'),
+    mimeType: 'image/png',
+    name: 'profile.png',
+  })
+  await expect(page.getByRole('button', { name: '사진 선택됨' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '저장하기' })).toBeEnabled()
+  expect(avatarUploadRequestCount).toBe(0)
   await expect(page.getByLabel('이름').locator('xpath=..')).toHaveCSS(
     'background-color',
     'rgb(255, 255, 255)',
@@ -431,6 +443,42 @@ test('uses SEED commands and a confirmation dialog in room management', async ({
   await expect(page.getByRole('dialog', { name: '이 방을 보관할까요?' })).toBeHidden()
 })
 
+test('reveals room invite sharing inline without opening a bottom sheet', async ({
+  page,
+}, testInfo) => {
+  await authenticatePage(page)
+  await mockRoomManagementPageData(page)
+  await page.route('**/rest/v1/rpc/create_room_invite', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify([
+        {
+          code: 'TALK87',
+          expires_at: '2026-08-02T00:00:00+00:00',
+          invite_id: '00000000-0000-4000-8000-000000000011',
+          token: 'a'.repeat(64),
+        },
+      ]),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+  await page.goto(`/rooms/${roomId}/manage`)
+  await page.getByRole('button', { name: '초대 코드 만들기' }).click()
+  await expect(page.getByRole('dialog', { name: '책방 초대하기' })).toHaveCount(0)
+  await page.getByRole('button', { name: '친구에게 공유하기' }).click()
+
+  const shareOptions = page.getByRole('region', { name: '초대 공유 옵션' })
+  await expect(shareOptions).toBeVisible()
+  await expect(shareOptions.getByRole('button', { name: '카카오톡으로 초대 보내기' })).toBeVisible()
+  await page.waitForTimeout(400)
+
+  const viewportWidth = testInfo.project.use.viewport?.width ?? 640
+  const optionsBox = await shareOptions.boundingBox()
+
+  expect(optionsBox).not.toBeNull()
+  expect(Math.round(optionsBox!.width)).toBeLessThanOrEqual(Math.min(viewportWidth, 640))
+})
+
 test('renders room detail command controls with SEED components', async ({ page }, testInfo) => {
   await authenticatePage(page)
   await page.route('**/rest/v1/reading_rooms?*', async (route) => {
@@ -466,12 +514,20 @@ test('renders room detail command controls with SEED components', async ({ page 
   await page.screenshot({
     path: `artifacts/seed-comparison/14-room-detail-after-${testInfo.project.name}.png`,
   })
-  await expect(page.getByRole('button', { name: '새 책' })).toHaveClass(/seed-action-button/)
+  await expect(page.getByRole('button', { name: '전체 영상 기록' })).toHaveClass(
+    /seed-action-button/,
+  )
 })
 
 test('renders book-chat management deletion controls with SEED components', async ({
   page,
 }, testInfo) => {
+  let progress = {
+    book_chat_id: bookChatId,
+    current_page: 0,
+    total_pages: 1,
+    updated_at: '2026-08-02T00:00:00+00:00',
+  }
   await authenticatePage(page)
   await page.route('**/rest/v1/book_chats?*', async (route) => {
     await route.fulfill({
@@ -489,9 +545,46 @@ test('renders book-chat management deletion controls with SEED components', asyn
   await page.route('**/rest/v1/book_chat_completions?*', async (route) => {
     await route.fulfill({ body: JSON.stringify([]), contentType: 'application/json', status: 200 })
   })
+  await mockReadingProgresses(page, () => [progress])
+  await page.route('**/rest/v1/rpc/upsert_book_chat_reading_progress', async (route) => {
+    const request = route.request().postDataJSON() as {
+      p_current_page: number
+      p_total_pages: number
+    }
+    progress = {
+      book_chat_id: bookChatId,
+      current_page: request.p_current_page,
+      total_pages: request.p_total_pages,
+      updated_at: '2026-08-02T00:01:00+00:00',
+    }
+    await route.fulfill({ body: 'null', contentType: 'application/json', status: 200 })
+  })
   await page.goto(`/rooms/${roomId}/books/${bookChatId}/manage`)
 
   await expect(page.getByRole('heading', { name: '미움받을 용기' })).toBeVisible()
+  const currentPageInput = page.getByRole('textbox', { name: '현재 페이지' })
+  const totalPagesInput = page.getByRole('textbox', { name: '전체 페이지' })
+  await expect(currentPageInput).toHaveAttribute('inputmode', 'numeric')
+  await expect(currentPageInput).toHaveAttribute('type', 'text')
+  await expect(page.locator('label[for="reading-current-page"]')).toHaveCSS('white-space', 'nowrap')
+  await expect(page.locator('label[for="reading-total-pages"]')).toHaveCSS('white-space', 'nowrap')
+  const currentPageInputBox = await currentPageInput.boundingBox()
+  const totalPagesInputBox = await totalPagesInput.boundingBox()
+  expect(currentPageInputBox).not.toBeNull()
+  expect(totalPagesInputBox).not.toBeNull()
+  expect(Math.round(currentPageInputBox!.width)).toBe(Math.round(totalPagesInputBox!.width))
+  await expect(page.getByRole('button', { name: '진행률 저장' })).toBeDisabled()
+  await currentPageInput.fill('87')
+  await totalPagesInput.fill('320')
+  await expect(page.getByRole('button', { name: '진행률 저장' })).toBeEnabled()
+  const submitBox = await page.locator('.talkhugam-reading-progress-submit').boundingBox()
+  expect(submitBox).not.toBeNull()
+  expect(submitBox!.y).toBeGreaterThan(currentPageInputBox!.y + currentPageInputBox!.height + 20)
+  await page.getByRole('button', { name: '진행률 저장' }).click()
+  await expect(page.getByRole('progressbar', { name: '독서 진행률 27%' })).toBeVisible()
+  await page.screenshot({
+    path: `artifacts/seed-comparison/15-reading-progress-after-${testInfo.project.name}.png`,
+  })
   await page.getByRole('button', { name: '삭제 요청' }).click()
   await expect(page.getByRole('dialog')).toBeVisible()
   await page.waitForTimeout(300)
@@ -499,6 +592,57 @@ test('renders book-chat management deletion controls with SEED components', asyn
     path: `artifacts/seed-comparison/15-book-chat-management-after-${testInfo.project.name}.png`,
   })
   await expect(page.getByLabel('삭제할 책 이름').locator('xpath=..')).toHaveClass(/seed-text-input/)
+})
+
+test('shows my completed-book rating and review before opening the edit sheet', async ({
+  page,
+}) => {
+  await authenticatePage(page)
+  await page.route('**/rest/v1/book_chats?*', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        books: { thumbnail_url: null, title: '미움받을 용기' },
+        id: bookChatId,
+        name: '미움받을 용기',
+        room_id: roomId,
+        status: 'reading',
+      }),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+  await page.route('**/rest/v1/book_chat_completions?*', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify([
+        {
+          book_chats: {
+            room_members: [
+              {
+                profile_id: '00000000-0000-4000-8000-000000000001',
+                room_avatar_path: null,
+                room_display_name: '민규',
+              },
+            ],
+          },
+          completed_at: '2026-08-02T00:00:00+00:00',
+          profile_id: '00000000-0000-4000-8000-000000000001',
+          profiles: { avatar_path: null, display_name: '민규' },
+          rating: 4,
+          review: '다시 읽고 싶은 문장이 많아요.',
+        },
+      ]),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+  await mockReadingProgresses(page, () => [])
+  await page.goto(`/rooms/${roomId}/books/${bookChatId}/manage`)
+
+  await expect(page.getByRole('heading', { name: '내 완독 기록' })).toBeVisible()
+  await expect(page.getByText('별점 4점')).toBeVisible()
+  await expect(page.getByText('다시 읽고 싶은 문장이 많아요.')).toBeVisible()
+  await page.getByRole('button', { name: '완독 기록 수정' }).click()
+  await expect(page.getByRole('dialog', { name: '완독 기록' })).toBeVisible()
 })
 
 test('recovers from an unknown authenticated route by returning to reading rooms', async ({
@@ -586,6 +730,9 @@ test('aligns the book-chat composer controls on one 44px row', async ({ page }) 
   expect(Math.round(inputBox.y)).toBe(Math.round(sendBox.y))
   expect(Math.round(inputBox.x - (addBox.x + addBox.width))).toBe(8)
   expect(Math.round(sendBox.x - (inputBox.x + inputBox.width))).toBe(8)
+  expect(
+    await messageInput.evaluate((element) => window.getComputedStyle(element).scrollbarWidth),
+  ).toBe('none')
 })
 
 test('keeps the chat input readable and aligns my discussion records to the right', async ({
@@ -658,27 +805,18 @@ test('keeps the chat input readable and aligns my discussion records to the righ
   await expectPageToFitViewport(page, testInfo.project.use.viewport?.width ?? 640)
 })
 
-test('lets a non-owner request a bookshop invite from the plus menu', async ({ page }) => {
-  let inviteRequestCount = 0
+test('keeps room invitation controls out of the simplified book-chat plus menu', async ({
+  page,
+}) => {
   await authenticatePage(page)
-  await mockVideoMembers(page, [
-    createVideoMember('8fc963a4-da01-4696-995c-755fe145776f', '민규', true),
-  ])
-  await page.route('**/rest/v1/rpc/request_room_invite', async (route) => {
-    inviteRequestCount += 1
-    await route.fulfill({
-      body: JSON.stringify(true),
-      contentType: 'application/json',
-      status: 200,
-    })
-  })
   await page.goto(`/rooms/${roomId}/books/${bookChatId}`)
 
   await page.getByRole('button', { name: '메시지 추가 메뉴 열기' }).click()
-  await page.getByRole('button', { name: '초대 요청' }).click()
-
-  await expect(page.getByText('방장에게 책방 초대를 요청했어요.')).toBeVisible()
-  await expect.poll(() => inviteRequestCount).toBe(1)
+  await expect(page.getByRole('button', { name: '라벨 등록' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '영상 기록' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '초대 요청' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '책방 초대하기' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '완독 기록' })).toHaveCount(0)
 })
 
 test('closes the account deletion dialog by Escape and backdrop while restoring trigger focus', async ({
@@ -715,13 +853,13 @@ test('resets a dismissed book-chat label editor while keeping the message draft'
 
   await page.getByRole('button', { name: '메시지 추가 메뉴 열기' }).click()
   await expectDialogToFitViewport(page, '메시지 추가', testInfo.project.use.viewport?.height ?? 900)
-  await expect(page.getByRole('button', { name: '페이지 라벨' })).toHaveCSS(
-    'background-color',
-    'rgb(255, 241, 236)',
+  await expect(page.getByRole('button', { name: '라벨 등록' })).toHaveClass(
+    /talkhugam-action-sheet-choice/,
   )
   await page.screenshot({
     path: `artifacts/seed-comparison/8-book-discussion-action-menu-after-${testInfo.project.name}.png`,
   })
+  await page.getByRole('button', { name: '라벨 등록' }).click()
   await page.getByRole('button', { name: '페이지 라벨' }).click()
   await page.getByRole('textbox', { name: '페이지 번호' }).fill('87')
   await page.keyboard.press('Escape')
@@ -731,13 +869,14 @@ test('resets a dismissed book-chat label editor while keeping the message draft'
   await composer.fill('이 문장을 기억할게요')
 
   await page.getByRole('button', { name: '메시지 추가 메뉴 열기' }).click()
-  await expect(page.getByRole('button', { name: '페이지 라벨' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '라벨 등록' })).toBeVisible()
   await expect(page.getByRole('textbox', { name: '페이지 번호' })).toBeHidden()
   await page.keyboard.press('Escape')
   await expect(page.getByRole('dialog', { name: '메시지 추가' })).toBeHidden()
   await expect(composer).toHaveValue('이 문장을 기억할게요')
 
   await page.getByRole('button', { name: '메시지 추가 메뉴 열기' }).click()
+  await page.getByRole('button', { name: '라벨 등록' }).click()
   await page.getByRole('button', { name: '페이지 라벨' }).click()
   await expect(page.getByRole('textbox', { name: '페이지 번호' })).toHaveValue('')
 
@@ -748,65 +887,17 @@ test('resets a dismissed book-chat label editor while keeping the message draft'
   await expect(page.getByRole('textbox', { name: '페이지 번호' })).toBeHidden()
 })
 
-test('opens completion records from the book-chat plus menu and restores focus on close', async ({
-  page,
-}, testInfo) => {
-  await authenticatePage(page)
-  await mockBookCompletionRecords(page)
-  await page.goto(`/rooms/${roomId}/books/${bookChatId}`)
-
-  const plusButton = page.getByRole('button', { name: '메시지 추가 메뉴 열기' })
-  await plusButton.click()
-  await page.getByRole('button', { name: '완독 기록' }).click()
-
-  await expect(page.getByRole('dialog', { name: '완독 기록' })).toBeVisible()
-  await expect(page.getByRole('button', { name: '완독하기' })).toBeVisible()
-  await expectDialogToFitViewport(page, '완독 기록', testInfo.project.use.viewport?.height ?? 900)
-  await page.screenshot({
-    path: `artifacts/seed-comparison/7-book-discussion-completion-sheet-after-${testInfo.project.name}.png`,
-  })
-
-  await page.keyboard.press('Escape')
-  await expect(page.getByRole('dialog', { name: '완독 기록' })).toBeHidden()
-  await expect(plusButton).toBeFocused()
-})
-
-test('opens the bookshop invite sheet from the plus menu without losing a draft', async ({
+test('opens the current book video archive from the simplified book-chat plus menu', async ({
   page,
 }) => {
   await authenticatePage(page)
-  await mockRoomManagementPageData(page)
-  await page.route('**/rest/v1/rpc/create_room_invite', async (route) => {
-    await route.fulfill({
-      body: JSON.stringify([
-        {
-          code: 'TALK87',
-          expires_at: '2026-07-27T00:00:00.000+00:00',
-          invite_id: '00000000-0000-4000-8000-000000000011',
-          token: 'a'.repeat(64),
-        },
-      ]),
-      contentType: 'application/json',
-      status: 200,
-    })
-  })
   await page.goto(`/rooms/${roomId}/books/${bookChatId}`)
 
-  const composer = page.getByRole('textbox', { name: '메시지 입력' })
-  await composer.fill('이 문장을 함께 나누고 싶어요.')
   await page.getByRole('button', { name: '메시지 추가 메뉴 열기' }).click()
-  const actionGrid = page.getByRole('dialog', { name: '메시지 추가' }).locator('.grid')
-  expect(
-    await actionGrid.evaluate((element) =>
-      window.getComputedStyle(element).gridTemplateColumns.split(' ').filter(Boolean),
-    ),
-  ).toHaveLength(2)
+  await page.getByRole('button', { name: '영상 기록' }).click()
 
-  await page.getByRole('button', { name: '책방 초대하기' }).click()
-  await expect(page.getByRole('dialog', { name: '책방 초대하기' })).toBeVisible()
-  await page.keyboard.press('Escape')
-  await expect(page.getByRole('dialog', { name: '책방 초대하기' })).toBeHidden()
-  await expect(composer).toHaveValue('이 문장을 함께 나누고 싶어요.')
+  await expect(page).toHaveURL(`/rooms/${roomId}/books/${bookChatId}/videos`)
+  await expect(page.getByRole('heading', { name: '함께 남긴 독서 순간' })).toBeVisible()
 })
 test('selects a member by typing an at-sign in the book-chat composer', async ({ page }) => {
   await authenticatePage(page)
@@ -887,7 +978,7 @@ test('opens reading books from the profile hub and edits a personal completion r
   await expect(page.getByRole('heading', { name: '읽고 있는 책' })).toBeVisible()
   await expect(page.getByRole('heading', { name: '금요일 아침 책방' })).toBeVisible()
   await expect(page.getByText('미움받을 용기')).toBeVisible()
-  await expect(page.getByText('완독', { exact: true })).toBeVisible()
+  await expect(page.getByText('완독 기록을 남겼어요.')).toBeVisible()
   await page.getByRole('button', { name: '미움받을 용기 기록 수정' }).click()
   await expect(page.getByRole('dialog', { name: '완독 기록' })).toBeVisible()
   await expect(page.getByRole('button', { name: '4점' })).toHaveAttribute('aria-pressed', 'true')
@@ -984,7 +1075,7 @@ test('keeps personal reading progress after refresh and lets the user complete t
 
   await expect(page.getByText('87 / 320쪽')).toBeVisible()
   await page.getByRole('button', { name: '미움받을 용기 진행률 기록하기' }).click()
-  await page.getByRole('spinbutton', { name: '현재 읽은 페이지' }).fill('146')
+  await page.getByRole('textbox', { name: '현재 읽은 페이지' }).fill('146')
   await page.getByRole('button', { name: '진행률 저장' }).click()
   await expect(page.getByText('146 / 320쪽')).toBeVisible()
 
@@ -996,7 +1087,7 @@ test('keeps personal reading progress after refresh and lets the user complete t
   await page.getByRole('button', { name: '완독 기록 저장' }).click()
 
   await expect(page.getByRole('dialog', { name: '완독 기록' })).toBeHidden()
-  await expect(page.locator('article').getByText('완독', { exact: true })).toBeVisible()
+  await expect(page.getByText('완독 기록을 남겼어요.')).toBeVisible()
   await expect(page.getByText('별점 5점')).toBeVisible()
   await page.getByRole('button', { name: '미움받을 용기 기록 수정' }).click()
   await expect(page.getByRole('textbox', { name: '총평 (선택)' })).toHaveValue(
@@ -1417,17 +1508,6 @@ async function mockReadingProgresses(page: Page, progresses: unknown[] | (() => 
     const body = typeof progresses === 'function' ? progresses() : progresses
     await route.fulfill({
       body: JSON.stringify(body),
-      contentType: 'application/json',
-      status: 200,
-    })
-  })
-}
-
-/** 책 대화의 완독 시트가 필요한 빈 완독 기록 응답을 브라우저에 제공한다. */
-async function mockBookCompletionRecords(page: Page) {
-  await page.route('**/rest/v1/book_chat_completions?*', async (route) => {
-    await route.fulfill({
-      body: JSON.stringify([]),
       contentType: 'application/json',
       status: 200,
     })

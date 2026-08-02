@@ -59,6 +59,26 @@ describe('RoomsPage', () => {
     expect(screen.getByText('민규: 여기가 좋더라')).toBeInTheDocument()
   })
 
+  it('opens a room from the list content without expanding into the suffix area', async () => {
+    getReadingRooms.mockResolvedValue([
+      {
+        createdAt: '2026-07-17T00:00:00.000Z',
+        description: null,
+        id: 'room-1',
+        lastMessage: null,
+        members: [{ displayName: '민규', joinedAt: '2026-07-17T00:00:00.000Z' }],
+        name: '금요일 아침 책방',
+        updatedAt: '2026-07-17T00:00:00.000Z',
+      },
+    ])
+
+    renderRoomsPage()
+
+    fireEvent.click(await screen.findByRole('button', { name: '금요일 아침 책방 책방 열기' }))
+
+    expect(await screen.findByText('책방 상세 화면')).toBeInTheDocument()
+  })
+
   it('shows the configured bestseller cards above the member book rooms', async () => {
     getReadingRooms.mockResolvedValue([])
     getBookBestsellers.mockResolvedValue({
@@ -182,6 +202,7 @@ function renderRoomsPage() {
       <MemoryRouter initialEntries={['/rooms']}>
         <Routes>
           <Route path="/rooms" element={<RoomsPage />} />
+          <Route path="/rooms/:roomId" element={<p>책방 상세 화면</p>} />
           <Route path="/notifications" element={<p>알림함 화면</p>} />
         </Routes>
       </MemoryRouter>

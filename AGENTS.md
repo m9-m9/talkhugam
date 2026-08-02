@@ -103,6 +103,9 @@
 - 권한 변경은 RLS 허용·거부 테스트를 작성한다.
 - 사용자 흐름 변경은 필요한 컴포넌트 테스트 또는 Playwright 시나리오를 갱신한다.
 - 변경 범위에 맞는 lint, typecheck, test, build를 실행한다.
+- 코드 변경 작업은 매번 완료 전에 `pnpm test:web`, `pnpm build:web`,
+  `pnpm --filter @talkhugam/web test:e2e`를 모두 직접 실행한다. UI·레이아웃 변경은
+  Playwright의 320px와 640px 결과를 확인한 뒤에만 완료로 보고한다.
 - 테스트를 통과시키기 위해 `skip`, 과도한 timeout, 무의미한 mock을 방치하지 않는다.
 - 구현과 문서가 충돌하면 조용히 추측하지 말고 작업 티켓 또는 Product Hub에 결정이 필요한 내용을 남긴다.
 

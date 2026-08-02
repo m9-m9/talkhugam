@@ -18,6 +18,9 @@ describe('BottomSheet', () => {
       'seed-menu-sheet__content',
     )
     expect(screen.getByRole('dialog', { name: '완독 기록' })).toHaveClass('talkhugam-bottom-sheet')
+    expect(screen.getByRole('dialog', { name: '완독 기록' }).parentElement).toHaveClass(
+      'talkhugam-bottom-sheet-positioner',
+    )
     fireEvent.click(screen.getByRole('button', { name: '완독 기록 닫기' }))
 
     expect(screen.queryByRole('dialog', { name: '완독 기록' })).not.toBeInTheDocument()
