@@ -106,15 +106,21 @@ describe('ProfileEditPage', () => {
     expect(getProfile).toHaveBeenCalledTimes(2)
   })
 
-  it('uploads an allowed profile photo immediately after the user chooses it', async () => {
+  it('uploads a selected profile photo only when the user saves the profile', async () => {
     getProfile.mockResolvedValue({ bio: null, displayName: '민규' })
     uploadProfileAvatar.mockResolvedValue('00000000-0000-0000-0000-000000000001/avatar')
+    updateProfile.mockResolvedValue(undefined)
 
     renderProfileEditPage()
 
     await screen.findByDisplayValue('민규')
     const photo = new File(['photo'], 'profile.png', { type: 'image/png' })
     fireEvent.change(screen.getByLabelText('프로필 사진 선택'), { target: { files: [photo] } })
+
+    expect(uploadProfileAvatar).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: '저장하기' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: '사진 선택됨' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '저장하기' }))
 
     await waitFor(() => {
       expect(uploadProfileAvatar).toHaveBeenCalledWith(

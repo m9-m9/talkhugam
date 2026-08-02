@@ -1,11 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { ActionButton, TextField } from '@seed-design/react'
 
 import {
+  getAvatarUploadError,
   getProfile,
   getProfileAvatarUrl,
   profileFormSchema,
@@ -29,6 +30,8 @@ export function ProfileEditPage() {
   const client = createSupabaseClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [selectedAvatarFile, setSelectedAvatarFile] = useState<File | null>(null)
+  const [selectedAvatarPreviewUrl, setSelectedAvatarPreviewUrl] = useState<string | null>(null)
   const form = useForm<ProfileForm>({
     defaultValues: { displayName: '', bio: '' },
     resolver: zodResolver(profileFormSchema),
@@ -47,12 +50,8 @@ export function ProfileEditPage() {
       profileQuery.data?.updatedAt,
     ],
   })
-  const avatarUploadMutation = useMutation({
-    mutationFn: uploadAvatar,
-    onError: handleAvatarUploadError,
-    onSuccess: handleAvatarUploadSuccess,
-  })
-  const isSaveDisabled = form.formState.isSubmitting || !form.formState.isDirty
+  const isSaveDisabled =
+    form.formState.isSubmitting || (!form.formState.isDirty && selectedAvatarFile === null)
 
   useEffect(() => {
     if (!profileQuery.data) return
@@ -63,21 +62,27 @@ export function ProfileEditPage() {
     })
   }, [form, profileQuery.data])
 
+  useEffect(() => {
+    /** 선택을 취소하거나 화면을 떠날 때 브라우저 미리보기 URL을 해제한다. */
+    function revokeSelectedAvatarPreviewUrl() {
+      if (selectedAvatarPreviewUrl) URL.revokeObjectURL(selectedAvatarPreviewUrl)
+    }
+
+    return revokeSelectedAvatarPreviewUrl
+  }, [selectedAvatarPreviewUrl])
+
   /** 제출 요청이나 사용자 동작을 처리한다. */
   async function handleSubmit(values: ProfileForm) {
     setErrorMessage(null)
     try {
+      if (selectedAvatarFile) await uploadProfileAvatar(client, profileId, selectedAvatarFile)
       await updateProfile(client, profileId, values)
       await queryClient.invalidateQueries({ queryKey: ['profile', profileId] })
+      await queryClient.invalidateQueries({ queryKey: ['profile-avatar-url', profileId] })
       void navigate('/profile', { replace: true })
     } catch {
       setErrorMessage('저장하지 못했어요. 잠시 후 다시 시도해 주세요.')
     }
-  }
-
-  /** private Storage에 현재 사용자의 사진을 업로드하고 객체 경로를 저장한다. */
-  async function uploadAvatar(file: File) {
-    return uploadProfileAvatar(client, profileId, file)
   }
 
   /** 사진 객체 경로와 갱신 시각으로 접근 가능한 임시 URL을 조회한다. */
@@ -85,30 +90,26 @@ export function ProfileEditPage() {
     return getProfileAvatarUrl(client, profileQuery.data?.avatarPath ?? null)
   }
 
-  /** 사진 업로드 후 프로필과 임시 URL을 최신 상태로 갱신한다. */
-  async function handleAvatarUploadSuccess() {
-    await queryClient.invalidateQueries({ queryKey: ['profile', profileId] })
-    await queryClient.invalidateQueries({ queryKey: ['profile-avatar-url', profileId] })
-  }
-
-  /** 사진 업로드의 검증 또는 네트워크 실패를 사용자가 이해할 문구로 표시한다. */
-  function handleAvatarUploadError(error: Error) {
-    setErrorMessage(error.message || '사진을 올리지 못했어요. 잠시 후 다시 시도해 주세요.')
-  }
-
   /** 숨겨진 파일 선택기를 열어 사진 변경을 시작한다. */
   function handleSelectAvatar() {
     fileInputRef.current?.click()
   }
 
-  /** 선택한 사진을 즉시 업로드하고 같은 파일도 다시 선택할 수 있게 입력값을 비운다. */
+  /** 선택한 사진을 미리보기로만 보관하고 같은 파일도 다시 선택할 수 있게 입력값을 비운다. */
   function handleAvatarInputChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
     event.target.value = ''
     if (!file) return
 
+    const validationErrorMessage = getAvatarUploadError(file)
+    if (validationErrorMessage) {
+      setErrorMessage(validationErrorMessage)
+      return
+    }
+
     setErrorMessage(null)
-    avatarUploadMutation.mutate(file)
+    setSelectedAvatarFile(file)
+    setSelectedAvatarPreviewUrl(URL.createObjectURL(file))
   }
 
   if (profileQuery.isPending) return <ProfileEditState message="프로필을 준비하고 있어요." />
@@ -136,19 +137,19 @@ export function ProfileEditPage() {
 
       <section aria-label="프로필 사진" className="mt-8 flex items-center gap-4">
         <ProfileAvatar
-          avatarUrl={avatarUrlQuery.data ?? null}
+          avatarUrl={selectedAvatarPreviewUrl ?? avatarUrlQuery.data ?? null}
           displayName={profileQuery.data?.displayName ?? ''}
         />
         <div>
           <ActionButton
             className="talkhugam-foundation-action--outline"
-            disabled={avatarUploadMutation.isPending}
+            disabled={form.formState.isSubmitting}
             onClick={handleSelectAvatar}
             size="medium"
             type="button"
             variant="neutralOutline"
           >
-            {avatarUploadMutation.isPending ? '사진 올리는 중…' : '사진 변경'}
+            {selectedAvatarFile ? '사진 선택됨' : '사진 변경'}
           </ActionButton>
           <p className="text-ink-subtle mt-2 text-xs">JPG, PNG, WebP · 최대 5MB</p>
         </div>
