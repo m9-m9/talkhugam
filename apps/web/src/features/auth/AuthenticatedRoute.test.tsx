@@ -30,14 +30,12 @@ describe('AuthenticatedRoute', () => {
     expect(await screen.findByText('로그인 화면')).toBeInTheDocument()
   })
 
-  it('uses the compact book loader while checking the protected session', () => {
+  it('keeps the book-landing loader visible while checking the room-list session', () => {
     getUser.mockReturnValue(new Promise<never>(() => undefined))
 
     const { container } = renderProtectedRoute()
 
-    expect(
-      screen.getByRole('status', { name: '로그인 정보를 확인하고 있어요.' }),
-    ).toBeInTheDocument()
+    expect(screen.getByRole('status', { name: '책방 정보를 불러오고 있어요.' })).toBeInTheDocument()
     expect(container.querySelector('.talkhugam-book-loader--sm')).toBeInTheDocument()
   })
 })

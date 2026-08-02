@@ -152,9 +152,24 @@
 }
 
 .talkhugam-social-login-button {
-  --talkhugam-social-login-icon-size: 20px;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  justify-content: center;
   min-height: var(--spacing-12);
+  min-width: 0;
+  padding: 0;
   width: 100%;
+}
+
+.talkhugam-social-login-button:is(:hover, :active, [data-loading]) {
+  background: transparent;
+  box-shadow: none;
+}
+
+.talkhugam-social-login-button:focus-visible {
+  outline: 2px solid var(--color-primary-text);
+  outline-offset: var(--spacing-1);
 }
 
 .talkhugam-login-page {
@@ -171,64 +186,57 @@
 }
 
 .talkhugam-bottom-sheet {
+  flex: 0 1 auto;
   max-height: calc(100dvh - var(--spacing-4));
   overflow-y: auto;
+  width: 100%;
+}
+
+/* Keep overflow usable while preventing native scrollbars from disturbing the app UI. */
+textarea,
+.talkhugam-bottom-sheet,
+[role='dialog'] {
+  scrollbar-width: none;
+}
+
+textarea::-webkit-scrollbar,
+.talkhugam-bottom-sheet::-webkit-scrollbar,
+[role='dialog']::-webkit-scrollbar {
+  display: none;
+}
+
+.talkhugam-bottom-sheet[data-drawer]::after {
+  display: none;
+}
+
+.talkhugam-bottom-sheet-positioner {
+  --layer-index: 30;
 }
 
 .talkhugam-bottom-navigation-snackbar {
   --snackbar-region-offset: var(--app-bottom-navigation-height);
 }
 
-.talkhugam-social-login-button__content {
-  align-items: center;
-  display: grid;
-  gap: var(--spacing-3);
-  grid-template-columns: var(--talkhugam-social-login-icon-size) 1fr;
-  margin-inline: auto;
-  text-align: left;
-  width: 208px;
-}
-
-.talkhugam-social-login-button__icon {
-  align-items: center;
-  display: flex;
-  height: var(--talkhugam-social-login-icon-size);
-  justify-content: center;
-  width: var(--talkhugam-social-login-icon-size);
-}
-
-.talkhugam-social-login-button__icon svg {
+.talkhugam-social-login-button__asset {
   display: block;
-  height: var(--talkhugam-social-login-icon-size);
-  width: var(--talkhugam-social-login-icon-size);
+  height: auto;
+  max-width: 100%;
+  min-width: 0;
+  object-fit: contain;
 }
 
-.talkhugam-social-login-button--kakao {
-  background: #fee500;
-  color: #191919;
+.talkhugam-social-login-button__asset--kakao {
+  height: 45px;
+  width: min(300px, 100%);
 }
 
-.talkhugam-social-login-button--naver {
-  background: #03c75a;
-  color: #191919;
+.talkhugam-social-login-button__asset--naver {
+  max-width: 368px;
+  width: min(368px, 100%);
 }
 
-.talkhugam-social-login-button--google {
-  background: white;
-  border: 1px solid #747775;
-  color: var(--color-ink);
-}
-
-.talkhugam-social-login-button--kakao:is(:hover, :active, [data-loading]) {
-  background: #fee500;
-}
-
-.talkhugam-social-login-button--naver:is(:hover, :active, [data-loading]) {
-  background: #03c75a;
-}
-
-.talkhugam-social-login-button--google:is(:hover, :active, [data-loading]) {
-  background: #f8f8f8;
+.talkhugam-social-login-button__asset--google {
+  width: 180px;
 }
 
 @layer base {

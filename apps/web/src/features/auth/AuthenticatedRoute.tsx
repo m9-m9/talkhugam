@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Navigate, Outlet } from 'react-router-dom'
+import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { z } from 'zod'
 
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
@@ -15,6 +15,7 @@ const authenticatedUserSchema = z.object({
 
 /** 인증 라우트 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 export function AuthenticatedRoute() {
+  const location = useLocation()
   const [user, setUser] = useState<AuthenticatedUser | null | undefined>(undefined)
 
   useEffect(() => {
@@ -47,7 +48,7 @@ export function AuthenticatedRoute() {
   if (user === undefined)
     return (
       <main className="bg-surface flex min-h-screen items-center justify-center px-4">
-        <BookLoadingIndicator label="로그인 정보를 확인하고 있어요." size="sm" />
+        <BookLoadingIndicator label={getSessionLoadingLabel(location.pathname)} size="sm" />
       </main>
     )
   if (user === null) return <Navigate replace to="/" />
@@ -57,4 +58,9 @@ export function AuthenticatedRoute() {
       <Outlet />
     </authenticatedUserContext.Provider>
   )
+}
+
+/** 보호 화면 경로에 맞춰 첫 화면에서 보여 줄 로딩 문구를 반환한다. */
+function getSessionLoadingLabel(pathname: string) {
+  return pathname === '/rooms' ? '책방 정보를 불러오고 있어요.' : '로그인 정보를 확인하고 있어요.'
 }

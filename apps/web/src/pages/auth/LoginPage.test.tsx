@@ -18,7 +18,7 @@ describe('LoginPage', () => {
     signInWithOAuth.mockResolvedValue({ data: {}, error: null })
     renderLoginPage()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Google로 계속하기' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Google 계정으로 계속' }))
 
     expect(signInWithOAuth).toHaveBeenCalledWith({
       provider: 'google',
@@ -30,7 +30,7 @@ describe('LoginPage', () => {
     signInWithOAuth.mockResolvedValue({ data: null, error: new Error('oauth') })
     renderLoginPage()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Google로 계속하기' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Google 계정으로 계속' }))
 
     expect(
       await screen.findByText('로그인을 시작하지 못했어요. 잠시 후 다시 시도해 주세요.'),
@@ -41,7 +41,7 @@ describe('LoginPage', () => {
     signInWithOAuth.mockReturnValue(new Promise(() => undefined))
     renderLoginPage()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Google로 계속하기' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Google 계정으로 계속' }))
 
     const status = screen.getByRole('status', { name: '로그인을 연결하고 있어요.' })
     expect(status.querySelector('.talkhugam-brand-spinner')).toBeInTheDocument()
@@ -66,20 +66,33 @@ describe('LoginPage', () => {
     )
   })
 
-  it('keeps every provider icon in the same fixed slot before its label', () => {
+  it('centers every provider content group inside its button', () => {
     renderLoginPage()
 
-    for (const provider of ['카카오로 로그인', 'Google로 계속하기', '네이버로 로그인']) {
+    for (const provider of ['카카오 로그인', 'Google 계정으로 계속', '네이버 로그인']) {
       const button = screen.getByRole('button', { name: provider })
-      expect(button.querySelector('.talkhugam-social-login-button__content')).toBeInTheDocument()
-      expect(button.querySelector('.talkhugam-social-login-button__icon')).toBeInTheDocument()
+      expect(button).toHaveClass('!justify-center')
     }
+  })
+
+  it('uses the bundled official social login assets for every provider', () => {
+    renderLoginPage()
+
+    expect(
+      screen.getByRole('button', { name: '카카오 로그인' }).querySelector('img'),
+    ).toHaveAttribute('src', '/brand/social/kakao-login.png')
+    expect(
+      screen.getByRole('button', { name: '네이버 로그인' }).querySelector('img'),
+    ).toHaveAttribute('src', '/brand/social/naver-login.png')
+    expect(
+      screen.getByRole('button', { name: 'Google 계정으로 계속' }).querySelector('img'),
+    ).toHaveAttribute('src', '/brand/social/google-login.svg')
   })
 
   it('keeps an eight-pixel gap between stacked provider buttons', () => {
     renderLoginPage()
 
-    expect(screen.getByRole('button', { name: '카카오로 로그인' }).parentElement).toHaveClass(
+    expect(screen.getByRole('button', { name: '카카오 로그인' }).parentElement).toHaveClass(
       'gap-2',
     )
   })
