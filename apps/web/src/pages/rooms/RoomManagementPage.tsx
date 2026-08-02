@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ActionButton, Dialog } from '@seed-design/react'
 
@@ -10,6 +10,7 @@ import {
   removeManagedRoomMember,
   roomManagementKeys,
   transferManagedRoomOwnership,
+  updateManagedRoomMemberRole,
   type CreatedManagedRoomInvite,
   type RoomManagementMember,
 } from '../../entities/room-management'
@@ -18,7 +19,7 @@ import {
   createInviteShareData,
   getInviteCopyText,
   getInvitePlatformUrl,
-  InviteShareSheet,
+  InviteShareActions,
   shareInviteWithKakao,
   type InviteSharePlatform,
 } from '../../features/invite-sharing'
@@ -30,7 +31,7 @@ import { AppHeader } from '../../shared/ui/AppHeader'
 import { BookLoadingIndicator, BrandLoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 type PendingAction =
-  | { member: RoomManagementMember; type: 'remove' | 'transfer' }
+  | { member: RoomManagementMember; type: 'remove' | 'transfer' | 'make-manager' | 'make-member' }
   | { type: 'archive' | 'leave' }
   | null
 
@@ -44,8 +45,7 @@ export function RoomManagementPage() {
   const [createdInvite, setCreatedInvite] = useState<CreatedManagedRoomInvite | null>(null)
   const [inviteShareError, setInviteShareError] = useState<string | null>(null)
   const [inviteShareMessage, setInviteShareMessage] = useState<string | null>(null)
-  const [isInviteShareSheetOpen, setIsInviteShareSheetOpen] = useState(false)
-  const inviteShareTriggerRef = useRef<HTMLButtonElement>(null)
+  const [isInviteShareOptionsVisible, setIsInviteShareOptionsVisible] = useState(false)
   const [pendingAction, setPendingAction] = useState<PendingAction>(null)
   const roomQuery = useQuery({
     enabled: Boolean(roomId),
@@ -56,7 +56,7 @@ export function RoomManagementPage() {
     mutationFn: () => createManagedRoomInvite(client, roomId ?? ''),
     onSuccess: (invite) => {
       setCreatedInvite(invite)
-      setIsInviteShareSheetOpen(true)
+      setIsInviteShareOptionsVisible(false)
     },
   })
   const memberMutation = useMutation({
@@ -65,6 +65,13 @@ export function RoomManagementPage() {
         return removeManagedRoomMember(client, roomId ?? '', action.member.id)
       if (action.type === 'transfer')
         return transferManagedRoomOwnership(client, roomId ?? '', action.member.id)
+      if (action.type === 'make-manager' || action.type === 'make-member')
+        return updateManagedRoomMemberRole(
+          client,
+          roomId ?? '',
+          action.member.id,
+          action.type === 'make-manager' ? 'manager' : 'member',
+        )
       return leaveManagedRoom(client, roomId ?? '', action.type === 'archive' ? 'archive' : null)
     },
     onSuccess: async (_, action) => {
@@ -96,7 +103,6 @@ export function RoomManagementPage() {
             await shareWithDevice(shareData)
           }
         } else await shareWithDevice(shareData)
-        handleCloseInviteShareSheet()
         setInviteShareMessage('카카오톡에서 보낼 초대 내용을 준비했어요.')
         return
       }
@@ -109,7 +115,6 @@ export function RoomManagementPage() {
       }
 
       openInvitePlatform(platform, shareData)
-      handleCloseInviteShareSheet()
       setInviteShareMessage(`${getInviteSharePlatformName(platform)}으로 초대 링크를 열었어요.`)
     } catch (error) {
       if (isShareCancellation(error)) return
@@ -133,12 +138,6 @@ export function RoomManagementPage() {
     }
   }
 
-  /** 초대 선택 시트를 닫고 공유 버튼에 포커스를 되돌린다. */
-  function handleCloseInviteShareSheet() {
-    setIsInviteShareSheetOpen(false)
-    window.requestAnimationFrame(() => inviteShareTriggerRef.current?.focus())
-  }
-
   /** 확인된 관리 동작을 서버에 요청한다. */
   function handleConfirmAction() {
     if (pendingAction === null) return
@@ -160,12 +159,14 @@ export function RoomManagementPage() {
         <p className="text-ink-subtle mt-2 text-sm">{room.description ?? '아직 소개가 없어요.'}</p>
       </header>
 
-      {room.isCurrentUserOwner ? (
+      {room.currentUserRole === 'owner' || room.currentUserRole === 'manager' ? (
         <section className="mt-8" aria-labelledby="room-management-actions">
           <h2 className="text-ink text-base font-bold" id="room-management-actions">
             방 관리
           </h2>
-          <div className="mt-4 grid grid-cols-2 gap-3">
+          <div
+            className={`mt-4 grid gap-3 ${room.isCurrentUserOwner ? 'grid-cols-2' : 'grid-cols-1'}`}
+          >
             <ActionButton
               className="talkhugam-foundation-action--outline w-full"
               onClick={() => inviteMutation.mutate()}
@@ -175,15 +176,17 @@ export function RoomManagementPage() {
             >
               초대 코드 만들기
             </ActionButton>
-            <ActionButton
-              className="w-full"
-              onClick={() => void navigate(`/rooms/${roomId}/manage/settings`)}
-              size="large"
-              type="button"
-              variant="neutralOutline"
-            >
-              방 설정
-            </ActionButton>
+            {room.isCurrentUserOwner ? (
+              <ActionButton
+                className="w-full"
+                onClick={() => void navigate(`/rooms/${roomId}/manage/settings`)}
+                size="large"
+                type="button"
+                variant="neutralOutline"
+              >
+                방 설정
+              </ActionButton>
+            ) : null}
           </div>
           {inviteMutation.isPending ? (
             <div className="mt-4">
@@ -203,8 +206,8 @@ export function RoomManagementPage() {
               </p>
               <ActionButton
                 className="talkhugam-primary-action mt-4 w-full"
-                onClick={() => setIsInviteShareSheetOpen(true)}
-                ref={inviteShareTriggerRef}
+                aria-expanded={isInviteShareOptionsVisible}
+                onClick={() => setIsInviteShareOptionsVisible(true)}
                 size="large"
                 type="button"
                 variant="brandSolid"
@@ -214,6 +217,14 @@ export function RoomManagementPage() {
               <p className="text-ink-subtle mt-2 text-xs">
                 카카오톡, 문자, 인스타그램, 페이스북으로 초대할 수 있어요.
               </p>
+              {isInviteShareOptionsVisible ? (
+                <section aria-label="초대 공유 옵션">
+                  <InviteShareActions
+                    onCopyInvite={() => void handleCopyInvite()}
+                    onShare={(platform) => void handleShareInvite(platform)}
+                  />
+                </section>
+              ) : null}
               {inviteShareMessage ? (
                 <p className="text-primary mt-2 text-xs" role="status">
                   {inviteShareMessage}
@@ -234,8 +245,12 @@ export function RoomManagementPage() {
           <h2 className="text-ink text-base font-bold" id="room-members-heading">
             함께하는 사람 {room.members.length}명
           </h2>
-          {room.isCurrentUserOwner ? (
-            <span className="text-ink-subtle text-xs">방장만 관리할 수 있어요</span>
+          {room.currentUserRole === 'owner' || room.currentUserRole === 'manager' ? (
+            <span className="text-ink-subtle text-xs">
+              {room.isCurrentUserOwner
+                ? '방장이 역할을 관리할 수 있어요'
+                : '운영자가 초대와 책을 관리해요'}
+            </span>
           ) : null}
         </div>
         <ul className="border-ink/10 mt-4 overflow-hidden rounded-lg border bg-white">
@@ -254,6 +269,8 @@ export function RoomManagementPage() {
               {room.isCurrentUserOwner && !member.isCurrentUser ? (
                 <MemberMenu
                   member={member}
+                  onMakeManager={() => setPendingAction({ member, type: 'make-manager' })}
+                  onMakeMember={() => setPendingAction({ member, type: 'make-member' })}
                   onRemove={() => setPendingAction({ member, type: 'remove' })}
                   onTransfer={() => setPendingAction({ member, type: 'transfer' })}
                 />
@@ -293,14 +310,6 @@ export function RoomManagementPage() {
           isPending={memberMutation.isPending}
           onCancel={() => setPendingAction(null)}
           onConfirm={handleConfirmAction}
-        />
-      ) : null}
-      {createdInvite && isInviteShareSheetOpen ? (
-        <InviteShareSheet
-          inviteCode={createdInvite.code}
-          onClose={handleCloseInviteShareSheet}
-          onCopyInvite={() => void handleCopyInvite()}
-          onShare={(platform) => void handleShareInvite(platform)}
         />
       ) : null}
       {memberMutation.isError ? (
@@ -362,7 +371,7 @@ function MemberProfileLink({ member, roomId }: { member: RoomManagementMember; r
         {member.isCurrentUser ? ' (나)' : ''}
       </span>
       <span className="text-ink-subtle mt-1 block text-xs">
-        {member.role === 'owner' ? '방장' : '멤버'}
+        {member.role === 'owner' ? '방장' : member.role === 'manager' ? '운영자' : '참여자'}
       </span>
     </>
   )
@@ -383,10 +392,14 @@ function MemberProfileLink({ member, roomId }: { member: RoomManagementMember; r
 /** 멤버마다 제공되는 방장 관리 동작을 렌더링한다. */
 function MemberMenu({
   member,
+  onMakeManager,
+  onMakeMember,
   onRemove,
   onTransfer,
 }: {
   member: RoomManagementMember
+  onMakeManager: () => void
+  onMakeMember: () => void
   onRemove: () => void
   onTransfer: () => void
 }) {
@@ -399,6 +412,15 @@ function MemberMenu({
         ⋯
       </summary>
       <div className="border-ink/10 absolute right-0 z-10 mt-2 w-32 rounded-md border bg-white p-1 shadow-lg">
+        <ActionButton
+          className="text-ink hover:!bg-surface-muted min-h-11 w-full justify-start rounded-sm px-3 text-left"
+          onClick={member.role === 'manager' ? onMakeMember : onMakeManager}
+          size="medium"
+          type="button"
+          variant="ghost"
+        >
+          {member.role === 'manager' ? '참여자로 변경' : '운영자로 변경'}
+        </ActionButton>
         <ActionButton
           className="text-ink hover:!bg-surface-muted min-h-11 w-full justify-start rounded-sm px-3 text-left"
           onClick={onTransfer}
@@ -492,6 +514,12 @@ function getActionContent(action: Exclude<PendingAction, null>) {
       confirmLabel: '방장 이양',
       description: `${action.member.displayName}님에게 방장 권한을 넘겨요. 이 작업은 바로 적용돼요.`,
       title: '방장 권한을 이양할까요?',
+    }
+  if (action.type === 'make-manager' || action.type === 'make-member')
+    return {
+      confirmLabel: '권한 변경 저장',
+      description: `${action.member.displayName}님의 역할을 ${action.type === 'make-manager' ? '운영자' : '참여자'}로 변경해요.`,
+      title: '권한을 변경할까요?',
     }
   if (action.type === 'archive')
     return {

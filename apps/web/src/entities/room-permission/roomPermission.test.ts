@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import {
-  canManageRoomContent,
-  canManageRoomMembers,
-  canRequestRoomContent,
-} from './roomPermission'
+import { canManageRoomContent, canManageRoomMembers, canRequestRoomContent } from './roomPermission'
 
 describe('room permission rules', () => {
   it('allows owners and managers to manage invitations and books', () => {

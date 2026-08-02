@@ -69,7 +69,7 @@ const videoFilterMemberRowSchema = z.object({
 
 const currentRoomMemberRowSchema = z.object({
   id: z.string().uuid(),
-  role: z.enum(['owner', 'member']),
+  role: z.enum(['owner', 'manager', 'member']),
 })
 
 export type VideoAsset = {
@@ -184,17 +184,22 @@ export async function getRoomVideoPosts(
 ): Promise<RoomVideoPost[]> {
   const response = await client
     .from('posts')
-    .select('id, body, author_member_id, author_name_snapshot, created_at, video_assets(status), book_chats!inner(id, books!inner(title))')
+    .select(
+      'id, body, author_member_id, author_name_snapshot, created_at, video_assets(status), book_chats!inner(id, books!inner(title))',
+    )
     .eq('book_chats.room_id', z.string().uuid().parse(roomId))
     .eq('type', 'video')
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
   if (response.error) throw response.error
-  return z.array(roomVideoPostRowSchema).parse(response.data).map((row) => ({
-    ...mapVideoPost(row),
-    bookChatId: row.book_chats.id,
-    bookTitle: row.book_chats.books.title,
-  }))
+  return z
+    .array(roomVideoPostRowSchema)
+    .parse(response.data)
+    .map((row) => ({
+      ...mapVideoPost(row),
+      bookChatId: row.book_chats.id,
+      bookTitle: row.book_chats.books.title,
+    }))
 }
 
 /** 영상 메시지 데이터를 조회하거나 계산해 반환한다. */

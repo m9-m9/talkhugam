@@ -41,6 +41,7 @@ describe('parseRoomManagement', () => {
     ).toEqual({
       createdBy: ownerProfileId,
       description: '이번 달 함께 읽는 책들',
+      currentUserRole: 'owner',
       id: roomId,
       isCurrentUserOwner: true,
       members: [
