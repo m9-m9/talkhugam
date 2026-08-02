@@ -24,6 +24,10 @@ import {
   invalidateCompletionQueries,
   storeBookCompletionInCache,
 } from '../../features/book-completion'
+import {
+  invalidateReadingProgressQueries,
+  storeReadingProgressInCache,
+} from '../../features/reading-progress'
 import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
@@ -92,22 +96,8 @@ export function MyReadingBooksPage() {
     mutationFn: (input: ReadingProgressInput) =>
       upsertReadingProgress(createSupabaseClient(), input),
     onSuccess: (_result, input) => {
-      queryClient.setQueryData<ReadingProgress[]>(
-        readingProgressKeys.byProfile(profileId),
-        (progresses = []) => [
-          ...progresses.filter((progress) => progress.bookChatId !== input.bookChatId),
-          {
-            bookChatId: input.bookChatId,
-            currentPage: input.currentPage,
-            totalPages: input.totalPages,
-            updatedAt: new Date().toISOString(),
-          },
-        ],
-      )
-      void queryClient.invalidateQueries({
-        queryKey: readingProgressKeys.byProfile(profileId),
-        refetchType: 'inactive',
-      })
+      storeReadingProgressInCache(queryClient, { ...input, profileId })
+      invalidateReadingProgressQueries(queryClient, profileId)
       setSelectedProgressBook(null)
     },
   })
@@ -240,10 +230,11 @@ function ReadingProgressSheet({
   const [validationErrorMessage, setValidationErrorMessage] = useState('')
   const errorMessage = validationErrorMessage || submitErrorMessage
 
-  /** 사용자가 입력한 숫자 문자열을 0 이상의 정수로 변환한다. */
+  /** 사용자가 입력한 빈 값과 소수점을 제외한 문자열을 0 이상의 정수로 변환한다. */
   function parsePage(value: string): number | null {
+    if (!/^\d+$/.test(value)) return null
     const parsed = Number(value)
-    return Number.isInteger(parsed) && parsed >= 0 ? parsed : null
+    return Number.isSafeInteger(parsed) ? parsed : null
   }
 
   /** 현재 입력값을 검증해 개인 진행률 저장 요청으로 전달한다. */
@@ -280,9 +271,9 @@ function ReadingProgressSheet({
               aria-invalid={Boolean(errorMessage)}
               id="current-reading-page"
               inputMode="numeric"
-              min="0"
               onChange={(event) => setCurrentPage(event.target.value)}
-              type="number"
+              pattern="[0-9]*"
+              type="text"
               value={currentPage}
             />
           </TextField.Root>
@@ -293,9 +284,9 @@ function ReadingProgressSheet({
               aria-invalid={Boolean(errorMessage)}
               id="total-reading-pages"
               inputMode="numeric"
-              min="1"
               onChange={(event) => setTotalPages(event.target.value)}
-              type="number"
+              pattern="[0-9]*"
+              type="text"
               value={totalPages}
             />
           </TextField.Root>

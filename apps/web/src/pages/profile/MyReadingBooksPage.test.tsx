@@ -122,7 +122,7 @@ describe('MyReadingBooksPage', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: '모순 진행률 기록하기' }))
     expect(screen.getByRole('dialog', { name: '독서 진행률 기록' })).toBeInTheDocument()
-    fireEvent.change(screen.getByRole('spinbutton', { name: '현재 읽은 페이지' }), {
+    fireEvent.change(screen.getByRole('textbox', { name: '현재 읽은 페이지' }), {
       target: { value: '150' },
     })
     fireEvent.click(screen.getByRole('button', { name: '진행률 저장' }))

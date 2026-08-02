@@ -5,8 +5,15 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { BookChatManagementPage } from './BookChatManagementPage'
 
-const { getBookChatCompletions, getManagedBookChat, upsertBookChatCompletion, upsertReadingProgress } = vi.hoisted(() => ({
+const {
+  getBookChatCompletions,
+  getMyReadingProgresses,
+  getManagedBookChat,
+  upsertBookChatCompletion,
+  upsertReadingProgress,
+} = vi.hoisted(() => ({
   getBookChatCompletions: vi.fn().mockResolvedValue([]),
+  getMyReadingProgresses: vi.fn().mockResolvedValue([]),
   getManagedBookChat: vi.fn().mockResolvedValue({
     id: '00000000-0000-0000-0000-000000000101',
     name: '함께 읽는 책',
@@ -30,6 +37,7 @@ vi.mock('../../entities/book-chat', () => ({
 }))
 
 vi.mock('../../entities/reading-progress', () => ({
+  getMyReadingProgresses,
   readingProgressKeys: { byProfile: (profileId: string) => ['reading-progresses', profileId] },
   upsertReadingProgress,
 }))
@@ -55,6 +63,7 @@ describe('BookChatManagementPage', () => {
     cleanup()
     vi.clearAllMocks()
     getBookChatCompletions.mockResolvedValue([])
+    getMyReadingProgresses.mockResolvedValue([])
     getManagedBookChat.mockResolvedValue({
       id: '00000000-0000-0000-0000-000000000101',
       name: '함께 읽는 책',
@@ -91,7 +100,7 @@ describe('BookChatManagementPage', () => {
   })
 
   it('saves my current reading progress from the book chat management page', async () => {
-    renderBookChatManagementPage()
+    const { queryClient } = renderBookChatManagementPage()
 
     fireEvent.change(await screen.findByLabelText('현재 페이지'), { target: { value: '87' } })
     fireEvent.change(screen.getByLabelText('전체 페이지'), { target: { value: '312' } })
@@ -104,6 +113,53 @@ describe('BookChatManagementPage', () => {
         totalPages: 312,
       }),
     )
+    expect(
+      queryClient.getQueryData(['reading-progresses', '00000000-0000-0000-0000-000000000001']),
+    ).toMatchObject([
+      {
+        bookChatId: '00000000-0000-0000-0000-000000000101',
+        currentPage: 87,
+        totalPages: 312,
+      },
+    ])
+  })
+
+  it('does not submit blank or out-of-range reading progress', async () => {
+    renderBookChatManagementPage()
+
+    const submitButton = await screen.findByRole('button', { name: '진행률 저장' })
+    expect(submitButton).toBeDisabled()
+
+    fireEvent.change(screen.getByLabelText('현재 페이지'), { target: { value: '321' } })
+    fireEvent.change(screen.getByLabelText('전체 페이지'), { target: { value: '320' } })
+
+    expect(submitButton).toBeDisabled()
+    fireEvent.click(submitButton)
+    expect(upsertReadingProgress).not.toHaveBeenCalled()
+  })
+
+  it('uses equal-width spinner-free inputs for reading progress', async () => {
+    renderBookChatManagementPage()
+
+    const currentPageInput = await screen.findByLabelText('현재 페이지')
+    const totalPagesInput = screen.getByLabelText('전체 페이지')
+
+    expect(currentPageInput).toHaveAttribute('type', 'text')
+    expect(totalPagesInput).toHaveAttribute('type', 'text')
+    expect(currentPageInput).toHaveAttribute('inputmode', 'numeric')
+    expect(currentPageInput.closest('.talkhugam-reading-progress-fields')).toHaveClass(
+      'grid-cols-2',
+    )
+  })
+
+  it('keeps the reading status separated from the save action', async () => {
+    renderBookChatManagementPage()
+
+    fireEvent.change(await screen.findByLabelText('현재 페이지'), { target: { value: '123' } })
+    fireEvent.change(screen.getByLabelText('전체 페이지'), { target: { value: '123' } })
+
+    expect(screen.getByRole('progressbar')).toBeInTheDocument()
+    expect(document.querySelector('.talkhugam-reading-progress-submit')).toHaveClass('mt-6')
   })
 
   it('keeps my completion visible immediately even before a later room refresh', async () => {
@@ -151,6 +207,9 @@ describe('BookChatManagementPage', () => {
     renderBookChatManagementPage()
 
     expect(await screen.findByText('내 완독')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: '내 완독 기록' })).toBeInTheDocument()
+    expect(screen.getByText('별점 3점')).toBeInTheDocument()
+    expect(screen.getByText('친구와 이야기하기 좋은 책이에요.')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: '완독 기록 수정' }))
 
     expect(screen.getByRole('button', { name: '3점' })).toHaveAttribute('aria-pressed', 'true')

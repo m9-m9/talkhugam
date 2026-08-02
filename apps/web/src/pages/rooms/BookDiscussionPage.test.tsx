@@ -19,6 +19,7 @@ const {
   getVideoThumbnailAuthorizations,
   parsePostForm,
   requestManagedRoomInvite,
+  shouldSubmitMessage,
   upsertBookChatCompletion,
   videoUploadState,
 } = vi.hoisted(() => ({
@@ -86,6 +87,7 @@ const {
     },
   ),
   requestManagedRoomInvite: vi.fn().mockResolvedValue(true),
+  shouldSubmitMessage: vi.fn((key: string, shiftKey: boolean) => key === 'Enter' && !shiftKey),
   upsertBookChatCompletion: vi.fn().mockResolvedValue(undefined),
   videoUploadState: { isUploadingVideo: false },
 }))
@@ -96,7 +98,7 @@ vi.mock('../../entities/post', () => ({
   getPosts,
   parsePostForm,
   postKeys: { byBookChat: (bookChatId: string) => ['posts', bookChatId] },
-  shouldSubmitMessage: () => false,
+  shouldSubmitMessage,
 }))
 
 vi.mock('../../entities/book-chat', () => ({
@@ -606,6 +608,21 @@ describe('BookDiscussionPage', () => {
       expect(screen.queryByText('페이지 87')).not.toBeInTheDocument()
       expect(screen.queryByRole('listbox', { name: '멘션할 멤버' })).not.toBeInTheDocument()
     })
+  })
+
+  it('submits one post when Enter is pressed again before the first request finishes', async () => {
+    const postRequest = createDeferredValue<string>()
+    createPost.mockReturnValueOnce(postRequest.promise)
+    renderBookDiscussionPage()
+
+    const messageInput = screen.getByLabelText('메시지 입력')
+    fireEvent.change(messageInput, { target: { value: '한 번만 남겨요.' } })
+    fireEvent.keyDown(messageInput, { key: 'Enter' })
+    fireEvent.keyDown(messageInput, { key: 'Enter' })
+
+    await vi.waitFor(() => expect(createPost).toHaveBeenCalledTimes(1))
+
+    postRequest.resolve('post-1')
   })
 
   it('clears the reply state after a successful reply submission', async () => {

@@ -8,6 +8,7 @@ import {
   bookCompletionKeys,
   getBookChatCompletions,
   upsertBookChatCompletion,
+  type BookChatCompletion,
   type BookCompletionInput,
 } from '../../entities/book-completion'
 import {
@@ -15,7 +16,11 @@ import {
   invalidateCompletionQueries,
   storeBookCompletionInCache,
 } from '../../features/book-completion'
-import { readingProgressKeys, upsertReadingProgress } from '../../entities/reading-progress'
+import {
+  getMyReadingProgresses,
+  readingProgressKeys,
+  upsertReadingProgress,
+} from '../../entities/reading-progress'
 import { useAuthenticatedUser } from '../../features/auth'
 import { trackAnalyticsEvent } from '../../shared/analytics'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
@@ -25,6 +30,17 @@ import { BottomSheet } from '../../shared/ui/BottomSheet'
 import { CompletionMark } from '../../shared/ui/CompletionMark'
 import { BookLoadingIndicator } from '../../shared/ui/LoadingSpinner'
 import { ReadingStatus } from '../../shared/ui/ReadingStatus'
+import {
+  invalidateReadingProgressQueries,
+  storeReadingProgressInCache,
+} from '../../features/reading-progress'
+
+/** 빈 값과 소수점을 제외한 페이지 입력 문자열을 0 이상의 정수로 변환한다. */
+function parseReadingPage(value: string): number | null {
+  if (!/^\d+$/.test(value)) return null
+  const parsed = Number(value)
+  return Number.isSafeInteger(parsed) ? parsed : null
+}
 
 /** 책 대화방의 개인 완독 기록과 삭제 요청을 관리하는 화면을 렌더링한다. */
 export function BookChatManagementPage() {
@@ -47,6 +63,10 @@ export function BookChatManagementPage() {
     queryFn: () => getBookChatCompletions(client, bookChatId ?? '', profileId),
     queryKey: bookCompletionKeys.byChat(bookChatId ?? ''),
   })
+  const readingProgressesQuery = useQuery({
+    queryFn: () => getMyReadingProgresses(client, profileId),
+    queryKey: readingProgressKeys.byProfile(profileId),
+  })
   const completionMutation = useMutation({
     mutationFn: (input: BookCompletionInput) => upsertBookChatCompletion(client, input),
     onSuccess: (_result, input) => {
@@ -67,10 +87,13 @@ export function BookChatManagementPage() {
   const readingProgressMutation = useMutation({
     mutationFn: ({ currentPage, totalPages }: { currentPage: number; totalPages: number }) =>
       upsertReadingProgress(client, { bookChatId: bookChatId ?? '', currentPage, totalPages }),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: readingProgressKeys.byProfile(profileId),
+    onSuccess: (_result, input) => {
+      storeReadingProgressInCache(queryClient, {
+        ...input,
+        bookChatId: bookChatId ?? '',
+        profileId,
       })
+      invalidateReadingProgressQueries(queryClient, profileId)
     },
   })
 
@@ -78,7 +101,17 @@ export function BookChatManagementPage() {
   if (bookChatQuery.isError || bookChatQuery.data === null)
     return <BookChatManagementUnavailablePage onBack={() => void navigate(`/rooms/${roomId}`)} />
   const chat = bookChatQuery.data
+  const existingReadingProgress = readingProgressesQuery.data?.find(
+    (progress) => progress.bookChatId === bookChatId,
+  )
   const ownCompletion = completionsQuery.data?.find((completion) => completion.isMe)
+  const parsedCurrentPage = parseReadingPage(currentPage)
+  const parsedTotalPages = parseReadingPage(totalPages)
+  const hasReadingProgress =
+    parsedCurrentPage !== null &&
+    parsedTotalPages !== null &&
+    parsedTotalPages > 0 &&
+    parsedCurrentPage <= parsedTotalPages
 
   /** 완독 기록 작성 팝업을 열어 별점과 총평을 먼저 입력받는다. */
   function handleOpenCompletionEditor() {
@@ -112,9 +145,7 @@ export function BookChatManagementPage() {
 
   /** 입력한 현재·전체 페이지를 검증 가능한 숫자로 바꿔 개인 진행률로 저장한다. */
   function handleSaveReadingProgress() {
-    const parsedCurrentPage = Number(currentPage)
-    const parsedTotalPages = Number(totalPages)
-    if (!Number.isInteger(parsedCurrentPage) || !Number.isInteger(parsedTotalPages)) return
+    if (parsedCurrentPage === null || parsedTotalPages === null || !hasReadingProgress) return
     readingProgressMutation.mutate({ currentPage: parsedCurrentPage, totalPages: parsedTotalPages })
   }
 
@@ -146,55 +177,72 @@ export function BookChatManagementPage() {
         </div>
         {ownCompletion ? <CompletionMark label="내 완독" /> : null}
       </section>
+      {ownCompletion ? (
+        <CompletionSummary completion={ownCompletion} onEdit={handleOpenCompletionEditor} />
+      ) : null}
       <section className="mt-8" aria-labelledby="reading-progress-heading">
         <h2 className="text-ink text-base font-bold" id="reading-progress-heading">
           내 읽기 진행률
         </h2>
-        <div className="talkhugam-information-surface mt-4 rounded-lg border border-ink/10 bg-white p-4">
-          <div className="grid grid-cols-2 gap-3">
-            <label className="text-ink text-sm font-medium" htmlFor="reading-current-page">
+        <div className="talkhugam-information-surface border-ink/10 mt-4 rounded-lg border bg-white p-4">
+          <div className="talkhugam-reading-progress-fields grid grid-cols-2 gap-3">
+            <label
+              className="text-ink min-w-0 text-sm font-medium whitespace-nowrap"
+              htmlFor="reading-current-page"
+            >
               현재 페이지
-              <TextField.Root className="talkhugam-information-field mt-2">
+              <TextField.Root className="talkhugam-information-field mt-2 w-full">
                 <TextField.Input
                   aria-label="현재 페이지"
+                  autoComplete="off"
                   id="reading-current-page"
                   inputMode="numeric"
-                  min="0"
                   onChange={handleChangeCurrentPage}
-                  type="number"
+                  placeholder={String(existingReadingProgress?.currentPage ?? '')}
+                  pattern="[0-9]*"
+                  type="text"
                   value={currentPage}
                 />
               </TextField.Root>
             </label>
-            <label className="text-ink text-sm font-medium" htmlFor="reading-total-pages">
+            <label
+              className="text-ink min-w-0 text-sm font-medium whitespace-nowrap"
+              htmlFor="reading-total-pages"
+            >
               전체 페이지
-              <TextField.Root className="talkhugam-information-field mt-2">
+              <TextField.Root className="talkhugam-information-field mt-2 w-full">
                 <TextField.Input
                   aria-label="전체 페이지"
+                  autoComplete="off"
                   id="reading-total-pages"
                   inputMode="numeric"
-                  min="1"
                   onChange={handleChangeTotalPages}
-                  type="number"
+                  placeholder={String(existingReadingProgress?.totalPages ?? '')}
+                  pattern="[0-9]*"
+                  type="text"
                   value={totalPages}
                 />
               </TextField.Root>
             </label>
           </div>
-          {Number.isInteger(Number(currentPage)) && Number.isInteger(Number(totalPages)) && Number(totalPages) > 0 ? (
-            <ReadingStatus currentPage={Number(currentPage)} totalPages={Number(totalPages)} />
+          {hasReadingProgress ? (
+            <div className="mt-4">
+              <ReadingStatus currentPage={Number(currentPage)} totalPages={Number(totalPages)} />
+            </div>
           ) : null}
-          <ActionButton
-            className="talkhugam-primary-action mt-4 w-full"
-            disabled={readingProgressMutation.isPending}
-            loading={readingProgressMutation.isPending}
-            onClick={handleSaveReadingProgress}
-            size="large"
-            type="button"
-            variant="brandSolid"
-          >
-            진행률 저장
-          </ActionButton>
+          <div className="talkhugam-reading-progress-submit mt-6">
+            <ActionButton
+              className="talkhugam-primary-action w-full"
+              disabled={!hasReadingProgress || readingProgressMutation.isPending}
+              loading={readingProgressMutation.isPending}
+              onClick={handleSaveReadingProgress}
+              size="large"
+              type="button"
+              variant="brandSolid"
+            >
+              진행률 저장
+            </ActionButton>
+          </div>
           {readingProgressMutation.isError ? (
             <p className="mt-3 text-sm text-red-600" role="alert">
               진행률을 저장하지 못했어요. 현재 페이지와 전체 페이지를 확인해 주세요.
@@ -207,27 +255,29 @@ export function BookChatManagementPage() {
           채팅방 관리
         </h2>
         <div className="mt-4 space-y-3">
-          <ActionButton
-            className="w-full justify-start"
-            disabled={completionMutation.isPending}
-            onClick={handleOpenCompletionEditor}
-            size="large"
-            type="button"
-            variant="neutralOutline"
-          >
-            {ownCompletion ? '완독 기록 수정' : '완독 기록 남기기'}
-          </ActionButton>
+          {!ownCompletion ? (
+            <ActionButton
+              className="w-full justify-start"
+              disabled={completionMutation.isPending}
+              onClick={handleOpenCompletionEditor}
+              size="large"
+              type="button"
+              variant="neutralOutline"
+            >
+              완독 기록 남기기
+            </ActionButton>
+          ) : null}
           <div className="pt-4">
-          <ActionButton
-            className="text-danger w-full justify-start"
-            disabled={deletionMutation.isPending}
-            onClick={handleOpenDeleteDialog}
-            size="large"
-            type="button"
-            variant="neutralOutline"
-          >
-            삭제 요청
-          </ActionButton>
+            <ActionButton
+              className="text-danger w-full justify-start"
+              disabled={deletionMutation.isPending}
+              onClick={handleOpenDeleteDialog}
+              size="large"
+              type="button"
+              variant="neutralOutline"
+            >
+              삭제 요청
+            </ActionButton>
           </div>
         </div>
       </section>
@@ -259,6 +309,42 @@ export function BookChatManagementPage() {
         </BottomSheet>
       ) : null}
     </main>
+  )
+}
+
+/** 저장된 내 완독 별점과 총평을 확인하고 수정 화면으로 이동하는 영역을 렌더링한다. */
+function CompletionSummary({
+  completion,
+  onEdit,
+}: {
+  completion: BookChatCompletion
+  onEdit: () => void
+}) {
+  const ratingLabel = completion.rating ? `별점 ${completion.rating}점` : '별점 없음'
+  const reviewLabel = completion.review || '남긴 총평이 없어요.'
+
+  return (
+    <section className="mt-8" aria-labelledby="completion-summary-heading">
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-ink text-base font-bold" id="completion-summary-heading">
+          내 완독 기록
+        </h2>
+        <CompletionMark label="완독" />
+      </div>
+      <div className="talkhugam-information-surface border-ink/10 mt-4 rounded-lg border bg-white p-4">
+        <p className="text-primary text-sm font-semibold">{ratingLabel}</p>
+        <p className="text-ink mt-3 text-sm leading-6 whitespace-pre-wrap">{reviewLabel}</p>
+        <ActionButton
+          className="mt-6 w-full"
+          onClick={onEdit}
+          size="medium"
+          type="button"
+          variant="neutralOutline"
+        >
+          완독 기록 수정
+        </ActionButton>
+      </div>
+    </section>
   )
 }
 

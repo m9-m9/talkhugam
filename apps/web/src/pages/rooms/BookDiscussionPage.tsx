@@ -90,6 +90,7 @@ export function BookDiscussionPage() {
   const [inviteRequestMessage, setInviteRequestMessage] = useState<string | null>(null)
   const [inviteShareError, setInviteShareError] = useState<string | null>(null)
   const [isInviteShareSheetOpen, setIsInviteShareSheetOpen] = useState(false)
+  const isSubmittingPostRef = useRef(false)
   const completionTriggerRef = useRef<HTMLButtonElement>(null)
   const inviteShareTriggerRef = useRef<HTMLButtonElement>(null)
   const {
@@ -185,6 +186,8 @@ export function BookDiscussionPage() {
 
   /** 제출 요청이나 사용자 동작을 처리한다. */
   async function handleSubmit() {
+    if (isSubmittingPostRef.current) return
+
     const parsed = postInput(draft, labels, mentionedMemberIds)
     if (!parsed.ok || !bookChatId) {
       setErrorMessage('독후감이나 라벨을 하나 이상 남겨 주세요.')
@@ -195,6 +198,7 @@ export function BookDiscussionPage() {
       return
     }
     setErrorMessage(null)
+    isSubmittingPostRef.current = true
     try {
       if (replyTo) await createReply(createSupabaseClient(), replyTo, parsed.value)
       else await createPost(createSupabaseClient(), bookChatId, parsed.value)
@@ -207,6 +211,8 @@ export function BookDiscussionPage() {
       await queryClient.invalidateQueries({ queryKey: readingRoomKeys.all })
     } catch {
       setErrorMessage('독후감을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.')
+    } finally {
+      isSubmittingPostRef.current = false
     }
   }
 
