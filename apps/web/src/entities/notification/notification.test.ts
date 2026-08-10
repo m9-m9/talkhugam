@@ -39,7 +39,7 @@ describe('알림 도메인 변환', () => {
       ]),
     ).toMatchObject([
       {
-        message: '수진님이 새 영상 기록을 남겼어요.',
+        message: '수진님이 새 책갈피를 남겼어요.',
         targetPath: `/rooms/${ids.room}/books/${ids.bookChat}`,
         type: 'video',
       },

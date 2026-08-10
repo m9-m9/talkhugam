@@ -134,7 +134,7 @@ function createNotificationMessage(
     invite_request: `${actor}님이 책방 초대를 요청했어요.`,
     mention: `${actor}님이 회원님을 멘션했어요.`,
     post: `${actor}님이 새 독후감을 남겼어요.`,
-    video: `${actor}님이 새 영상 기록을 남겼어요.`,
+    video: `${actor}님이 새 책갈피를 남겼어요.`,
     completion: `${actor}님이 완독 기록을 남겼어요.`,
     ownership_transfer: `${actor}님이 회원님에게 방장을 넘겼어요.`,
     removed: `${actor}님이 회원님을 책방에서 내보냈어요.`,

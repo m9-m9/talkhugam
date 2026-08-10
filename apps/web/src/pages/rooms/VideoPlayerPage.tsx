@@ -68,7 +68,7 @@ export function VideoPlayerPage() {
     )
   }
 
-  /** 삭제된 영상 목록 캐시를 무효화한 뒤 사용자를 해당 영상 기록 화면으로 이동시킨다. */
+  /** 삭제된 영상 목록 캐시를 무효화한 뒤 사용자를 책갈피 목록 화면으로 이동시킨다. */
   async function handleVideoDeleteSuccess() {
     await queryClient.invalidateQueries({ queryKey: videoKeys.byBookChat(bookChatId ?? '') })
     void navigate(archivePath, { replace: true })
@@ -122,7 +122,7 @@ export function VideoPlayerPage() {
     setHasPlaybackMediaError(true)
   }
 
-  /** 영상 기록 화면으로 돌아가도록 라우트를 교체한다. */
+  /** 책갈피 목록 화면으로 돌아가도록 라우트를 교체한다. */
   function handleReturnToArchive() {
     void navigate(archivePath, { replace: true })
   }
@@ -158,7 +158,7 @@ export function VideoPlayerPage() {
       <main className="app-page bg-ink flex min-h-dvh flex-col px-0">
         <header className="flex min-h-16 shrink-0 items-center border-b border-white/15 px-4 text-white">
           <ActionButton
-            aria-label="영상 기록으로 돌아가기"
+            aria-label="책갈피로 돌아가기"
             className="-ml-3 min-h-11 min-w-11 rounded-full text-white"
             onClick={handleReturnToArchive}
             size="medium"
@@ -267,7 +267,7 @@ function PlaybackMediaErrorState({
   )
 }
 
-/** 영상 기록으로 돌아가는 제어를 위한 왼쪽 화살표 SVG 요소를 반환한다. */
+/** 책갈피 목록으로 돌아가는 제어를 위한 왼쪽 화살표 SVG 요소를 반환한다. */
 function BackIcon() {
   return (
     <svg aria-hidden="true" className="size-6" fill="none" viewBox="0 0 24 24">
@@ -276,7 +276,7 @@ function BackIcon() {
   )
 }
 
-/** 존재하지 않거나 아직 재생할 수 없는 영상을 안내하고 보관함 복귀 제어를 렌더링한다. */
+/** 존재하지 않거나 아직 재생할 수 없는 영상을 안내하고 책갈피 복귀 제어를 렌더링한다. */
 function VideoUnavailableState({ message, onReturn }: { message: string; onReturn: () => void }) {
   return (
     <div className="flex flex-col items-center gap-4 px-6 text-center">
@@ -290,13 +290,13 @@ function VideoUnavailableState({ message, onReturn }: { message: string; onRetur
         type="button"
         variant="neutralOutline"
       >
-        영상 기록으로 가기
+        책갈피로 가기
       </ActionButton>
     </div>
   )
 }
 
-/** 영상 게시물 조회 오류의 재시도·보관함 복귀 흐름과 진행 중 상태를 렌더링한다. */
+/** 영상 게시물 조회 오류의 재시도·책갈피 복귀 흐름과 진행 중 상태를 렌더링한다. */
 function VideoLookupErrorState({
   isRetrying,
   onRetry,
@@ -317,7 +317,7 @@ function VideoLookupErrorState({
   )
 }
 
-/** Mux 재생 권한 조회 오류의 재시도·보관함 복귀 흐름과 진행 중 상태를 렌더링한다. */
+/** Mux 재생 권한 조회 오류의 재시도·책갈피 복귀 흐름과 진행 중 상태를 렌더링한다. */
 function PlaybackLookupErrorState({
   isRetrying,
   onRetry,
@@ -383,7 +383,7 @@ function PlayerLookupErrorState({
         type="button"
         variant="ghost"
       >
-        영상 기록으로 가기
+        책갈피로 가기
       </ActionButton>
     </div>
   )

@@ -22,12 +22,12 @@ export function RoomVideoArchivePage() {
 
   return (
     <main className="app-page bg-surface px-4 pb-8">
-      <AppHeader onBack={() => void navigate(`/rooms/${roomId}`)} title="전체 영상 기록" />
+      <AppHeader onBack={() => void navigate(`/rooms/${roomId}`)} title="전체 책갈피" />
       <header className="mt-8">
-        <p className="text-primary text-sm font-medium">함께 남긴 순간</p>
-        <h1 className="text-ink mt-2 text-xl font-bold">책방 전체 영상 기록</h1>
+        <p className="text-primary text-sm font-medium">함께 남긴 문장</p>
+        <h1 className="text-ink mt-2 text-xl font-bold">책방 전체 책갈피</h1>
         <p className="text-ink-subtle mt-2 text-sm">
-          읽었던 모든 책의 영상을 한곳에서 볼 수 있어요.
+          읽었던 모든 책의 문장과 영상을 한곳에서 볼 수 있어요.
         </p>
       </header>
       {videosQuery.isPending ? (
@@ -37,12 +37,12 @@ export function RoomVideoArchivePage() {
       ) : videosQuery.isError ? (
         <div className="mt-8">
           <RetryState
-            message="영상 기록을 불러오지 못했어요."
+            message="책갈피를 불러오지 못했어요."
             onRetry={() => void videosQuery.refetch()}
           />
         </div>
       ) : videosQuery.data?.length ? (
-        <ul className="mt-6 space-y-3" aria-label="책방 전체 영상 기록">
+        <ul className="mt-6 space-y-3" aria-label="책방 전체 책갈피">
           {videosQuery.data.map((video) => (
             <li key={video.id}>
               <ActionButton
@@ -57,7 +57,7 @@ export function RoomVideoArchivePage() {
                 <span className="min-w-0">
                   <span className="text-primary block text-xs font-medium">{video.bookTitle}</span>
                   <span className="text-ink mt-1 block text-sm font-semibold">
-                    {video.authorName}님의 영상
+                    {video.authorName}님의 책갈피
                   </span>
                   <span className="text-ink-subtle mt-1 block text-xs">
                     {new Date(video.createdAt).toLocaleDateString('ko-KR')}
@@ -69,9 +69,9 @@ export function RoomVideoArchivePage() {
         </ul>
       ) : (
         <div className="talkhugam-information-surface border-ink/10 mt-8 rounded-lg border p-6 text-center">
-          <p className="text-ink font-medium">아직 함께 남긴 영상이 없어요</p>
+          <p className="text-ink font-medium">아직 함께 남긴 책갈피가 없어요</p>
           <p className="text-ink-subtle mt-2 text-sm">
-            책 대화의 영상 기록에서 첫 순간을 남겨 보세요.
+            책 대화의 책갈피에서 마음에 든 문장을 남겨 보세요.
           </p>
         </div>
       )}

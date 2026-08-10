@@ -10,8 +10,8 @@ select is(
     where pg_namespace.nspname = 'public'
       and pg_class.relkind = 'r'
   ),
-  19::bigint,
-  'the backend should expose exactly nineteen public tables'
+  20::bigint,
+  'the backend should expose exactly twenty public tables'
 );
 select is(
   (
@@ -128,6 +128,7 @@ select is(
         ('posts'),
         ('post_labels'),
         ('post_mentions'),
+        ('post_reactions'),
         ('notifications'),
         ('video_assets'),
         ('user_legal_consents')

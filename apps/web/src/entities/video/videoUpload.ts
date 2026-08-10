@@ -127,9 +127,17 @@ export const videoKeys = {
 export async function createVideoUpload(
   client: SupabaseClient,
   bookChatId: string,
+  caption?: string,
 ): Promise<{ postId: string; uploadUrl: string }> {
+  const trimmedCaption = caption?.trim()
   const response = await client.functions.invoke('mux-create-upload', {
-    body: { bookChatId, clientId: crypto.randomUUID(), labels: [], mentionedMemberIds: [] },
+    body: {
+      bookChatId,
+      caption: trimmedCaption && trimmedCaption.length > 0 ? trimmedCaption : undefined,
+      clientId: crypto.randomUUID(),
+      labels: [],
+      mentionedMemberIds: [],
+    },
   })
   if (response.error) throw response.error
   return uploadResponseSchema.parse(response.data).data

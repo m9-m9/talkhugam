@@ -96,7 +96,7 @@ export function RoomDetailPage() {
       <section className="mt-12" aria-labelledby="room-videos-heading">
         <div className="flex items-center justify-between gap-4">
           <h2 className="text-ink text-base font-bold" id="room-videos-heading">
-            함께 남긴 영상
+            함께 남긴 책갈피
           </h2>
           <ActionButton
             className="text-primary"
@@ -105,11 +105,11 @@ export function RoomDetailPage() {
             type="button"
             variant="ghost"
           >
-            전체 영상 기록
+            전체 책갈피
           </ActionButton>
         </div>
         <p className="text-ink-subtle mt-2 text-sm">
-          읽었던 책의 영상 기록을 한곳에서 볼 수 있어요.
+          읽었던 책의 문장과 영상을 한곳에서 볼 수 있어요.
         </p>
       </section>
     </main>

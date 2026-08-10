@@ -3,6 +3,75 @@ import AxeBuilder from '@axe-core/playwright'
 
 const roomId = '89544530-dd36-422b-aaff-b6a70180f521'
 const bookChatId = '00000000-0000-4000-8000-000000000002'
+const emojiBaseDataFixture = [
+  { emoji: '😀', group: 0, label: '웃는 얼굴', subgroup: 0, tags: ['smile'], version: 0 },
+  { emoji: '😃', group: 0, label: '큰 눈 웃는 얼굴', subgroup: 0, tags: ['smile'], version: 0 },
+  { emoji: '😄', group: 0, label: '눈웃음 얼굴', subgroup: 0, tags: ['smile'], version: 0 },
+  { emoji: '😁', group: 0, label: '활짝 웃는 얼굴', subgroup: 0, tags: ['smile'], version: 0 },
+  { emoji: '😆', group: 0, label: '눈 감고 웃는 얼굴', subgroup: 0, tags: ['smile'], version: 0 },
+  { emoji: '❤️', group: 0, label: '빨간 하트', subgroup: 0, tags: ['heart'], version: 0 },
+  { emoji: '👍', group: 1, label: '엄지척', subgroup: 1, tags: ['thumb'], version: 0 },
+  { emoji: '👏', group: 1, label: '박수', subgroup: 1, tags: ['clap'], version: 0 },
+  { emoji: '👋', group: 1, label: '손 흔들기', subgroup: 1, tags: ['wave'], version: 0 },
+  { emoji: '🙌', group: 1, label: '만세', subgroup: 1, tags: ['hooray'], version: 0 },
+  { emoji: '🐵', group: 2, label: '원숭이 얼굴', subgroup: 2, tags: ['animal'], version: 0 },
+  { emoji: '🐶', group: 2, label: '강아지 얼굴', subgroup: 2, tags: ['animal'], version: 0 },
+  { emoji: '🍇', group: 3, label: '포도', subgroup: 3, tags: ['food'], version: 0 },
+  { emoji: '🍎', group: 3, label: '사과', subgroup: 3, tags: ['food'], version: 0 },
+  { emoji: '🌐', group: 4, label: '자오선이 있는 지구', subgroup: 4, tags: ['travel'], version: 0 },
+  { emoji: '🌍', group: 4, label: '지구', subgroup: 4, tags: ['travel'], version: 0 },
+  { emoji: '🗺️', group: 4, label: '지도', subgroup: 4, tags: ['map'], version: 0 },
+  { emoji: '🔥', group: 4, label: '불꽃', subgroup: 4, tags: ['fire'], version: 0 },
+  { emoji: '🌊', group: 4, label: '파도', subgroup: 4, tags: ['wave'], version: 0 },
+  { emoji: '🎃', group: 5, label: '호박', subgroup: 5, tags: ['activity'], version: 0 },
+  { emoji: '🎉', group: 5, label: '축하', subgroup: 5, tags: ['party'], version: 0 },
+  { emoji: '👓', group: 6, label: '안경', subgroup: 6, tags: ['object'], version: 0 },
+  { emoji: '💯', group: 6, label: '백점', subgroup: 6, tags: ['hundred'], version: 0 },
+  { emoji: '🏧', group: 7, label: 'ATM', subgroup: 7, tags: ['symbol'], version: 0 },
+  { emoji: '🚮', group: 7, label: '쓰레기통', subgroup: 7, tags: ['symbol'], version: 0 },
+  { emoji: '🔣', group: 7, label: '기호', subgroup: 7, tags: ['symbol'], version: 0 },
+  { emoji: '✨', group: 7, label: '반짝임', subgroup: 7, tags: ['sparkle'], version: 0 },
+  { emoji: '🏁', group: 8, label: '깃발', subgroup: 8, tags: ['flag'], version: 0 },
+  { emoji: '🚩', group: 8, label: '삼각 깃발', subgroup: 8, tags: ['flag'], version: 0 },
+  { emoji: '😊', group: 0, label: '미소 짓는 얼굴', subgroup: 0, tags: ['smile'], version: 0 },
+  { emoji: '😮', group: 0, label: '놀란 얼굴', subgroup: 0, tags: ['wow'], version: 0 },
+  { emoji: '😂', group: 0, label: '웃겨요', subgroup: 0, tags: ['laugh'], version: 0 },
+  { emoji: '😍', group: 0, label: '좋아해요', subgroup: 0, tags: ['love'], version: 0 },
+  { emoji: '😭', group: 0, label: '울어요', subgroup: 0, tags: ['cry'], version: 0 },
+  { emoji: '🤔', group: 0, label: '생각해요', subgroup: 0, tags: ['think'], version: 0 },
+  { emoji: '👀', group: 0, label: '눈', subgroup: 0, tags: ['eyes'], version: 0 },
+]
+const emojiBaseMessagesFixture = {
+  groups: [
+    { key: 'smileys-emotion', message: '스마일리 및 감정', order: 0 },
+    { key: 'people-body', message: '사람 및 몸', order: 1 },
+    { key: 'animals-nature', message: '동물 및 자연', order: 2 },
+    { key: 'food-drink', message: '음식 및 음료', order: 3 },
+    { key: 'travel-places', message: '여행 및 장소', order: 4 },
+    { key: 'activities', message: '활동', order: 5 },
+    { key: 'objects', message: '사물', order: 6 },
+    { key: 'symbols', message: '기호', order: 7 },
+    { key: 'flags', message: '깃발', order: 8 },
+  ],
+  skinTones: [
+    { key: 'light', message: '밝은 피부톤' },
+    { key: 'medium-light', message: '중간 밝은 피부톤' },
+    { key: 'medium', message: '중간 피부톤' },
+    { key: 'medium-dark', message: '중간 어두운 피부톤' },
+    { key: 'dark', message: '어두운 피부톤' },
+  ],
+  subgroups: [
+    { key: 'face-smiling', message: '얼굴', order: 0 },
+    { key: 'hand-fingers-open', message: '손', order: 1 },
+    { key: 'animal-mammal', message: '동물', order: 2 },
+    { key: 'food-fruit', message: '음식', order: 3 },
+    { key: 'place-map', message: '장소', order: 4 },
+    { key: 'event', message: '행사', order: 5 },
+    { key: 'clothing', message: '물건', order: 6 },
+    { key: 'alphanum', message: '기호', order: 7 },
+    { key: 'flag', message: '깃발', order: 8 },
+  ],
+}
 
 test('keeps the app canvas within the supported viewport', async ({ page }, testInfo) => {
   await page.goto('/')
@@ -514,9 +583,7 @@ test('renders room detail command controls with SEED components', async ({ page 
   await page.screenshot({
     path: `artifacts/seed-comparison/14-room-detail-after-${testInfo.project.name}.png`,
   })
-  await expect(page.getByRole('button', { name: '전체 영상 기록' })).toHaveClass(
-    /seed-action-button/,
-  )
+  await expect(page.getByRole('button', { name: '전체 책갈피' })).toHaveClass(/seed-action-button/)
 })
 
 test('renders book-chat management deletion controls with SEED components', async ({
@@ -740,6 +807,7 @@ test('keeps the chat input readable and aligns my discussion records to the righ
 }, testInfo) => {
   const currentMemberId = '8fc963a4-da01-4696-995c-755fe145776f'
   await authenticatePage(page)
+  await mockEmojiPickerData(page)
   await mockVideoMembers(page, [
     createVideoMember(currentMemberId, '민규', true),
     createVideoMember('b21f0060-cd1d-40db-a6ae-fd2eb3e9f862', '수진'),
@@ -797,11 +865,183 @@ test('keeps the chat input readable and aligns my discussion records to the righ
   await expect(page.getByText('저도 좋아요.').locator('xpath=ancestor::li[1]')).toHaveClass(
     /justify-start/,
   )
+  await page.getByRole('tab', { name: '책갈피' }).click()
   await expect(
-    page
-      .getByText('영상 처리를 완료하지 못했어요. 잠시 후 다시 시도해 주세요.')
-      .locator('xpath=ancestor::li[1]'),
-  ).toHaveClass(/justify-end/)
+    page.getByText('영상 처리를 완료하지 못했어요. 잠시 후 다시 시도해 주세요.'),
+  ).toBeVisible()
+  await expectPageToFitViewport(page, testInfo.project.use.viewport?.width ?? 640)
+})
+
+test('opens compact book-chat reply and reaction controls from a message', async ({
+  page,
+}, testInfo) => {
+  const currentMemberId = '8fc963a4-da01-4696-995c-755fe145776f'
+  const postId = '4b7227b2-5350-4a61-9114-b2d0c915fd1b'
+  const reactions = [
+    {
+      created_at: '2026-07-18T00:00:30.000+00:00',
+      emoji: '❤️',
+      member_id: currentMemberId,
+      post_id: postId,
+    },
+  ]
+  let replyRequestCount = 0
+
+  await authenticatePage(page)
+  await mockEmojiPickerData(page)
+  await mockVideoMembers(page, [
+    createVideoMember(currentMemberId, '민규', true),
+    createVideoMember('b21f0060-cd1d-40db-a6ae-fd2eb3e9f862', '서연'),
+  ])
+  await page.route('**/rest/v1/posts?*', async (route) => {
+    const type = new URL(route.request().url()).searchParams.get('type')
+    const posts =
+      type === 'eq.video'
+        ? []
+        : [
+            {
+              author_member_id: 'b21f0060-cd1d-40db-a6ae-fd2eb3e9f862',
+              author_name_snapshot: '서연',
+              body: '아침은 이미 잔뜩 먹었고 커피도 마셨어요.',
+              created_at: '2026-07-18T00:00:00.000+00:00',
+              depth: 0,
+              id: postId,
+              post_labels: [],
+              root_post_id: null,
+            },
+            {
+              author_member_id: currentMemberId,
+              author_name_snapshot: '민규',
+              body: 'ㅋㅋ',
+              created_at: '2026-07-18T00:00:30.000+00:00',
+              depth: 1,
+              id: 'f17c0d6d-3e6e-4b7f-a1f1-5d652aa2a85e',
+              post_labels: [],
+              root_post_id: postId,
+            },
+          ]
+    await route.fulfill({
+      body: JSON.stringify(posts),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+  await page.route('**/rest/v1/post_reactions?*', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify(reactions),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+  await page.route('**/rest/v1/rpc/toggle_post_reaction', async (route) => {
+    const request = route.request().postDataJSON() as { p_emoji: string; p_post_id: string }
+    reactions.push({
+      created_at: '2026-07-18T00:01:00.000+00:00',
+      emoji: request.p_emoji,
+      member_id: currentMemberId,
+      post_id: request.p_post_id,
+    })
+    await route.fulfill({ body: 'null', contentType: 'application/json', status: 200 })
+  })
+  await page.route('**/rest/v1/rpc/create_reply', async (route) => {
+    replyRequestCount += 1
+    await route.fulfill({
+      body: JSON.stringify('f17c0d6d-3e6e-4b7f-a1f1-5d652aa2a85e'),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+  await page.goto(`/rooms/${roomId}/books/${bookChatId}`)
+
+  const rootMessage = page.getByText('아침은 이미 잔뜩 먹었고 커피도 마셨어요.')
+  await rootMessage.hover()
+  await expect(page.getByRole('button', { name: '서연에게 답글' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '❤️ 반응 1개, 내가 남김' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '이모지 반응 열기' })).toBeVisible()
+  const rootMessageBox = await page.getByLabel('서연의 메시지').boundingBox()
+  const quickActionBox = await page.getByLabel('메시지 빠른 액션').boundingBox()
+  if (!rootMessageBox || !quickActionBox) {
+    throw new Error('메시지 말풍선과 빠른 액션의 위치를 확인할 수 없어요.')
+  }
+  expect(Math.round(quickActionBox.x)).toBeGreaterThanOrEqual(Math.round(rootMessageBox.x))
+  await expect(page.getByRole('button', { name: '👍 반응 남기기' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '👎 반응 남기기' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '😢 반응 남기기' })).toBeVisible()
+  const quickEmojiBox = await page.getByRole('button', { name: '👍 반응 남기기' }).boundingBox()
+  if (!quickEmojiBox) throw new Error('빠른 이모지 버튼 크기를 확인할 수 없어요.')
+  expect(Math.round(quickEmojiBox.width)).toBe(44)
+  expect(Math.round(quickEmojiBox.height)).toBe(44)
+  await page.getByRole('button', { name: '이모지 반응 열기' }).click()
+  const reactionPackage = page.getByRole('group', { name: 'Talk후감 이모티콘 패키지' })
+  await expect(reactionPackage).toBeVisible()
+  await expect(page.getByRole('searchbox', { name: '이모지 검색' })).toBeVisible()
+  const categoryTabs = page.getByRole('tablist', { name: '이모지 카테고리' })
+  await expect(categoryTabs).toBeVisible()
+  await expect(page.getByRole('tab', { name: '스마일리 및 감정' })).toHaveText('😀')
+  await expect(page.getByRole('tab', { name: '여행 및 장소' })).toHaveText('🌐')
+  await expect(page.getByRole('tab', { name: '활동' })).toHaveText('🎃')
+  await expect(page.getByRole('tab', { name: '기호' })).toHaveText('🏧')
+  await expect(page.getByRole('tab', { name: '깃발' })).toHaveText('🏁')
+  await expect(page.getByRole('tab', { name: '스마일리 및 감정' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  )
+  await expect(page.getByText('Category')).toBeHidden()
+  const reactionPackageBox = await reactionPackage.boundingBox()
+  if (!reactionPackageBox) throw new Error('이모티콘 패키지 위치를 확인할 수 없어요.')
+  const viewportWidth = testInfo.project.use.viewport?.width ?? 640
+  expect(Math.round(reactionPackageBox.height)).toBeGreaterThanOrEqual(400)
+  expect(Math.round(reactionPackageBox.y)).toBeGreaterThanOrEqual(0)
+  expect(Math.round(reactionPackageBox.x + reactionPackageBox.width)).toBeLessThanOrEqual(
+    viewportWidth,
+  )
+  expect(await categoryTabs.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(
+    true,
+  )
+  await page.getByRole('tab', { name: '여행 및 장소' }).click()
+  await expect(page.getByRole('tab', { name: '여행 및 장소' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  )
+  await expect(page.getByRole('gridcell', { name: '🌐 반응 남기기' })).toBeVisible()
+  await page.getByRole('tab', { name: '스마일리 및 감정' }).click()
+  await expect(page.getByRole('gridcell', { name: '😀 반응 남기기' })).toBeVisible()
+  await categoryTabs.evaluate((element) => {
+    element.scrollLeft = element.scrollWidth
+  })
+  await expect.poll(() => categoryTabs.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0)
+  await categoryTabs.evaluate((element) => {
+    element.scrollLeft = 0
+  })
+  await page.screenshot({
+    path: `artifacts/seed-comparison/22-book-chat-reaction-picker-open-${testInfo.project.name}.png`,
+  })
+  await page.getByRole('gridcell', { name: '😀 반응 남기기' }).click()
+  await expect(page.getByRole('button', { name: '😀 반응 1개, 내가 남김' })).toBeVisible()
+  await rootMessage.hover()
+  await page.getByRole('button', { name: '이모지 반응 열기' }).click()
+  await page.getByRole('searchbox', { name: '이모지 검색' }).fill('불꽃')
+  await expect(page.getByRole('gridcell', { name: '🔥 반응 남기기' })).toBeVisible()
+  await page.getByRole('gridcell', { name: '🔥 반응 남기기' }).click()
+  await expect(page.getByRole('button', { name: '🔥 반응 1개, 내가 남김' })).toBeVisible()
+  await rootMessage.hover()
+  await page.getByRole('button', { name: '서연에게 답글' }).click()
+
+  await expect(page.getByText('서연에게 답글')).toBeVisible()
+  await expect(page.getByRole('textbox', { name: '메시지 입력' })).toHaveAttribute(
+    'placeholder',
+    '답글을 입력하세요.',
+  )
+  await page.getByRole('textbox', { name: '메시지 입력' }).fill('저도 그 문장 좋았어요.')
+  await page.keyboard.press('Enter')
+  await page.keyboard.press('Enter')
+  await expect.poll(() => replyRequestCount).toBe(1)
+  const shortReplyBox = await page.getByText('ㅋㅋ').locator('xpath=ancestor::div[1]').boundingBox()
+  if (!shortReplyBox) throw new Error('짧은 답글 말풍선의 크기를 확인할 수 없어요.')
+  expect(Math.round(shortReplyBox.width)).toBeGreaterThanOrEqual(144)
+  await page.screenshot({
+    path: `artifacts/seed-comparison/22-book-chat-reply-actions-after-${testInfo.project.name}.png`,
+  })
   await expectPageToFitViewport(page, testInfo.project.use.viewport?.width ?? 640)
 })
 
@@ -813,7 +1053,7 @@ test('keeps room invitation controls out of the simplified book-chat plus menu',
 
   await page.getByRole('button', { name: '메시지 추가 메뉴 열기' }).click()
   await expect(page.getByRole('button', { name: '라벨 등록' })).toBeVisible()
-  await expect(page.getByRole('button', { name: '영상 기록' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '영상 기록' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: '초대 요청' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: '책방 초대하기' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: '완독 기록' })).toHaveCount(0)
@@ -887,17 +1127,25 @@ test('resets a dismissed book-chat label editor while keeping the message draft'
   await expect(page.getByRole('textbox', { name: '페이지 번호' })).toBeHidden()
 })
 
-test('opens the current book video archive from the simplified book-chat plus menu', async ({
+test('opens the current book bookmark screen from the bookmark tab CTA', async ({
   page,
-}) => {
+}, testInfo) => {
   await authenticatePage(page)
+  await mockVideoPosts(page, [])
   await page.goto(`/rooms/${roomId}/books/${bookChatId}`)
 
-  await page.getByRole('button', { name: '메시지 추가 메뉴 열기' }).click()
-  await page.getByRole('button', { name: '영상 기록' }).click()
+  await page.getByRole('tab', { name: '책갈피' }).click()
+  await expect(page.getByRole('heading', { name: '함께 읽은 순간' })).toBeVisible()
+  await expect(page.getByText('아직 남긴 책갈피가 없어요.')).toBeVisible()
+  await expect(page.getByText('마음에 든 문장을 짧은 영상으로 남겨 보세요.')).toBeVisible()
+  await expectPageToFitViewport(page, testInfo.project.use.viewport?.width ?? 640)
+  await page.screenshot({
+    path: `artifacts/seed-comparison/5-book-chat-bookmark-tab-after-${testInfo.project.name}.png`,
+  })
+  await page.getByRole('button', { name: '책갈피 남기기' }).click()
 
   await expect(page).toHaveURL(`/rooms/${roomId}/books/${bookChatId}/videos`)
-  await expect(page.getByRole('heading', { name: '함께 남긴 독서 순간' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '책갈피를 어떻게 남길까요?' })).toBeVisible()
 })
 test('selects a member by typing an at-sign in the book-chat composer', async ({ page }) => {
   await authenticatePage(page)
@@ -1094,7 +1342,7 @@ test('keeps personal reading progress after refresh and lets the user complete t
     '다시 읽고 싶은 문장이 많아요.',
   )
 })
-test('keeps a chat video preview square within seventy percent and opens the immersive viewer', async ({
+test('keeps a bookmark video preview rectangular and opens the immersive viewer', async ({
   page,
 }) => {
   const videoId = '4b7227b2-5350-4a61-9114-b2d0c915fd1b'
@@ -1103,18 +1351,20 @@ test('keeps a chat video preview square within seventy percent and opens the imm
   await mockMuxThumbnailTokens(page)
   await mockMuxPlaybackAuthorizationFailure(page)
   await page.goto(`/rooms/${roomId}/books/${bookChatId}`)
+  await page.getByRole('tab', { name: '책갈피' }).click()
 
   const preview = page.getByRole('button', { name: '민규님의 영상 보기' })
   await expect(preview).toBeVisible()
 
   const previewBox = await preview.boundingBox()
-  const timelineRowBox = await preview.locator('xpath=ancestor::li').boundingBox()
+  const bookmarkCardBox = await preview.locator('xpath=ancestor::article[1]').boundingBox()
   expect(previewBox).not.toBeNull()
-  expect(timelineRowBox).not.toBeNull()
-  if (!previewBox || !timelineRowBox) throw new Error('영상 미리보기의 화면 크기를 읽지 못했어요.')
+  expect(bookmarkCardBox).not.toBeNull()
+  if (!previewBox || !bookmarkCardBox) throw new Error('영상 미리보기의 화면 크기를 읽지 못했어요.')
 
-  expect(previewBox.width / timelineRowBox.width).toBeLessThanOrEqual(0.7)
-  expect(Math.abs(previewBox.width - previewBox.height)).toBeLessThanOrEqual(1)
+  expect(previewBox.width / bookmarkCardBox.width).toBeLessThanOrEqual(1)
+  expect(previewBox.width / previewBox.height).toBeGreaterThan(2.8)
+  expect(previewBox.width / previewBox.height).toBeLessThan(3.2)
 
   await preview.click()
 
@@ -1124,112 +1374,70 @@ test('keeps a chat video preview square within seventy percent and opens the imm
   await expect(page.getByRole('navigation', { name: '주요 메뉴' })).toBeHidden()
 })
 
-test('opens the video picker directly from the archive empty state', async ({ page }) => {
+test('opens the upload picker from the bookmark creation screen', async ({ page }, testInfo) => {
   await authenticatePage(page)
   await mockVideoMembers(page)
   await mockVideoPosts(page, [])
   await page.goto(`/rooms/${roomId}/books/${bookChatId}/videos`)
 
+  await expect(page.getByRole('heading', { name: '책갈피를 어떻게 남길까요?' })).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: '촬영해서 남기기 지금 장면을 바로 찍어요' }),
+  ).toHaveClass(/seed-action-button/)
+  await expect(
+    page.getByRole('button', { name: '갤러리에서 올리기 이미 찍은 영상을 붙여요' }),
+  ).toHaveClass(/seed-action-button/)
+  await expect(page.getByRole('button', { name: '책갈피 남기기' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '전체' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '멤버 필터: 모든 멤버' })).toHaveCount(0)
+  await expect(page.getByRole('list', { name: '책갈피' })).toHaveCount(0)
+  await page.getByRole('textbox', { name: '마음에 든 문장' }).fill('다시 펼치고 싶은 문장')
+  await expectPageToFitViewport(page, testInfo.project.use.viewport?.width ?? 640)
+  await page.screenshot({
+    path: `artifacts/seed-comparison/6-bookmark-composer-after-${testInfo.project.name}.png`,
+  })
+
   const fileChooserPromise = page.waitForEvent('filechooser')
-  await page.getByRole('button', { name: '첫 영상 올리기' }).click()
+  await page.getByRole('button', { name: '갤러리에서 올리기 이미 찍은 영상을 붙여요' }).click()
   const fileChooser = await fileChooserPromise
 
   expect(fileChooser.isMultiple()).toBe(false)
-  await expect(page.getByText('채팅창의 + 버튼에서 첫 영상을 남겨 보세요.')).toBeHidden()
 })
 
-test('keeps saved videos in a two-column archive gallery', async ({ page }) => {
-  let thumbnailRequestCount = 0
-  await authenticatePage(page)
-  await mockVideoMembers(page)
-  await mockVideoPosts(page, [
-    createVideoPostRow('4b7227b2-5350-4a61-9114-b2d0c915fd1b', '민규', 'ready'),
-    createVideoPostRow('e45b7500-b6bd-43d6-8438-e5b643c84282', '수진', 'ready'),
-  ])
-  await mockMuxThumbnailTokens(page, () => {
-    thumbnailRequestCount += 1
-  })
-  await page.goto(`/rooms/${roomId}/books/${bookChatId}/videos`)
-
-  const gallery = page.getByRole('list', { name: '영상 기록' })
-  await expect(gallery.getByRole('listitem')).toHaveCount(2)
-  expect(
-    await gallery.evaluate((element) =>
-      window.getComputedStyle(element).gridTemplateColumns.split(' ').filter(Boolean),
-    ),
-  ).toHaveLength(2)
-  await expect.poll(() => thumbnailRequestCount).toBe(1)
-})
-
-test('does not paint an unused grid slot when the video archive has one item', async ({ page }) => {
+test('keeps the bookmark creation screen focused on capture and upload choices', async ({
+  page,
+}, testInfo) => {
   await authenticatePage(page)
   await mockVideoMembers(page)
   await mockVideoPosts(page, [createVideoPostRow('4b7227b2-5350-4a61-9114-b2d0c915fd1b', '민규')])
   await page.goto(`/rooms/${roomId}/books/${bookChatId}/videos`)
 
-  const gallery = page.getByRole('list', { name: '영상 기록' })
-  await expect(gallery.getByRole('listitem')).toHaveCount(1)
-  await expect(gallery).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
-})
-
-test('filters saved videos with the SEED member menu', async ({ page }, testInfo) => {
-  await authenticatePage(page)
-  await mockVideoMembers(page)
-  await mockVideoPosts(page, [
-    createVideoPostRow('4b7227b2-5350-4a61-9114-b2d0c915fd1b', '민규'),
-    {
-      ...createVideoPostRow('e45b7500-b6bd-43d6-8438-e5b643c84282', '수진'),
-      author_member_id: 'b21f0060-cd1d-40db-a6ae-fd2eb3e9f862',
-    },
-  ])
-  await page.goto(`/rooms/${roomId}/books/${bookChatId}/videos`)
-
-  await expect(page.getByRole('button', { name: '전체' })).toHaveCSS(
-    'background-color',
-    'rgb(255, 131, 95)',
-  )
-  await expect(page.getByRole('button', { name: '내 영상' })).toHaveCSS(
-    'background-color',
-    'rgb(255, 255, 255)',
-  )
+  await expect(page.getByRole('heading', { name: '책갈피를 어떻게 남길까요?' })).toBeVisible()
+  await expect(
+    page.getByText('마음에 든 문장을 적고, 촬영하거나 갤러리에서 영상을 붙여요.'),
+  ).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: '촬영해서 남기기 지금 장면을 바로 찍어요' }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: '갤러리에서 올리기 이미 찍은 영상을 붙여요' }),
+  ).toBeVisible()
+  await expect(page.getByText('민규님의 책갈피')).toHaveCount(0)
+  await expectPageToFitViewport(page, testInfo.project.use.viewport?.width ?? 640)
   await page.screenshot({
-    path: `artifacts/seed-comparison/5-video-archive-after-${testInfo.project.name}.png`,
+    path: `artifacts/seed-comparison/5-bookmark-create-after-${testInfo.project.name}.png`,
   })
-
-  await page.getByRole('button', { name: '멤버 필터: 모든 멤버' }).click()
-  await expect(page.getByRole('menu', { name: '멤버 필터: 모든 멤버' })).toBeVisible()
-  await expect(page.getByText('누구의 영상?')).toBeVisible()
-  await page.getByRole('menuitem', { name: '민규' }).click()
-
-  await expect(page.getByRole('list', { name: '영상 기록' }).getByRole('listitem')).toHaveCount(1)
-  await expect(page.getByRole('button', { name: '멤버 필터: 민규' })).toBeVisible()
 })
 
-test('dismisses the SEED member menu with outside click and Escape', async ({ page }) => {
-  await authenticatePage(page)
-  await mockVideoMembers(page)
-  await mockVideoPosts(page, [createVideoPostRow('4b7227b2-5350-4a61-9114-b2d0c915fd1b', '민규')])
-  await page.goto(`/rooms/${roomId}/books/${bookChatId}/videos`)
-
-  await page.getByRole('button', { name: '멤버 필터: 모든 멤버' }).click()
-  await expect(page.getByRole('menu', { name: '멤버 필터: 모든 멤버' })).toBeVisible()
-  await page.getByRole('heading', { name: '함께 남긴 독서 순간' }).click()
-  await expect(page.getByRole('menu', { name: '멤버 필터: 모든 멤버' })).not.toBeVisible()
-
-  await page.getByRole('button', { name: '멤버 필터: 모든 멤버' }).click()
-  await expect(page.getByRole('menu', { name: '멤버 필터: 모든 멤버' })).toBeVisible()
-  await page.keyboard.press('Escape')
-  await expect(page.getByRole('menu', { name: '멤버 필터: 모든 멤버' })).not.toBeVisible()
-})
-
-test('opens a gallery thumbnail in the immersive video viewer', async ({ page }) => {
+test('opens a bookmark thumbnail in the immersive video viewer', async ({ page }) => {
   const videoId = '4b7227b2-5350-4a61-9114-b2d0c915fd1b'
   await authenticatePage(page)
   await mockVideoMembers(page)
   await mockVideoPosts(page, [createVideoPostRow(videoId, '민규', 'ready')])
   await mockMuxThumbnailTokens(page)
   await mockMuxPlaybackAuthorizationFailure(page)
-  await page.goto(`/rooms/${roomId}/books/${bookChatId}/videos`)
+  await page.goto(`/rooms/${roomId}/books/${bookChatId}`)
+  await page.getByRole('tab', { name: '책갈피' }).click()
 
   await page.getByRole('button', { name: '민규님의 영상 보기' }).click()
 
@@ -1261,7 +1469,9 @@ test('dismisses the video deletion confirmation without deleting', async ({ page
   await expect(page.getByRole('dialog', { name: '영상 삭제' })).toBeHidden()
 })
 
-test('returns to the video archive when the requested video no longer exists', async ({ page }) => {
+test('returns to the bookmark archive when the requested video no longer exists', async ({
+  page,
+}) => {
   const missingVideoId = '4b7227b2-5350-4a61-9114-b2d0c915fd1b'
   await authenticatePage(page)
   await mockVideoMembers(page)
@@ -1269,7 +1479,7 @@ test('returns to the video archive when the requested video no longer exists', a
   await page.goto(`/rooms/${roomId}/books/${bookChatId}/videos/${missingVideoId}`)
 
   await expect(page.getByRole('alert')).toHaveText('이 영상을 찾을 수 없어요.')
-  await page.getByRole('button', { name: '영상 기록으로 가기' }).click()
+  await page.getByRole('button', { name: '책갈피로 가기' }).click()
 
   await expect(page).toHaveURL(`/rooms/${roomId}/books/${bookChatId}/videos`)
 })
@@ -1340,6 +1550,44 @@ async function mockVideoMembers(
       status: 200,
     })
   })
+}
+
+/** Frimousse 이모지 피커가 외부 CDN 없이 테스트 fixture를 읽도록 응답한다. */
+async function mockEmojiPickerData(page: Page) {
+  await page.addInitScript(() => {
+    window.localStorage.removeItem('frimousse/data/ko')
+    window.sessionStorage.removeItem('frimousse/metadata')
+  })
+  await page.route(
+    /https:\/\/cdn\.jsdelivr\.net\/npm\/emojibase-data[^/]*\/ko\/data\.json/,
+    async (route) => {
+      if (route.request().method() === 'HEAD') {
+        await route.fulfill({ headers: { etag: 'emoji-fixture' }, status: 200 })
+        return
+      }
+      await route.fulfill({
+        body: JSON.stringify(emojiBaseDataFixture),
+        contentType: 'application/json',
+        headers: { etag: 'emoji-fixture' },
+        status: 200,
+      })
+    },
+  )
+  await page.route(
+    /https:\/\/cdn\.jsdelivr\.net\/npm\/emojibase-data[^/]*\/ko\/messages\.json/,
+    async (route) => {
+      if (route.request().method() === 'HEAD') {
+        await route.fulfill({ headers: { etag: 'emoji-fixture' }, status: 200 })
+        return
+      }
+      await route.fulfill({
+        body: JSON.stringify(emojiBaseMessagesFixture),
+        contentType: 'application/json',
+        headers: { etag: 'emoji-fixture' },
+        status: 200,
+      })
+    },
+  )
 }
 
 /** E2E 책방 멤버 행을 만든다. */
@@ -1449,6 +1697,13 @@ async function mockAuthenticatedPageData(page: Page) {
       body: JSON.stringify([]),
       contentType: 'application/json',
       headers: { 'content-range': '0-0/0' },
+      status: 200,
+    })
+  })
+  await page.route('**/rest/v1/post_reactions?*', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify([]),
+      contentType: 'application/json',
       status: 200,
     })
   })

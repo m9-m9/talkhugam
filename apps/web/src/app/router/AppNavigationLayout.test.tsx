@@ -7,19 +7,18 @@ import { AppNavigationLayout } from './AppNavigationLayout'
 describe('AppNavigationLayout', () => {
   afterEach(cleanup)
 
-  it.each([
-    '/rooms/create',
-    '/rooms/room-1',
-    '/rooms/room-1/books/new',
-    '/rooms/room-1/books/book-1/videos',
-  ])('shows the global bottom navigation on %s', (initialEntry) => {
-    renderLayout(initialEntry)
+  it.each(['/rooms/create', '/rooms/room-1', '/rooms/room-1/books/new'])(
+    'shows the global bottom navigation on %s',
+    (initialEntry) => {
+      renderLayout(initialEntry)
 
-    expect(screen.getByRole('navigation', { name: '주요 메뉴' })).toBeInTheDocument()
-  })
+      expect(screen.getByRole('navigation', { name: '주요 메뉴' })).toBeInTheDocument()
+    },
+  )
 
   it.each([
     '/rooms/room-1/books/book-1',
+    '/rooms/room-1/books/book-1/videos',
     '/rooms/room-1/books/book-1/videos/video-1',
     '/profile/edit',
     '/profile/settings',

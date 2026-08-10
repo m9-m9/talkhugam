@@ -2,7 +2,7 @@ begin;
 
 \ir ../helpers/auth.inc
 
-select plan(25);
+select plan(31);
 
 select tests.create_supabase_user(
   '00000000-0000-0000-0000-000000000191',
@@ -325,6 +325,42 @@ select is(
   'the same reply client id should return the existing reply'
 );
 select is((select count(*) from public.posts), 3::bigint, 'the room should contain two roots and one reply');
+select lives_ok(
+  format(
+    'select public.toggle_post_reaction(%L::uuid, %L)',
+    (select id from root_result),
+    '❤️'
+  ),
+  'toggle_post_reaction should add the current member reaction'
+);
+select is(
+  (select count(*) from public.post_reactions where post_id = (select id from root_result)),
+  1::bigint,
+  'toggle_post_reaction should store one reaction row'
+);
+select lives_ok(
+  format(
+    'select public.toggle_post_reaction(%L::uuid, %L)',
+    (select id from root_result),
+    '❤️'
+  ),
+  'toggle_post_reaction should remove an existing current member reaction'
+);
+select is(
+  (select count(*) from public.post_reactions where post_id = (select id from root_result)),
+  0::bigint,
+  'toggle_post_reaction should delete the existing reaction row'
+);
+select throws_ok(
+  format(
+    'select public.toggle_post_reaction(%L::uuid, %L)',
+    (select id from root_result),
+    ''
+  ),
+  'P0001',
+  'VALIDATION_FAILED',
+  'toggle_post_reaction should reject blank emoji'
+);
 
 reset role;
 select tests.authenticate_as('00000000-0000-0000-0000-000000000194');
@@ -341,6 +377,16 @@ select throws_ok(
   'P0001',
   'ROOM_FORBIDDEN',
   'a non-member should not reply in another room'
+);
+select throws_ok(
+  format(
+    'select public.toggle_post_reaction(%L::uuid, %L)',
+    (select id from root_result),
+    '👍'
+  ),
+  'P0001',
+  'POST_NOT_FOUND',
+  'a non-member should not react in another room'
 );
 
 reset role;

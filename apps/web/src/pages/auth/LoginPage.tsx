@@ -5,6 +5,7 @@ import { ActionButton } from '@seed-design/react'
 
 import { getClientEnv } from '../../app/env'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
+import { KakaoLogo } from '../../shared/ui/KakaoLogo'
 import { BrandLoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 type Provider = 'google' | 'kakao' | 'naver'
@@ -35,13 +36,7 @@ type SocialLoginButtonProps = {
 
 /** 소셜 로그인 버튼 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function SocialLoginButton({ disabled, onClick, provider }: SocialLoginButtonProps) {
-  const assetSrc = getSocialLoginAsset(provider)
-  const providerLabel =
-    provider === 'kakao'
-      ? '카카오 로그인'
-      : provider === 'naver'
-        ? '네이버 로그인'
-        : 'Google 계정으로 계속'
+  const providerLabel = getSocialLoginLabel(provider)
 
   return (
     <ActionButton
@@ -53,21 +48,60 @@ function SocialLoginButton({ disabled, onClick, provider }: SocialLoginButtonPro
       type="button"
       variant="neutralSolid"
     >
-      <img
-        alt=""
-        className={`talkhugam-social-login-button__asset talkhugam-social-login-button__asset--${provider}`}
-        src={assetSrc}
-      />
+      <SocialLoginButtonContent provider={provider} />
     </ActionButton>
   )
 }
 
-/** 제공자별로 내려받은 공식 로그인 이미지 경로를 반환한다. */
-function getSocialLoginAsset(provider: Provider): string {
-  if (provider === 'kakao') return '/brand/social/kakao-login.png'
-  if (provider === 'naver') return '/brand/social/naver-login.png'
+/** 제공사별 공식 로고와 현지화한 로그인 문구를 같은 간격으로 묶어 렌더링한다. */
+function SocialLoginButtonContent({ provider }: Pick<SocialLoginButtonProps, 'provider'>) {
+  const label = getSocialLoginLabel(provider)
 
-  return '/brand/social/google-login.svg'
+  return (
+    <span className="talkhugam-social-login-button__content">
+      <SocialLoginMark provider={provider} />
+      <span
+        className={
+          provider === 'google'
+            ? 'talkhugam-social-login-button__google-label'
+            : 'talkhugam-social-login-button__provider-label'
+        }
+      >
+        {label}
+      </span>
+    </span>
+  )
+}
+
+/** 제공사별 공식 로고 마크만 로그인 버튼에 렌더링한다. */
+function SocialLoginMark({ provider }: Pick<SocialLoginButtonProps, 'provider'>) {
+  if (provider === 'kakao') {
+    return <KakaoLogo aria-hidden="true" className="talkhugam-social-login-button__kakao-mark" />
+  }
+
+  if (provider === 'naver') {
+    return (
+      <img
+        alt=""
+        className="talkhugam-social-login-button__naver-mark"
+        src="/brand/social/naver-icon.png"
+      />
+    )
+  }
+
+  return (
+    <span aria-hidden="true" className="talkhugam-social-login-button__google-mark">
+      <img alt="" src="/brand/social/google-login.svg" />
+    </span>
+  )
+}
+
+/** 제공사별 로그인 동작을 설명하는 공식 또는 현지화 문구를 반환한다. */
+function getSocialLoginLabel(provider: Provider): string {
+  if (provider === 'kakao') return '카카오 로그인'
+  if (provider === 'naver') return '네이버 로그인'
+
+  return '구글 로그인'
 }
 
 /** 로그인 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */

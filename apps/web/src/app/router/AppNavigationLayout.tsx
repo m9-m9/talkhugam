@@ -11,11 +11,16 @@ export function AppNavigationLayout() {
     { end: true, path: '/rooms/:roomId/books/:bookChatId/videos/:videoId' },
     pathname,
   )
+  const videoCreateMatch = matchPath(
+    { end: true, path: '/rooms/:roomId/books/:bookChatId/videos' },
+    pathname,
+  )
   const profileEditMatch = matchPath({ end: true, path: '/profile/edit' }, pathname)
   const profileSettingsMatch = matchPath({ end: false, path: '/profile/settings' }, pathname)
   const isBookChat = Boolean(bookChatMatch && bookChatMatch.params.bookChatId !== 'new')
   const isImmersiveDetail =
     isBookChat ||
+    Boolean(videoCreateMatch) ||
     Boolean(videoPlayerMatch) ||
     Boolean(profileEditMatch) ||
     Boolean(profileSettingsMatch)

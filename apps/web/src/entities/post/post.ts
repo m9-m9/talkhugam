@@ -25,6 +25,12 @@ const postLabelSchema = z.object({
   value: z.string().trim().min(1).max(40),
 })
 
+const postReactionRowSchema = z.object({
+  emoji: z.string().trim().min(1).max(16),
+  member_id: z.string().uuid(),
+  post_id: z.string().uuid(),
+})
+
 const postFormSchema = z
   .object({
     body: z.string().trim().max(500),
@@ -45,16 +51,52 @@ export type DiscussionPost = {
   labels: z.infer<typeof postLabelSchema>[]
   rootPostId: string | null
 }
+export type PostReactionEmoji = z.infer<typeof postReactionRowSchema>['emoji']
+export type PostReactionSummary = {
+  count: number
+  emoji: PostReactionEmoji
+  hasReacted: boolean
+  postId: string
+}
 export type PostForm = z.infer<typeof postFormSchema>
 
 export const postKeys = {
   /** 책 대화방 식별자로 안정적인 query key를 생성한다. */
   byBookChat: (bookChatId: string) => ['posts', bookChatId] as const,
+  /** 책 대화방 식별자로 반응 query key를 생성한다. */
+  reactions: (bookChatId: string) => ['post-reactions', bookChatId] as const,
 }
 
 /** 외부 입력을 검증해 메시지 목록 형식으로 변환한다. */
 export function parsePosts(value: unknown): DiscussionPost[] {
   return z.array(postRowSchema).parse(value).map(mapDiscussionPost)
+}
+
+/** 외부 입력을 검증해 게시물별 이모지 반응 요약으로 묶어 반환한다. */
+export function parsePostReactions(
+  value: unknown,
+  currentMemberId: string | null,
+): Map<string, PostReactionSummary[]> {
+  const rows = z.array(postReactionRowSchema).parse(value)
+  return rows.reduce((reactionsByPostId, row) => {
+    const summaries = reactionsByPostId.get(row.post_id) ?? []
+    const summary = summaries.find((candidate) => candidate.emoji === row.emoji)
+    if (summary) {
+      summary.count += 1
+      summary.hasReacted = summary.hasReacted || row.member_id === currentMemberId
+      return reactionsByPostId
+    }
+    reactionsByPostId.set(row.post_id, [
+      ...summaries,
+      {
+        count: 1,
+        emoji: row.emoji,
+        hasReacted: row.member_id === currentMemberId,
+        postId: row.post_id,
+      },
+    ])
+    return reactionsByPostId
+  }, new Map<string, PostReactionSummary[]>())
 }
 
 /** 메시지 목록 데이터를 조회하거나 계산해 반환한다. */
@@ -74,6 +116,22 @@ export async function getPosts(
 
   if (response.error) throw response.error
   return parsePosts(response.data)
+}
+
+/** 표시 중인 메시지 식별자에 해당하는 이모지 반응 요약을 조회한다. */
+export async function getPostReactions(
+  client: SupabaseClient,
+  postIds: string[],
+  currentMemberId: string | null,
+): Promise<Map<string, PostReactionSummary[]>> {
+  if (postIds.length === 0) return new Map()
+  const response = await client
+    .from('post_reactions')
+    .select('post_id, member_id, emoji')
+    .in('post_id', postIds)
+
+  if (response.error) throw response.error
+  return parsePostReactions(response.data, currentMemberId)
 }
 
 /** 메시지 데이터를 생성해 반환한다. */
@@ -108,6 +166,19 @@ export async function createReply(
   })
   if (response.error) throw response.error
   return z.string().uuid().parse(response.data)
+}
+
+/** 현재 사용자의 메시지 이모지 반응을 토글한다. */
+export async function togglePostReaction(
+  client: SupabaseClient,
+  postId: string,
+  emoji: PostReactionEmoji,
+): Promise<void> {
+  const response = await client.rpc('toggle_post_reaction', {
+    p_emoji: emoji,
+    p_post_id: postId,
+  })
+  if (response.error) throw response.error
 }
 
 /** 외부 입력을 검증해 메시지 입력 폼 형식으로 변환한다. */

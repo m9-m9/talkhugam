@@ -130,6 +130,86 @@
   word-break: keep-all;
 }
 
+.talkhugam-bookmark-record-bar {
+  background: linear-gradient(
+    to top,
+    var(--color-surface) 0%,
+    var(--color-surface) 72%,
+    transparent 100%
+  );
+  bottom: calc(var(--app-bottom-navigation-height) + var(--spacing-16));
+  left: 50%;
+  max-width: 640px;
+  padding: var(--spacing-3) var(--spacing-4) calc(env(safe-area-inset-bottom) + var(--spacing-4));
+  position: fixed;
+  transform: translateX(-50%);
+  width: 100%;
+  z-index: 20;
+}
+
+.talkhugam-bookmark-choice.seed-action-button {
+  align-items: center;
+  border-radius: var(--radius-lg);
+  display: flex;
+  gap: var(--spacing-3);
+  justify-content: flex-start;
+  min-height: var(--spacing-16);
+  padding: var(--spacing-3) var(--spacing-4);
+  text-align: left;
+  width: 100%;
+}
+
+.talkhugam-bookmark-choice--primary.seed-action-button {
+  background: color-mix(in srgb, var(--color-ink) 96%, var(--color-primary));
+  color: white;
+}
+
+.talkhugam-bookmark-choice--primary.seed-action-button:is(:hover, :active, [data-loading]) {
+  background: var(--color-ink);
+}
+
+.talkhugam-bookmark-choice--secondary.seed-action-button {
+  background: white;
+  border: 1px solid var(--color-border);
+  color: var(--color-primary-text);
+}
+
+.talkhugam-bookmark-choice--secondary.seed-action-button:is(:hover, :active, [data-loading]) {
+  background: var(--color-surface-muted);
+  border-color: color-mix(in srgb, var(--color-primary) 55%, transparent);
+}
+
+.talkhugam-bookmark-choice__icon {
+  align-items: center;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  border-radius: 999px;
+  display: flex;
+  flex: 0 0 var(--spacing-12);
+  height: var(--spacing-12);
+  justify-content: center;
+  width: var(--spacing-12);
+}
+
+.talkhugam-bookmark-choice__copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  min-width: 0;
+}
+
+.talkhugam-bookmark-choice__copy strong {
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.talkhugam-bookmark-choice__copy small {
+  color: currentColor;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.35;
+  opacity: 0.72;
+}
+
 .seed-dialog__footer,
 .talkhugam-dialog-actions {
   gap: var(--spacing-2);
@@ -217,26 +297,91 @@ textarea::-webkit-scrollbar,
   --snackbar-region-offset: var(--app-bottom-navigation-height);
 }
 
-.talkhugam-social-login-button__asset {
+.talkhugam-social-login-button--kakao,
+.talkhugam-social-login-button--naver,
+.talkhugam-social-login-button--google {
+  height: var(--spacing-12);
+  min-height: var(--spacing-12);
+  width: 100%;
+}
+
+.talkhugam-social-login-button--kakao {
+  background: #fee500;
+  color: #191919;
+}
+
+.talkhugam-social-login-button--naver {
+  background: #03a94d;
+  color: #fff;
+}
+
+.talkhugam-social-login-button--google {
+  background: #fff;
+  border: 1px solid #747775;
+  color: #1f1f1f;
+}
+
+.talkhugam-social-login-button--kakao:is(:hover, :active, [data-loading]) {
+  background: #fee500;
+}
+
+.talkhugam-social-login-button--naver:is(:hover, :active, [data-loading]) {
+  background: #03a94d;
+}
+
+.talkhugam-social-login-button--google:is(:hover, :active, [data-loading]) {
+  background: #fff;
+}
+
+.talkhugam-social-login-button__content {
+  align-items: center;
+  display: grid;
+  gap: var(--spacing-2);
+  grid-template-columns: 32px minmax(0, 1fr);
+  justify-items: center;
+  width: 168px;
+}
+
+.talkhugam-social-login-button__kakao-mark {
+  height: 24px;
+  width: 24px;
+}
+
+.talkhugam-social-login-button__naver-mark {
   display: block;
-  height: auto;
-  max-width: 100%;
-  min-width: 0;
+  height: 32px;
   object-fit: contain;
+  transform: translateX(-3px);
+  width: 32px;
 }
 
-.talkhugam-social-login-button__asset--kakao {
-  height: 45px;
-  width: min(300px, 100%);
+.talkhugam-social-login-button__google-mark {
+  display: block;
+  height: 20px;
+  overflow: hidden;
+  position: relative;
+  width: 20px;
 }
 
-.talkhugam-social-login-button__asset--naver {
-  max-width: 368px;
-  width: min(368px, 100%);
-}
-
-.talkhugam-social-login-button__asset--google {
+.talkhugam-social-login-button__google-mark img {
+  height: 40px;
+  max-width: none;
+  position: absolute;
+  transform: translate(-12px, -10px);
   width: 180px;
+}
+
+.talkhugam-social-login-button__google-label {
+  font-family: Roboto, Pretendard, Arial, sans-serif;
+}
+
+.talkhugam-social-login-button__google-label,
+.talkhugam-social-login-button__provider-label {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 24px;
+  justify-self: start;
+  white-space: nowrap;
 }
 
 @layer base {
@@ -435,6 +580,32 @@ body:has([role='dialog']) .talkhugam-feedback-launcher {
   display: grid;
   gap: var(--spacing-2);
   grid-template-columns: 44px minmax(0, 1fr) auto;
+}
+
+.talkhugam-emoji-scrollbar {
+  scrollbar-width: none;
+}
+
+.talkhugam-emoji-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.talkhugam-category-scrollbar {
+  scrollbar-color: color-mix(in srgb, var(--color-primary) 48%, transparent) transparent;
+  scrollbar-width: thin;
+}
+
+.talkhugam-category-scrollbar::-webkit-scrollbar {
+  height: 4px;
+}
+
+.talkhugam-category-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.talkhugam-category-scrollbar::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--color-primary) 48%, transparent);
+  border-radius: 999px;
 }
 
 @keyframes talkhugam-action-book-open-left {
