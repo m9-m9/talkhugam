@@ -1135,7 +1135,9 @@ test('opens the current book bookmark screen from the bookmark tab CTA', async (
   await page.goto(`/rooms/${roomId}/books/${bookChatId}`)
 
   await page.getByRole('tab', { name: '책갈피' }).click()
-  await expect(page.getByRole('heading', { name: '함께 읽은 순간' })).toBeVisible()
+  await expect(page.getByText('영감을 받은 특별한 구절에 책갈피를 꽂아보아요.')).toBeVisible()
+  await expect(page.getByRole('heading', { name: '함께 읽은 순간' })).toHaveCount(0)
+  await expect(page.getByText('영상으로 남긴 책갈피를 모아 봐요.')).toHaveCount(0)
   await expect(page.getByText('아직 남긴 책갈피가 없어요.')).toBeVisible()
   await expect(page.getByText('마음에 든 문장을 짧은 영상으로 남겨 보세요.')).toBeVisible()
   await expectPageToFitViewport(page, testInfo.project.use.viewport?.width ?? 640)
@@ -1342,14 +1344,12 @@ test('keeps personal reading progress after refresh and lets the user complete t
     '다시 읽고 싶은 문장이 많아요.',
   )
 })
-test('keeps a bookmark video preview rectangular and opens the immersive viewer', async ({
-  page,
-}) => {
+test('keeps a bookmark video preview rectangular and plays it in place', async ({ page }) => {
   const videoId = '4b7227b2-5350-4a61-9114-b2d0c915fd1b'
   await authenticatePage(page)
   await mockVideoPosts(page, [createVideoPostRow(videoId, '민규', 'ready')])
   await mockMuxThumbnailTokens(page)
-  await mockMuxPlaybackAuthorizationFailure(page)
+  await mockMuxPlaybackAuthorizationSuccess(page)
   await page.goto(`/rooms/${roomId}/books/${bookChatId}`)
   await page.getByRole('tab', { name: '책갈피' }).click()
 
@@ -1368,10 +1368,15 @@ test('keeps a bookmark video preview rectangular and opens the immersive viewer'
 
   await preview.click()
 
-  await expect(page).toHaveURL(`/rooms/${roomId}/books/${bookChatId}/videos/${videoId}`)
-  await expect(page.getByRole('heading', { name: '영상 보기' })).toBeVisible()
-  await expect(page.getByRole('main')).toHaveCSS('padding-left', '0px')
-  await expect(page.getByRole('navigation', { name: '주요 메뉴' })).toBeHidden()
+  await expect(page).toHaveURL(`/rooms/${roomId}/books/${bookChatId}`)
+  await expect(page.locator('mux-player')).toBeVisible()
+  await expect(page.locator('mux-player')).toHaveAttribute('autoplay')
+  const inlinePlayerBox = await page.locator('mux-player').boundingBox()
+  expect(inlinePlayerBox).not.toBeNull()
+  if (!inlinePlayerBox) throw new Error('책갈피 인라인 재생기의 화면 크기를 읽지 못했어요.')
+  expect(Math.round(inlinePlayerBox.width)).toBeLessThanOrEqual(Math.round(bookmarkCardBox.width))
+  expect(inlinePlayerBox.width / inlinePlayerBox.height).toBeGreaterThan(2.8)
+  expect(inlinePlayerBox.width / inlinePlayerBox.height).toBeLessThan(3.2)
 })
 
 test('opens the upload picker from the bookmark creation screen', async ({ page }, testInfo) => {
@@ -1429,7 +1434,7 @@ test('keeps the bookmark creation screen focused on capture and upload choices',
   })
 })
 
-test('opens a bookmark thumbnail in the immersive video viewer', async ({ page }) => {
+test('shows an inline retry state when bookmark playback cannot be prepared', async ({ page }) => {
   const videoId = '4b7227b2-5350-4a61-9114-b2d0c915fd1b'
   await authenticatePage(page)
   await mockVideoMembers(page)
@@ -1441,10 +1446,10 @@ test('opens a bookmark thumbnail in the immersive video viewer', async ({ page }
 
   await page.getByRole('button', { name: '민규님의 영상 보기' }).click()
 
-  await expect(page).toHaveURL(`/rooms/${roomId}/books/${bookChatId}/videos/${videoId}`)
-  await expect(page.getByRole('heading', { name: '영상 보기' })).toBeVisible()
-  await expect(page.getByRole('alert')).toContainText('재생 정보를 불러오지 못했어요.')
-  await expect(page.getByRole('navigation', { name: '주요 메뉴' })).toBeHidden()
+  await expect(page).toHaveURL(`/rooms/${roomId}/books/${bookChatId}`)
+  await expect(page.getByText('영상을 재생하지 못했어요.')).toBeVisible()
+  await expect(page.getByRole('button', { name: '다시 시도' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '영상 보기' })).toHaveCount(0)
 })
 
 test('dismisses the video deletion confirmation without deleting', async ({ page }) => {
@@ -1630,6 +1635,25 @@ async function mockMuxPlaybackAuthorizationFailure(page: Page) {
       }),
       contentType: 'application/json',
       status: 500,
+    })
+  })
+}
+
+/** 실제 Mux 권한 발급 대신 인라인 재생 검증용 성공 응답을 반환한다. */
+async function mockMuxPlaybackAuthorizationSuccess(page: Page) {
+  await page.route('**/functions/v1/mux-playback-token', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        data: {
+          expiresAt: 1_784_269_999,
+          playbackId: 'playback-id',
+          thumbnailToken: 'thumbnail-token',
+          token: 'playback-token',
+        },
+        ok: true,
+      }),
+      contentType: 'application/json',
+      status: 200,
     })
   })
 }

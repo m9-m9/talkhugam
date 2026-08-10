@@ -16,6 +16,7 @@ const {
   getReadingRoom,
   getPosts,
   getVideoFilterMembers,
+  getVideoPlaybackAuthorization,
   getVideoPosts,
   getVideoThumbnailAuthorizations,
   parsePostForm,
@@ -70,6 +71,11 @@ const {
       isCurrentUser: true,
     },
   ]),
+  getVideoPlaybackAuthorization: vi.fn().mockResolvedValue({
+    playbackId: 'playback-id',
+    thumbnailToken: 'thumbnail-token',
+    token: 'playback-token',
+  }),
   getVideoPosts: vi.fn().mockResolvedValue([]),
   getVideoThumbnailAuthorizations: vi.fn().mockResolvedValue([]),
   parsePostForm: vi.fn(
@@ -123,6 +129,7 @@ vi.mock('../../entities/book-chat', () => ({
 vi.mock('../../entities/video', () => ({
   createMuxThumbnailUrl: () => 'https://image.mux.com/playback-id/thumbnail.webp?token=token',
   getVideoFilterMembers,
+  getVideoPlaybackAuthorization,
   getVideoPosts,
   getVideoThumbnailAuthorizations,
   mapVideoThumbnailAuthorizations: (authorizations: Array<{ postId: string }>) =>
@@ -130,8 +137,17 @@ vi.mock('../../entities/video', () => ({
   videoKeys: {
     byBookChat: (bookChatId: string) => ['video-posts', bookChatId],
     members: (roomId: string) => ['video-filter-members', roomId],
+    playback: (postId: string) => ['video-playback', postId],
     thumbnails: (postIds: string[]) => ['video-thumbnails', postIds],
   },
+}))
+
+vi.mock('../../shared/ui/LazyMuxVideoPlayer', () => ({
+  LazyMuxVideoPlayer: ({ autoPlay, playbackId }: { autoPlay?: boolean; playbackId: string }) => (
+    <div aria-label="책갈피 영상 재생기" data-autoplay={String(Boolean(autoPlay))}>
+      {playbackId}
+    </div>
+  ),
 }))
 
 vi.mock('../../entities/reading-room', () => ({
@@ -304,6 +320,12 @@ describe('BookDiscussionPage', () => {
     getVideoThumbnailAuthorizations.mockClear()
     getVideoThumbnailAuthorizations.mockResolvedValue([])
     getVideoFilterMembers.mockClear()
+    getVideoPlaybackAuthorization.mockClear()
+    getVideoPlaybackAuthorization.mockResolvedValue({
+      playbackId: 'playback-id',
+      thumbnailToken: 'thumbnail-token',
+      token: 'playback-token',
+    })
     getVideoPosts.mockClear()
     getVideoPosts.mockResolvedValue([])
     requestManagedRoomInvite.mockClear()
@@ -532,7 +554,7 @@ describe('BookDiscussionPage', () => {
     expect(screen.getByRole('tab', { name: '책갈피' })).toHaveAttribute('aria-selected', 'false')
   })
 
-  it('opens a rectangular bookmark video preview in the immersive player', async () => {
+  it('plays a rectangular bookmark video preview in place', async () => {
     getVideoPosts.mockResolvedValueOnce([
       {
         authorName: '민규',
@@ -563,7 +585,12 @@ describe('BookDiscussionPage', () => {
 
     fireEvent.click(preview)
 
-    expect(screen.getByText('몰입형 영상 화면')).toBeInTheDocument()
+    expect(await screen.findByLabelText('책갈피 영상 재생기')).toHaveAttribute(
+      'data-autoplay',
+      'true',
+    )
+    expect(getVideoPlaybackAuthorization).toHaveBeenCalledWith(undefined, 'video-1')
+    expect(screen.queryByText('몰입형 영상 화면')).not.toBeInTheDocument()
   })
 
   it('opens only label registration in the message sheet', () => {
@@ -601,8 +628,10 @@ describe('BookDiscussionPage', () => {
     fireEvent.click(screen.getByRole('tab', { name: '책갈피' }))
 
     expect(screen.queryByLabelText('메시지 입력')).not.toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: '함께 읽은 순간' })).toBeInTheDocument()
-    expect(screen.getByText('영상으로 남긴 책갈피를 모아 봐요.')).toBeInTheDocument()
+    expect(screen.getByText('영감을 받은 특별한 구절에 책갈피를 꽂아보아요.')).toBeInTheDocument()
+    expect(screen.queryByText('책갈피', { selector: 'p' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: '함께 읽은 순간' })).not.toBeInTheDocument()
+    expect(screen.queryByText('영상으로 남긴 책갈피를 모아 봐요.')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: '책갈피 남기기' }).parentElement).toHaveClass('fixed')
     expect(screen.getByText('희미한 빛도 오래 바라보면 방향이 된다.')).toBeInTheDocument()
 
@@ -616,7 +645,7 @@ describe('BookDiscussionPage', () => {
 
     fireEvent.click(await screen.findByRole('tab', { name: '책갈피' }))
 
-    expect(screen.getByRole('heading', { name: '함께 읽은 순간' })).toBeInTheDocument()
+    expect(screen.getByText('영감을 받은 특별한 구절에 책갈피를 꽂아보아요.')).toBeInTheDocument()
     expect(screen.getByText('아직 남긴 책갈피가 없어요.')).toBeInTheDocument()
     expect(screen.getByText('마음에 든 문장을 짧은 영상으로 남겨 보세요.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '책갈피 남기기' })).toBeInTheDocument()

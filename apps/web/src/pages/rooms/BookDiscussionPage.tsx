@@ -37,10 +37,12 @@ import {
 import {
   createMuxThumbnailUrl,
   getVideoFilterMembers,
+  getVideoPlaybackAuthorization,
   getVideoPosts,
   getVideoThumbnailAuthorizations,
   mapVideoThumbnailAuthorizations,
   videoKeys,
+  type VideoPlaybackAuthorization,
   type VideoFilterMember,
   type VideoPost,
   type VideoThumbnailAuthorization,
@@ -77,6 +79,7 @@ import { trackAnalyticsEvent } from '../../shared/analytics'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { BottomSheet } from '../../shared/ui/BottomSheet'
 import { CompletionMark } from '../../shared/ui/CompletionMark'
+import { LazyMuxVideoPlayer } from '../../shared/ui/LazyMuxVideoPlayer'
 import { BookLoadingIndicator, BrandLoadingSpinner } from '../../shared/ui/LoadingSpinner'
 import { RetryState } from '../../shared/ui/RetryState'
 
@@ -459,9 +462,6 @@ export function BookDiscussionPage() {
           isThumbnailLoading={thumbnailsQuery.isLoading}
           isUploadingVideo={isUploadingVideo}
           onCreateBookmark={() => void navigate(`/rooms/${roomId}/books/${bookChatId}/videos`)}
-          onOpenVideo={(videoId) =>
-            void navigate(`/rooms/${roomId}/books/${bookChatId}/videos/${videoId}`)
-          }
           thumbnailsByPostId={thumbnailsByPostId}
           videos={videosQuery.data ?? []}
         />
@@ -566,14 +566,12 @@ function BookmarkPanel({
   isThumbnailLoading,
   isUploadingVideo,
   onCreateBookmark,
-  onOpenVideo,
   thumbnailsByPostId,
   videos,
 }: {
   isThumbnailLoading: boolean
   isUploadingVideo: boolean
   onCreateBookmark: () => void
-  onOpenVideo: (videoId: string) => void
   thumbnailsByPostId: ReadonlyMap<string, VideoThumbnailAuthorization>
   videos: VideoPost[]
 }) {
@@ -584,13 +582,9 @@ function BookmarkPanel({
       id="book-chat-bookmark-panel"
       role="tabpanel"
     >
-      <header className="mb-4">
-        <p className="text-primary text-sm font-semibold">책갈피</p>
-        <h2 className="text-ink mt-1 text-lg font-bold">함께 읽은 순간</h2>
-        <p className="talkhugam-balanced-copy text-ink-subtle mt-1 text-sm">
-          영상으로 남긴 책갈피를 모아 봐요.
-        </p>
-      </header>
+      <p className="talkhugam-balanced-copy text-ink-subtle mb-4 text-sm">
+        영감을 받은 특별한 구절에 책갈피를 꽂아보아요.
+      </p>
       {isUploadingVideo ? (
         <div className="mb-4">
           <BookLoadingIndicator label="책갈피 영상을 올리고 있어요…" size="xs" />
@@ -602,7 +596,6 @@ function BookmarkPanel({
             <li key={video.id}>
               <BookmarkCard
                 isThumbnailLoading={isThumbnailLoading}
-                onOpen={() => onOpenVideo(video.id)}
                 thumbnailAuthorization={thumbnailsByPostId.get(video.id)}
                 video={video}
               />
@@ -642,23 +635,43 @@ function BookmarkEmptyState() {
 /** 영상 책갈피 하나의 썸네일, 문장, 작성자를 카드로 렌더링한다. */
 function BookmarkCard({
   isThumbnailLoading,
-  onOpen,
   thumbnailAuthorization,
   video,
 }: {
   isThumbnailLoading: boolean
-  onOpen: () => void
   thumbnailAuthorization: VideoThumbnailAuthorization | undefined
   video: VideoPost
 }) {
+  const [isPlaying, setIsPlaying] = useState(false)
+  const playbackQuery = useQuery({
+    enabled: isPlaying && video.status === 'ready',
+    queryFn: () => getVideoPlaybackAuthorization(createSupabaseClient(), video.id),
+    queryKey: videoKeys.playback(video.id),
+  })
+
+  /** 책갈피 썸네일을 같은 카드 안의 영상 재생기로 전환한다. */
+  function handlePlayInline() {
+    setIsPlaying(true)
+  }
+
   return (
     <article className="border-ink/10 overflow-hidden rounded-lg border bg-white">
-      <VideoMessage
-        isThumbnailLoading={isThumbnailLoading}
-        onOpen={onOpen}
-        thumbnailAuthorization={thumbnailAuthorization}
-        video={video}
-      />
+      {isPlaying && video.status === 'ready' ? (
+        <InlineBookmarkVideoPlayer
+          authorization={playbackQuery.data}
+          isLoading={playbackQuery.isPending}
+          isError={playbackQuery.isError}
+          onRetry={() => void playbackQuery.refetch()}
+          video={video}
+        />
+      ) : (
+        <VideoMessage
+          isThumbnailLoading={isThumbnailLoading}
+          onOpen={handlePlayInline}
+          thumbnailAuthorization={thumbnailAuthorization}
+          video={video}
+        />
+      )}
       <div className="space-y-1 p-3">
         <p className="text-ink talkhugam-balanced-copy border-primary border-l-2 pl-3 text-base font-semibold whitespace-pre-wrap">
           {video.body ?? '영상으로 남긴 책갈피'}
@@ -666,6 +679,62 @@ function BookmarkCard({
         <p className="text-ink-subtle text-xs">{video.authorName}의 책갈피</p>
       </div>
     </article>
+  )
+}
+
+/** 책갈피 카드 안에서 재생 권한 상태에 맞춰 인라인 영상 재생기를 렌더링한다. */
+function InlineBookmarkVideoPlayer({
+  authorization,
+  isError,
+  isLoading,
+  onRetry,
+  video,
+}: {
+  authorization: VideoPlaybackAuthorization | undefined
+  isError: boolean
+  isLoading: boolean
+  onRetry: () => void
+  video: VideoPost
+}) {
+  if (authorization)
+    return (
+      <div className="bg-ink relative aspect-[3/1] w-full overflow-hidden">
+        <LazyMuxVideoPlayer
+          autoPlay
+          className="absolute inset-0 size-full"
+          metadata={{ videoId: video.id, videoTitle: `${video.authorName}의 책갈피` }}
+          playbackId={authorization.playbackId}
+          tone="inverse"
+          tokens={{
+            playback: authorization.token,
+            thumbnail: authorization.thumbnailToken,
+          }}
+        />
+      </div>
+    )
+
+  if (isError)
+    return (
+      <div className="bg-ink flex aspect-[3/1] w-full flex-col items-center justify-center gap-3 px-4 text-center">
+        <p className="text-sm font-medium text-white">영상을 재생하지 못했어요.</p>
+        <SeedActionButton
+          className="text-ink min-h-10 bg-white px-3 text-sm"
+          onClick={onRetry}
+          size="small"
+          type="button"
+          variant="neutralSolid"
+        >
+          다시 시도
+        </SeedActionButton>
+      </div>
+    )
+
+  return (
+    <div className="bg-ink flex aspect-[3/1] w-full items-center justify-center">
+      {isLoading ? (
+        <BookLoadingIndicator label="영상을 준비하고 있어요." size="sm" tone="inverse" />
+      ) : null}
+    </div>
   )
 }
 

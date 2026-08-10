@@ -5,6 +5,7 @@ import { BookLoadingIndicator } from './LoadingSpinner'
 const MuxVideoPlayer = lazy(() => import('./MuxVideoPlayer'))
 
 type LazyMuxVideoPlayerProps = {
+  autoPlay?: boolean
   className: string
   metadata: {
     videoId: string
@@ -22,6 +23,7 @@ type LazyMuxVideoPlayerProps = {
 
 /** 실제 재생이 필요한 순간에만 Mux 재생기를 불러오고 대기 상태를 안내한다. */
 export function LazyMuxVideoPlayer({
+  autoPlay,
   className,
   metadata,
   onPlaybackError,
@@ -39,6 +41,7 @@ export function LazyMuxVideoPlayer({
       }
     >
       <MuxVideoPlayer
+        {...(autoPlay === undefined ? {} : { autoPlay })}
         className={className}
         metadata={metadata}
         playbackId={playbackId}

@@ -1,6 +1,7 @@
 import MuxPlayer from '@mux/mux-player-react'
 
 type MuxVideoPlayerProps = {
+  autoPlay?: boolean
   className: string
   metadata: {
     videoId: string
@@ -17,6 +18,7 @@ type MuxVideoPlayerProps = {
 
 /** Mux 재생 식별자와 서명 토큰을 받아 공통 영상 플레이어를 렌더링한다. */
 export default function MuxVideoPlayer({
+  autoPlay,
   className,
   metadata,
   onPlaybackError,
@@ -31,6 +33,7 @@ export default function MuxVideoPlayer({
 
   return (
     <MuxPlayer
+      {...(autoPlay === undefined ? {} : { autoPlay })}
       className={className}
       metadata={{ video_id: metadata.videoId, video_title: metadata.videoTitle }}
       playbackId={playbackId}
