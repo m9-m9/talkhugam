@@ -86,23 +86,29 @@ export function VideoArchivePage() {
         type="file"
       />
 
-      <section aria-label="책갈피 영상 선택" className="mt-6 space-y-3">
-        <BookmarkActionButton
-          description="지금 장면을 바로 찍어요"
-          disabled={isUploadingVideo}
-          icon={<VideoCameraIcon />}
-          onClick={handleOpenCameraPicker}
-          title="촬영해서 남기기"
-          tone="primary"
-        />
-        <BookmarkActionButton
-          description="이미 찍은 영상을 붙여요"
-          disabled={isUploadingVideo}
-          icon={<UploadIcon />}
-          onClick={handleOpenUploadPicker}
-          title="갤러리에서 올리기"
-          tone="secondary"
-        />
+      <section aria-label="책갈피 영상 선택" className="mt-6">
+        <ul className="grid gap-3">
+          <li>
+            <BookmarkActionButton
+              description="지금 장면을 바로 찍어요"
+              disabled={isUploadingVideo}
+              icon={<VideoCameraIcon />}
+              onClick={handleOpenCameraPicker}
+              title="촬영해서 남기기"
+              tone="primary"
+            />
+          </li>
+          <li>
+            <BookmarkActionButton
+              description="이미 찍은 영상을 붙여요"
+              disabled={isUploadingVideo}
+              icon={<UploadIcon />}
+              onClick={handleOpenUploadPicker}
+              title="갤러리에서 올리기"
+              tone="secondary"
+            />
+          </li>
+        </ul>
       </section>
 
       <section className="mt-8 space-y-2">

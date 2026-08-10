@@ -1397,6 +1397,15 @@ test('opens the upload picker from the bookmark creation screen', async ({ page 
   await expect(
     page.getByRole('button', { name: '갤러리에서 올리기 이미 찍은 영상을 붙여요' }),
   ).toHaveClass(/seed-action-button/)
+  const cameraChoiceBox = await page
+    .getByRole('button', { name: '촬영해서 남기기 지금 장면을 바로 찍어요' })
+    .boundingBox()
+  const uploadChoiceBox = await page
+    .getByRole('button', { name: '갤러리에서 올리기 이미 찍은 영상을 붙여요' })
+    .boundingBox()
+  if (!cameraChoiceBox || !uploadChoiceBox)
+    throw new Error('책갈피 선택 버튼 간격을 확인할 수 없어요.')
+  expect(Math.round(uploadChoiceBox.y - (cameraChoiceBox.y + cameraChoiceBox.height))).toBe(12)
   await expect(page.getByRole('button', { name: '책갈피 남기기' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: '전체' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: '멤버 필터: 모든 멤버' })).toHaveCount(0)
