@@ -1130,11 +1130,16 @@ test('resets a dismissed book-chat label editor while keeping the message draft'
 test('opens the current book bookmark screen from the bookmark tab CTA', async ({
   page,
 }, testInfo) => {
+  const bookTitle = '미움받을 용기(200만 부 기념 스페셜 에디션)'
   await authenticatePage(page)
+  await mockBookDiscussionHeader(page, bookTitle)
   await mockVideoPosts(page, [])
   await page.goto(`/rooms/${roomId}/books/${bookChatId}`)
 
   await page.getByRole('tab', { name: '책갈피' }).click()
+  await expect(page.getByText(`금요일 아침 책방 - ${bookTitle}`)).toBeVisible()
+  await expect(page.getByText(`금요일 아침 책방 - ${bookTitle}`)).toHaveCSS('white-space', 'nowrap')
+  await expect(page.getByRole('heading', { name: bookTitle })).toHaveCount(0)
   await expect(page.getByText('영감을 받은 특별한 구절에 책갈피를 꽂아보아요.')).toBeVisible()
   await expect(page.getByRole('heading', { name: '함께 읽은 순간' })).toHaveCount(0)
   await expect(page.getByText('영상으로 남긴 책갈피를 모아 봐요.')).toHaveCount(0)
@@ -1775,6 +1780,34 @@ async function mockReadingBooks(page: Page, books: unknown[]) {
   await page.route('**/rest/v1/book_chats?*', async (route) => {
     await route.fulfill({
       body: JSON.stringify(books),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+}
+
+/** 책 대화 화면 상단 헤더에 필요한 책방명과 책 제목 응답을 제공한다. */
+async function mockBookDiscussionHeader(page: Page, bookTitle: string) {
+  await page.route('**/rest/v1/reading_rooms?*', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        description: '함께 읽는 책들',
+        id: roomId,
+        name: '금요일 아침 책방',
+      }),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+  await page.route('**/rest/v1/book_chats?*', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        books: { thumbnail_url: null, title: bookTitle },
+        id: bookChatId,
+        name: bookTitle,
+        room_id: roomId,
+        status: 'reading',
+      }),
       contentType: 'application/json',
       status: 200,
     })

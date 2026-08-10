@@ -389,6 +389,7 @@ export function BookDiscussionPage() {
 
   if (!roomId || !bookChatId) return <main className="bg-surface min-h-screen" />
   const roots = postsQuery.data?.filter((post) => post.depth === 0) ?? []
+  const headerTitle = getBookChatHeaderTitle(roomQuery.data?.name, bookChatQuery.data?.title)
   return (
     <main className="app-page bg-surface flex min-h-screen flex-col px-4 pb-6">
       <AppHeader
@@ -405,14 +406,9 @@ export function BookDiscussionPage() {
           </SeedActionButton>
         }
         onBack={() => void navigate(`/rooms/${roomId}`)}
-        title={roomQuery.data?.name ?? '책방'}
+        title={headerTitle}
       />
-      <header className="mt-8">
-        <h1 className="text-ink mt-2 text-xl font-bold">
-          {bookChatQuery.data?.title ?? '책을 불러오고 있어요.'}
-        </h1>
-        <BookChatTabs activeTab={activeTab} onChange={setActiveTab} />
-      </header>
+      <BookChatTabs activeTab={activeTab} onChange={setActiveTab} />
       {activeTab === 'talk' ? (
         <>
           <section
@@ -511,6 +507,13 @@ export function BookDiscussionPage() {
       ) : null}
     </main>
   )
+}
+
+/** 책방 이름과 책 제목을 좁은 상단 헤더에 맞는 한 줄 제목으로 합친다. */
+function getBookChatHeaderTitle(roomName: string | undefined, bookTitle: string | undefined) {
+  const resolvedRoomName = roomName ?? '책방'
+  if (!bookTitle) return resolvedRoomName
+  return `${resolvedRoomName} - ${bookTitle}`
 }
 
 /** 현재 선택된 책 대화 영역을 대화와 책갈피 탭으로 전환한다. */

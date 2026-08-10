@@ -37,11 +37,11 @@ const {
   }),
   getManagedBookChat: vi.fn().mockResolvedValue({
     id: 'book-1',
-    name: '미움받을 용기',
+    name: '미움받을 용기(200만 부 기념 스페셜 에디션)',
     roomId: 'room-1',
     status: 'reading',
     thumbnailUrl: null,
-    title: '미움받을 용기',
+    title: '미움받을 용기(200만 부 기념 스페셜 에디션)',
   }),
   getRoomManagement: vi.fn().mockResolvedValue({
     createdBy: '00000000-0000-0000-0000-000000000001',
@@ -545,11 +545,15 @@ describe('BookDiscussionPage', () => {
     expect(await screen.findByRole('button', { name: '서연에게 답글' })).toBeInTheDocument()
   })
 
-  it('shows the bookshop in the header and the selected book with conversation and bookmark tabs', async () => {
+  it('shows the bookshop and selected book in one compact header with conversation and bookmark tabs', async () => {
     renderBookDiscussionPage()
 
-    expect(await screen.findByText('금요일 아침 책방')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: '미움받을 용기' })).toBeInTheDocument()
+    expect(
+      await screen.findByText('금요일 아침 책방 - 미움받을 용기(200만 부 기념 스페셜 에디션)'),
+    ).toHaveClass('truncate')
+    expect(
+      screen.queryByRole('heading', { name: '미움받을 용기(200만 부 기념 스페셜 에디션)' }),
+    ).not.toBeInTheDocument()
     expect(screen.getByRole('tab', { name: '대화' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByRole('tab', { name: '책갈피' })).toHaveAttribute('aria-selected', 'false')
   })

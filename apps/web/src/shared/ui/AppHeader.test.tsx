@@ -8,6 +8,8 @@ describe('AppHeader', () => {
     render(<AppHeader action={<button type="button">새 책</button>} title="독서방" />)
 
     expect(screen.getByText('독서방')).toBeInTheDocument()
+    expect(screen.getByText('독서방')).toHaveClass('truncate')
+    expect(screen.getByText('독서방')).toHaveClass('min-w-0')
     expect(screen.getByRole('button', { name: '새 책' })).toBeInTheDocument()
   })
 
