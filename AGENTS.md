@@ -67,11 +67,25 @@
 ## UI
 
 - Figma Foundations의 spacing `0/4/8/12/16/24/32/40/48/64`와 정의된 radius token만 사용한다.
+- Talk후감의 페이지 레이아웃, 640px 중앙 캔버스, Warm Coral 브랜드 컬러, 로고, 책 표지와 사용자 콘텐츠는 제품 고유 UI로 유지한다. 디자인 시스템 교체를 이유로 이를 SEED 기본 레이아웃이나 중립 팔레트로 치환하지 않는다.
+- 반복되는 상호작용 요소는 `@seed-design/react` 원본 컴포넌트를 우선 검토한다. Avatar, List, Text, Field, ActionButton, Dialog, Sheet, Tabs, Switch, Checkbox, Snackbar가 대상이며, Talk후감의 여백·색·문구 규칙이 필요하면 공용 래퍼에서 조합한다.
+- SEED 전체 스타일시트는 전역으로 import하지 않는다. 실제 사용하는 recipe CSS만 추가하고, 새 recipe가 기존 화면의 배치·색·타이포를 바꾸지 않는지 320px과 640px에서 확인한다.
+- 새 화면이나 기존 화면 전환은 기존 콘텐츠 순서와 주요 정렬을 먼저 유지한다. 레이아웃 변경이 필요한 경우에만 Figma와 Product Hub의 결정 기록을 함께 갱신한다.
+- 콘텐츠 진입과 페이지 전체 준비 상태는 `BookLoadingIndicator`만 사용한다. 저장·제출·짧은 인라인 처리 상태는 `BrandLoadingSpinner`만 사용하며, 하나의 흐름에서 두 로더를 순차적으로 바꾸지 않는다.
 - 최소 지원 화면 폭은 320px이다. 320px에서 먼저 텍스트, 터치 영역, 줄바꿈을 검증한다.
 - 앱은 데스크톱에서 최대 640px의 중앙 정렬 캔버스로 표시한다. 화면 폭을 넓히는 반응형 변형은 기획과 피그마에서 명시적으로 결정된 경우에만 추가한다.
 - 화면 좌우 여백은 320px 기준 기본 16px(`px-4`)을 사용한다. 24px 이상 여백은 콘텐츠 폭과 줄바꿈을 확인한 뒤 사용한다.
 - 임의 spacing 값과 raw style을 추가하기 전에 공통 token 또는 component variant를 확인한다.
+- SEED 컴포넌트의 바깥 여백은 컴포넌트 자신이 아니라 상위 레이아웃 래퍼에 둔다. Recipe가 버튼의 `margin`을 초기화할 수 있으므로, 섹션과 CTA 사이는 래퍼의 Foundation spacing(`mt-8`·`mt-12` 등)으로 보장한다.
+- 320px 본문에서는 한 글자 또는 짧은 조사만 다음 줄에 남는 줄바꿈을 허용하지 않는다. 문구를 짧게 다듬고, 필요한 안내문에는 `talkhugam-balanced-copy`를 사용해 단어 단위로 줄바꿈한다.
 - 터치 영역은 최소 44px로 만들고 키보드 focus, aria label, 로딩, 빈 상태, 오류, 재시도를 함께 구현한다.
+- UI 변경 완료 전에는 자동 테스트와 별도로 320px·640px 실제 브라우저 화면을 확인한다. 정렬, 오버플로, 색 대비, 로딩 전환, 다이얼로그·시트의 포커스 복귀를 점검하고 결과를 PR 또는 Product Hub 변경 기록에 남긴다.
+
+## 디자인 문서 동기화
+
+- 제품 UI의 현재 기준은 Notion `Talk후감 Product Hub · Phase 1`의 `10. Phase 1 최신 기준 · 사용자 흐름 · 출시 체크`이다. Figma `talk후감` 파일은 토큰·공용 컴포넌트·화면 명세를, `AGENTS.md`는 구현 규칙을 담당한다.
+- 사용자 흐름, 화면 구조, 공용 컴포넌트 사용 기준이 바뀌면 코드·테스트와 함께 Product Hub 최신 기준, Figma Foundation 또는 해당 화면을 같은 작업에서 갱신한다.
+- Figma와 Notion의 링크는 서로 현재 기준 문서를 가리켜야 한다. 이전 MVP 문서나 폐기된 화면 탐색안은 현재 기준으로 사용하지 않는다.
 
 ## 테스트와 완료 조건
 
@@ -89,6 +103,9 @@
 - 권한 변경은 RLS 허용·거부 테스트를 작성한다.
 - 사용자 흐름 변경은 필요한 컴포넌트 테스트 또는 Playwright 시나리오를 갱신한다.
 - 변경 범위에 맞는 lint, typecheck, test, build를 실행한다.
+- 코드 변경 작업은 매번 완료 전에 `pnpm test:web`, `pnpm build:web`,
+  `pnpm --filter @talkhugam/web test:e2e`를 모두 직접 실행한다. UI·레이아웃 변경은
+  Playwright의 320px와 640px 결과를 확인한 뒤에만 완료로 보고한다.
 - 테스트를 통과시키기 위해 `skip`, 과도한 timeout, 무의미한 mock을 방치하지 않는다.
 - 구현과 문서가 충돌하면 조용히 추측하지 말고 작업 티켓 또는 Product Hub에 결정이 필요한 내용을 남긴다.
 

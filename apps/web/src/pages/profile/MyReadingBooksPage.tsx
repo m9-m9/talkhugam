@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
+import { ActionButton, TextField } from '@seed-design/react'
+
 import { bookChatKeys, getMyReadingBooks, type ReadingBook } from '../../entities/book-chat'
 import {
   bookCompletionKeys,
@@ -11,7 +13,6 @@ import {
   type CompletedBook,
 } from '../../entities/book-completion'
 import {
-  calculateReadingProgressPercent,
   getMyReadingProgresses,
   readingProgressKeys,
   upsertReadingProgress,
@@ -23,13 +24,18 @@ import {
   invalidateCompletionQueries,
   storeBookCompletionInCache,
 } from '../../features/book-completion'
+import {
+  invalidateReadingProgressQueries,
+  storeReadingProgressInCache,
+} from '../../features/reading-progress'
 import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { BookCover } from '../../shared/ui/BookCover'
 import { BottomSheet } from '../../shared/ui/BottomSheet'
-import { CompletionMark } from '../../shared/ui/CompletionMark'
-import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { FormField } from '../../shared/ui/FormField'
+import { BookLoadingIndicator } from '../../shared/ui/LoadingSpinner'
+import { ReadingStatus } from '../../shared/ui/ReadingStatus'
 import { RetryState } from '../../shared/ui/RetryState'
 
 type CompletionRecordSheetProps = {
@@ -90,22 +96,8 @@ export function MyReadingBooksPage() {
     mutationFn: (input: ReadingProgressInput) =>
       upsertReadingProgress(createSupabaseClient(), input),
     onSuccess: (_result, input) => {
-      queryClient.setQueryData<ReadingProgress[]>(
-        readingProgressKeys.byProfile(profileId),
-        (progresses = []) => [
-          ...progresses.filter((progress) => progress.bookChatId !== input.bookChatId),
-          {
-            bookChatId: input.bookChatId,
-            currentPage: input.currentPage,
-            totalPages: input.totalPages,
-            updatedAt: new Date().toISOString(),
-          },
-        ],
-      )
-      void queryClient.invalidateQueries({
-        queryKey: readingProgressKeys.byProfile(profileId),
-        refetchType: 'inactive',
-      })
+      storeReadingProgressInCache(queryClient, { ...input, profileId })
+      invalidateReadingProgressQueries(queryClient, profileId)
       setSelectedProgressBook(null)
     },
   })
@@ -170,7 +162,7 @@ export function MyReadingBooksPage() {
 
       {isLoading ? (
         <div className="mt-12">
-          <LoadingSpinner label="읽고 있는 책을 불러오고 있어요." size="sm" variant="book" />
+          <BookLoadingIndicator label="읽고 있는 책을 불러오고 있어요." size="sm" />
         </div>
       ) : null}
       {hasError ? (
@@ -238,10 +230,11 @@ function ReadingProgressSheet({
   const [validationErrorMessage, setValidationErrorMessage] = useState('')
   const errorMessage = validationErrorMessage || submitErrorMessage
 
-  /** 사용자가 입력한 숫자 문자열을 0 이상의 정수로 변환한다. */
+  /** 사용자가 입력한 빈 값과 소수점을 제외한 문자열을 0 이상의 정수로 변환한다. */
   function parsePage(value: string): number | null {
+    if (!/^\d+$/.test(value)) return null
     const parsed = Number(value)
-    return Number.isInteger(parsed) && parsed >= 0 ? parsed : null
+    return Number.isSafeInteger(parsed) ? parsed : null
   }
 
   /** 현재 입력값을 검증해 개인 진행률 저장 요청으로 전달한다. */
@@ -267,48 +260,51 @@ function ReadingProgressSheet({
     <BottomSheet onClose={onClose} title="독서 진행률 기록">
       <p className="text-ink text-sm font-semibold">{selectedBook.title}</p>
       <p className="text-ink-subtle mt-2 text-sm">전체 페이지는 처음 기록할 때 직접 입력해요.</p>
-      <label className="text-ink mt-4 block text-sm font-medium" htmlFor="current-reading-page">
-        현재 읽은 페이지
-      </label>
-      <input
-        className="border-ink/10 focus:border-primary mt-2 min-h-11 w-full rounded-md border px-3 text-sm outline-none"
-        id="current-reading-page"
-        inputMode="numeric"
-        min="0"
-        onChange={(event) => setCurrentPage(event.target.value)}
-        type="number"
-        value={currentPage}
-      />
-      <label className="text-ink mt-4 block text-sm font-medium" htmlFor="total-reading-pages">
-        전체 페이지
-      </label>
-      <input
-        className="border-ink/10 focus:border-primary mt-2 min-h-11 w-full rounded-md border px-3 text-sm outline-none"
-        id="total-reading-pages"
-        inputMode="numeric"
-        min="1"
-        onChange={(event) => setTotalPages(event.target.value)}
-        type="number"
-        value={totalPages}
-      />
-      {errorMessage ? <p className="text-danger mt-3 text-sm">{errorMessage}</p> : null}
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        <button
-          className="border-ink/10 text-ink min-h-11 cursor-pointer rounded-md border px-3 text-sm font-semibold"
-          disabled={isSaving}
-          onClick={onClose}
-          type="button"
+      <div className="mt-4 space-y-4">
+        <FormField
+          errorMessage={errorMessage || undefined}
+          label="현재 읽은 페이지"
+          name="current-reading-page"
         >
+          <TextField.Root invalid={Boolean(errorMessage)}>
+            <TextField.Input
+              aria-invalid={Boolean(errorMessage)}
+              id="current-reading-page"
+              inputMode="numeric"
+              onChange={(event) => setCurrentPage(event.target.value)}
+              pattern="[0-9]*"
+              type="text"
+              value={currentPage}
+            />
+          </TextField.Root>
+        </FormField>
+        <FormField label="전체 페이지" name="total-reading-pages">
+          <TextField.Root invalid={Boolean(errorMessage)}>
+            <TextField.Input
+              aria-invalid={Boolean(errorMessage)}
+              id="total-reading-pages"
+              inputMode="numeric"
+              onChange={(event) => setTotalPages(event.target.value)}
+              pattern="[0-9]*"
+              type="text"
+              value={totalPages}
+            />
+          </TextField.Root>
+        </FormField>
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        <ActionButton disabled={isSaving} onClick={onClose} variant="neutralOutline" type="button">
           취소
-        </button>
-        <button
-          className="bg-primary min-h-11 cursor-pointer rounded-md px-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+        </ActionButton>
+        <ActionButton
+          className="talkhugam-primary-action"
           disabled={isSaving}
+          loading={isSaving}
           onClick={handleSubmit}
           type="button"
         >
           진행률 저장
-        </button>
+        </ActionButton>
       </div>
     </BottomSheet>
   )
@@ -352,7 +348,7 @@ function ReadingBookGroups({
   const groups = groupReadingBooksByRoom(books)
   if (groups.length === 0) {
     return (
-      <section className="bg-surface-muted mt-12 rounded-lg p-6 text-center">
+      <section className="talkhugam-information-surface border-ink/10 mt-12 rounded-lg border p-6 text-center">
         <h2 className="text-ink text-base font-bold">아직 읽고 있는 책이 없어요</h2>
         <p className="text-ink-subtle mt-2 text-sm">
           책방에서 첫 책을 골라 이야기를 시작해 보세요.
@@ -421,69 +417,45 @@ function ReadingBookCard({
           <span className="text-ink-subtle mt-1 block truncate text-xs">
             {book.authors.join(', ') || '저자 정보 없음'}
           </span>
-          {isCompleted ? <CompletionMark className="mt-2" /> : null}
+          {isCompleted ? <ReadingStatus isCompleted /> : null}
           {completion ? <CompletionSummary completion={completion} /> : null}
         </span>
         <span aria-hidden="true" className="text-ink-subtle text-lg">
           ›
         </span>
       </Link>
-      {!isCompleted ? <ReadingProgressSummary progress={progress} /> : null}
+      {!isCompleted ? (
+        <div className="px-3 pb-3">
+          <ReadingStatus currentPage={progress?.currentPage} totalPages={progress?.totalPages} />
+        </div>
+      ) : null}
       <div className="border-ink/10 flex items-center justify-between gap-3 border-t px-3 py-2">
         <span className="text-ink-subtle text-xs">
           {isCompleted ? '완독 기록을 남겼어요.' : '별점과 총평을 남길 수 있어요.'}
         </span>
         <div className="flex shrink-0 gap-2">
           {!isCompleted ? (
-            <button
+            <ActionButton
               aria-label={`${book.title} 진행률 기록하기`}
-              className="border-primary text-primary min-h-11 cursor-pointer rounded-md border bg-white px-3 text-sm font-semibold"
               onClick={handleOpenProgress}
               type="button"
+              variant="brandOutline"
             >
               진행률 기록하기
-            </button>
+            </ActionButton>
           ) : null}
-          <button
+          <ActionButton
             aria-label={`${book.title} ${actionLabel}`}
-            className={`min-h-11 cursor-pointer rounded-md px-3 text-sm font-semibold ${
-              isCompleted ? 'border-primary text-primary border bg-white' : 'bg-primary text-white'
-            }`}
+            className={isCompleted ? '' : 'talkhugam-primary-action'}
             onClick={handleOpenCompletion}
             type="button"
+            variant={isCompleted ? 'brandOutline' : 'brandSolid'}
           >
             {actionLabel}
-          </button>
+          </ActionButton>
         </div>
       </div>
     </article>
-  )
-}
-
-/** 개인 진행률이 있는 책 카드에 현재 페이지와 퍼센트 막대를 렌더링한다. */
-function ReadingProgressSummary({ progress }: { progress: ReadingProgress | undefined }) {
-  if (!progress) return null
-  const percent = calculateReadingProgressPercent(progress.currentPage, progress.totalPages)
-
-  return (
-    <div className="px-3 pb-3">
-      <div className="text-ink-subtle flex items-center justify-between text-xs">
-        <span>
-          {progress.currentPage} / {progress.totalPages}쪽
-        </span>
-        <span className="text-primary font-semibold">{percent}%</span>
-      </div>
-      <div
-        aria-label={`독서 진행률 ${percent}%`}
-        aria-valuemax={100}
-        aria-valuemin={0}
-        aria-valuenow={percent}
-        className="bg-ink/10 mt-2 h-2 overflow-hidden rounded-full"
-        role="progressbar"
-      >
-        <span className="bg-primary block h-full rounded-full" style={{ width: `${percent}%` }} />
-      </div>
-    </div>
   )
 }
 

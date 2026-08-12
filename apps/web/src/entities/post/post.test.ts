@@ -1,6 +1,14 @@
 import { createClient } from '@supabase/supabase-js'
 import { describe, expect, it, vi } from 'vitest'
-import { createPost, createReply, parsePostForm, parsePosts } from './post'
+import {
+  getPostReactions,
+  togglePostReaction,
+  createPost,
+  createReply,
+  parsePostForm,
+  parsePosts,
+  parsePostReactions,
+} from './post'
 
 const postId = 'f17c0d6d-3e6e-4b7f-a1f1-5d652aa2a85e'
 const mentionedMemberId = 'b3c8b282-6092-45f8-b15f-523a9dcd0eab'
@@ -113,4 +121,62 @@ describe('post parser', () => {
         rootPostId: null,
       },
     ]))
+  it('maps Supabase rows to grouped reaction summaries', () =>
+    expect(
+      parsePostReactions(
+        [
+          {
+            emoji: '❤️',
+            member_id: 'd3c8b282-6092-45f8-b15f-523a9dcd0eab',
+            post_id: postId,
+          },
+          {
+            emoji: '❤️',
+            member_id: 'c3c8b282-6092-45f8-b15f-523a9dcd0eab',
+            post_id: postId,
+          },
+          {
+            emoji: '👍',
+            member_id: mentionedMemberId,
+            post_id: postId,
+          },
+        ],
+        mentionedMemberId,
+      ).get(postId),
+    ).toEqual([
+      {
+        count: 2,
+        emoji: '❤️',
+        hasReacted: false,
+        postId,
+      },
+      {
+        count: 1,
+        emoji: '👍',
+        hasReacted: true,
+        postId,
+      },
+    ]))
+  it('loads reactions for the visible post identifiers', async () => {
+    const client = createClient('https://example.supabase.co', 'test-publishable-key')
+    const inMock = vi.fn().mockResolvedValue({ data: [], error: null })
+    const selectMock = vi.fn(() => ({ in: inMock }))
+    const fromMock = vi.spyOn(client, 'from').mockReturnValue({ select: selectMock } as never)
+
+    await getPostReactions(client, [postId], mentionedMemberId)
+
+    expect(fromMock).toHaveBeenCalledWith('post_reactions')
+    expect(selectMock).toHaveBeenCalledWith('post_id, member_id, emoji')
+    expect(inMock).toHaveBeenCalledWith('post_id', [postId])
+  })
+  it('toggles a reaction through the RPC boundary', async () => {
+    const { client, rpc } = createPostClient()
+
+    await togglePostReaction(client, postId, '😊')
+
+    expect(rpc).toHaveBeenCalledWith('toggle_post_reaction', {
+      p_emoji: '😊',
+      p_post_id: postId,
+    })
+  })
 })

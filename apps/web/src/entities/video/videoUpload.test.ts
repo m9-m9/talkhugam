@@ -41,6 +41,15 @@ describe('parseVideoDeletePermission', () => {
     ).toEqual({ canDelete: true })
   })
 
+  it('accepts an operator membership without granting another member video deletion', () => {
+    expect(
+      parseVideoDeletePermission(
+        { id: '8fc963a4-da01-4696-995c-755fe145776f', role: 'manager' },
+        '4b7227b2-5350-4a61-9114-b2d0c915fd1b',
+      ),
+    ).toEqual({ canDelete: false })
+  })
+
   it('maps an absent membership to a denied permission', () => {
     expect(parseVideoDeletePermission(null, '4b7227b2-5350-4a61-9114-b2d0c915fd1b')).toEqual({
       canDelete: false,

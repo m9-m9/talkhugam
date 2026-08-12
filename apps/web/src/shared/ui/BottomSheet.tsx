@@ -1,74 +1,67 @@
-import { useEffect, useRef, type PointerEvent, type ReactNode } from 'react'
+import { ActionButton, SwipeableMenuSheet } from '@seed-design/react'
+import { useRef, type ReactNode, type RefObject } from 'react'
 
-import { trapDialogFocus } from './dialogFocus'
+/** 화면 하단에서 열리는 보조 작업을 SEED 스와이프 시트로 렌더링한다. */
+export function BottomSheet({
+  children,
+  onClose,
+  returnFocusRef,
+  shouldRestoreFocus = () => true,
+  title,
+}: BottomSheetProps) {
+  const triggerElementRef = useRef<HTMLElement | null>(
+    document.activeElement instanceof HTMLElement ? document.activeElement : null,
+  )
 
-/** 화면 하단에서 열리는 보조 작업용 공용 시트를 렌더링한다. */
-export function BottomSheet({ children, onClose, title }: BottomSheetProps) {
-  const dialogRef = useRef<HTMLElement>(null)
-  const closeButtonRef = useRef<HTMLButtonElement>(null)
-
-  useEffect(() => {
-    closeButtonRef.current?.focus()
-
-    /** Escape로 시트를 닫고 Tab 포커스가 시트 바깥으로 이동하지 않게 한다. */
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        event.preventDefault()
-        onClose()
-        return
-      }
-      if (event.key === 'Tab') trapDialogFocus(event, dialogRef.current)
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [onClose])
-
-  /** 시트 밖 배경을 눌렀을 때만 현재 보조 작업을 닫는다. */
-  function handleBackdropPointerDown(event: PointerEvent<HTMLButtonElement>) {
-    event.preventDefault()
+  /** 시트를 닫은 뒤 Drawer 정리 이후에 원래 트리거로 키보드 포커스를 복귀한다. */
+  function handleClose() {
     onClose()
+    if (shouldRestoreFocus()) {
+      const returnFocusTarget = returnFocusRef?.current ?? triggerElementRef.current
+      window.setTimeout(() => returnFocusTarget?.focus(), 200)
+    }
+  }
+
+  /** SEED 시트의 닫힘 요청을 부모가 관리하는 열린 상태에 반영한다. */
+  function handleOpenChange(isOpen: boolean) {
+    if (!isOpen) handleClose()
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center">
-      <button
-        aria-label={`${title} 창 닫기`}
-        className="bg-ink/40 absolute inset-0 cursor-default"
-        onPointerDown={handleBackdropPointerDown}
-        tabIndex={-1}
-        type="button"
-      />
-      <section
-        aria-labelledby="bottom-sheet-heading"
-        aria-modal="true"
-        className="bg-surface relative max-h-[80dvh] w-full max-w-[640px] overflow-y-auto rounded-t-lg p-6 shadow-xl"
-        ref={dialogRef}
-        role="dialog"
-      >
-        <div aria-hidden="true" className="bg-ink/20 mx-auto h-1 w-12 rounded-full" />
-        <div className="mt-4 flex items-start justify-between gap-4">
-          <h2 className="text-ink text-xl font-bold" id="bottom-sheet-heading">
-            {title}
-          </h2>
-          <button
-            aria-label={`${title} 닫기`}
-            className="text-ink hover:bg-surface-muted flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-md text-2xl"
-            onClick={onClose}
-            ref={closeButtonRef}
-            type="button"
-          >
-            ×
-          </button>
-        </div>
-        {children}
-      </section>
-    </div>
+    <SwipeableMenuSheet.Root
+      closeOnEscape
+      closeOnInteractOutside
+      onOpenChange={handleOpenChange}
+      open
+    >
+      <SwipeableMenuSheet.Positioner className="talkhugam-bottom-sheet-positioner">
+        <SwipeableMenuSheet.Backdrop data-testid="bottom-sheet-backdrop" />
+        <SwipeableMenuSheet.Content className="talkhugam-bottom-sheet max-w-[640px]">
+          <SwipeableMenuSheet.Handle />
+          <SwipeableMenuSheet.Header className="relative">
+            <SwipeableMenuSheet.Title>{title}</SwipeableMenuSheet.Title>
+            <ActionButton
+              aria-label={`${title} 닫기`}
+              className="absolute top-0 right-0"
+              onClick={handleClose}
+              size="small"
+              type="button"
+              variant="ghost"
+            >
+              닫기
+            </ActionButton>
+          </SwipeableMenuSheet.Header>
+          {children}
+        </SwipeableMenuSheet.Content>
+      </SwipeableMenuSheet.Positioner>
+    </SwipeableMenuSheet.Root>
   )
 }
 
 type BottomSheetProps = {
   children: ReactNode
   onClose: () => void
+  returnFocusRef?: RefObject<HTMLElement | null>
+  shouldRestoreFocus?: () => boolean
   title: string
 }

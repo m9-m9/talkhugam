@@ -1,6 +1,9 @@
 import { useState, type ChangeEvent } from 'react'
 
+import { ActionButton, TextField } from '@seed-design/react'
+
 import type { BookCompletionInput } from '../../entities/book-completion'
+import { FormField } from '../../shared/ui/FormField'
 
 type CompletionReviewFormProps = {
   bookChatId: string
@@ -68,34 +71,33 @@ export function CompletionReviewForm({
           ))}
         </div>
       </fieldset>
-      <label className="text-ink mt-4 block text-sm font-medium" htmlFor="completion-review">
-        총평 (선택)
-      </label>
-      <textarea
-        className="border-ink/10 focus:border-primary mt-2 min-h-24 w-full resize-none rounded-md border px-3 py-2 text-sm outline-none"
-        id="completion-review"
-        maxLength={1000}
-        onChange={handleChangeReview}
-        placeholder="이 책을 읽고 남은 생각을 적어 보세요."
-        value={review}
-      />
+      <div className="mt-4">
+        <FormField label="총평 (선택)" name="completion-review">
+          <TextField.Root>
+            <TextField.Textarea
+              autoresize={false}
+              id="completion-review"
+              maxLength={1000}
+              onChange={handleChangeReview}
+              placeholder="이 책을 읽고 남은 생각을 적어 보세요."
+              value={review}
+            />
+          </TextField.Root>
+        </FormField>
+      </div>
       <div className="mt-4 grid grid-cols-2 gap-2">
-        <button
-          className="border-ink/10 text-ink min-h-11 cursor-pointer rounded-md border px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40"
-          disabled={isSaving}
-          onClick={onCancel}
-          type="button"
-        >
+        <ActionButton disabled={isSaving} onClick={onCancel} type="button" variant="neutralOutline">
           취소
-        </button>
-        <button
-          className="bg-primary min-h-11 cursor-pointer rounded-md px-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+        </ActionButton>
+        <ActionButton
+          className="talkhugam-primary-action"
           disabled={isSaving}
+          loading={isSaving}
           onClick={handleSaveReview}
           type="button"
         >
           {submitLabel}
-        </button>
+        </ActionButton>
       </div>
     </div>
   )

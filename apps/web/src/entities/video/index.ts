@@ -12,6 +12,7 @@ export {
   getUploadedVideoNavigationState,
   getVideoPlaybackAuthorization,
   getVideoPosts,
+  getRoomVideoPosts,
   getVideoThumbnailAuthorizations,
   parseVideoPlaybackAuthorization,
   parseVideoThumbnailAuthorizations,
@@ -30,6 +31,7 @@ export {
   type VideoPlaybackAuthorization,
   type VideoThumbnailAuthorization,
   type VideoPost,
+  type RoomVideoPost,
   type VideoPostFilter,
 } from './videoUpload'
 export { getVideoUploadErrorMessage } from './videoUploadError'

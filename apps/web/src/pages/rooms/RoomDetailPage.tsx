@@ -1,10 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
+import { ActionButton } from '@seed-design/react'
 
 import { bookChatKeys, getBookChats, getReadingRoom } from '../../entities/book-chat'
 import { bookCompletionKeys, getMyBookChatCompletionIds } from '../../entities/book-completion'
 import {
-  calculateReadingProgressPercent,
   getMyReadingProgresses,
   readingProgressKeys,
   type ReadingProgress,
@@ -13,9 +13,9 @@ import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { BookCover } from '../../shared/ui/BookCover'
-import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { BookLoadingIndicator } from '../../shared/ui/LoadingSpinner'
 import { RetryState } from '../../shared/ui/RetryState'
-import { CompletionMark } from '../../shared/ui/CompletionMark'
+import { ReadingStatus } from '../../shared/ui/ReadingStatus'
 
 /** 선택한 책방의 책 대화와 관리 진입점을 렌더링한다. */
 export function RoomDetailPage() {
@@ -56,23 +56,16 @@ export function RoomDetailPage() {
     <main className="app-page bg-surface px-4 pb-8">
       <AppHeader
         action={
-          <div className="flex items-center gap-1">
-            <button
-              className="text-primary min-h-11 px-3 text-sm font-medium"
-              onClick={() => void navigate(`/rooms/${roomId}/books/new`)}
-              type="button"
-            >
-              새 책
-            </button>
-            <button
-              aria-label="방 정보와 멤버 관리"
-              className="text-ink min-h-11 min-w-11 px-3 text-xl"
-              onClick={() => void navigate(`/rooms/${roomId}/manage`)}
-              type="button"
-            >
-              ⋯
-            </button>
-          </div>
+          <ActionButton
+            aria-label="방 정보와 멤버 관리"
+            className="text-ink min-h-11 min-w-11 px-3 text-xl"
+            onClick={() => void navigate(`/rooms/${roomId}/manage`)}
+            size="small"
+            type="button"
+            variant="ghost"
+          >
+            ⋯
+          </ActionButton>
         }
         onBack={() => void navigate('/rooms')}
         title="책방"
@@ -99,6 +92,25 @@ export function RoomDetailPage() {
           onRetry={handleRetryBookChats}
           roomId={roomId}
         />
+      </section>
+      <section className="mt-12" aria-labelledby="room-videos-heading">
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="text-ink text-base font-bold" id="room-videos-heading">
+            함께 남긴 책갈피
+          </h2>
+          <ActionButton
+            className="text-primary"
+            onClick={() => void navigate(`/rooms/${roomId}/videos`)}
+            size="small"
+            type="button"
+            variant="ghost"
+          >
+            전체 책갈피
+          </ActionButton>
+        </div>
+        <p className="text-ink-subtle mt-2 text-sm">
+          읽었던 책의 문장과 영상을 한곳에서 볼 수 있어요.
+        </p>
       </section>
     </main>
   )
@@ -128,13 +140,13 @@ function BookChatsContent({
   if (isPending)
     return (
       <div className="mt-6">
-        <LoadingSpinner label="책을 불러오고 있어요." size="sm" variant="book" />
+        <BookLoadingIndicator label="책을 불러오고 있어요." size="sm" />
       </div>
     )
   if (isRetrying)
     return (
       <div className="mt-6">
-        <LoadingSpinner label="책을 다시 불러오고 있어요." size="sm" variant="book" />
+        <BookLoadingIndicator label="책을 다시 불러오고 있어요." size="sm" />
       </div>
     )
   if (isError)
@@ -149,10 +161,12 @@ function BookChatsContent({
     <ul className="mt-4 space-y-3">
       {chats.map((chat) => (
         <li key={chat.id}>
-          <button
-            className="border-ink/10 hover:border-primary flex min-h-24 w-full items-center gap-3 rounded-lg border bg-white p-4 text-left"
+          <ActionButton
+            className="border-ink/10 hover:!border-primary !h-auto min-h-24 w-full !justify-start gap-3 rounded-lg border !bg-white p-4 text-left !whitespace-normal"
             onClick={() => void navigate(`/rooms/${roomId}/books/${chat.id}`)}
+            size="large"
             type="button"
+            variant="neutralWeak"
           >
             <BookCover alt={`${chat.title} 표지`} thumbnailUrl={chat.thumbnailUrl} />
             <span className="min-w-0">
@@ -160,12 +174,13 @@ function BookChatsContent({
               <span className="text-ink-subtle mt-1 block text-xs">
                 {chat.authors.join(', ') || chat.name}
               </span>
-              {completedBookChatIds.has(chat.id) ? <CompletionMark className="mt-2" /> : null}
-              {!completedBookChatIds.has(chat.id) ? (
-                <BookChatProgress progress={progressesByBookChatId.get(chat.id)} />
-              ) : null}
+              <ReadingStatus
+                currentPage={progressesByBookChatId.get(chat.id)?.currentPage}
+                isCompleted={completedBookChatIds.has(chat.id)}
+                totalPages={progressesByBookChatId.get(chat.id)?.totalPages}
+              />
             </span>
-          </button>
+          </ActionButton>
         </li>
       ))}
     </ul>
@@ -179,39 +194,14 @@ function createProgressesByBookChatId(
   return new Map(progresses.map((progress) => [progress.bookChatId, progress]))
 }
 
-/** 아직 완독하지 않은 책 카드에 개인 진행률과 퍼센트 막대를 렌더링한다. */
-function BookChatProgress({ progress }: { progress: ReadingProgress | undefined }) {
-  if (!progress) return null
-  const percent = calculateReadingProgressPercent(progress.currentPage, progress.totalPages)
-
-  return (
-    <span className="mt-3 block">
-      <span className="text-ink-subtle flex items-center justify-between text-xs">
-        <span>
-          {progress.currentPage} / {progress.totalPages}쪽
-        </span>
-        <span className="text-primary font-semibold">{percent}%</span>
-      </span>
-      <span
-        aria-label={`독서 진행률 ${percent}%`}
-        aria-valuemax={100}
-        aria-valuemin={0}
-        aria-valuenow={percent}
-        className="bg-ink/10 mt-2 block h-2 overflow-hidden rounded-full"
-        role="progressbar"
-      >
-        <span className="bg-primary block h-full rounded-full" style={{ width: `${percent}%` }} />
-      </span>
-    </span>
-  )
-}
-
 /** 빈 책 대화 목록 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function EmptyBookChats() {
   return (
-    <div className="bg-surface-muted mt-6 rounded-lg p-6 text-center">
+    <div className="talkhugam-information-surface border-ink/10 mt-6 rounded-lg border p-6 text-center">
       <p className="text-ink text-base font-medium">아직 함께 읽는 책이 없어요</p>
-      <p className="text-ink-subtle mt-2 text-sm">첫 책을 골라 이야기를 시작해 보세요.</p>
+      <p className="text-ink-subtle mt-2 text-sm">
+        이 책방에는 여러 권의 책을 차례로 함께 읽을 수 있어요. 방장에게 첫 책을 제안해 보세요.
+      </p>
     </div>
   )
 }
@@ -220,7 +210,7 @@ function EmptyBookChats() {
 function RoomLoadingPage() {
   return (
     <main className="bg-surface flex min-h-screen items-center justify-center px-4">
-      <LoadingSpinner label="책방을 불러오고 있어요." variant="book" />
+      <BookLoadingIndicator label="책방을 불러오고 있어요." />
     </main>
   )
 }
@@ -231,13 +221,15 @@ function RoomUnavailablePage({ onBack }: { onBack: () => void }) {
     <main className="bg-surface flex min-h-screen flex-col items-center justify-center px-4 text-center">
       <p className="text-ink text-lg font-medium">이 책방을 찾을 수 없어요</p>
       <p className="text-ink-subtle mt-2 text-sm">참여 중인 책방인지 확인해 주세요.</p>
-      <button
-        className="bg-primary mt-6 min-h-11 rounded-md px-4 text-sm font-semibold text-white"
+      <ActionButton
+        className="talkhugam-primary-action mt-6"
         onClick={onBack}
+        size="large"
         type="button"
+        variant="brandSolid"
       >
         내 책방으로
-      </button>
+      </ActionButton>
     </main>
   )
 }

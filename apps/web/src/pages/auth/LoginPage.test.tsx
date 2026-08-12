@@ -18,7 +18,7 @@ describe('LoginPage', () => {
     signInWithOAuth.mockResolvedValue({ data: {}, error: null })
     renderLoginPage()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Google로 계속하기' }))
+    fireEvent.click(screen.getByRole('button', { name: '구글 로그인' }))
 
     expect(signInWithOAuth).toHaveBeenCalledWith({
       provider: 'google',
@@ -30,7 +30,7 @@ describe('LoginPage', () => {
     signInWithOAuth.mockResolvedValue({ data: null, error: new Error('oauth') })
     renderLoginPage()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Google로 계속하기' }))
+    fireEvent.click(screen.getByRole('button', { name: '구글 로그인' }))
 
     expect(
       await screen.findByText('로그인을 시작하지 못했어요. 잠시 후 다시 시도해 주세요.'),
@@ -41,7 +41,7 @@ describe('LoginPage', () => {
     signInWithOAuth.mockReturnValue(new Promise(() => undefined))
     renderLoginPage()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Google로 계속하기' }))
+    fireEvent.click(screen.getByRole('button', { name: '구글 로그인' }))
 
     const status = screen.getByRole('status', { name: '로그인을 연결하고 있어요.' })
     expect(status.querySelector('.talkhugam-brand-spinner')).toBeInTheDocument()
@@ -63,6 +63,47 @@ describe('LoginPage', () => {
     expect(screen.getByRole('link', { name: '개인정보처리방침' })).toHaveAttribute(
       'href',
       '/legal/privacy',
+    )
+  })
+
+  it('centers every provider content group inside its button', () => {
+    renderLoginPage()
+
+    for (const provider of ['카카오 로그인', '구글 로그인', '네이버 로그인']) {
+      const button = screen.getByRole('button', { name: provider })
+      expect(button).toHaveClass('!justify-center')
+    }
+  })
+
+  it('uses a centered icon and label group for every provider', () => {
+    renderLoginPage()
+
+    expect(screen.getByText('카카오 로그인')).toHaveClass(
+      'talkhugam-social-login-button__provider-label',
+    )
+    expect(
+      screen.getByRole('button', { name: '네이버 로그인' }).querySelector('img'),
+    ).toHaveAttribute('src', '/brand/social/naver-icon.png')
+    expect(
+      screen.getByRole('button', { name: '구글 로그인' }).querySelector('img'),
+    ).toHaveAttribute('src', '/brand/social/google-login.svg')
+    expect(screen.getByText('구글 로그인')).toHaveClass(
+      'talkhugam-social-login-button__google-label',
+    )
+  })
+
+  it('keeps an eight-pixel gap between stacked provider buttons', () => {
+    renderLoginPage()
+
+    expect(screen.getByRole('button', { name: '카카오 로그인' }).parentElement).toHaveClass('gap-2')
+  })
+
+  it('groups the login content in a centered readable column', () => {
+    renderLoginPage()
+
+    expect(screen.getByRole('main')).toHaveClass('talkhugam-login-page')
+    expect(screen.getByRole('region', { name: 'Talk후감 로그인' })).toHaveClass(
+      'talkhugam-login-content',
     )
   })
 })

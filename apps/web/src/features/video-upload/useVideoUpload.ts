@@ -20,7 +20,7 @@ export function useVideoUpload(bookChatId: string | undefined) {
   const [isUploadingVideo, setIsUploadingVideo] = useState(false)
 
   /** 영상 데이터를 외부 저장소에 업로드한다. */
-  async function uploadVideo(file: File | undefined) {
+  async function uploadVideo(file: File | undefined, caption?: string) {
     if (!file || !bookChatId) return
     setErrorMessage(null)
     setIsUploadingVideo(true)
@@ -29,7 +29,7 @@ export function useVideoUpload(bookChatId: string | undefined) {
         setErrorMessage('30초 이하의 영상만 올릴 수 있어요.')
         return
       }
-      const upload = await createVideoUpload(createSupabaseClient(), bookChatId)
+      const upload = await createVideoUpload(createSupabaseClient(), bookChatId, caption)
       trackAnalyticsEvent('video_upload_started')
       await refreshVideoPosts(bookChatId)
       await queryClient.invalidateQueries({ queryKey: readingRoomKeys.all })

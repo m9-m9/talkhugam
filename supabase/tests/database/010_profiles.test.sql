@@ -60,16 +60,7 @@ select is(
   1::bigint,
   'auth user trigger should create notification preferences'
 );
-select throws_ok(
-  $$
-    update public.profiles
-    set mbti = 'XXXX'
-    where id = '00000000-0000-0000-0000-000000000111'
-  $$,
-  '23514',
-  null,
-  'invalid MBTI should violate a check constraint'
-);
+select hasnt_column('public', 'profiles', 'mbti', 'profiles should not store MBTI');
 
 select tests.authenticate_as('00000000-0000-0000-0000-000000000111');
 set local role authenticated;

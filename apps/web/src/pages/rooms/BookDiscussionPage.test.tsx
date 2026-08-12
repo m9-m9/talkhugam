@@ -8,6 +8,7 @@ import { BookDiscussionPage } from './BookDiscussionPage'
 const {
   createPost,
   createReply,
+  getPostReactions,
   createManagedRoomInvite,
   getRoomManagement,
   getManagedBookChat,
@@ -15,15 +16,19 @@ const {
   getReadingRoom,
   getPosts,
   getVideoFilterMembers,
+  getVideoPlaybackAuthorization,
   getVideoPosts,
   getVideoThumbnailAuthorizations,
   parsePostForm,
   requestManagedRoomInvite,
+  shouldSubmitMessage,
+  togglePostReaction,
   upsertBookChatCompletion,
   videoUploadState,
 } = vi.hoisted(() => ({
   createPost: vi.fn().mockResolvedValue('post-1'),
   createReply: vi.fn().mockResolvedValue('reply-1'),
+  getPostReactions: vi.fn().mockResolvedValue(new Map()),
   createManagedRoomInvite: vi.fn().mockResolvedValue({
     code: 'TALK87',
     expiresAt: '2026-07-24T02:01:30.123+00:00',
@@ -32,11 +37,11 @@ const {
   }),
   getManagedBookChat: vi.fn().mockResolvedValue({
     id: 'book-1',
-    name: '미움받을 용기',
+    name: '미움받을 용기(200만 부 기념 스페셜 에디션)',
     roomId: 'room-1',
     status: 'reading',
     thumbnailUrl: null,
-    title: '미움받을 용기',
+    title: '미움받을 용기(200만 부 기념 스페셜 에디션)',
   }),
   getRoomManagement: vi.fn().mockResolvedValue({
     createdBy: '00000000-0000-0000-0000-000000000001',
@@ -66,6 +71,11 @@ const {
       isCurrentUser: true,
     },
   ]),
+  getVideoPlaybackAuthorization: vi.fn().mockResolvedValue({
+    playbackId: 'playback-id',
+    thumbnailToken: 'thumbnail-token',
+    token: 'playback-token',
+  }),
   getVideoPosts: vi.fn().mockResolvedValue([]),
   getVideoThumbnailAuthorizations: vi.fn().mockResolvedValue([]),
   parsePostForm: vi.fn(
@@ -86,6 +96,8 @@ const {
     },
   ),
   requestManagedRoomInvite: vi.fn().mockResolvedValue(true),
+  shouldSubmitMessage: vi.fn((key: string, shiftKey: boolean) => key === 'Enter' && !shiftKey),
+  togglePostReaction: vi.fn().mockResolvedValue(undefined),
   upsertBookChatCompletion: vi.fn().mockResolvedValue(undefined),
   videoUploadState: { isUploadingVideo: false },
 }))
@@ -93,10 +105,15 @@ const {
 vi.mock('../../entities/post', () => ({
   createPost,
   createReply,
+  getPostReactions,
   getPosts,
   parsePostForm,
-  postKeys: { byBookChat: (bookChatId: string) => ['posts', bookChatId] },
-  shouldSubmitMessage: () => false,
+  postKeys: {
+    byBookChat: (bookChatId: string) => ['posts', bookChatId],
+    reactions: (bookChatId: string) => ['post-reactions', bookChatId],
+  },
+  shouldSubmitMessage,
+  togglePostReaction,
 }))
 
 vi.mock('../../entities/book-chat', () => ({
@@ -112,6 +129,7 @@ vi.mock('../../entities/book-chat', () => ({
 vi.mock('../../entities/video', () => ({
   createMuxThumbnailUrl: () => 'https://image.mux.com/playback-id/thumbnail.webp?token=token',
   getVideoFilterMembers,
+  getVideoPlaybackAuthorization,
   getVideoPosts,
   getVideoThumbnailAuthorizations,
   mapVideoThumbnailAuthorizations: (authorizations: Array<{ postId: string }>) =>
@@ -119,8 +137,17 @@ vi.mock('../../entities/video', () => ({
   videoKeys: {
     byBookChat: (bookChatId: string) => ['video-posts', bookChatId],
     members: (roomId: string) => ['video-filter-members', roomId],
+    playback: (postId: string) => ['video-playback', postId],
     thumbnails: (postIds: string[]) => ['video-thumbnails', postIds],
   },
+}))
+
+vi.mock('../../shared/ui/LazyMuxVideoPlayer', () => ({
+  LazyMuxVideoPlayer: ({ autoPlay, playbackId }: { autoPlay?: boolean; playbackId: string }) => (
+    <div aria-label="책갈피 영상 재생기" data-autoplay={String(Boolean(autoPlay))}>
+      {playbackId}
+    </div>
+  ),
 }))
 
 vi.mock('../../entities/reading-room', () => ({
@@ -165,16 +192,140 @@ vi.mock('../../shared/api/supabaseClient', () => ({
   createSupabaseClient: vi.fn(),
 }))
 
+vi.mock('frimousse', async () => {
+  const React = await import('react')
+  const pickerGroups = [
+    {
+      emojis: ['😀', '😃', '😄', '😁', '😆', '❤️', '👍', '👏', '😊', '😮', '😂', '😍'],
+      label: 'Smileys & Emotion',
+    },
+    { emojis: ['🌐', '🌍', '🌎', '🌏', '🗺️', '🔥', '🌊'], label: 'Travel & Places' },
+    { emojis: ['🎃', '🎄'], label: 'Activities' },
+    { emojis: ['🏧', '🚮'], label: 'Symbols' },
+    { emojis: ['🏁', '🚩'], label: 'Flags' },
+  ]
+  const EmojiPickerContext = React.createContext<(emoji: { emoji: string; label: string }) => void>(
+    () => {},
+  )
+
+  /** 테스트에서 선택 이벤트를 공유하는 Frimousse 루트 대체 컴포넌트를 렌더링한다. */
+  function Root({
+    children,
+    onEmojiSelect,
+    ...props
+  }: {
+    children: React.ReactNode
+    onEmojiSelect?: (emoji: { emoji: string; label: string }) => void
+  } & React.ComponentProps<'div'>) {
+    return (
+      <EmojiPickerContext.Provider value={onEmojiSelect ?? (() => {})}>
+        <div {...props}>{children}</div>
+      </EmojiPickerContext.Provider>
+    )
+  }
+
+  /** 테스트에서 검색 입력의 접근성 계약만 유지한다. */
+  function Search(props: React.ComponentProps<'input'>) {
+    return <input {...props} type="search" />
+  }
+
+  /** 테스트에서 피커 viewport의 자식 컴포넌트를 그대로 렌더링한다. */
+  function Viewport({ children, ...props }: React.ComponentProps<'div'>) {
+    return <div {...props}>{children}</div>
+  }
+
+  /** 테스트에서는 비동기 로딩 표시를 생략한다. */
+  function Loading() {
+    return null
+  }
+
+  /** 테스트에서는 빈 결과 표시를 생략한다. */
+  function Empty() {
+    return null
+  }
+
+  /** 테스트에서 선택 가능한 Frimousse 이모지 목록을 단순 버튼으로 렌더링한다. */
+  function List({
+    components,
+    ...props
+  }: {
+    components?: {
+      CategoryHeader?: React.ComponentType<{ category: { label: string } }>
+      Emoji?: React.ComponentType<
+        React.ComponentProps<'button'> & { emoji: { emoji: string; isActive: boolean } }
+      >
+      Row?: React.ComponentType<React.ComponentProps<'div'>>
+    }
+  } & React.ComponentProps<'div'>) {
+    const selectEmoji = React.useContext(EmojiPickerContext)
+    const CategoryHeader = components?.CategoryHeader
+    const Emoji = components?.Emoji
+    const Row = components?.Row ?? 'div'
+
+    return (
+      <div {...props}>
+        {pickerGroups.map((group) => (
+          <React.Fragment key={group.label}>
+            {CategoryHeader ? <CategoryHeader category={{ label: group.label }} /> : null}
+            <Row className="mb-2 grid grid-cols-5 gap-2">
+              {group.emojis.map((emoji) =>
+                Emoji ? (
+                  <div key={emoji} className="relative">
+                    <Emoji
+                      aria-hidden="true"
+                      emoji={{ emoji, isActive: false }}
+                      tabIndex={-1}
+                      type="button"
+                    />
+                    <button
+                      aria-label={`${emoji} 반응 남기기`}
+                      className="absolute inset-0"
+                      onClick={() => selectEmoji({ emoji, label: emoji })}
+                      type="button"
+                    />
+                  </div>
+                ) : (
+                  <button
+                    aria-label={`${emoji} 반응 남기기`}
+                    className="grid size-11 place-items-center rounded-md p-0 text-[28px]"
+                    key={emoji}
+                    onClick={() => selectEmoji({ emoji, label: emoji })}
+                    type="button"
+                  >
+                    {emoji}
+                  </button>
+                ),
+              )}
+            </Row>
+          </React.Fragment>
+        ))}
+      </div>
+    )
+  }
+
+  return { EmojiPicker: { Empty, List, Loading, Root, Search, Viewport } }
+})
+
 describe('BookDiscussionPage', () => {
   afterEach(() => {
     cleanup()
     createPost.mockClear()
     createReply.mockClear()
+    getPostReactions.mockClear()
+    getPostReactions.mockResolvedValue(new Map())
+    togglePostReaction.mockClear()
+    togglePostReaction.mockResolvedValue(undefined)
     getPosts.mockClear()
     getPosts.mockResolvedValue([])
     getVideoThumbnailAuthorizations.mockClear()
     getVideoThumbnailAuthorizations.mockResolvedValue([])
     getVideoFilterMembers.mockClear()
+    getVideoPlaybackAuthorization.mockClear()
+    getVideoPlaybackAuthorization.mockResolvedValue({
+      playbackId: 'playback-id',
+      thumbnailToken: 'thumbnail-token',
+      token: 'playback-token',
+    })
     getVideoPosts.mockClear()
     getVideoPosts.mockResolvedValue([])
     requestManagedRoomInvite.mockClear()
@@ -201,12 +352,14 @@ describe('BookDiscussionPage', () => {
     renderBookDiscussionPage()
 
     const message = await screen.findByText('이 문장이 특히 좋았어요.')
+    const messageBubble = message.closest('div')
+    const messageGroup = messageBubble?.parentElement
 
-    expect(message.closest('article')).toHaveClass('max-w-[70%]')
-    expect(message.closest('article')).toHaveClass('w-fit')
+    expect(messageGroup).toHaveClass('max-w-[70%]')
+    expect(messageGroup).toHaveClass('w-fit')
   })
 
-  it('aligns my text, reply, and video messages to the right', async () => {
+  it('aligns my text and reply messages to the right', async () => {
     getPosts.mockResolvedValueOnce([
       {
         authorMemberId: '0ce71cea-b4ea-4e18-a605-bf2088d4ba15',
@@ -239,24 +392,39 @@ describe('BookDiscussionPage', () => {
         rootPostId: null,
       },
     ])
-    getVideoPosts.mockResolvedValueOnce([
-      {
-        authorMemberId: '0ce71cea-b4ea-4e18-a605-bf2088d4ba15',
-        authorName: '나',
-        body: null,
-        createdAt: '2026-07-18T00:03:00.000Z',
-        id: 'video-1',
-        status: 'failed',
-      },
-    ])
     renderBookDiscussionPage()
 
     expect((await screen.findByText('내 독후감')).closest('li')).toHaveClass('justify-end')
     expect(screen.getByText('내 답글').closest('li')).toHaveClass('justify-end')
     expect(screen.getByText('다른 멤버의 독후감').closest('li')).toHaveClass('justify-start')
-    expect(
-      screen.getByText('영상 처리를 완료하지 못했어요. 잠시 후 다시 시도해 주세요.').closest('li'),
-    ).toHaveClass('justify-end')
+  })
+
+  it('keeps a short reply bubble wide enough to avoid awkward vertical wrapping', async () => {
+    getPosts.mockResolvedValueOnce([
+      {
+        authorMemberId: 'b3c8b282-6092-45f8-b15f-523a9dcd0eab',
+        authorName: '민수',
+        body: 'ㄷㄷ',
+        createdAt: '2026-07-18T00:00:00.000Z',
+        depth: 0,
+        id: 'post-1',
+        labels: [],
+        rootPostId: null,
+      },
+      {
+        authorMemberId: '0ce71cea-b4ea-4e18-a605-bf2088d4ba15',
+        authorName: '나',
+        body: 'ㅋㅋ',
+        createdAt: '2026-07-18T00:01:00.000Z',
+        depth: 1,
+        id: 'reply-1',
+        labels: [],
+        rootPostId: 'post-1',
+      },
+    ])
+    renderBookDiscussionPage()
+
+    expect((await screen.findByText('ㅋㅋ')).closest('div')).toHaveClass('min-w-36')
   })
 
   it('keeps the chat input at sixteen pixels to prevent mobile Safari zoom', () => {
@@ -292,49 +460,105 @@ describe('BookDiscussionPage', () => {
     expect(screen.getByText('@민수')).toHaveClass('text-primary')
   })
 
-  it('opens the bookshop invitation sheet from the plus menu without clearing a draft', async () => {
-    renderBookDiscussionPage()
-    const messageInput = screen.getByLabelText('메시지 입력')
-    fireEvent.change(messageInput, { target: { value: '이 문장을 나누고 싶어요.' } })
-    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
-    fireEvent.click(await screen.findByRole('button', { name: '책방 초대하기' }))
-
-    expect(await screen.findByRole('dialog', { name: '책방 초대하기' })).toBeInTheDocument()
-    expect(messageInput).toHaveValue('이 문장을 나누고 싶어요.')
-  })
-
-  it('lets a non-owner request an invite from the room owner', async () => {
-    getRoomManagement.mockResolvedValueOnce({
-      createdBy: '00000000-0000-0000-0000-000000000001',
-      description: null,
-      id: 'room-1',
-      isCurrentUserOwner: false,
-      members: [],
-      name: '금요일 아침 책방',
-      status: 'active',
-    })
+  it('keeps reply and reaction actions hidden until the message is hovered', async () => {
+    getPosts.mockResolvedValueOnce([
+      {
+        authorName: '서연',
+        body: '인상 깊었어요',
+        createdAt: '2026-07-18T00:00:00.000Z',
+        depth: 0,
+        id: 'f17c0d6d-3e6e-4b7f-a1f1-5d652aa2a85e',
+        labels: [],
+        rootPostId: null,
+      },
+    ])
     renderBookDiscussionPage()
 
-    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
+    expect(screen.queryByText('답글 남기기')).not.toBeInTheDocument()
+    const message = await screen.findByText('인상 깊었어요')
+    fireEvent.mouseEnter(message.closest('article')!)
 
-    fireEvent.click(await screen.findByRole('button', { name: '초대 요청' }))
+    expect(screen.queryByRole('button', { name: '서연에게 답글' })).not.toBeInTheDocument()
 
-    await vi.waitFor(() =>
-      expect(requestManagedRoomInvite).toHaveBeenCalledWith(undefined, 'room-1'),
-    )
-    expect(await screen.findByText('방장에게 책방 초대를 요청했어요.')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: '책방 초대하기' })).not.toBeInTheDocument()
+    fireEvent.mouseEnter(screen.getByLabelText('서연의 메시지'))
+
+    expect(screen.getByRole('button', { name: '서연에게 답글' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '이모지 반응 열기' })).toHaveClass('!size-11')
+    expect(screen.getByRole('button', { name: '❤️ 반응 남기기' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '👍 반응 남기기' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '👎 반응 남기기' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '😢 반응 남기기' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '👍 반응 남기기' })).toHaveClass('!bg-transparent')
+    expect(screen.getByRole('button', { name: '서연에게 답글' })).toHaveClass('order-last')
+    expect(screen.getByLabelText('서연의 메시지')).toHaveClass('w-fit')
+    expect(screen.getByLabelText('메시지 빠른 액션')).not.toHaveClass('-mx-2')
+    expect(screen.getByLabelText('메시지 빠른 액션')).toHaveClass('mt-1')
+    expect(screen.getByLabelText('메시지 빠른 액션').firstElementChild).toHaveClass('justify-start')
+
+    fireEvent.click(screen.getByRole('button', { name: '이모지 반응 열기' }))
+    fireEvent.mouseLeave(screen.getByLabelText('서연의 메시지').parentElement!)
+
+    expect(screen.getByRole('group', { name: 'Talk후감 이모티콘 패키지' })).toBeInTheDocument()
+    expect(
+      (await screen.findAllByRole('button', { name: '❤️ 반응 남기기' })).length,
+    ).toBeGreaterThanOrEqual(2)
   })
 
-  it('shows the bookshop in the header and the selected book as the discussion title', async () => {
+  it('aligns my quick message actions to the right edge of the bubble', async () => {
+    getPosts.mockResolvedValueOnce([
+      {
+        authorMemberId: '0ce71cea-b4ea-4e18-a605-bf2088d4ba15',
+        authorName: '나',
+        body: '내가 남긴 문장',
+        createdAt: '2026-07-18T00:00:00.000Z',
+        depth: 0,
+        id: 'f17c0d6d-3e6e-4b7f-a1f1-5d652aa2a85e',
+        labels: [],
+        rootPostId: null,
+      },
+    ])
     renderBookDiscussionPage()
 
-    expect(await screen.findByText('금요일 아침 책방')).toBeInTheDocument()
-    expect(screen.getByText('책 대화')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: '미움받을 용기' })).toBeInTheDocument()
+    fireEvent.mouseEnter(await screen.findByLabelText('나의 메시지'))
+
+    expect(screen.getByLabelText('메시지 빠른 액션')).toHaveClass('items-end')
+    expect(screen.getByLabelText('메시지 빠른 액션').firstElementChild).toHaveClass('justify-end')
   })
 
-  it('opens a square seventy-percent video preview in the immersive player', async () => {
+  it('shows the compact actions after a long press on mobile-like input', async () => {
+    getPosts.mockResolvedValueOnce([
+      {
+        authorName: '서연',
+        body: '길게 눌러요',
+        createdAt: '2026-07-18T00:00:00.000Z',
+        depth: 0,
+        id: 'f17c0d6d-3e6e-4b7f-a1f1-5d652aa2a85e',
+        labels: [],
+        rootPostId: null,
+      },
+    ])
+    renderBookDiscussionPage()
+
+    await screen.findByText('길게 눌러요')
+    fireEvent.pointerDown(screen.getByLabelText('서연의 메시지'))
+
+    expect(await screen.findByRole('button', { name: '서연에게 답글' })).toBeInTheDocument()
+  })
+
+  it('shows the bookshop and selected book in one compact header with conversation and bookmark tabs', async () => {
+    renderBookDiscussionPage()
+
+    expect(
+      await screen.findByText('금요일 아침 책방 - 미움받을 용기(200만 부 기념 스페셜 에디션)'),
+    ).toHaveClass('truncate')
+    expect(
+      screen.queryByRole('heading', { name: '미움받을 용기(200만 부 기념 스페셜 에디션)' }),
+    ).not.toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: '대화' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('tab', { name: '책갈피' })).toHaveAttribute('aria-selected', 'false')
+  })
+
+  it('plays a rectangular bookmark video preview in place', async () => {
     getVideoPosts.mockResolvedValueOnce([
       {
         authorName: '민규',
@@ -353,32 +577,93 @@ describe('BookDiscussionPage', () => {
     ])
     renderBookDiscussionPage()
 
+    await screen.findByRole('tab', { name: '책갈피' })
+    expect(screen.queryByRole('button', { name: '민규님의 영상 보기' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('tab', { name: '책갈피' }))
+
     const preview = await screen.findByRole('button', { name: '민규님의 영상 보기' })
-    expect(preview).toHaveClass('w-[70%]')
-    expect(preview.querySelector('.aspect-square')).toBeInTheDocument()
+    expect(preview).toHaveClass('w-full')
+    expect(preview).toHaveClass('!aspect-[3/1]')
+    expect(preview.querySelector('.aspect-square')).not.toBeInTheDocument()
     expect(getVideoThumbnailAuthorizations).toHaveBeenCalledWith(undefined, ['video-1'])
 
     fireEvent.click(preview)
 
-    expect(screen.getByText('몰입형 영상 화면')).toBeInTheDocument()
+    expect(await screen.findByLabelText('책갈피 영상 재생기')).toHaveAttribute(
+      'data-autoplay',
+      'true',
+    )
+    expect(getVideoPlaybackAuthorization).toHaveBeenCalledWith(undefined, 'video-1')
+    expect(screen.queryByText('몰입형 영상 화면')).not.toBeInTheDocument()
   })
 
-  it('opens the message actions as a speech bubble above the composer', () => {
+  it('opens only label registration in the message sheet', () => {
     renderBookDiscussionPage()
 
     fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
 
-    const actionMenu = screen.getByText('페이지 라벨').closest('.talkhugam-chat-action-menu')
-    expect(actionMenu).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '영상 올리기' })).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: '메시지 추가' })).toHaveClass(
+      'seed-menu-sheet__content',
+    )
+    expect(screen.getByRole('button', { name: '라벨 등록' })).toHaveClass(
+      'talkhugam-action-sheet-choice',
+    )
+    expect(screen.queryByRole('button', { name: '영상 기록' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '영상 올리기' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '완독 기록' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '책방 초대하기' })).not.toBeInTheDocument()
   })
 
-  it('keeps every chat action in the same two-column grid', () => {
+  it('moves videos into the bookmark tab and keeps bookmark creation fixed', async () => {
+    getVideoPosts.mockResolvedValueOnce([
+      {
+        authorName: '민규',
+        body: '희미한 빛도 오래 바라보면 방향이 된다.',
+        createdAt: '2026-07-18T00:00:00.000Z',
+        id: 'video-1',
+        status: 'ready',
+      },
+    ])
+    renderBookDiscussionPage()
+
+    await screen.findByRole('tab', { name: '책갈피' })
+    expect(screen.queryByRole('button', { name: '민규님의 영상 보기' })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('tab', { name: '책갈피' }))
+
+    expect(screen.queryByLabelText('메시지 입력')).not.toBeInTheDocument()
+    expect(screen.getByText('영감을 받은 특별한 구절에 책갈피를 꽂아보아요.')).toBeInTheDocument()
+    expect(screen.queryByText('책갈피', { selector: 'p' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: '함께 읽은 순간' })).not.toBeInTheDocument()
+    expect(screen.queryByText('영상으로 남긴 책갈피를 모아 봐요.')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '책갈피 남기기' }).parentElement).toHaveClass('fixed')
+    expect(screen.getByText('희미한 빛도 오래 바라보면 방향이 된다.')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '책갈피 남기기' }))
+
+    expect(screen.getByText('책갈피 작성 화면')).toBeInTheDocument()
+  })
+
+  it('invites the first bookmark from an empty bookmark tab', async () => {
+    renderBookDiscussionPage()
+
+    fireEvent.click(await screen.findByRole('tab', { name: '책갈피' }))
+
+    expect(screen.getByText('영감을 받은 특별한 구절에 책갈피를 꽂아보아요.')).toBeInTheDocument()
+    expect(screen.getByText('아직 남긴 책갈피가 없어요.')).toBeInTheDocument()
+    expect(screen.getByText('마음에 든 문장을 짧은 영상으로 남겨 보세요.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '책갈피 남기기' })).toBeInTheDocument()
+  })
+
+  it('opens the label kind choices only after selecting label registration', () => {
     renderBookDiscussionPage()
 
     fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
 
-    expect(screen.getByRole('button', { name: '완독 기록' })).not.toHaveClass('col-span-2')
+    fireEvent.click(screen.getByRole('button', { name: '라벨 등록' }))
+
+    expect(screen.getByRole('button', { name: '페이지 라벨' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '챕터 라벨' })).toBeInTheDocument()
   })
 
   it('aligns the add button, message input, and send button in one composer grid', () => {
@@ -386,154 +671,16 @@ describe('BookDiscussionPage', () => {
 
     const input = screen.getByLabelText('메시지 입력')
 
-    expect(input.parentElement?.parentElement).toHaveClass('talkhugam-chat-composer-row')
+    expect(input.closest('.talkhugam-chat-composer-row')).toBeInTheDocument()
   })
 
-  it('opens the completion review form from the plus menu before it saves a personal completion record', async () => {
+  it('keeps the completion action out of the plus menu', async () => {
     renderBookDiscussionPage()
 
     expect(screen.queryByRole('button', { name: '완독하기' })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
-    fireEvent.click(screen.getByRole('button', { name: '완독 기록' }))
-
-    expect(await screen.findByRole('dialog', { name: '완독 기록' })).toBeInTheDocument()
-
+    expect(screen.queryByRole('button', { name: '완독 기록' })).not.toBeInTheDocument()
     expect(upsertBookChatCompletion).not.toHaveBeenCalled()
-    fireEvent.click(await screen.findByRole('button', { name: '완독하기' }))
-    fireEvent.click(screen.getByRole('button', { name: '5점' }))
-    fireEvent.change(screen.getByLabelText('총평 (선택)'), {
-      target: { value: '대화가 오래 남는 책이에요.' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: '완독 기록 저장' }))
-
-    await vi.waitFor(() =>
-      expect(upsertBookChatCompletion).toHaveBeenCalledWith(undefined, {
-        bookChatId: 'book-1',
-        rating: 5,
-        review: '대화가 오래 남는 책이에요.',
-      }),
-    )
-  })
-
-  it('updates the completion count immediately after saving a personal completion', async () => {
-    const savedCompletion = {
-      completedAt: '2026-07-19T00:00:00.000Z',
-      displayName: '민규',
-      isMe: true,
-      profileId: '00000000-0000-0000-0000-000000000001',
-      rating: null,
-      review: null,
-    }
-    getBookChatCompletions
-      .mockResolvedValueOnce([])
-      .mockImplementation(() => Promise.resolve([savedCompletion]))
-    renderBookDiscussionPage()
-
-    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
-    fireEvent.click(screen.getByRole('button', { name: '완독 기록' }))
-    fireEvent.click(await screen.findByRole('button', { name: '완독하기' }))
-    fireEvent.click(screen.getByRole('button', { name: '완독 기록 저장' }))
-
-    expect(await screen.findByText('함께 읽은 기록 · 1명 완독')).toBeInTheDocument()
-    expect(screen.getByText('내 완독')).toBeInTheDocument()
-  })
-
-  it('keeps the saved completion visible while the background refresh is pending', async () => {
-    const refresh = createDeferredValue<
-      Array<{
-        completedAt: string
-        displayName: string
-        isMe: boolean
-        profileId: string
-        rating: number | null
-        review: string | null
-      }>
-    >()
-    getBookChatCompletions.mockResolvedValueOnce([]).mockReturnValueOnce(refresh.promise)
-    renderBookDiscussionPage()
-
-    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
-    fireEvent.click(screen.getByRole('button', { name: '완독 기록' }))
-    fireEvent.click(await screen.findByRole('button', { name: '완독하기' }))
-    fireEvent.click(screen.getByRole('button', { name: '완독 기록 저장' }))
-
-    expect(await screen.findByText('함께 읽은 기록 · 1명 완독')).toBeInTheDocument()
-    expect(screen.getByText('내 완독')).toBeInTheDocument()
-
-    refresh.resolve([])
-  })
-
-  it('refreshes every personal reading view after saving a completion', async () => {
-    const { queryClient } = renderBookDiscussionPage()
-    const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries')
-    getBookChatCompletions.mockResolvedValueOnce([]).mockResolvedValueOnce([
-      {
-        completedAt: '2026-07-19T00:00:00.000Z',
-        displayName: '민규',
-        isMe: true,
-        profileId: '00000000-0000-0000-0000-000000000001',
-        rating: null,
-        review: null,
-      },
-    ])
-
-    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
-    fireEvent.click(screen.getByRole('button', { name: '완독 기록' }))
-    fireEvent.click(await screen.findByRole('button', { name: '완독하기' }))
-    fireEvent.click(screen.getByRole('button', { name: '완독 기록 저장' }))
-
-    await vi.waitFor(() =>
-      expect(invalidateQueries).toHaveBeenCalledWith({
-        queryKey: ['my-reading-books', '00000000-0000-0000-0000-000000000001'],
-        refetchType: 'inactive',
-      }),
-    )
-    expect(invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ['reading-progresses', '00000000-0000-0000-0000-000000000001'],
-      refetchType: 'inactive',
-    })
-  })
-
-  it('shows the personal completion marker and reopens saved values for editing', async () => {
-    getBookChatCompletions.mockResolvedValue([
-      {
-        completedAt: '2026-07-19T00:00:00.000Z',
-        displayName: '민규',
-        isMe: true,
-        profileId: '00000000-0000-0000-0000-000000000001',
-        rating: 4,
-        review: '다시 펼쳐 보고 싶은 책이에요.',
-      },
-    ])
-    renderBookDiscussionPage()
-
-    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
-    fireEvent.click(screen.getByRole('button', { name: '완독 기록' }))
-
-    expect(await screen.findByText('내 완독')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: '완독 기록 수정' }))
-
-    expect(screen.getByRole('button', { name: '4점' })).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByLabelText('총평 (선택)')).toHaveValue('다시 펼쳐 보고 싶은 책이에요.')
-    expect(screen.getByRole('button', { name: '완독 기록 수정' })).toBeInTheDocument()
-  })
-
-  it('closes the action bubble when the user taps outside it', () => {
-    renderBookDiscussionPage()
-    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
-
-    fireEvent.pointerDown(document.body)
-
-    expect(screen.queryByText('페이지 라벨')).not.toBeInTheDocument()
-  })
-
-  it('closes the action bubble with Escape', () => {
-    renderBookDiscussionPage()
-    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
-
-    fireEvent.keyDown(window, { key: 'Escape' })
-
-    expect(screen.queryByText('페이지 라벨')).not.toBeInTheDocument()
   })
 
   it('shows matching members from an at-sign typed in the message input', async () => {
@@ -561,30 +708,12 @@ describe('BookDiscussionPage', () => {
     expect(screen.getByLabelText('메시지 입력')).toHaveValue('@민')
   })
 
-  it('preserves the draft, labels, and mentions after an outside click closes the menu', async () => {
-    renderBookDiscussionPage()
-    await prepareComposerState()
-
-    fireEvent.pointerDown(document.body)
-
-    expectComposerState()
-  })
-
-  it('preserves the draft, labels, and mentions after Escape closes the menu', async () => {
-    renderBookDiscussionPage()
-    await prepareComposerState()
-
-    fireEvent.keyDown(window, { key: 'Escape' })
-
-    expectComposerState()
-  })
-
-  it('preserves the draft, labels, and mentions after the plus button closes the menu', async () => {
+  it('preserves the draft, labels, and mentions after closing the SEED action sheet', async () => {
     renderBookDiscussionPage()
     await prepareComposerState()
 
     fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
-    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 닫기' }))
+    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 닫기' }))
 
     expectComposerState()
   })
@@ -672,7 +801,7 @@ describe('BookDiscussionPage', () => {
     expect(screen.getByText('이 문장이 특히 좋았어요.')).toBeInTheDocument()
   })
 
-  it('keeps loaded videos visible when the post query fails', async () => {
+  it('keeps loaded bookmarks visible when the post query fails', async () => {
     getPosts.mockRejectedValueOnce(new Error('network'))
     getVideoPosts.mockResolvedValueOnce([
       {
@@ -688,6 +817,8 @@ describe('BookDiscussionPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       '독후감을 불러오지 못했어요. 다시 시도해 주세요.',
     )
+    fireEvent.click(screen.getByRole('tab', { name: '책갈피' }))
+
     expect(screen.getByRole('status', { name: '영상 준비 중…' })).toBeInTheDocument()
   })
 
@@ -759,7 +890,8 @@ describe('BookDiscussionPage', () => {
     ])
     renderBookDiscussionPage()
 
-    fireEvent.click(await screen.findByRole('button', { name: '답글 남기기' }))
+    await openMessageActions('인상 깊었어요')
+    fireEvent.click(screen.getByRole('button', { name: '서연에게 답글' }))
     await insertMention('저도요')
     fireEvent.click(screen.getByRole('button', { name: '전송' }))
 
@@ -788,6 +920,49 @@ describe('BookDiscussionPage', () => {
     })
   })
 
+  it('submits one post when Enter is pressed again before the first request finishes', async () => {
+    const postRequest = createDeferredValue<string>()
+    createPost.mockReturnValueOnce(postRequest.promise)
+    renderBookDiscussionPage()
+
+    const messageInput = screen.getByLabelText('메시지 입력')
+    fireEvent.change(messageInput, { target: { value: '한 번만 남겨요.' } })
+    fireEvent.keyDown(messageInput, { key: 'Enter' })
+    fireEvent.keyDown(messageInput, { key: 'Enter' })
+
+    await vi.waitFor(() => expect(createPost).toHaveBeenCalledTimes(1))
+
+    postRequest.resolve('post-1')
+  })
+
+  it('submits one reply when Enter is pressed again before the first request finishes', async () => {
+    const replyRequest = createDeferredValue<string>()
+    createReply.mockReturnValueOnce(replyRequest.promise)
+    getPosts.mockResolvedValueOnce([
+      {
+        authorName: '서연',
+        body: '인상 깊었어요',
+        createdAt: '2026-07-18T00:00:00.000Z',
+        depth: 0,
+        id: 'f17c0d6d-3e6e-4b7f-a1f1-5d652aa2a85e',
+        labels: [],
+        rootPostId: null,
+      },
+    ])
+    renderBookDiscussionPage()
+    await openMessageActions('인상 깊었어요')
+    fireEvent.click(screen.getByRole('button', { name: '서연에게 답글' }))
+
+    const messageInput = screen.getByLabelText('메시지 입력')
+    fireEvent.change(messageInput, { target: { value: '한 번만 답해요.' } })
+    fireEvent.keyDown(messageInput, { key: 'Enter' })
+    fireEvent.keyDown(messageInput, { key: 'Enter' })
+
+    await vi.waitFor(() => expect(createReply).toHaveBeenCalledTimes(1))
+
+    replyRequest.resolve('reply-1')
+  })
+
   it('clears the reply state after a successful reply submission', async () => {
     getPosts.mockResolvedValueOnce([
       {
@@ -801,14 +976,15 @@ describe('BookDiscussionPage', () => {
       },
     ])
     renderBookDiscussionPage()
-    fireEvent.click(await screen.findByRole('button', { name: '답글 남기기' }))
+    await openMessageActions('인상 깊었어요')
+    fireEvent.click(screen.getByRole('button', { name: '서연에게 답글' }))
     await insertMention('저도요')
 
     fireEvent.click(screen.getByRole('button', { name: '전송' }))
 
     await vi.waitFor(() => {
       expect(createReply).toHaveBeenCalledTimes(1)
-      expect(screen.queryByText('답글 남기기', { selector: 'p' })).not.toBeInTheDocument()
+      expect(screen.queryByText('서연에게 답글')).not.toBeInTheDocument()
       expect(screen.getByLabelText('메시지 입력')).toHaveValue('')
       expect(screen.queryByRole('listbox', { name: '멘션할 멤버' })).not.toBeInTheDocument()
     })
@@ -841,7 +1017,8 @@ describe('BookDiscussionPage', () => {
     ])
     createReply.mockRejectedValueOnce(new Error('network'))
     renderBookDiscussionPage()
-    fireEvent.click(await screen.findByRole('button', { name: '답글 남기기' }))
+    await openMessageActions('인상 깊었어요')
+    fireEvent.click(screen.getByRole('button', { name: '서연에게 답글' }))
     await insertMention('저도요')
 
     fireEvent.click(screen.getByRole('button', { name: '전송' }))
@@ -849,38 +1026,246 @@ describe('BookDiscussionPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       '독후감을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.',
     )
-    expect(screen.getByText('답글 남기기', { selector: 'p' })).toBeInTheDocument()
+    expect(screen.getByText('서연에게 답글')).toBeInTheDocument()
     expect(screen.getByLabelText('메시지 입력')).toHaveValue('@민수 저도요')
   })
 
-  it.each([
-    ['outside click', () => fireEvent.pointerDown(document.body)],
-    [
-      'close button',
-      () => fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 닫기' })),
-    ],
-    ['Escape', () => fireEvent.keyDown(window, { key: 'Escape' })],
-  ])(
-    'returns to label selection and keeps only the message draft after closing with %s',
-    (_, closeMenu) => {
-      renderBookDiscussionPage()
-      openPageLabelEditor()
-      fireEvent.change(screen.getByLabelText('페이지 번호'), { target: { value: '87' } })
-      fireEvent.change(screen.getByLabelText('메시지 입력'), {
-        target: { value: '이 문장을 기억할게요' },
-      })
+  it('shows the reply target above the composer and changes the placeholder', async () => {
+    getPosts.mockResolvedValueOnce([
+      {
+        authorName: '정민규',
+        body: '아침은 이미 잔뜩 먹었고 커피도 마셨어요.',
+        createdAt: '2026-07-18T00:00:00.000Z',
+        depth: 0,
+        id: 'f17c0d6d-3e6e-4b7f-a1f1-5d652aa2a85e',
+        labels: [],
+        rootPostId: null,
+      },
+    ])
+    renderBookDiscussionPage()
+    await openMessageActions('아침은 이미 잔뜩 먹었고 커피도 마셨어요.')
 
-      closeMenu()
-      fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
+    fireEvent.click(screen.getByRole('button', { name: '정민규에게 답글' }))
 
-      expect(screen.getByRole('button', { name: '페이지 라벨' })).toBeInTheDocument()
-      expect(screen.queryByLabelText('페이지 번호')).not.toBeInTheDocument()
-      expect(screen.getByLabelText('메시지 입력')).toHaveValue('이 문장을 기억할게요')
+    expect(screen.getByText('정민규에게 답글')).toBeInTheDocument()
+    expect(screen.getAllByText('아침은 이미 잔뜩 먹었고 커피도 마셨어요.')[1]).toHaveClass(
+      'truncate',
+    )
+    expect(screen.getByPlaceholderText('답글을 입력하세요.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '답글 취소' }))
+    expect(screen.queryByText('정민규에게 답글')).not.toBeInTheDocument()
+  })
 
-      fireEvent.click(screen.getByRole('button', { name: '페이지 라벨' }))
-      expect(screen.getByLabelText('페이지 번호')).toHaveValue('')
-    },
-  )
+  it('focuses the message input after choosing a reply target', async () => {
+    const scrollIntoView = vi.fn()
+    window.HTMLElement.prototype.scrollIntoView = scrollIntoView
+    getPosts.mockResolvedValueOnce([
+      {
+        authorName: '서연',
+        body: '여기에 바로 답하고 싶어요.',
+        createdAt: '2026-07-18T00:00:00.000Z',
+        depth: 0,
+        id: 'f17c0d6d-3e6e-4b7f-a1f1-5d652aa2a85e',
+        labels: [],
+        rootPostId: null,
+      },
+    ])
+    renderBookDiscussionPage()
+    await openMessageActions('여기에 바로 답하고 싶어요.')
+
+    fireEvent.click(screen.getByRole('button', { name: '서연에게 답글' }))
+
+    await vi.waitFor(() => expect(screen.getByLabelText('메시지 입력')).toHaveFocus())
+    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center' })
+  })
+
+  it('shows an optimistic coral reaction immediately after a quick emoji is pressed', async () => {
+    const reactionRequest = createDeferredValue<void>()
+    togglePostReaction.mockReturnValueOnce(reactionRequest.promise)
+    getPosts.mockResolvedValueOnce([
+      {
+        authorName: '서연',
+        body: '이 문장이 좋아요',
+        createdAt: '2026-07-18T00:00:00.000Z',
+        depth: 0,
+        id: 'f17c0d6d-3e6e-4b7f-a1f1-5d652aa2a85e',
+        labels: [],
+        rootPostId: null,
+      },
+    ])
+    getPostReactions.mockResolvedValueOnce(
+      new Map([
+        [
+          'f17c0d6d-3e6e-4b7f-a1f1-5d652aa2a85e',
+          [
+            {
+              count: 2,
+              emoji: '❤️',
+              hasReacted: true,
+              postId: 'f17c0d6d-3e6e-4b7f-a1f1-5d652aa2a85e',
+            },
+          ],
+        ],
+      ]),
+    )
+    renderBookDiscussionPage()
+    await openMessageActions('이 문장이 좋아요')
+
+    expect(await screen.findByRole('button', { name: '❤️ 반응 2개, 내가 남김' })).toHaveClass(
+      'bg-primary/10',
+    )
+    fireEvent.click(screen.getByRole('button', { name: '👍 반응 남기기' }))
+
+    expect(await screen.findByRole('button', { name: '👍 반응 1개, 내가 남김' })).toHaveClass(
+      'bg-primary/10',
+    )
+    await vi.waitFor(() =>
+      expect(togglePostReaction).toHaveBeenCalledWith(
+        undefined,
+        'f17c0d6d-3e6e-4b7f-a1f1-5d652aa2a85e',
+        '👍',
+      ),
+    )
+    reactionRequest.resolve(undefined)
+  })
+
+  it('opens a reliable expanded emoji palette from the plus button', async () => {
+    const reactionRequest = createDeferredValue<void>()
+    togglePostReaction.mockReturnValueOnce(reactionRequest.promise)
+    getPosts.mockResolvedValueOnce([
+      {
+        authorName: '서연',
+        body: '다른 이모지도 남겨요',
+        createdAt: '2026-07-18T00:00:00.000Z',
+        depth: 0,
+        id: 'f17c0d6d-3e6e-4b7f-a1f1-5d652aa2a85e',
+        labels: [],
+        rootPostId: null,
+      },
+    ])
+    renderBookDiscussionPage()
+    await openMessageActions('다른 이모지도 남겨요')
+
+    fireEvent.click(screen.getByRole('button', { name: '이모지 반응 열기' }))
+    expect(screen.getByRole('group', { name: 'Talk후감 이모티콘 패키지' })).toBeInTheDocument()
+    fireEvent.click(await screen.findByRole('button', { name: '🔥 반응 남기기' }))
+
+    await vi.waitFor(() =>
+      expect(togglePostReaction).toHaveBeenCalledWith(
+        undefined,
+        'f17c0d6d-3e6e-4b7f-a1f1-5d652aa2a85e',
+        '🔥',
+      ),
+    )
+    expect(await screen.findByRole('button', { name: '🔥 반응 1개, 내가 남김' })).toHaveClass(
+      'bg-primary/10',
+    )
+    reactionRequest.resolve(undefined)
+  })
+
+  it('shows a Frimousse emoji package without visible explanatory copy', async () => {
+    getPosts.mockResolvedValueOnce([
+      {
+        authorName: '서연',
+        body: '패키지로 보여줘요',
+        createdAt: '2026-07-18T00:00:00.000Z',
+        depth: 0,
+        id: 'f17c0d6d-3e6e-4b7f-a1f1-5d652aa2a85e',
+        labels: [],
+        rootPostId: null,
+      },
+    ])
+    getPostReactions.mockResolvedValueOnce(
+      new Map([
+        [
+          'f17c0d6d-3e6e-4b7f-a1f1-5d652aa2a85e',
+          [
+            {
+              count: 2,
+              emoji: '❤️',
+              hasReacted: true,
+              postId: 'f17c0d6d-3e6e-4b7f-a1f1-5d652aa2a85e',
+            },
+            {
+              count: 1,
+              emoji: '👍',
+              hasReacted: false,
+              postId: 'f17c0d6d-3e6e-4b7f-a1f1-5d652aa2a85e',
+            },
+          ],
+        ],
+      ]),
+    )
+    const scrollIntoView = vi.fn()
+    window.HTMLElement.prototype.scrollIntoView = scrollIntoView
+    renderBookDiscussionPage()
+    await openMessageActions('패키지로 보여줘요')
+
+    expect(await screen.findByLabelText('메시지 반응 패키지')).toHaveClass('rounded-full')
+    fireEvent.click(screen.getByRole('button', { name: '이모지 반응 열기' }))
+
+    const emojiPackage = screen.getByRole('group', { name: 'Talk후감 이모티콘 패키지' })
+    expect(emojiPackage).toHaveClass('w-80')
+    expect(emojiPackage).toHaveClass('max-w-[calc(100vw-2rem)]')
+    expect(screen.getByRole('tablist', { name: '이모지 카테고리' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Smileys & Emotion' })).toHaveTextContent('😀')
+    expect(screen.getByRole('tab', { name: 'Travel & Places' })).toHaveTextContent('🌐')
+    expect(screen.getByRole('tab', { name: 'Activities' })).toHaveTextContent('🎃')
+    expect(screen.getByRole('tab', { name: 'Symbols' })).toHaveTextContent('🏧')
+    expect(screen.getByRole('tab', { name: 'Flags' })).toHaveTextContent('🏁')
+    expect(screen.getByRole('tab', { name: 'Smileys & Emotion' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    )
+    expect(screen.queryByRole('tab', { name: 'Category' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Category')).not.toBeInTheDocument()
+    expect(screen.getByRole('tablist', { name: '이모지 카테고리' })).toHaveClass('w-full')
+    expect(screen.getByRole('tablist', { name: '이모지 카테고리' })).toHaveClass(
+      'talkhugam-category-scrollbar',
+    )
+    expect(screen.getByRole('tablist', { name: '이모지 카테고리' })).toHaveClass(
+      'overflow-x-scroll',
+    )
+    expect(screen.queryByText('Smileys & Emotion')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('이모지 목록')).toHaveClass('talkhugam-emoji-scrollbar')
+    expect(screen.getByLabelText('이모지 목록')).toHaveClass('h-72')
+    expect(screen.queryByText('Talk후감 반응')).not.toBeInTheDocument()
+    expect(screen.queryByText('기본 5개 + 자주 쓰는 반응')).not.toBeInTheDocument()
+    expect(screen.getByRole('searchbox', { name: '이모지 검색' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: '🌊 반응 남기기' })).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'OS 기본 이모티콘 입력 안내' }),
+    ).not.toBeInTheDocument()
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Travel & Places' }))
+
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: 'start' })
+    expect(screen.getByRole('tab', { name: 'Travel & Places' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    )
+  })
+
+  it('returns to label selection and keeps only the message draft after closing the SEED sheet', () => {
+    renderBookDiscussionPage()
+    openPageLabelEditor()
+    fireEvent.change(screen.getByLabelText('페이지 번호'), { target: { value: '87' } })
+    fireEvent.change(screen.getByLabelText('메시지 입력'), {
+      target: { value: '이 문장을 기억할게요' },
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: '페이지 라벨 닫기' }))
+    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
+    fireEvent.click(screen.getByRole('button', { name: '라벨 등록' }))
+
+    expect(screen.getByRole('button', { name: '페이지 라벨' })).toBeInTheDocument()
+    expect(screen.queryByLabelText('페이지 번호')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('메시지 입력')).toHaveValue('이 문장을 기억할게요')
+
+    fireEvent.click(screen.getByRole('button', { name: '페이지 라벨' }))
+    expect(screen.getByLabelText('페이지 번호')).toHaveValue('')
+  })
 
   it('keeps separate label drafts while returning inside the still-open action menu', () => {
     renderBookDiscussionPage()
@@ -912,7 +1297,7 @@ describe('BookDiscussionPage', () => {
     )
   })
 
-  it('clears only the submitted label draft, closes the menu, and focuses the message input', () => {
+  it('clears only the submitted label draft, closes the menu, and focuses the message input', async () => {
     renderBookDiscussionPage()
     openPageLabelEditor()
     fireEvent.change(screen.getByLabelText('페이지 번호'), { target: { value: '87' } })
@@ -921,14 +1306,15 @@ describe('BookDiscussionPage', () => {
 
     expect(screen.getByText('페이지 87')).toBeInTheDocument()
     expect(screen.queryByLabelText('페이지 번호')).not.toBeInTheDocument()
-    expect(screen.getByLabelText('메시지 입력')).toHaveFocus()
+    await vi.waitFor(() => expect(screen.getByLabelText('메시지 입력')).toHaveFocus())
 
     fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
+    fireEvent.click(screen.getByRole('button', { name: '라벨 등록' }))
     fireEvent.click(screen.getByRole('button', { name: '페이지 라벨' }))
     expect(screen.getByLabelText('페이지 번호')).toHaveValue('')
   })
 
-  it('adds a label when Enter is pressed in the label input', () => {
+  it('adds a label when Enter is pressed in the label input', async () => {
     renderBookDiscussionPage()
     openPageLabelEditor()
     fireEvent.change(screen.getByLabelText('페이지 번호'), { target: { value: '87' } })
@@ -936,7 +1322,7 @@ describe('BookDiscussionPage', () => {
     fireEvent.keyDown(screen.getByLabelText('페이지 번호'), { key: 'Enter' })
 
     expect(screen.getByText('페이지 87')).toBeInTheDocument()
-    expect(screen.getByLabelText('메시지 입력')).toHaveFocus()
+    await vi.waitFor(() => expect(screen.getByLabelText('메시지 입력')).toHaveFocus())
   })
 
   it('keeps an invalid label draft open so the user can correct it', () => {
@@ -947,17 +1333,16 @@ describe('BookDiscussionPage', () => {
     fireEvent.click(screen.getByRole('button', { name: '라벨 추가' }))
 
     expect(screen.getByLabelText('페이지 번호')).toHaveValue('   ')
-    expect(screen.getByRole('button', { name: '메시지 추가 메뉴 닫기' })).toHaveAttribute(
-      'aria-expanded',
-      'true',
-    )
+    expect(screen.getByRole('dialog', { name: '페이지 라벨' })).toBeInTheDocument()
   })
 
   it('uses the book loader while the selected video is uploading', () => {
     videoUploadState.isUploadingVideo = true
     renderBookDiscussionPage()
 
-    const status = screen.getByRole('status', { name: '영상을 채팅에 올리고 있어요…' })
+    fireEvent.click(screen.getByRole('tab', { name: '책갈피' }))
+
+    const status = screen.getByRole('status', { name: '책갈피 영상을 올리고 있어요…' })
     expect(status.querySelector('.talkhugam-book-loader')).toBeInTheDocument()
   })
 
@@ -973,6 +1358,8 @@ describe('BookDiscussionPage', () => {
     ])
     renderBookDiscussionPage()
 
+    fireEvent.click(await screen.findByRole('tab', { name: '책갈피' }))
+
     const status = await screen.findByRole('status', { name: '영상 준비 중…' })
     expect(status.querySelector('.talkhugam-book-loader')).toBeInTheDocument()
   })
@@ -980,6 +1367,7 @@ describe('BookDiscussionPage', () => {
 
 function openPageLabelEditor() {
   fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
+  fireEvent.click(screen.getByRole('button', { name: '라벨 등록' }))
   fireEvent.click(screen.getByRole('button', { name: '페이지 라벨' }))
 }
 
@@ -1007,6 +1395,13 @@ async function insertMention(message: string) {
   })
 }
 
+/** 테스트 메시지 버블에 포인터를 올려 숨겨진 메시지 액션을 연다. */
+async function openMessageActions(message: string) {
+  const messageText = await screen.findByText(message)
+  fireEvent.mouseEnter(messageText.closest('[aria-label$="의 메시지"]')!)
+}
+
+/** 테스트 라우터와 QueryClient를 포함해 책 대화 페이지를 렌더링한다. */
 function renderBookDiscussionPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const renderResult = render(
@@ -1018,6 +1413,7 @@ function renderBookDiscussionPage() {
             path="/rooms/:roomId/books/:bookChatId/videos/:videoId"
             element={<p>몰입형 영상 화면</p>}
           />
+          <Route path="/rooms/:roomId/books/:bookChatId/videos" element={<p>책갈피 작성 화면</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,

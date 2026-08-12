@@ -80,9 +80,9 @@ describe('VideoPlayerPage', () => {
   it('returns to the video archive from its back button', async () => {
     renderPlayerPage()
 
-    fireEvent.click(await screen.findByRole('button', { name: '영상 기록으로 돌아가기' }))
+    fireEvent.click(await screen.findByRole('button', { name: '책갈피로 돌아가기' }))
 
-    expect(screen.getByText('영상 기록 화면')).toBeInTheDocument()
+    expect(screen.getByText('책갈피 화면')).toBeInTheDocument()
   })
 
   it('shows an archive return CTA when the selected video no longer exists', async () => {
@@ -92,9 +92,9 @@ describe('VideoPlayerPage', () => {
     expect(await screen.findByText('이 영상을 찾을 수 없어요.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: '삭제' })).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: '영상 기록으로 가기' }))
+    fireEvent.click(screen.getByRole('button', { name: '책갈피로 가기' }))
 
-    expect(screen.getByText('영상 기록 화면')).toBeInTheDocument()
+    expect(screen.getByText('책갈피 화면')).toBeInTheDocument()
   })
 
   it('does not keep a non-ready video in a loading state', async () => {
@@ -121,6 +121,20 @@ describe('VideoPlayerPage', () => {
 
     expect(await screen.findByTestId('mux-player')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: '삭제' })).not.toBeInTheDocument()
+  })
+
+  it('uses SEED action buttons for player deletion and archive return actions', async () => {
+    renderPlayerPage()
+
+    expect(await screen.findByRole('button', { name: '삭제' })).toHaveClass('seed-action-button')
+
+    cleanup()
+    getVideoPost.mockResolvedValueOnce(null)
+    renderPlayerPage()
+
+    expect(await screen.findByRole('button', { name: '책갈피로 가기' })).toHaveClass(
+      'seed-action-button',
+    )
   })
 
   it('checks deletion permission with the current room and video author identifiers', async () => {
@@ -150,7 +164,16 @@ describe('VideoPlayerPage', () => {
     fireEvent.click(screen.getByRole('button', { name: '영상 삭제하기' }))
 
     await vi.waitFor(() => expect(deleteVideoPost).toHaveBeenCalledTimes(1))
-    expect(await screen.findByText('영상 기록 화면')).toBeInTheDocument()
+    expect(await screen.findByText('책갈피 화면')).toBeInTheDocument()
+  })
+
+  it('uses SEED dialog and action controls for video deletion', async () => {
+    renderPlayerPage()
+
+    fireEvent.click(await screen.findByRole('button', { name: '삭제' }))
+
+    expect(screen.getByRole('dialog', { name: '영상 삭제' })).toHaveClass('seed-dialog__content')
+    expect(screen.getByRole('button', { name: '영상 삭제하기' })).toHaveClass('seed-action-button')
   })
 
   it('dismisses the video deletion dialog by Escape or its backdrop without deleting', async () => {
@@ -187,7 +210,7 @@ describe('VideoPlayerPage', () => {
     fireEvent.click(screen.getByRole('button', { name: '삭제 다시 시도' }))
 
     await vi.waitFor(() => expect(deleteVideoPost).toHaveBeenCalledTimes(2))
-    expect(await screen.findByText('영상 기록 화면')).toBeInTheDocument()
+    expect(await screen.findByText('책갈피 화면')).toBeInTheDocument()
   })
 
   it('explains a video data lookup failure separately and retries that lookup', async () => {
@@ -280,7 +303,7 @@ function renderPlayerPage() {
             path="/rooms/:roomId/books/:bookChatId/videos/:videoId"
             element={<VideoPlayerPage />}
           />
-          <Route path="/rooms/:roomId/books/:bookChatId/videos" element={<p>영상 기록 화면</p>} />
+          <Route path="/rooms/:roomId/books/:bookChatId/videos" element={<p>책갈피 화면</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,

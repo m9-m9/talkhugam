@@ -15,7 +15,7 @@ const roomManagementMemberRowSchema = z.object({
   id: z.string().uuid(),
   joined_at: z.string().datetime({ offset: true }),
   profile_id: z.string().uuid().nullable(),
-  role: z.enum(['owner', 'member']),
+  role: z.enum(['owner', 'manager', 'member']),
   room_avatar_path: z.string().nullable(),
   room_display_name: z.string().min(1).max(30),
   room_id: roomIdSchema,
@@ -77,6 +77,7 @@ export type RoomManagement = {
   description: string | null
   id: string
   isCurrentUserOwner: boolean
+  currentUserRole: 'owner' | 'manager' | 'member' | null
   members: RoomManagementMember[]
   name: string
   status: 'active' | 'archived' | 'deleted'
@@ -89,7 +90,7 @@ export type RoomManagementMember = {
   isCurrentUser: boolean
   joinedAt: string
   profileId: string | null
-  role: 'owner' | 'member'
+  role: 'owner' | 'manager' | 'member'
 }
 
 export type CreatedManagedRoomInvite = {
@@ -126,6 +127,7 @@ export function parseRoomManagement(
     isCurrentUserOwner: members.some(
       (member) => member.profile_id === currentProfile && member.role === 'owner',
     ),
+    currentUserRole: members.find((member) => member.profile_id === currentProfile)?.role ?? null,
     members: members.map((member) => mapRoomManagementMember(member, currentProfile)),
     name: room.name,
     status: room.status,
@@ -241,6 +243,22 @@ export async function transferManagedRoomOwnership(
   memberId: string,
 ): Promise<void> {
   const response = await client.rpc('transfer_room_ownership', {
+    p_room_id: roomIdSchema.parse(roomId),
+    p_target_member_id: roomIdSchema.parse(memberId),
+  })
+
+  if (response.error) throw response.error
+}
+
+/** 방장이 활성 멤버를 운영자 또는 참여자로 변경한다. */
+export async function updateManagedRoomMemberRole(
+  client: SupabaseClient,
+  roomId: string,
+  memberId: string,
+  role: 'manager' | 'member',
+): Promise<void> {
+  const response = await client.rpc('update_room_member_role', {
+    p_role: role,
     p_room_id: roomIdSchema.parse(roomId),
     p_target_member_id: roomIdSchema.parse(memberId),
   })

@@ -9,10 +9,12 @@ with documented_function_names(function_name) as (
     ('private.can_access_book'),
     ('private.can_access_book_chat'),
     ('private.can_access_post'),
+    ('private.can_manage_room_content'),
     ('private.current_room_member_id'),
     ('private.enqueue_deletion_job'),
     ('private.enqueue_book_chat_activity_notifications'),
     ('private.enqueue_notification'),
+    ('private.enforce_book_chat_creation_role'),
     ('private.generate_invite_code'),
     ('private.handle_new_auth_user'),
     ('private.hash_invite_value'),
@@ -56,6 +58,7 @@ with documented_function_names(function_name) as (
     ('public.upsert_book_chat_completion'),
     ('public.upsert_book_chat_reading_progress'),
     ('public.update_room_member_profile')
+    ,('public.update_room_member_role')
 ),
 database_functions as (
   select
@@ -69,7 +72,7 @@ database_functions as (
 )
 select is(
   count(distinct function_name),
-  52::bigint,
+  55::bigint,
   '모든 애플리케이션 데이터베이스 함수가 존재한다'
 )
 from database_functions;
@@ -81,10 +84,12 @@ with documented_function_names(function_name) as (
     ('private.can_access_book'),
     ('private.can_access_book_chat'),
     ('private.can_access_post'),
+    ('private.can_manage_room_content'),
     ('private.current_room_member_id'),
     ('private.enqueue_deletion_job'),
     ('private.enqueue_book_chat_activity_notifications'),
     ('private.enqueue_notification'),
+    ('private.enforce_book_chat_creation_role'),
     ('private.generate_invite_code'),
     ('private.handle_new_auth_user'),
     ('private.hash_invite_value'),
@@ -128,6 +133,7 @@ with documented_function_names(function_name) as (
     ('public.upsert_book_chat_completion'),
     ('public.upsert_book_chat_reading_progress'),
     ('public.update_room_member_profile')
+    ,('public.update_room_member_role')
 ),
 undocumented_functions as (
   select procedure.oid

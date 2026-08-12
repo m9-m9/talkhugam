@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { RoomManagementPage } from './RoomManagementPage'
 
@@ -16,6 +16,7 @@ const { createManagedRoomInvite, getRoomManagement } = vi.hoisted(() => ({
     createdBy: '00000000-0000-0000-0000-000000000001',
     description: null,
     id: '00000000-0000-0000-0000-000000000101',
+    currentUserRole: 'owner',
     isCurrentUserOwner: true,
     members: [],
     name: '금요일 아침 책방',
@@ -48,21 +49,74 @@ vi.mock('../../app/env', () => ({
 }))
 
 describe('RoomManagementPage', () => {
+  beforeEach(() => {
+    createManagedRoomInvite.mockResolvedValue({
+      code: 'TALK87',
+      expiresAt: '2026-07-20T00:00:00.000Z',
+      id: '00000000-0000-0000-0000-000000000011',
+      token: 'a'.repeat(64),
+    })
+    getRoomManagement.mockResolvedValue({
+      createdBy: '00000000-0000-0000-0000-000000000001',
+      description: null,
+      id: '00000000-0000-0000-0000-000000000101',
+      currentUserRole: 'owner',
+      isCurrentUserOwner: true,
+      members: [],
+      name: '금요일 아침 책방',
+      status: 'active',
+    })
+  })
+
   afterEach(() => {
     cleanup()
     vi.clearAllMocks()
     Object.defineProperty(navigator, 'share', { configurable: true, value: undefined })
   })
 
-  it('opens platform choices after creating an invite code', async () => {
+  it('shows platform choices inside the invite card only after the share action', async () => {
     renderRoomManagementPage()
 
     fireEvent.click(await screen.findByRole('button', { name: '초대 코드 만들기' }))
-    expect(await screen.findByRole('dialog', { name: '책방 초대하기' })).toBeInTheDocument()
+    expect(
+      (await screen.findAllByText('TALK87'))[0]?.closest('.talkhugam-information-surface'),
+    ).not.toBeNull()
+    expect(screen.queryByRole('dialog', { name: '책방 초대하기' })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '친구에게 공유하기' }))
+
+    expect(screen.getByRole('region', { name: '초대 공유 옵션' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '카카오톡으로 초대 보내기' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '문자로 초대 보내기' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '인스타그램으로 초대 보내기' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '페이스북으로 초대 보내기' })).toBeInTheDocument()
+  })
+
+  it('uses SEED action buttons for the room management commands', async () => {
+    renderRoomManagementPage()
+
+    expect(await screen.findByRole('button', { name: '초대 코드 만들기' })).toHaveClass(
+      'seed-action-button',
+    )
+    expect(screen.getByRole('button', { name: '방 설정' })).toHaveClass('seed-action-button')
+    expect(screen.getByRole('button', { name: '책방 나가기' })).toHaveClass('seed-action-button')
+  })
+
+  it('lets an operator create an invite but keeps room settings owner-only', async () => {
+    getRoomManagement.mockResolvedValueOnce({
+      createdBy: '00000000-0000-0000-0000-000000000001',
+      currentUserRole: 'manager',
+      description: null,
+      id: '00000000-0000-0000-0000-000000000101',
+      isCurrentUserOwner: false,
+      members: [],
+      name: '금요일 아침 책방',
+      status: 'active',
+    })
+    renderRoomManagementPage()
+
+    expect(await screen.findByRole('button', { name: '초대 코드 만들기' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '방 설정' })).not.toBeInTheDocument()
   })
 
   it('copies the invite message when the device share sheet is unavailable', async () => {
@@ -71,6 +125,7 @@ describe('RoomManagementPage', () => {
     renderRoomManagementPage()
 
     fireEvent.click(await screen.findByRole('button', { name: '초대 코드 만들기' }))
+    fireEvent.click(await screen.findByRole('button', { name: '친구에게 공유하기' }))
     fireEvent.click(await screen.findByRole('button', { name: '카카오톡으로 초대 보내기' }))
 
     await waitFor(() =>
@@ -89,6 +144,7 @@ describe('RoomManagementPage', () => {
     renderRoomManagementPage()
 
     fireEvent.click(await screen.findByRole('button', { name: '초대 코드 만들기' }))
+    fireEvent.click(await screen.findByRole('button', { name: '친구에게 공유하기' }))
     fireEvent.click(await screen.findByRole('button', { name: '카카오톡으로 초대 보내기' }))
 
     await waitFor(() => expect(share).toHaveBeenCalled())
@@ -101,11 +157,12 @@ describe('RoomManagementPage', () => {
     renderRoomManagementPage()
 
     fireEvent.click(await screen.findByRole('button', { name: '초대 코드 만들기' }))
+    fireEvent.click(await screen.findByRole('button', { name: '친구에게 공유하기' }))
     fireEvent.click(await screen.findByRole('button', { name: '카카오톡으로 초대 보내기' }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      '초대 내용을 공유하지 못했어요. 다시 시도해 주세요.',
-    )
+    expect(
+      await screen.findByText('초대 내용을 공유하지 못했어요. 다시 시도해 주세요.'),
+    ).toBeInTheDocument()
   })
 })
 

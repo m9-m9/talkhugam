@@ -43,6 +43,17 @@ describe('LegalConsentPage', () => {
     await waitFor(() => expect(saveRequiredLegalConsents).toHaveBeenCalledWith({}))
     expect(await screen.findByText('온보딩 화면')).toBeInTheDocument()
   })
+
+  it('keeps the consent choices and continuation action separated by foundation spacing', () => {
+    renderLegalConsentPage()
+
+    expect(
+      screen.getByRole('checkbox', { name: '이용약관에 동의합니다.' }).closest('fieldset'),
+    ).toHaveClass('space-y-6')
+    expect(screen.getByRole('button', { name: '동의하고 계속하기' }).parentElement).toHaveClass(
+      'mt-8',
+    )
+  })
 })
 
 /** 정책 동의 라우트를 메모리 라우터 환경에서 렌더링한다. */

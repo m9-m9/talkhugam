@@ -15,7 +15,6 @@ export async function completeOnboarding(
     .update({
       display_name: profile.displayName,
       bio: profile.bio ?? null,
-      mbti: profile.mbti,
       onboarding_completed_at: new Date().toISOString(),
     })
     .eq('id', profileId)
@@ -31,6 +30,5 @@ export function createInitialProfileForm(displayName: string | undefined): Profi
   return {
     displayName: displayName?.trim() || '',
     bio: '',
-    mbti: null,
   }
 }

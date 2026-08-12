@@ -1,12 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { type ChangeEvent, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { ActionButton, Dialog, TextField } from '@seed-design/react'
 
 import { bookChatKeys, deleteManagedBookChat, getManagedBookChat } from '../../entities/book-chat'
 import {
   bookCompletionKeys,
   getBookChatCompletions,
   upsertBookChatCompletion,
+  type BookChatCompletion,
   type BookCompletionInput,
 } from '../../entities/book-completion'
 import {
@@ -14,6 +16,11 @@ import {
   invalidateCompletionQueries,
   storeBookCompletionInCache,
 } from '../../features/book-completion'
+import {
+  getMyReadingProgresses,
+  readingProgressKeys,
+  upsertReadingProgress,
+} from '../../entities/reading-progress'
 import { useAuthenticatedUser } from '../../features/auth'
 import { trackAnalyticsEvent } from '../../shared/analytics'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
@@ -21,7 +28,19 @@ import { AppHeader } from '../../shared/ui/AppHeader'
 import { BookCover } from '../../shared/ui/BookCover'
 import { BottomSheet } from '../../shared/ui/BottomSheet'
 import { CompletionMark } from '../../shared/ui/CompletionMark'
-import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { BookLoadingIndicator } from '../../shared/ui/LoadingSpinner'
+import { ReadingStatus } from '../../shared/ui/ReadingStatus'
+import {
+  invalidateReadingProgressQueries,
+  storeReadingProgressInCache,
+} from '../../features/reading-progress'
+
+/** 빈 값과 소수점을 제외한 페이지 입력 문자열을 0 이상의 정수로 변환한다. */
+function parseReadingPage(value: string): number | null {
+  if (!/^\d+$/.test(value)) return null
+  const parsed = Number(value)
+  return Number.isSafeInteger(parsed) ? parsed : null
+}
 
 /** 책 대화방의 개인 완독 기록과 삭제 요청을 관리하는 화면을 렌더링한다. */
 export function BookChatManagementPage() {
@@ -32,6 +51,8 @@ export function BookChatManagementPage() {
   const { bookChatId, roomId } = useParams()
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isCompletionEditorOpen, setIsCompletionEditorOpen] = useState(false)
+  const [currentPage, setCurrentPage] = useState('')
+  const [totalPages, setTotalPages] = useState('')
   const bookChatQuery = useQuery({
     enabled: Boolean(bookChatId),
     queryFn: () => getManagedBookChat(client, bookChatId ?? ''),
@@ -41,6 +62,10 @@ export function BookChatManagementPage() {
     enabled: Boolean(bookChatId),
     queryFn: () => getBookChatCompletions(client, bookChatId ?? '', profileId),
     queryKey: bookCompletionKeys.byChat(bookChatId ?? ''),
+  })
+  const readingProgressesQuery = useQuery({
+    queryFn: () => getMyReadingProgresses(client, profileId),
+    queryKey: readingProgressKeys.byProfile(profileId),
   })
   const completionMutation = useMutation({
     mutationFn: (input: BookCompletionInput) => upsertBookChatCompletion(client, input),
@@ -59,16 +84,53 @@ export function BookChatManagementPage() {
       void navigate(`/rooms/${roomId}`, { replace: true })
     },
   })
+  const readingProgressMutation = useMutation({
+    mutationFn: ({ currentPage, totalPages }: { currentPage: number; totalPages: number }) =>
+      upsertReadingProgress(client, { bookChatId: bookChatId ?? '', currentPage, totalPages }),
+    onSuccess: (_result, input) => {
+      storeReadingProgressInCache(queryClient, {
+        ...input,
+        bookChatId: bookChatId ?? '',
+        profileId,
+      })
+      invalidateReadingProgressQueries(queryClient, profileId)
+    },
+  })
 
   if (!bookChatId || !roomId || bookChatQuery.isPending) return <BookChatManagementLoadingPage />
   if (bookChatQuery.isError || bookChatQuery.data === null)
     return <BookChatManagementUnavailablePage onBack={() => void navigate(`/rooms/${roomId}`)} />
   const chat = bookChatQuery.data
+  const existingReadingProgress = readingProgressesQuery.data?.find(
+    (progress) => progress.bookChatId === bookChatId,
+  )
   const ownCompletion = completionsQuery.data?.find((completion) => completion.isMe)
+  const parsedCurrentPage = parseReadingPage(currentPage)
+  const parsedTotalPages = parseReadingPage(totalPages)
+  const hasReadingProgress =
+    parsedCurrentPage !== null &&
+    parsedTotalPages !== null &&
+    parsedTotalPages > 0 &&
+    parsedCurrentPage <= parsedTotalPages
 
   /** 완독 기록 작성 팝업을 열어 별점과 총평을 먼저 입력받는다. */
   function handleOpenCompletionEditor() {
     setIsCompletionEditorOpen(true)
+  }
+
+  /** 삭제 확인 다이얼로그를 열어 책 이름 재입력을 요구한다. */
+  function handleOpenDeleteDialog() {
+    setIsDeleteDialogOpen(true)
+  }
+
+  /** 삭제 확인 다이얼로그를 닫고 현재 책 대화방을 유지한다. */
+  function handleCloseDeleteDialog() {
+    setIsDeleteDialogOpen(false)
+  }
+
+  /** 입력한 책 이름을 삭제 요청 mutation으로 전달한다. */
+  function handleConfirmDeletion(confirmationName: string) {
+    deletionMutation.mutate(confirmationName)
   }
 
   /** 완독 기록 작성 팝업을 닫고 기존 완독 상태를 유지한다. */
@@ -79,6 +141,22 @@ export function BookChatManagementPage() {
   /** 작성한 완독 정보만 서버에 저장해 빈 완독 기록 생성을 막는다. */
   function handleSaveCompletion(input: BookCompletionInput) {
     completionMutation.mutate(input)
+  }
+
+  /** 입력한 현재·전체 페이지를 검증 가능한 숫자로 바꿔 개인 진행률로 저장한다. */
+  function handleSaveReadingProgress() {
+    if (parsedCurrentPage === null || parsedTotalPages === null || !hasReadingProgress) return
+    readingProgressMutation.mutate({ currentPage: parsedCurrentPage, totalPages: parsedTotalPages })
+  }
+
+  /** 페이지 입력값을 문자열 상태로 보관해 사용자가 숫자를 완성할 때까지 유지한다. */
+  function handleChangeCurrentPage(event: ChangeEvent<HTMLInputElement>) {
+    setCurrentPage(event.target.value)
+  }
+
+  /** 전체 페이지 입력값을 문자열 상태로 보관해 사용자가 숫자를 완성할 때까지 유지한다. */
+  function handleChangeTotalPages(event: ChangeEvent<HTMLInputElement>) {
+    setTotalPages(event.target.value)
   }
 
   return (
@@ -99,27 +177,108 @@ export function BookChatManagementPage() {
         </div>
         {ownCompletion ? <CompletionMark label="내 완독" /> : null}
       </section>
+      {ownCompletion ? (
+        <CompletionSummary completion={ownCompletion} onEdit={handleOpenCompletionEditor} />
+      ) : null}
+      <section className="mt-8" aria-labelledby="reading-progress-heading">
+        <h2 className="text-ink text-base font-bold" id="reading-progress-heading">
+          내 읽기 진행률
+        </h2>
+        <div className="talkhugam-information-surface border-ink/10 mt-4 rounded-lg border bg-white p-4">
+          <div className="talkhugam-reading-progress-fields grid grid-cols-2 gap-3">
+            <label
+              className="text-ink min-w-0 text-sm font-medium whitespace-nowrap"
+              htmlFor="reading-current-page"
+            >
+              현재 페이지
+              <TextField.Root className="talkhugam-information-field mt-2 w-full">
+                <TextField.Input
+                  aria-label="현재 페이지"
+                  autoComplete="off"
+                  id="reading-current-page"
+                  inputMode="numeric"
+                  onChange={handleChangeCurrentPage}
+                  placeholder={String(existingReadingProgress?.currentPage ?? '')}
+                  pattern="[0-9]*"
+                  type="text"
+                  value={currentPage}
+                />
+              </TextField.Root>
+            </label>
+            <label
+              className="text-ink min-w-0 text-sm font-medium whitespace-nowrap"
+              htmlFor="reading-total-pages"
+            >
+              전체 페이지
+              <TextField.Root className="talkhugam-information-field mt-2 w-full">
+                <TextField.Input
+                  aria-label="전체 페이지"
+                  autoComplete="off"
+                  id="reading-total-pages"
+                  inputMode="numeric"
+                  onChange={handleChangeTotalPages}
+                  placeholder={String(existingReadingProgress?.totalPages ?? '')}
+                  pattern="[0-9]*"
+                  type="text"
+                  value={totalPages}
+                />
+              </TextField.Root>
+            </label>
+          </div>
+          {hasReadingProgress ? (
+            <div className="mt-4">
+              <ReadingStatus currentPage={Number(currentPage)} totalPages={Number(totalPages)} />
+            </div>
+          ) : null}
+          <div className="talkhugam-reading-progress-submit mt-6">
+            <ActionButton
+              className="talkhugam-primary-action w-full"
+              disabled={!hasReadingProgress || readingProgressMutation.isPending}
+              loading={readingProgressMutation.isPending}
+              onClick={handleSaveReadingProgress}
+              size="large"
+              type="button"
+              variant="brandSolid"
+            >
+              진행률 저장
+            </ActionButton>
+          </div>
+          {readingProgressMutation.isError ? (
+            <p className="mt-3 text-sm text-red-600" role="alert">
+              진행률을 저장하지 못했어요. 현재 페이지와 전체 페이지를 확인해 주세요.
+            </p>
+          ) : null}
+        </div>
+      </section>
       <section className="mt-12" aria-labelledby="book-chat-actions">
         <h2 className="text-ink text-base font-bold" id="book-chat-actions">
           채팅방 관리
         </h2>
         <div className="mt-4 space-y-3">
-          <button
-            className="border-ink/10 min-h-12 w-full rounded-md border bg-white px-4 text-left text-sm font-semibold"
-            disabled={completionMutation.isPending}
-            onClick={handleOpenCompletionEditor}
-            type="button"
-          >
-            {ownCompletion ? '수정하기' : '완독하기'}
-          </button>
-          <button
-            className="border-ink/10 min-h-12 w-full rounded-md border bg-white px-4 text-left text-sm font-semibold text-red-600"
-            disabled={deletionMutation.isPending}
-            onClick={() => setIsDeleteDialogOpen(true)}
-            type="button"
-          >
-            삭제 요청
-          </button>
+          {!ownCompletion ? (
+            <ActionButton
+              className="w-full justify-start"
+              disabled={completionMutation.isPending}
+              onClick={handleOpenCompletionEditor}
+              size="large"
+              type="button"
+              variant="neutralOutline"
+            >
+              완독 기록 남기기
+            </ActionButton>
+          ) : null}
+          <div className="pt-4">
+            <ActionButton
+              className="text-danger w-full justify-start"
+              disabled={deletionMutation.isPending}
+              onClick={handleOpenDeleteDialog}
+              size="large"
+              type="button"
+              variant="neutralOutline"
+            >
+              삭제 요청
+            </ActionButton>
+          </div>
         </div>
       </section>
       {isDeleteDialogOpen ? (
@@ -127,8 +286,8 @@ export function BookChatManagementPage() {
           bookName={chat.name}
           errorMessage={deletionMutation.isError ? '이름이 일치하는지 확인해 주세요.' : null}
           isDeleting={deletionMutation.isPending}
-          onCancel={() => setIsDeleteDialogOpen(false)}
-          onConfirm={(confirmationName) => deletionMutation.mutate(confirmationName)}
+          onCancel={handleCloseDeleteDialog}
+          onConfirm={handleConfirmDeletion}
         />
       ) : null}
       {isCompletionEditorOpen ? (
@@ -153,6 +312,42 @@ export function BookChatManagementPage() {
   )
 }
 
+/** 저장된 내 완독 별점과 총평을 확인하고 수정 화면으로 이동하는 영역을 렌더링한다. */
+function CompletionSummary({
+  completion,
+  onEdit,
+}: {
+  completion: BookChatCompletion
+  onEdit: () => void
+}) {
+  const ratingLabel = completion.rating ? `별점 ${completion.rating}점` : '별점 없음'
+  const reviewLabel = completion.review || '남긴 총평이 없어요.'
+
+  return (
+    <section className="mt-8" aria-labelledby="completion-summary-heading">
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-ink text-base font-bold" id="completion-summary-heading">
+          내 완독 기록
+        </h2>
+        <CompletionMark label="완독" />
+      </div>
+      <div className="talkhugam-information-surface border-ink/10 mt-4 rounded-lg border bg-white p-4">
+        <p className="text-primary text-sm font-semibold">{ratingLabel}</p>
+        <p className="text-ink mt-3 text-sm leading-6 whitespace-pre-wrap">{reviewLabel}</p>
+        <ActionButton
+          className="mt-6 w-full"
+          onClick={onEdit}
+          size="medium"
+          type="button"
+          variant="neutralOutline"
+        >
+          완독 기록 수정
+        </ActionButton>
+      </div>
+    </section>
+  )
+}
+
 /** 삭제할 책 대화방의 이름을 다시 입력받아 실수를 방지한다. */
 function BookChatDeletionDialog({
   bookName,
@@ -168,51 +363,72 @@ function BookChatDeletionDialog({
   onConfirm: (confirmationName: string) => void
 }) {
   const [confirmationName, setConfirmationName] = useState('')
+
+  /** 다이얼로그가 닫힐 때 진행 중이지 않은 삭제 요청만 취소한다. */
+  function handleOpenChange(open: boolean) {
+    if (!open && !isDeleting) onCancel()
+  }
+
+  /** 입력값이 책 이름과 일치할 때만 삭제 요청을 부모 화면에 전달한다. */
+  function handleConfirm() {
+    onConfirm(confirmationName)
+  }
+
+  /** 사용자가 입력한 책 이름을 확인 상태에 반영한다. */
+  function handleConfirmationNameChange(event: ChangeEvent<HTMLInputElement>) {
+    setConfirmationName(event.target.value)
+  }
+
   return (
-    <div
-      aria-modal="true"
-      className="bg-ink/30 fixed inset-0 z-30 flex items-end justify-center px-4 pb-4"
-      role="dialog"
-    >
-      <div className="app-page rounded-lg bg-white p-6">
-        <h2 className="text-ink text-lg font-bold">책 대화방을 삭제할까요?</h2>
-        <p className="text-ink-subtle mt-2 text-sm">
-          영상 삭제 요청도 함께 시작돼요. 계속하려면 책 이름을 입력해 주세요.
-        </p>
-        <label className="mt-4 block">
-          <span className="sr-only">삭제할 책 이름</span>
-          <input
-            className="border-ink/10 focus:border-primary min-h-12 w-full rounded-md border px-4 text-sm outline-none"
-            onChange={(event) => setConfirmationName(event.target.value)}
-            placeholder={bookName}
-            value={confirmationName}
-          />
-        </label>
-        {errorMessage ? (
-          <p className="mt-3 text-sm text-red-600" role="alert">
-            {errorMessage}
-          </p>
-        ) : null}
-        <div className="mt-6 grid grid-cols-2 gap-3">
-          <button
-            className="border-ink/10 min-h-12 rounded-md border text-sm font-semibold"
-            disabled={isDeleting}
-            onClick={onCancel}
-            type="button"
-          >
-            취소
-          </button>
-          <button
-            className="bg-primary min-h-12 rounded-md text-sm font-semibold text-white disabled:opacity-50"
-            disabled={isDeleting || confirmationName.trim() !== bookName}
-            onClick={() => onConfirm(confirmationName)}
-            type="button"
-          >
-            {isDeleting ? '삭제 요청 중…' : '삭제 요청하기'}
-          </button>
-        </div>
-      </div>
-    </div>
+    <Dialog.Root onOpenChange={handleOpenChange} open>
+      <Dialog.Positioner>
+        <Dialog.Backdrop />
+        <Dialog.Content className="talkhugam-room-management-dialog">
+          <Dialog.Header>
+            <Dialog.Title>책 대화방을 삭제할까요?</Dialog.Title>
+            <Dialog.Description>
+              영상 삭제 요청도 함께 시작돼요. 계속하려면 책 이름을 입력해 주세요.
+            </Dialog.Description>
+          </Dialog.Header>
+          <TextField.Root className="mt-4">
+            <TextField.Input
+              aria-label="삭제할 책 이름"
+              onChange={handleConfirmationNameChange}
+              placeholder={bookName}
+              value={confirmationName}
+            />
+          </TextField.Root>
+          {errorMessage ? (
+            <p className="mt-3 text-sm text-red-600" role="alert">
+              {errorMessage}
+            </p>
+          ) : null}
+          <Dialog.Footer className="!gap-2">
+            <ActionButton
+              className="flex-1"
+              disabled={isDeleting}
+              onClick={onCancel}
+              size="large"
+              type="button"
+              variant="neutralOutline"
+            >
+              취소
+            </ActionButton>
+            <ActionButton
+              className="talkhugam-primary-action flex-1"
+              disabled={isDeleting || confirmationName.trim() !== bookName}
+              loading={isDeleting}
+              onClick={handleConfirm}
+              size="large"
+              type="button"
+              variant="brandSolid"
+            >
+              삭제 요청하기
+            </ActionButton>
+          </Dialog.Footer>
+        </Dialog.Content>
+      </Dialog.Positioner>
+    </Dialog.Root>
   )
 }
 
@@ -220,7 +436,7 @@ function BookChatDeletionDialog({
 function BookChatManagementLoadingPage() {
   return (
     <main className="app-page bg-surface flex min-h-screen items-center justify-center">
-      <LoadingSpinner label="책 대화방을 불러오고 있어요." variant="book" />
+      <BookLoadingIndicator label="책 대화방을 불러오고 있어요." />
     </main>
   )
 }
@@ -230,13 +446,15 @@ function BookChatManagementUnavailablePage({ onBack }: { onBack: () => void }) {
   return (
     <main className="app-page bg-surface flex min-h-screen flex-col items-center justify-center px-4 text-center">
       <p className="text-ink text-lg font-bold">책 대화방을 찾을 수 없어요</p>
-      <button
-        className="bg-primary mt-6 min-h-11 rounded-md px-4 text-sm font-semibold text-white"
+      <ActionButton
+        className="talkhugam-primary-action mt-6"
         onClick={onBack}
+        size="large"
         type="button"
+        variant="brandSolid"
       >
         책방으로
-      </button>
+      </ActionButton>
     </main>
   )
 }

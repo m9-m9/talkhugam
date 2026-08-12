@@ -11,6 +11,7 @@ export {
   revokeManagedRoomInvite,
   roomManagementKeys,
   transferManagedRoomOwnership,
+  updateManagedRoomMemberRole,
   updateManagedRoom,
   type ArchivedRoom,
   type CreatedManagedRoomInvite,

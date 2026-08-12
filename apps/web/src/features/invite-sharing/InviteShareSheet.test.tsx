@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { useRef, useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -28,15 +28,31 @@ describe('InviteShareSheet', () => {
     expect(onShare).toHaveBeenCalledWith('kakao')
   })
 
-  it('closes with Escape and returns focus to the sheet trigger', () => {
+  it('renders the generated invite code on a white information surface', () => {
+    render(
+      <InviteShareSheet
+        inviteCode="TALK87"
+        onClose={vi.fn()}
+        onCopyInvite={vi.fn()}
+        onShare={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText('TALK87').closest('.talkhugam-information-surface')).not.toBeNull()
+  })
+
+  it('closes from the SEED close action and returns focus to the sheet trigger', async () => {
     render(<InviteShareSheetHarness />)
 
     const trigger = screen.getByRole('button', { name: '초대 시트 열기' })
+    trigger.focus()
     fireEvent.click(trigger)
-    fireEvent.keyDown(window, { key: 'Escape' })
+    fireEvent.click(screen.getByRole('button', { name: '책방 초대하기 닫기' }))
 
-    expect(screen.queryByRole('dialog', { name: '책방 초대하기' })).not.toBeInTheDocument()
-    expect(trigger).toHaveFocus()
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: '책방 초대하기' })).not.toBeInTheDocument(),
+    )
+    await waitFor(() => expect(trigger).toHaveFocus())
   })
 })
 

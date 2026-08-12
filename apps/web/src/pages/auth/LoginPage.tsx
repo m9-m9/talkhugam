@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
+import { ActionButton } from '@seed-design/react'
+
 import { getClientEnv } from '../../app/env'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
-import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { KakaoLogo } from '../../shared/ui/KakaoLogo'
+import { BrandLoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 type Provider = 'google' | 'kakao' | 'naver'
 
@@ -25,54 +28,6 @@ function createNaverBridgeStartUrl(supabaseUrl: string, origin: string): string 
   return `${supabaseUrl}/functions/v1/naver-oauth-start?return_to=${returnTo}`
 }
 
-/** Google 로고 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
-function GoogleLogo() {
-  return (
-    <svg aria-hidden="true" height="18" viewBox="0 0 18 18" width="18">
-      <path
-        d="M17.64 9.205c0-.639-.057-1.254-.164-1.845H9v3.49h4.844a4.14 4.14 0 0 1-1.796 2.715v2.26h2.909c1.703-1.568 2.683-3.877 2.683-6.62Z"
-        fill="#4285F4"
-      />
-      <path
-        d="M9 18c2.43 0 4.467-.806 5.956-2.175l-2.908-2.26c-.806.54-1.838.86-3.048.86-2.345 0-4.33-1.584-5.037-3.71H.956v2.334A9 9 0 0 0 9 18Z"
-        fill="#34A853"
-      />
-      <path
-        d="M3.963 10.715A5.41 5.41 0 0 1 3.681 9c0-.595.102-1.174.282-1.715V4.951H.956A9 9 0 0 0 0 9c0 1.452.348 2.827.956 4.049l3.007-2.334Z"
-        fill="#FBBC05"
-      />
-      <path
-        d="M9 3.574c1.322 0 2.51.455 3.444 1.348l2.583-2.584C13.463.884 11.426 0 9 0A9 9 0 0 0 .956 4.951l3.007 2.334C4.67 5.158 6.655 3.574 9 3.574Z"
-        fill="#EA4335"
-      />
-    </svg>
-  )
-}
-
-/** Kakao 로고 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
-function KakaoLogo() {
-  return (
-    <svg aria-hidden="true" height="20" viewBox="0 0 20 20" width="20">
-      <path
-        d="M10 2.5c-4.142 0-7.5 2.67-7.5 5.964 0 2.134 1.414 4.016 3.54 5.074l-.747 2.757 3.213-2.116c.486.064.985.097 1.494.097 4.142 0 7.5-2.67 7.5-5.964S14.142 2.5 10 2.5Z"
-        fill="currentColor"
-      />
-    </svg>
-  )
-}
-
-/** Naver 로고 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
-function NaverLogo() {
-  return (
-    <svg aria-hidden="true" height="20" viewBox="0 0 20 20" width="20">
-      <path
-        d="M3 2.5h3.38l4.36 7.126V2.5H14v15h-3.38L6.26 10.374V17.5H3v-15Z"
-        fill="currentColor"
-      />
-    </svg>
-  )
-}
-
 type SocialLoginButtonProps = {
   disabled: boolean
   onClick: () => void
@@ -81,47 +36,72 @@ type SocialLoginButtonProps = {
 
 /** 소셜 로그인 버튼 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function SocialLoginButton({ disabled, onClick, provider }: SocialLoginButtonProps) {
-  if (provider === 'kakao') {
-    return (
-      <button
-        aria-label="카카오로 로그인"
-        className="text-ink flex h-12 w-full items-center justify-center gap-3 rounded-md bg-[#fee500] px-4 text-sm font-medium disabled:opacity-50"
-        disabled={disabled}
-        onClick={onClick}
-        type="button"
+  const providerLabel = getSocialLoginLabel(provider)
+
+  return (
+    <ActionButton
+      aria-label={providerLabel}
+      className={`talkhugam-social-login-button talkhugam-social-login-button--${provider} !justify-center`}
+      disabled={disabled}
+      onClick={onClick}
+      size="medium"
+      type="button"
+      variant="neutralSolid"
+    >
+      <SocialLoginButtonContent provider={provider} />
+    </ActionButton>
+  )
+}
+
+/** 제공사별 공식 로고와 현지화한 로그인 문구를 같은 간격으로 묶어 렌더링한다. */
+function SocialLoginButtonContent({ provider }: Pick<SocialLoginButtonProps, 'provider'>) {
+  const label = getSocialLoginLabel(provider)
+
+  return (
+    <span className="talkhugam-social-login-button__content">
+      <SocialLoginMark provider={provider} />
+      <span
+        className={
+          provider === 'google'
+            ? 'talkhugam-social-login-button__google-label'
+            : 'talkhugam-social-login-button__provider-label'
+        }
       >
-        <KakaoLogo />
-        카카오로 계속하기
-      </button>
-    )
+        {label}
+      </span>
+    </span>
+  )
+}
+
+/** 제공사별 공식 로고 마크만 로그인 버튼에 렌더링한다. */
+function SocialLoginMark({ provider }: Pick<SocialLoginButtonProps, 'provider'>) {
+  if (provider === 'kakao') {
+    return <KakaoLogo aria-hidden="true" className="talkhugam-social-login-button__kakao-mark" />
   }
 
   if (provider === 'naver') {
     return (
-      <button
-        aria-label="네이버로 로그인"
-        className="text-ink flex h-12 w-full items-center justify-center gap-3 rounded-md bg-[#03c75a] px-4 text-sm font-medium disabled:opacity-50"
-        disabled={disabled}
-        onClick={onClick}
-        type="button"
-      >
-        <NaverLogo />
-        네이버로 계속하기
-      </button>
+      <img
+        alt=""
+        className="talkhugam-social-login-button__naver-mark"
+        src="/brand/social/naver-icon.png"
+      />
     )
   }
 
   return (
-    <button
-      className="text-ink flex h-12 w-full items-center justify-center gap-3 rounded-md border border-[#747775] bg-white px-4 text-sm font-medium disabled:opacity-50"
-      disabled={disabled}
-      onClick={onClick}
-      type="button"
-    >
-      <GoogleLogo />
-      Google로 계속하기
-    </button>
+    <span aria-hidden="true" className="talkhugam-social-login-button__google-mark">
+      <img alt="" src="/brand/social/google-login.svg" />
+    </span>
   )
+}
+
+/** 제공사별 로그인 동작을 설명하는 공식 또는 현지화 문구를 반환한다. */
+function getSocialLoginLabel(provider: Provider): string {
+  if (provider === 'kakao') return '카카오 로그인'
+  if (provider === 'naver') return '네이버 로그인'
+
+  return '구글 로그인'
 }
 
 /** 로그인 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
@@ -155,50 +135,55 @@ export function LoginPage() {
   }
 
   return (
-    <main className="app-page bg-surface flex flex-col justify-center gap-12 px-4">
-      <div className="space-y-4">
-        <p className="text-primary text-sm font-medium">Talk후감</p>
-        <h1 className="text-ink text-3xl font-semibold break-keep">
-          읽고 느낀 마음을
-          <br />
-          함께 나눠요
-        </h1>
-        <p className="text-ink-subtle text-sm">
-          같은 책을 읽고 느낀 점을 편하게 나누는 책방이에요.
+    <main className="app-page talkhugam-login-page bg-surface flex items-center px-4 py-12">
+      <section aria-label="Talk후감 로그인" className="talkhugam-login-content">
+        <div className="space-y-4">
+          <p className="text-primary text-sm font-medium">Talk후감</p>
+          <h1 className="text-ink text-3xl font-semibold break-keep">
+            읽고 느낀 마음을
+            <br />
+            함께 나눠요
+          </h1>
+          <p className="text-ink-subtle text-sm">
+            같은 책을 읽고 느낀 점을 편하게 나누는 책방이에요.
+          </p>
+          {wasAccountDeleted ? (
+            <p className="text-primary text-sm" role="status">
+              계정 삭제 요청이 완료됐어요. Talk후감에 다시 오고 싶을 때 언제든 로그인해 주세요.
+            </p>
+          ) : null}
+        </div>
+        <div className="flex flex-col gap-2">
+          {(['kakao', 'google', 'naver'] as const).map((provider) => (
+            <SocialLoginButton
+              disabled={isPending}
+              key={provider}
+              onClick={() => void handleLogin(provider)}
+              provider={provider}
+            />
+          ))}
+        </div>
+        <p className="text-ink-subtle text-center text-xs leading-5">
+          계속하면{' '}
+          <Link className="text-primary font-medium underline underline-offset-2" to="/legal/terms">
+            이용약관
+          </Link>{' '}
+          및{' '}
+          <Link
+            className="text-primary font-medium underline underline-offset-2"
+            to="/legal/privacy"
+          >
+            개인정보처리방침
+          </Link>
+          에 동의하게 됩니다.
         </p>
-        {wasAccountDeleted ? (
-          <p className="text-primary text-sm" role="status">
-            계정 삭제 요청이 완료됐어요. Talk후감에 다시 오고 싶을 때 언제든 로그인해 주세요.
+        {isPending ? <BrandLoadingSpinner label="로그인을 연결하고 있어요." size="sm" /> : null}
+        {errorMessage ? (
+          <p role="alert" className="text-sm text-red-600">
+            {errorMessage}
           </p>
         ) : null}
-      </div>
-      <div className="space-y-3">
-        {(['kakao', 'google', 'naver'] as const).map((provider) => (
-          <SocialLoginButton
-            disabled={isPending}
-            key={provider}
-            onClick={() => void handleLogin(provider)}
-            provider={provider}
-          />
-        ))}
-      </div>
-      <p className="text-ink-subtle text-center text-xs leading-5">
-        계속하면{' '}
-        <Link className="text-primary font-medium underline underline-offset-2" to="/legal/terms">
-          이용약관
-        </Link>{' '}
-        및{' '}
-        <Link className="text-primary font-medium underline underline-offset-2" to="/legal/privacy">
-          개인정보처리방침
-        </Link>
-        에 동의하게 됩니다.
-      </p>
-      {isPending ? <LoadingSpinner label="로그인을 연결하고 있어요." size="sm" /> : null}
-      {errorMessage ? (
-        <p role="alert" className="text-sm text-red-600">
-          {errorMessage}
-        </p>
-      ) : null}
+      </section>
     </main>
   )
 }

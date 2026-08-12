@@ -21,7 +21,6 @@ const { getMyCompletedBooks, getProfile, getProfileAvatarUrl } = vi.hoisted(() =
   getProfile: vi.fn().mockResolvedValue({
     bio: '천천히 읽고 오래 남겨요.',
     displayName: '민규',
-    mbti: 'INTP',
   }),
   getProfileAvatarUrl: vi.fn(),
 }))
@@ -60,7 +59,6 @@ describe('ProfilePage', () => {
     getProfile.mockResolvedValue({
       bio: '천천히 읽고 오래 남겨요.',
       displayName: '민규',
-      mbti: 'INTP',
     })
     getProfileAvatarUrl.mockResolvedValue(null)
   })
@@ -76,11 +74,13 @@ describe('ProfilePage', () => {
     const profileEditButton = await screen.findByRole('button', { name: '내 정보 수정' })
 
     expect(profileEditButton).toBeInTheDocument()
-    expect(profileEditButton).toHaveClass('cursor-pointer')
+    expect(profileEditButton).toHaveClass(/seed-action-button/)
+    expect(profileEditButton).toHaveClass('!justify-between')
     expect(screen.getByRole('button', { name: '책방 보기' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '읽고 있는 책' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '계정 설정' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '서비스 정보' })).toBeInTheDocument()
+    expect(screen.queryByText(/MBTI/)).not.toBeInTheDocument()
     expect(screen.queryByText('프로필 정보')).not.toBeInTheDocument()
     expect(screen.queryByText('내가 완독한 책')).not.toBeInTheDocument()
     expect(screen.queryByText('미움받을 용기')).not.toBeInTheDocument()
@@ -104,7 +104,6 @@ describe('ProfilePage', () => {
       avatarPath: '00000000-0000-4000-8000-000000000001/avatar',
       bio: '천천히 읽고 오래 남겨요.',
       displayName: '민규',
-      mbti: 'INTP',
       updatedAt: '2026-07-19T00:00:00.000+00:00',
     })
     getProfileAvatarUrl.mockResolvedValue('https://example.test/avatar')
@@ -121,7 +120,6 @@ describe('ProfilePage', () => {
     const deferredProfile = createDeferredValue<{
       bio: string
       displayName: string
-      mbti: string
     }>()
     getProfile
       .mockRejectedValueOnce(new Error('network'))
@@ -138,7 +136,6 @@ describe('ProfilePage', () => {
     deferredProfile.resolve({
       bio: '천천히 읽고 오래 남겨요.',
       displayName: '민규',
-      mbti: 'INTP',
     })
 
     expect(await screen.findByRole('heading', { name: '민규' })).toBeInTheDocument()

@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 
+import { ActionButton, TextField } from '@seed-design/react'
+
 import {
   completeOnboarding,
   createInitialProfileForm,
@@ -13,27 +15,9 @@ import {
 import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { trackAnalyticsEvent } from '../../shared/analytics'
-import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { BrandLoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { FormField } from '../../shared/ui/FormField'
 import { RetryState } from '../../shared/ui/RetryState'
-
-const mbtiOptions = [
-  'ISTJ',
-  'ISFJ',
-  'INFJ',
-  'INTJ',
-  'ISTP',
-  'ISFP',
-  'INFP',
-  'INTP',
-  'ESTP',
-  'ESFP',
-  'ENFP',
-  'ENTP',
-  'ESTJ',
-  'ESFJ',
-  'ENFJ',
-  'ENTJ',
-] as const
 
 /** 온보딩 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 export function OnboardingPage() {
@@ -60,7 +44,6 @@ export function OnboardingPage() {
         form.reset({
           displayName: profile.displayName,
           bio: profile.bio ?? '',
-          mbti: isMbti(profile.mbti) ? profile.mbti : null,
         })
       } catch {
         setProfileErrorMessage('프로필 정보를 불러오지 못했어요. 다시 시도해 주세요.')
@@ -107,96 +90,49 @@ export function OnboardingPage() {
       </header>
 
       <form className="mt-8 space-y-6" onSubmit={form.handleSubmit(handleSubmit)}>
-        <Field label="이름" errorMessage={form.formState.errors.displayName?.message}>
-          <input
-            aria-invalid={Boolean(form.formState.errors.displayName)}
-            className="focus:border-primary min-h-11 w-full rounded-md border border-black/10 bg-white px-3 text-sm outline-none"
-            {...form.register('displayName')}
-          />
-        </Field>
-        <Field label="한 줄 소개" errorMessage={form.formState.errors.bio?.message}>
-          <textarea
-            className="focus:border-primary min-h-24 w-full resize-none rounded-md border border-black/10 bg-white px-3 py-3 text-sm outline-none"
-            maxLength={80}
-            {...form.register('bio')}
-          />
-        </Field>
-        <Field label="MBTI (선택)" errorMessage={form.formState.errors.mbti?.message}>
-          <div className="relative">
-            <select
-              className="focus:border-primary min-h-11 w-full appearance-none rounded-md border border-black/10 bg-white px-3 pr-12 text-sm outline-none"
-              {...form.register('mbti', {
-                setValueAs: (value: string) => value || null,
-              })}
-            >
-              <option value="">선택 안 함</option>
-              {mbtiOptions.map((mbti) => (
-                <option key={mbti} value={mbti}>
-                  {mbti}
-                </option>
-              ))}
-            </select>
-            <svg
-              aria-hidden="true"
-              className="text-ink pointer-events-none absolute top-1/2 right-6 size-4 -translate-y-1/2"
-              fill="none"
-              viewBox="0 0 16 16"
-            >
-              <path
-                d="m3 6 5 5 5-5"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="1.5"
-              />
-            </svg>
-          </div>
-        </Field>
+        <FormField
+          errorMessage={form.formState.errors.displayName?.message}
+          label="이름"
+          name="displayName"
+        >
+          <TextField.Root>
+            <TextField.Input {...form.register('displayName')} />
+          </TextField.Root>
+        </FormField>
+        <FormField
+          errorMessage={form.formState.errors.bio?.message}
+          label="한 줄 소개"
+          name="bio"
+          optional
+        >
+          <TextField.Root>
+            <TextField.Textarea autoresize={false} maxLength={80} {...form.register('bio')} />
+          </TextField.Root>
+        </FormField>
         {errorMessage ? (
           <p className="text-sm text-red-600" role="alert">
             {errorMessage}
           </p>
         ) : null}
-        <button
-          className="bg-primary min-h-11 w-full rounded-md px-4 text-sm font-semibold text-white disabled:opacity-50"
+        <ActionButton
+          className="talkhugam-primary-action w-full"
           disabled={form.formState.isSubmitting}
+          loading={form.formState.isSubmitting}
+          size="large"
           type="submit"
+          variant="brandSolid"
         >
           {form.formState.isSubmitting ? (
             <span className="flex items-center justify-center gap-2">
-              <LoadingSpinner label="프로필을 저장하고 있어요." showLabel={false} size="xs" />
+              <BrandLoadingSpinner label="프로필을 저장하고 있어요." showLabel={false} size="xs" />
               저장하고 있어요…
             </span>
           ) : (
             '시작하기'
           )}
-        </button>
+        </ActionButton>
       </form>
     </main>
-  )
-}
-
-/** MBTI 상태인지 판별한다. */
-function isMbti(value: string | null): value is (typeof mbtiOptions)[number] {
-  return value !== null && mbtiOptions.includes(value as (typeof mbtiOptions)[number])
-}
-
-/** 입력 필드 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
-function Field({
-  children,
-  errorMessage,
-  label,
-}: {
-  children: React.ReactNode
-  errorMessage: string | undefined
-  label: string
-}) {
-  return (
-    <label className="block space-y-2">
-      <span className="text-ink text-sm font-medium">{label}</span>
-      {children}
-      {errorMessage ? <span className="text-sm text-red-600">{errorMessage}</span> : null}
-    </label>
   )
 }
 
@@ -204,7 +140,7 @@ function Field({
 function OnboardingState({ message }: { message: string }) {
   return (
     <main className="app-page bg-surface flex items-center justify-center px-4">
-      <LoadingSpinner label={message} />
+      <BrandLoadingSpinner label={message} />
     </main>
   )
 }

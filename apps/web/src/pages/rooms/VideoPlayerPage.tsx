@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { ActionButton } from '@seed-design/react'
 
 import {
   deleteVideoPost,
@@ -12,7 +13,7 @@ import {
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { ConfirmActionDialog } from '../../shared/ui/ConfirmActionDialog'
 import { LazyMuxVideoPlayer } from '../../shared/ui/LazyMuxVideoPlayer'
-import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { BookLoadingIndicator } from '../../shared/ui/LoadingSpinner'
 import { RetryState } from '../../shared/ui/RetryState'
 
 type RetryTarget = 'playback' | 'video' | null
@@ -67,7 +68,7 @@ export function VideoPlayerPage() {
     )
   }
 
-  /** 삭제된 영상 목록 캐시를 무효화한 뒤 사용자를 해당 영상 기록 화면으로 이동시킨다. */
+  /** 삭제된 영상 목록 캐시를 무효화한 뒤 사용자를 책갈피 목록 화면으로 이동시킨다. */
   async function handleVideoDeleteSuccess() {
     await queryClient.invalidateQueries({ queryKey: videoKeys.byBookChat(bookChatId ?? '') })
     void navigate(archivePath, { replace: true })
@@ -121,7 +122,7 @@ export function VideoPlayerPage() {
     setHasPlaybackMediaError(true)
   }
 
-  /** 영상 기록 화면으로 돌아가도록 라우트를 교체한다. */
+  /** 책갈피 목록 화면으로 돌아가도록 라우트를 교체한다. */
   function handleReturnToArchive() {
     void navigate(archivePath, { replace: true })
   }
@@ -156,25 +157,29 @@ export function VideoPlayerPage() {
     <>
       <main className="app-page bg-ink flex min-h-dvh flex-col px-0">
         <header className="flex min-h-16 shrink-0 items-center border-b border-white/15 px-4 text-white">
-          <button
-            aria-label="영상 기록으로 돌아가기"
-            className="focus-visible:ring-primary -ml-3 flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-full focus-visible:ring-2 focus-visible:outline-none"
+          <ActionButton
+            aria-label="책갈피로 돌아가기"
+            className="-ml-3 min-h-11 min-w-11 rounded-full text-white"
             onClick={handleReturnToArchive}
+            size="medium"
             type="button"
+            variant="ghost"
           >
             <BackIcon />
-          </button>
+          </ActionButton>
           <h1 className="flex-1 text-center text-base font-bold">영상 보기</h1>
           {videoQuery.data && canDeleteVideo ? (
-            <button
-              className="focus-visible:ring-primary min-h-11 cursor-pointer rounded-lg px-2 text-sm text-white/80 focus-visible:ring-2 focus-visible:outline-none"
+            <ActionButton
+              className="text-white/80"
               disabled={deleteMutation.isPending}
               onClick={handleOpenDeleteDialog}
               ref={deleteTriggerRef}
+              size="small"
               type="button"
+              variant="ghost"
             >
               삭제
-            </button>
+            </ActionButton>
           ) : (
             <span aria-hidden="true" className="min-w-11" />
           )}
@@ -206,7 +211,7 @@ export function VideoPlayerPage() {
               onReturn={handleReturnToArchive}
             />
           ) : isVideoLoading ? (
-            <LoadingSpinner label="영상을 준비하고 있어요." tone="inverse" variant="book" />
+            <BookLoadingIndicator label="영상을 준비하고 있어요." tone="inverse" />
           ) : playbackQuery.data ? (
             <LazyMuxVideoPlayer
               className="absolute inset-0 size-full"
@@ -262,7 +267,7 @@ function PlaybackMediaErrorState({
   )
 }
 
-/** 영상 기록으로 돌아가는 제어를 위한 왼쪽 화살표 SVG 요소를 반환한다. */
+/** 책갈피 목록으로 돌아가는 제어를 위한 왼쪽 화살표 SVG 요소를 반환한다. */
 function BackIcon() {
   return (
     <svg aria-hidden="true" className="size-6" fill="none" viewBox="0 0 24 24">
@@ -271,25 +276,27 @@ function BackIcon() {
   )
 }
 
-/** 존재하지 않거나 아직 재생할 수 없는 영상을 안내하고 보관함 복귀 제어를 렌더링한다. */
+/** 존재하지 않거나 아직 재생할 수 없는 영상을 안내하고 책갈피 복귀 제어를 렌더링한다. */
 function VideoUnavailableState({ message, onReturn }: { message: string; onReturn: () => void }) {
   return (
     <div className="flex flex-col items-center gap-4 px-6 text-center">
       <p className="text-sm font-medium text-white" role="alert">
         {message}
       </p>
-      <button
-        className="border-primary text-primary min-h-11 cursor-pointer rounded-md border px-4 text-sm font-semibold"
+      <ActionButton
+        className="border-primary text-primary"
         onClick={onReturn}
+        size="medium"
         type="button"
+        variant="neutralOutline"
       >
-        영상 기록으로 가기
-      </button>
+        책갈피로 가기
+      </ActionButton>
     </div>
   )
 }
 
-/** 영상 게시물 조회 오류의 재시도·보관함 복귀 흐름과 진행 중 상태를 렌더링한다. */
+/** 영상 게시물 조회 오류의 재시도·책갈피 복귀 흐름과 진행 중 상태를 렌더링한다. */
 function VideoLookupErrorState({
   isRetrying,
   onRetry,
@@ -310,7 +317,7 @@ function VideoLookupErrorState({
   )
 }
 
-/** Mux 재생 권한 조회 오류의 재시도·보관함 복귀 흐름과 진행 중 상태를 렌더링한다. */
+/** Mux 재생 권한 조회 오류의 재시도·책갈피 복귀 흐름과 진행 중 상태를 렌더링한다. */
 function PlaybackLookupErrorState({
   isRetrying,
   onRetry,
@@ -368,16 +375,16 @@ function PlayerLookupErrorState({
         onRetry={onRetry}
         {...(retryLabel === undefined ? {} : { retryLabel })}
       />
-      {isRetrying ? (
-        <LoadingSpinner label={loadingLabel} size="sm" tone="inverse" variant="book" />
-      ) : null}
-      <button
-        className="min-h-11 cursor-pointer px-3 text-sm font-medium text-white/80"
+      {isRetrying ? <BookLoadingIndicator label={loadingLabel} size="sm" tone="inverse" /> : null}
+      <ActionButton
+        className="text-white/80"
         onClick={onReturn}
+        size="small"
         type="button"
+        variant="ghost"
       >
-        영상 기록으로 가기
-      </button>
+        책갈피로 가기
+      </ActionButton>
     </div>
   )
 }

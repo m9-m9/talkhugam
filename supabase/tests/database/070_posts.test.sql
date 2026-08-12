@@ -2,11 +2,12 @@ begin;
 
 \ir ../helpers/auth.inc
 
-select plan(21);
+select plan(26);
 
 select has_table('public', 'posts', 'posts table should exist');
 select has_table('public', 'post_labels', 'post_labels table should exist');
 select has_table('public', 'post_mentions', 'post_mentions table should exist');
+select has_table('public', 'post_reactions', 'post_reactions table should exist');
 select ok(
   (
     select indisunique
@@ -133,6 +134,13 @@ insert into public.post_mentions (post_id, mentioned_member_id)
 values (
   '60000000-0000-0000-0000-000000000071',
   '20000000-0000-0000-0000-000000000072'
+);
+
+insert into public.post_reactions (post_id, member_id, emoji)
+values (
+  '60000000-0000-0000-0000-000000000071',
+  '20000000-0000-0000-0000-000000000072',
+  '❤️'
 );
 
 select throws_ok(
@@ -283,6 +291,11 @@ select is((select count(*) from public.posts), 2::bigint, 'a member should selec
 select is((select count(*) from public.post_labels), 1::bigint, 'a member should select labels in their room');
 select is((select count(*) from public.post_mentions), 1::bigint, 'a member should select mentions in their room');
 select is(
+  (select count(*) from public.post_reactions),
+  1::bigint,
+  'a member should select reactions in their room'
+);
+select is(
   private.can_access_post('60000000-0000-0000-0000-000000000071'),
   true,
   'a member should resolve post access in their room'
@@ -305,6 +318,19 @@ select throws_ok(
   null,
   'an authenticated member should create posts only through the RPC'
 );
+select throws_ok(
+  $$
+    insert into public.post_reactions (post_id, member_id, emoji)
+    values (
+      '60000000-0000-0000-0000-000000000071',
+      '20000000-0000-0000-0000-000000000071',
+      '👍'
+    )
+  $$,
+  '42501',
+  null,
+  'an authenticated member should create reactions only through the RPC'
+);
 
 reset role;
 select tests.authenticate_as('00000000-0000-0000-0000-000000000173');
@@ -313,6 +339,11 @@ set local role authenticated;
 select is((select count(*) from public.posts), 1::bigint, 'another room member should only select their room post');
 select is((select count(*) from public.post_labels), 0::bigint, 'another room member should not select labels');
 select is((select count(*) from public.post_mentions), 0::bigint, 'another room member should not select mentions');
+select is(
+  (select count(*) from public.post_reactions),
+  0::bigint,
+  'another room member should not select reactions'
+);
 select is(
   private.can_access_post('60000000-0000-0000-0000-000000000071'),
   false,
@@ -327,6 +358,12 @@ select throws_ok(
   '42501',
   null,
   'anon should not select posts'
+);
+select throws_ok(
+  $$select * from public.post_reactions$$,
+  '42501',
+  null,
+  'anon should not select reactions'
 );
 
 reset role;

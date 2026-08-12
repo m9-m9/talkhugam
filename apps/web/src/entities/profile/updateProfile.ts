@@ -14,7 +14,6 @@ export async function updateProfile(
     .update({
       display_name: profile.displayName,
       bio: profile.bio ?? null,
-      mbti: profile.mbti,
     })
     .eq('id', profileId)
 

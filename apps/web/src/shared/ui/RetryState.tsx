@@ -17,14 +17,17 @@ export function RetryState({
       <p className="text-sm text-red-600" role="alert">
         {message}
       </p>
-      <button
-        className="border-primary text-primary min-h-11 cursor-pointer rounded-md border px-4 text-sm font-semibold"
+      <ActionButton
         disabled={isRetrying}
         onClick={onRetry}
+        size="medium"
         type="button"
+        className="talkhugam-foundation-action--outline"
+        variant="brandOutline"
       >
         {retryLabel}
-      </button>
+      </ActionButton>
     </div>
   )
 }
+import { ActionButton } from '@seed-design/react'
