@@ -1745,6 +1745,17 @@ async function mockAuthenticatedPageData(page: Page) {
       status: 200,
     })
   })
+  await page.route('**/functions/v1/book-bestsellers', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        data: { isConfigured: false, items: [] },
+        ok: true,
+        requestId: 'bestsellers-empty-e2e',
+      }),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
 }
 
 /** 베스트셀러 캐러셀 전환을 검증할 수 있도록 최소 두 권의 추천 도서를 반환한다. */
