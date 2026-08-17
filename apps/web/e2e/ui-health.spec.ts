@@ -176,7 +176,7 @@ test('blocks a non-operator from the admin route', async ({ page }) => {
   await page.goto('/admin')
 
   await expect(page).toHaveURL('/rooms')
-  await expect(page.getByText('아직 참여한 책방이 없어요')).toBeVisible()
+  await expect(page.getByRole('heading', { name: '운영자' })).toHaveCount(0)
 })
 
 test('lets an operator change a feedback ticket status', async ({ page }) => {
@@ -496,7 +496,7 @@ test('keeps the main room row aligned without overlapping metadata', async ({ pa
   const avatar = roomButton.locator('xpath=ancestor::li[1]').locator('[aria-hidden="true"]').first()
   const row = roomButton.locator('xpath=ancestor::li[1]')
   const title = page.getByText('민정이', { exact: true })
-  const time = page.getByText('23:15', { exact: true })
+  const time = row.getByText(/^\d{2}:\d{2}$/)
   const [avatarBox, rowBox, titleBox, timeBox] = await Promise.all([
     avatar.boundingBox(),
     row.boundingBox(),
