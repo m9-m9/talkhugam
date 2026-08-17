@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "Talk후감",
+    "slug": "talkhugam",
+    "scheme": "talkhugam",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "bundleIdentifier": "app.talkhugam",
+      "associatedDomains": ["applinks:talkhugam.vercel.app"]
+    },
+    "android": {
+      "package": "app.talkhugam",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "talkhugam.vercel.app",
+              "pathPrefix": "/auth/callback"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
+    },
+    "plugins": ["expo-router", "expo-secure-store"]
+  }
+}

@@ -4,6 +4,8 @@ node_modules/
 # Build output
 dist/
 .vite/
+.expo/
+.expo-dist*/
 *.tsbuildinfo
 
 # Tests and coverage

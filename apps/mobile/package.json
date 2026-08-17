@@ -1,0 +1,30 @@
+{
+  "name": "@talkhugam/mobile",
+  "version": "0.0.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "dev": "expo start --dev-client",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.110.7",
+    "@talkhugam/domain": "workspace:*",
+    "expo": "~57.0.1",
+    "expo-constants": "~57.0.12",
+    "expo-linking": "~57.0.0",
+    "expo-router": "~57.0.0",
+    "expo-secure-store": "~57.0.0",
+    "expo-status-bar": "~57.0.0",
+    "react": "19.2.3",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "~4.26.0",
+    "react-native": "0.86.2"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.17",
+    "typescript": "~6.0.3",
+    "vitest": "^4.1.10"
+  }
+}
