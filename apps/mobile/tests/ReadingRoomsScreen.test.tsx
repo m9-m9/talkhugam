@@ -55,7 +55,7 @@ describe('MobileReadingRoomsScreen', () => {
   it('announces the first protected room query while it is loading', () => {
     mockGetMobileReadingRooms.mockReturnValue(new Promise(() => undefined))
 
-    render(<MobileReadingRoomsScreen onCreateRoom={jest.fn()} onJoinRoom={jest.fn()} />, {
+    render(<MobileReadingRoomsScreen onCreateRoom={jest.fn()} onJoinRoom={jest.fn()} onOpenRoom={jest.fn()} />, {
       wrapper: createQueryWrapper(),
     })
 
@@ -67,7 +67,7 @@ describe('MobileReadingRoomsScreen', () => {
     const onCreateRoom = jest.fn()
     const onJoinRoom = jest.fn()
 
-    render(<MobileReadingRoomsScreen onCreateRoom={onCreateRoom} onJoinRoom={onJoinRoom} />, {
+    render(<MobileReadingRoomsScreen onCreateRoom={onCreateRoom} onJoinRoom={onJoinRoom} onOpenRoom={jest.fn()} />, {
       wrapper: createQueryWrapper(),
     })
 
@@ -81,7 +81,7 @@ describe('MobileReadingRoomsScreen', () => {
   it('shows a retryable error when protected room retrieval fails', async () => {
     mockGetMobileReadingRooms.mockRejectedValue(new Error('network unavailable'))
 
-    render(<MobileReadingRoomsScreen onCreateRoom={jest.fn()} onJoinRoom={jest.fn()} />, {
+    render(<MobileReadingRoomsScreen onCreateRoom={jest.fn()} onJoinRoom={jest.fn()} onOpenRoom={jest.fn()} />, {
       wrapper: createQueryWrapper(),
     })
 
@@ -94,14 +94,24 @@ describe('MobileReadingRoomsScreen', () => {
 
   it('renders a member-scoped room card with its invite-only summary', async () => {
     mockGetMobileReadingRooms.mockResolvedValue([room])
+    const onOpenRoom = jest.fn()
 
-    render(<MobileReadingRoomsScreen onCreateRoom={jest.fn()} onJoinRoom={jest.fn()} />, {
+    render(
+      <MobileReadingRoomsScreen
+        onCreateRoom={jest.fn()}
+        onJoinRoom={jest.fn()}
+        onOpenRoom={onOpenRoom}
+      />,
+      {
       wrapper: createQueryWrapper(),
-    })
+      },
+    )
 
     expect(await screen.findByText('금요일 아침 책방')).toBeVisible()
     expect(screen.getByText('민규 · 1명')).toBeVisible()
     expect(screen.getByText('아직 첫 이야기를 기다리고 있어요.')).toBeVisible()
+    fireEvent.press(screen.getByRole('button', { name: '금요일 아침 책방 열기' }))
+    expect(onOpenRoom).toHaveBeenCalledWith(room.id)
   })
 
   it('does not reuse another account’s private room cache after the session identity changes', async () => {
@@ -116,7 +126,7 @@ describe('MobileReadingRoomsScreen', () => {
     mockUseMobileSessionProfileId.mockReturnValue(otherProfileId)
     mockGetMobileReadingRooms.mockResolvedValue([currentAccountRoom])
 
-    render(<MobileReadingRoomsScreen onCreateRoom={jest.fn()} onJoinRoom={jest.fn()} />, {
+    render(<MobileReadingRoomsScreen onCreateRoom={jest.fn()} onJoinRoom={jest.fn()} onOpenRoom={jest.fn()} />, {
       wrapper: createQueryWrapper(queryClient),
     })
 

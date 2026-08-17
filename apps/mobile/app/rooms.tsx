@@ -19,7 +19,18 @@ export default function RoomsRoute(): React.JSX.Element {
     router.push('/rooms/join')
   }
 
+  /** 선택한 비공개 책방의 책 목록으로 이동한다. */
+  function handleOpenRoom(roomId: string): void {
+    router.push(`/rooms/${roomId}`)
+  }
+
   if (!isAllowed) return <MobileRouteLoadingScreen label="책방을 불러오고 있어요." />
 
-  return <MobileReadingRoomsScreen onCreateRoom={handleCreateRoom} onJoinRoom={handleJoinRoom} />
+  return (
+    <MobileReadingRoomsScreen
+      onCreateRoom={handleCreateRoom}
+      onJoinRoom={handleJoinRoom}
+      onOpenRoom={handleOpenRoom}
+    />
+  )
 }

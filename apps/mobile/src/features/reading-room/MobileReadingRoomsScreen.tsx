@@ -15,12 +15,14 @@ import { createMobileSupabaseClient } from '../../shared/api/mobileSupabaseClien
 type MobileReadingRoomsScreenProps = {
   onCreateRoom(): void
   onJoinRoom(): void
+  onOpenRoom(roomId: string): void
 }
 
 /** 인증된 회원의 비공개 책방 목록과 새 책방 진입 동작을 표시한다. */
 export function MobileReadingRoomsScreen({
   onCreateRoom,
   onJoinRoom,
+  onOpenRoom,
 }: MobileReadingRoomsScreenProps): React.JSX.Element {
   const profileId = useMobileSessionProfileId()
   const roomsQuery = useQuery({
@@ -45,6 +47,7 @@ export function MobileReadingRoomsScreen({
         <RoomsContent
           error={roomsQuery.isError}
           isLoading={roomsQuery.isPending}
+          onOpenRoom={onOpenRoom}
           onRetry={handleRetry}
           rooms={roomsQuery.data ?? []}
         />
@@ -60,12 +63,19 @@ export function MobileReadingRoomsScreen({
 type RoomsContentProps = {
   error: boolean
   isLoading: boolean
+  onOpenRoom(roomId: string): void
   onRetry(): void
   rooms: readonly ReadingRoom[]
 }
 
 /** 목록 쿼리 상태에 맞춰 로딩·오류·빈 목록 또는 책방 카드를 표시한다. */
-function RoomsContent({ error, isLoading, onRetry, rooms }: RoomsContentProps): React.JSX.Element {
+function RoomsContent({
+  error,
+  isLoading,
+  onOpenRoom,
+  onRetry,
+  rooms,
+}: RoomsContentProps): React.JSX.Element {
   if (isLoading) return <RoomsLoadingState />
   if (error) return <RoomsErrorState onRetry={onRetry} />
   if (rooms.length === 0) return <RoomsEmptyState />
@@ -73,7 +83,7 @@ function RoomsContent({ error, isLoading, onRetry, rooms }: RoomsContentProps): 
   return (
     <View accessibilityLabel="함께 읽는 책방" style={styles.roomList}>
       {rooms.map((room) => (
-        <RoomCard key={room.id} room={room} />
+        <RoomCard key={room.id} onOpenRoom={onOpenRoom} room={room} />
       ))}
     </View>
   )
@@ -118,15 +128,31 @@ function RoomsEmptyState(): React.JSX.Element {
 }
 
 /** 검증된 책방 요약을 최근 대화와 멤버 표시명이 포함된 카드로 표시한다. */
-function RoomCard({ room }: { room: ReadingRoom }): React.JSX.Element {
+function RoomCard({
+  onOpenRoom,
+  room,
+}: {
+  onOpenRoom(roomId: string): void
+  room: ReadingRoom
+}): React.JSX.Element {
+  /** 현재 회원이 속한 비공개 책방 상세 화면을 연다. */
+  function handleOpenRoom(): void {
+    onOpenRoom(room.id)
+  }
+
   return (
-    <View style={styles.roomCard}>
+    <Pressable
+      accessibilityLabel={`${room.name} 열기`}
+      accessibilityRole="button"
+      onPress={handleOpenRoom}
+      style={({ pressed }) => [styles.roomCard, pressed && styles.roomCardPressed]}
+    >
       <Text style={styles.roomName}>{room.name}</Text>
       <Text style={styles.roomMembers}>{formatRoomMemberSummary(room.members)}</Text>
       <Text numberOfLines={2} style={styles.roomPreview}>
         {formatRoomMessagePreview(room)}
       </Text>
-    </View>
+    </Pressable>
   )
 }
 
@@ -195,6 +221,7 @@ const styles = StyleSheet.create({
     gap: 8,
     padding: 16,
   },
+  roomCardPressed: { backgroundColor: '#1B1B1B', borderColor: '#FF835F' },
   roomList: { gap: 12, marginTop: 32 },
   roomMembers: { color: '#FFB5A3', fontSize: 14, lineHeight: 20 },
   roomName: { color: '#FFFFFF', fontSize: 18, fontWeight: '700', lineHeight: 26 },
