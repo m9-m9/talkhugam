@@ -5,19 +5,21 @@ jest.mock('../src/shared/api/mobileSupabaseClient')
 jest.mock('../src/features/auth/openMobileOAuthSession')
 jest.mock('../src/features/auth/resolveMobileAuthDestination')
 jest.mock('expo-web-browser', () => ({ openAuthSessionAsync: jest.fn() }))
-jest.mock('expo-router', () => ({ useRouter: jest.fn() }))
+jest.mock('expo-router', () => ({ useLocalSearchParams: jest.fn(), useRouter: jest.fn() }))
 
 import { openMobileOAuthSession } from '../src/features/auth/openMobileOAuthSession'
 import { resolveMobileAuthDestination } from '../src/features/auth/resolveMobileAuthDestination'
 import { createMobileSupabaseClient } from '../src/shared/api/mobileSupabaseClient'
-import { useRouter } from 'expo-router'
+import { useLocalSearchParams, useRouter } from 'expo-router'
 
 import WelcomeScreen from '../app/index'
 
 const mockCreateMobileSupabaseClient = jest.mocked(createMobileSupabaseClient)
 const mockOpenMobileOAuthSession = jest.mocked(openMobileOAuthSession)
 const mockResolveMobileAuthDestination = jest.mocked(resolveMobileAuthDestination)
+const mockUseLocalSearchParams = jest.mocked(useLocalSearchParams)
 const mockUseRouter = jest.mocked(useRouter)
+const invitePath = `/rooms/join?invite=${'a'.repeat(64)}`
 
 describe('WelcomeScreen', () => {
   beforeEach(() => {
@@ -28,6 +30,7 @@ describe('WelcomeScreen', () => {
       },
     } as never)
     mockUseRouter.mockReturnValue({ replace: jest.fn() } as never)
+    mockUseLocalSearchParams.mockReturnValue({} as never)
   })
 
   /** 익명 세션 확인을 마친 뒤 실제 로그인 조작을 할 수 있는 화면을 렌더링한다. */
@@ -121,6 +124,23 @@ describe('WelcomeScreen', () => {
         mockCreateMobileSupabaseClient.mock.results[0]?.value,
       )
       expect(replace).toHaveBeenCalledWith('/legal-consent')
+    })
+  })
+
+  it('preserves a verified invite route when successful OAuth must continue through legal consent', async () => {
+    const replace = jest.fn()
+    mockUseRouter.mockReturnValue({ replace } as never)
+    mockUseLocalSearchParams.mockReturnValue({ returnTo: invitePath } as never)
+    mockOpenMobileOAuthSession.mockResolvedValue('authenticated')
+    mockResolveMobileAuthDestination.mockResolvedValue('/legal-consent')
+    await renderReadyWelcomeScreen()
+
+    fireEvent.press(screen.getByText('Google로 계속하기'))
+
+    await waitFor(() => {
+      expect(replace).toHaveBeenCalledWith(
+        `/legal-consent?returnTo=${encodeURIComponent(invitePath)}`,
+      )
     })
   })
 

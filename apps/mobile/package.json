@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.7",
+    "@tanstack/react-query": "^5.101.2",
     "@talkhugam/domain": "workspace:*",
     "expo": "~57.0.1",
     "expo-constants": "~57.0.12",
@@ -23,7 +24,8 @@
     "react": "19.2.3",
     "react-native": "0.86.2",
     "react-native-safe-area-context": "~5.7.0",
-    "react-native-screens": "~4.26.0"
+    "react-native-screens": "~4.26.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",

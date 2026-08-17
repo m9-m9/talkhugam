@@ -21,6 +21,11 @@
               "scheme": "https",
               "host": "talkhugam.vercel.app",
               "pathPrefix": "/auth/callback"
+            },
+            {
+              "scheme": "https",
+              "host": "talkhugam.vercel.app",
+              "pathPrefix": "/rooms"
             }
           ],
           "category": ["BROWSABLE", "DEFAULT"]

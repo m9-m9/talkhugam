@@ -1,11 +1,15 @@
 import * as WebBrowser from 'expo-web-browser'
-import { useRouter } from 'expo-router'
+import { useLocalSearchParams, useRouter } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { useEffect, useRef, useState } from 'react'
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { openMobileOAuthSession } from '../src/features/auth/openMobileOAuthSession'
+import {
+  createMobileAuthenticatedRoute,
+  parseMobileReturnPath,
+} from '../src/features/auth/mobileReturnRoute'
 import { resolveMobileAuthDestination } from '../src/features/auth/resolveMobileAuthDestination'
 import { type MobileOAuthProvider } from '../src/features/auth/startMobileOAuth'
 import { createMobileSupabaseClient } from '../src/shared/api/mobileSupabaseClient'
@@ -45,6 +49,8 @@ function SocialLoginButton({
 /** Talk후감 계정을 만들거나 기존 소셜 계정으로 로그인하는 첫 화면을 표시한다. */
 export default function WelcomeScreen(): React.JSX.Element {
   const router = useRouter()
+  const parameters = useLocalSearchParams<{ returnTo?: string | string[] }>()
+  const returnPath = parseMobileReturnPath(parameters.returnTo)
   const [isSessionChecking, setIsSessionChecking] = useState(true)
   const [isLoginPending, setIsLoginPending] = useState(false)
   const [loginErrorMessage, setLoginErrorMessage] = useState<string | null>(null)
@@ -65,7 +71,7 @@ export default function WelcomeScreen(): React.JSX.Element {
         }
 
         const destination = await resolveMobileAuthDestination(client)
-        if (isMounted) router.replace(destination)
+        if (isMounted) router.replace(createMobileAuthenticatedRoute(destination, returnPath))
       } catch {
         // 세션을 복원하지 못한 경우에도 로그인 화면에서 다시 인증할 수 있다.
         if (isMounted) setIsSessionChecking(false)
@@ -77,7 +83,7 @@ export default function WelcomeScreen(): React.JSX.Element {
     return () => {
       isMounted = false
     }
-  }, [router])
+  }, [returnPath, router])
 
   /** 선택한 제공자의 OAuth 브라우저 흐름을 실행하고 화면 상태를 안전하게 갱신한다. */
   async function handleLogin(provider: MobileOAuthProvider): Promise<void> {
@@ -92,7 +98,7 @@ export default function WelcomeScreen(): React.JSX.Element {
       const result = await openMobileOAuthSession(client, provider, WebBrowser)
       if (result === 'authenticated') {
         const destination = await resolveMobileAuthDestination(client)
-        router.replace(destination)
+        router.replace(createMobileAuthenticatedRoute(destination, returnPath))
       }
     } catch {
       setLoginErrorMessage('로그인을 시작하지 못했어요. 잠시 후 다시 시도해 주세요.')
