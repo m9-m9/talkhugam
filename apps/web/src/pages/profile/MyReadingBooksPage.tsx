@@ -358,7 +358,7 @@ function ReadingBookGroups({
   const groups = groupReadingBooksByRoom(books)
   if (groups.length === 0) {
     return (
-      <section className="talkhugam-information-surface border-ink/10 mt-12 rounded-lg border p-6 text-center">
+      <section className="talkhugam-information-surface border-border mt-12 rounded-lg border p-6 text-center">
         <h2 className="text-ink text-base font-bold">아직 읽고 있는 책이 없어요</h2>
         <p className="text-ink-subtle mt-2 text-sm">
           책방에서 첫 책을 골라 이야기를 시작해 보세요.
@@ -415,7 +415,7 @@ function ReadingBookCard({
   }
 
   return (
-    <article className="border-ink/10 overflow-hidden rounded-lg border bg-white">
+    <article className="talkhugam-information-surface border-border overflow-hidden rounded-lg border">
       <Link
         aria-label={`${book.title} 책 대화로 이동`}
         className="hover:bg-surface-muted flex min-h-20 items-center gap-3 p-3"
@@ -435,7 +435,7 @@ function ReadingBookCard({
         </span>
       </Link>
       {!isCompleted ? <ReadingProgressSummary progress={progress} /> : null}
-      <div className="border-ink/10 flex items-center justify-between gap-3 border-t px-3 py-2">
+      <div className="border-border flex items-center justify-between gap-3 border-t px-3 py-2">
         <span className="text-ink-subtle text-xs">
           {isCompleted ? '완독 기록을 남겼어요.' : '별점과 총평을 남길 수 있어요.'}
         </span>
@@ -443,19 +443,22 @@ function ReadingBookCard({
           {!isCompleted ? (
             <ActionButton
               aria-label={`${book.title} 진행률 기록하기`}
+              className="talkhugam-foundation-action--outline"
               onClick={handleOpenProgress}
               type="button"
-              variant="brandOutline"
+              variant="neutralOutline"
             >
               진행률 기록하기
             </ActionButton>
           ) : null}
           <ActionButton
             aria-label={`${book.title} ${actionLabel}`}
-            className={isCompleted ? '' : 'talkhugam-primary-action'}
+            className={
+              isCompleted ? 'talkhugam-foundation-action--outline' : 'talkhugam-primary-action'
+            }
             onClick={handleOpenCompletion}
             type="button"
-            variant={isCompleted ? 'brandOutline' : 'brandSolid'}
+            variant={isCompleted ? 'neutralOutline' : 'brandSolid'}
           >
             {actionLabel}
           </ActionButton>

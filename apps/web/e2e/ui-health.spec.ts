@@ -26,6 +26,23 @@ test('has no automated accessibility violations on the sign-in screen', async ({
   expect(accessibilityScanResults.violations).toEqual([])
 })
 
+test('keeps provider brand colors on the dark sign-in screen', async ({ page }) => {
+  await page.goto('/')
+
+  await expect(page.getByRole('button', { name: '카카오로 로그인' })).toHaveCSS(
+    'background-color',
+    'rgb(254, 229, 0)',
+  )
+  await expect(page.getByRole('button', { name: 'Google로 계속하기' })).toHaveCSS(
+    'background-color',
+    'rgb(255, 255, 255)',
+  )
+  await expect(page.getByRole('button', { name: '네이버로 로그인' })).toHaveCSS(
+    'background-color',
+    'rgb(3, 199, 90)',
+  )
+})
+
 test('sends one manual GA4 page view for each SPA screen transition', async ({ page }) => {
   await authenticatePage(page)
   await mockAuthenticatedPageData(page)
@@ -52,6 +69,68 @@ test('loads Clarity once while masking all app text and user content', async ({ 
   )
   await expect(page.locator('#root')).toHaveAttribute('data-clarity-mask', 'true')
   await expect(page.locator('#talkhugam-clarity')).toHaveCount(1)
+})
+
+test('keeps brand, accent, and action colors independently swappable', async ({ page }) => {
+  await page.goto('/')
+  await page.evaluate(() => {
+    const action = document.createElement('button')
+    action.className = 'talkhugam-primary-action'
+    action.textContent = 'primary action'
+    const actionIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    actionIcon.classList.add('text-ink')
+    action.append(actionIcon)
+    document.body.append(action)
+
+    const loaderCover = document.createElement('div')
+    loaderCover.className = 'talkhugam-book-loader__cover'
+    document.body.append(loaderCover)
+
+    const whiteCard = document.createElement('div')
+    whiteCard.className = 'bg-white text-ink border-border'
+    document.body.append(whiteCard)
+  })
+
+  const colors = await page.evaluate(() => {
+    const rootStyle = window.getComputedStyle(document.documentElement)
+    const actionStyle = window.getComputedStyle(
+      document.querySelector('.talkhugam-primary-action')!,
+    )
+    const loaderStyle = window.getComputedStyle(
+      document.querySelector('.talkhugam-book-loader__cover')!,
+    )
+    const whiteCardStyle = window.getComputedStyle(document.querySelector('.bg-white')!)
+
+    return {
+      accent: rootStyle.getPropertyValue('--color-accent').trim(),
+      action: rootStyle.getPropertyValue('--color-action').trim(),
+      actionBackground: actionStyle.backgroundColor,
+      actionIconColor: window.getComputedStyle(
+        document.querySelector('.talkhugam-primary-action svg')!,
+      ).color,
+      actionText: rootStyle.getPropertyValue('--color-action-text').trim(),
+      brand: rootStyle.getPropertyValue('--color-brand').trim(),
+      brandSoft: rootStyle.getPropertyValue('--color-brand-soft').trim(),
+      loaderBorder: loaderStyle.borderTopColor,
+      surface: rootStyle.getPropertyValue('--color-surface').trim(),
+      textOnSurface: whiteCardStyle.color,
+      whiteCardBackground: whiteCardStyle.backgroundColor,
+    }
+  })
+
+  expect(colors).toEqual({
+    accent: '#ff835f',
+    action: '#ad3d22',
+    actionBackground: 'rgb(173, 61, 34)',
+    actionIconColor: 'rgb(255, 255, 255)',
+    actionText: '#ffffff',
+    brand: '#ff835f',
+    brandSoft: '#ffb59c',
+    loaderBorder: 'rgb(255, 131, 95)',
+    surface: '#000000',
+    textOnSurface: 'rgb(255, 255, 255)',
+    whiteCardBackground: 'rgb(16, 16, 16)',
+  })
 })
 
 test('submits feedback from the global launcher without exposing an in-app reply thread', async ({
@@ -97,7 +176,7 @@ test('blocks a non-operator from the admin route', async ({ page }) => {
   await page.goto('/admin')
 
   await expect(page).toHaveURL('/rooms')
-  await expect(page.getByRole('heading', { name: '함께 읽는 책방' })).toBeVisible()
+  await expect(page.getByText('아직 참여한 책방이 없어요')).toBeVisible()
 })
 
 test('lets an operator change a feedback ticket status', async ({ page }) => {
@@ -172,9 +251,14 @@ test('renders profile edit controls with the current profile values', async ({
   await expect(page.getByRole('heading', { name: '프로필 편집' })).toBeVisible()
   await expect(page.getByLabel('이름')).toHaveValue('민규')
   await expect(page.getByLabel('한 줄 소개')).toHaveValue('함께 읽고 오래 남겨요.')
+  await expect(page.getByText('이름', { exact: true })).toHaveCSS('color', 'rgb(255, 255, 255)')
+  await expect(page.getByText('한 줄 소개', { exact: true })).toHaveCSS(
+    'color',
+    'rgb(255, 255, 255)',
+  )
   await expect(page.getByLabel('이름').locator('xpath=..')).toHaveCSS(
     'background-color',
-    'rgb(255, 255, 255)',
+    'rgb(16, 16, 16)',
   )
   await page.screenshot({
     path: `artifacts/seed-comparison/9-profile-edit-after-${testInfo.project.name}.png`,
@@ -222,7 +306,7 @@ test('renders account settings controls with current preferences', async ({ page
   })
   await expect(page.getByText('e2e@example.com').locator('xpath=ancestor::dl')).toHaveCSS(
     'background-color',
-    'rgb(255, 255, 255)',
+    'rgb(16, 16, 16)',
   )
   await expect(page.getByRole('switch', { name: '멘션 알림' })).toBeChecked()
 })
@@ -239,19 +323,19 @@ test('renders room settings with SEED form controls', async ({ page }, testInfo)
   await expect(page.getByLabel('책방 이름').locator('xpath=..')).toHaveClass(/seed-text-input/)
   await expect(page.getByLabel('책방 이름').locator('xpath=..')).toHaveCSS(
     'background-color',
-    'rgb(255, 255, 255)',
+    'rgb(16, 16, 16)',
   )
   await expect(page.getByRole('button', { name: '저장하기' })).toHaveClass(/seed-action-button/)
 })
 
-test('renders room creation with white SEED information fields', async ({ page }, testInfo) => {
+test('renders room creation with dark SEED information fields', async ({ page }, testInfo) => {
   await authenticatePage(page)
   await page.goto('/rooms/create')
 
   await expect(page.getByRole('heading', { name: '책방 만들기' })).toBeVisible()
   await expect(page.getByLabel('책방 이름').locator('xpath=..')).toHaveCSS(
     'background-color',
-    'rgb(255, 255, 255)',
+    'rgb(16, 16, 16)',
   )
   await page.screenshot({
     path: `artifacts/seed-comparison/19-create-room-after-${testInfo.project.name}.png`,
@@ -300,16 +384,14 @@ test('shares a newly created room from the completion screen', async ({ page }, 
   })
 })
 
-test('renders invite-code entry with a white SEED information field', async ({
-  page,
-}, testInfo) => {
+test('renders invite-code entry with a dark SEED information field', async ({ page }, testInfo) => {
   await authenticatePage(page)
   await page.goto('/rooms/join')
 
   await expect(page.getByRole('heading', { name: '책방 초대장을 받았어요' })).toBeVisible()
   await expect(page.getByLabel('6자리 초대 코드').locator('xpath=..')).toHaveCSS(
     'background-color',
-    'rgb(255, 255, 255)',
+    'rgb(16, 16, 16)',
   )
   await page.screenshot({
     path: `artifacts/seed-comparison/20-join-room-after-${testInfo.project.name}.png`,
@@ -352,6 +434,20 @@ test('uses the bottom-navigation token as the global page bottom spacing', async
   await page.goto('/rooms')
 
   await expect(page.locator('.app-with-bottom-navigation')).toHaveCSS('padding-bottom', '72px')
+  await expect(page.getByRole('button', { name: '책방 시작 메뉴 열기' })).toHaveCSS(
+    'background-color',
+    'rgb(173, 61, 34)',
+  )
+  await expect(page.getByRole('button', { name: '책방 시작 메뉴 열기' })).toHaveCSS(
+    'color',
+    'rgb(255, 255, 255)',
+  )
+  const feedbackIconBox = await page
+    .getByRole('button', { name: '의견 보내기' })
+    .locator('svg')
+    .boundingBox()
+  if (!feedbackIconBox) throw new Error('의견 보내기 아이콘 크기를 확인할 수 없어요.')
+  expect(feedbackIconBox.width).toBeGreaterThanOrEqual(28)
 })
 
 test('slides the highlighted bestseller card instead of replacing the page content', async ({
@@ -363,8 +459,20 @@ test('slides the highlighted bestseller card instead of replacing the page conte
   await page.goto('/rooms')
 
   const track = page.getByTestId('bestseller-track')
+  await expect(page.getByAltText('Talk후감')).toHaveAttribute(
+    'src',
+    '/brand/talkhugam-wordmark-inverse.svg',
+  )
   await expect(track).toHaveCSS('transition-duration', '0.5s')
   await expect(track).toHaveAttribute('style', 'transform: translateX(0%);')
+  await expect(page.getByTestId('bestseller-feature').first()).toHaveCSS(
+    'background-color',
+    'rgb(0, 0, 0)',
+  )
+  await expect(page.getByRole('button', { name: /추천 보기/ }).first()).toHaveCSS(
+    'background-color',
+    'rgb(16, 16, 16)',
+  )
   await expect(page.locator('[aria-label="다른 추천 도서"] .line-clamp-2').first()).toHaveCSS(
     'white-space',
     'normal',
@@ -377,6 +485,34 @@ test('slides the highlighted bestseller card instead of replacing the page conte
 
   await expect(track).toHaveAttribute('style', 'transform: translateX(-100%);')
   await expectPageToFitViewport(page, testInfo.project.use.viewport?.width ?? 640)
+})
+
+test('keeps the main room row aligned without overlapping metadata', async ({ page }, testInfo) => {
+  await authenticatePage(page)
+  await mockReadingRoomSummaries(page)
+  await page.goto('/rooms')
+
+  const roomButton = page.getByRole('button', { name: /민정이/ })
+  const avatar = roomButton.locator('xpath=ancestor::li[1]').locator('[aria-hidden="true"]').first()
+  const row = roomButton.locator('xpath=ancestor::li[1]')
+  const title = page.getByText('민정이', { exact: true })
+  const time = page.getByText('23:15', { exact: true })
+  const [avatarBox, rowBox, titleBox, timeBox] = await Promise.all([
+    avatar.boundingBox(),
+    row.boundingBox(),
+    title.boundingBox(),
+    time.boundingBox(),
+  ])
+
+  if (!avatarBox || !rowBox || !titleBox || !timeBox)
+    throw new Error('책방 row 위치를 확인할 수 없어요.')
+  expect(avatarBox.x - rowBox.x).toBeLessThanOrEqual(32)
+  expect(titleBox.x).toBeGreaterThan(avatarBox.x + avatarBox.width)
+  expect(timeBox.x).toBeGreaterThan(titleBox.x + titleBox.width)
+  await expectPageToFitViewport(page, testInfo.project.use.viewport?.width ?? 640)
+  await page.screenshot({
+    path: `artifacts/seed-comparison/4-room-row-after-${testInfo.project.name}.png`,
+  })
 })
 
 test('has no automated accessibility violations on authenticated account screens', async ({
@@ -463,6 +599,11 @@ test('renders room detail command controls with SEED components', async ({ page 
 
   await expect(page.getByRole('heading', { name: '금요일 아침 책방' })).toBeVisible()
   await expect(page.getByText('미움받을 용기', { exact: true })).toHaveCSS('white-space', 'normal')
+  await expect(page.getByRole('button', { name: /미움받을 용기/ })).toHaveCSS(
+    'background-color',
+    'rgb(16, 16, 16)',
+  )
+  await expect(page.getByRole('button', { name: /미움받을 용기/ })).not.toHaveClass(/!bg-white/)
   await page.screenshot({
     path: `artifacts/seed-comparison/14-room-detail-after-${testInfo.project.name}.png`,
   })
@@ -586,6 +727,7 @@ test('aligns the book-chat composer controls on one 44px row', async ({ page }) 
   expect(Math.round(inputBox.y)).toBe(Math.round(sendBox.y))
   expect(Math.round(inputBox.x - (addBox.x + addBox.width))).toBe(8)
   expect(Math.round(sendBox.x - (inputBox.x + inputBox.width))).toBe(8)
+  await expect(messageInput).toHaveCSS('scrollbar-width', 'none')
 })
 
 test('keeps the chat input readable and aligns my discussion records to the right', async ({
@@ -650,12 +792,16 @@ test('keeps the chat input readable and aligns my discussion records to the righ
   await expect(page.getByText('저도 좋아요.').locator('xpath=ancestor::li[1]')).toHaveClass(
     /justify-start/,
   )
+  await page.getByRole('tab', { name: '영상' }).click()
   await expect(
     page
       .getByText('영상 처리를 완료하지 못했어요. 잠시 후 다시 시도해 주세요.')
       .locator('xpath=ancestor::li[1]'),
   ).toHaveClass(/justify-end/)
   await expectPageToFitViewport(page, testInfo.project.use.viewport?.width ?? 640)
+  await page.screenshot({
+    path: `artifacts/seed-comparison/6-book-discussion-chat-after-${testInfo.project.name}.png`,
+  })
 })
 
 test('lets a non-owner request a bookshop invite from the plus menu', async ({ page }) => {
@@ -715,9 +861,14 @@ test('resets a dismissed book-chat label editor while keeping the message draft'
 
   await page.getByRole('button', { name: '메시지 추가 메뉴 열기' }).click()
   await expectDialogToFitViewport(page, '메시지 추가', testInfo.project.use.viewport?.height ?? 900)
+  await expect(page.getByRole('dialog', { name: '메시지 추가' })).toHaveCSS(
+    'background-color',
+    'rgb(0, 0, 0)',
+  )
+  await expectBottomSheetToHideInternalScrollbar(page)
   await expect(page.getByRole('button', { name: '페이지 라벨' })).toHaveCSS(
     'background-color',
-    'rgb(255, 241, 236)',
+    'rgb(16, 16, 16)',
   )
   await page.screenshot({
     path: `artifacts/seed-comparison/8-book-discussion-action-menu-after-${testInfo.project.name}.png`,
@@ -887,9 +1038,15 @@ test('opens reading books from the profile hub and edits a personal completion r
   await expect(page.getByRole('heading', { name: '읽고 있는 책' })).toBeVisible()
   await expect(page.getByRole('heading', { name: '금요일 아침 책방' })).toBeVisible()
   await expect(page.getByText('미움받을 용기')).toBeVisible()
+  await expect(
+    page
+      .getByRole('link', { name: '미움받을 용기 책 대화로 이동' })
+      .locator('xpath=ancestor::article[1]'),
+  ).toHaveCSS('background-color', 'rgb(16, 16, 16)')
   await expect(page.getByText('완독', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: '미움받을 용기 기록 수정' }).click()
   await expect(page.getByRole('dialog', { name: '완독 기록' })).toBeVisible()
+  await expectBottomSheetToHideInternalScrollbar(page)
   await expect(page.getByRole('button', { name: '4점' })).toHaveAttribute('aria-pressed', 'true')
   await expect(page.getByRole('textbox', { name: '총평 (선택)' })).toHaveValue(
     '다시 읽고 싶은 문장이 많아요.',
@@ -982,6 +1139,11 @@ test('keeps personal reading progress after refresh and lets the user complete t
   })
   await page.goto('/profile/books')
 
+  await expect(
+    page
+      .getByRole('link', { name: '미움받을 용기 책 대화로 이동' })
+      .locator('xpath=ancestor::article[1]'),
+  ).not.toHaveClass(/bg-white/)
   await expect(page.getByText('87 / 320쪽')).toBeVisible()
   await page.getByRole('button', { name: '미움받을 용기 진행률 기록하기' }).click()
   await page.getByRole('spinbutton', { name: '현재 읽은 페이지' }).fill('146')
@@ -1003,18 +1165,23 @@ test('keeps personal reading progress after refresh and lets the user complete t
     '다시 읽고 싶은 문장이 많아요.',
   )
 })
-test('keeps a chat video preview square within seventy percent and opens the immersive viewer', async ({
+test('keeps a bookmark video preview full-width with a stable media ratio and plays inline', async ({
   page,
 }) => {
   const videoId = '4b7227b2-5350-4a61-9114-b2d0c915fd1b'
   await authenticatePage(page)
   await mockVideoPosts(page, [createVideoPostRow(videoId, '민규', 'ready')])
   await mockMuxThumbnailTokens(page)
-  await mockMuxPlaybackAuthorizationFailure(page)
+  await mockMuxPlaybackAuthorization(page)
   await page.goto(`/rooms/${roomId}/books/${bookChatId}`)
+
+  await expect(page.getByRole('tab', { name: '책갈피' })).toBeVisible()
+  await expect(page.getByRole('tab', { name: '영상' })).toBeVisible()
+  await page.getByRole('tab', { name: '영상' }).click()
 
   const preview = page.getByRole('button', { name: '민규님의 영상 보기' })
   await expect(preview).toBeVisible()
+  await expect(preview.locator('img')).toBeVisible()
 
   const previewBox = await preview.boundingBox()
   const timelineRowBox = await preview.locator('xpath=ancestor::li').boundingBox()
@@ -1022,15 +1189,14 @@ test('keeps a chat video preview square within seventy percent and opens the imm
   expect(timelineRowBox).not.toBeNull()
   if (!previewBox || !timelineRowBox) throw new Error('영상 미리보기의 화면 크기를 읽지 못했어요.')
 
-  expect(previewBox.width / timelineRowBox.width).toBeLessThanOrEqual(0.7)
-  expect(Math.abs(previewBox.width - previewBox.height)).toBeLessThanOrEqual(1)
+  expect(Math.abs(previewBox.width - timelineRowBox.width)).toBeLessThanOrEqual(1)
+  expect(Math.abs(previewBox.height - previewBox.width * (9 / 16))).toBeLessThanOrEqual(1)
 
   await preview.click()
 
-  await expect(page).toHaveURL(`/rooms/${roomId}/books/${bookChatId}/videos/${videoId}`)
-  await expect(page.getByRole('heading', { name: '영상 보기' })).toBeVisible()
-  await expect(page.getByRole('main')).toHaveCSS('padding-left', '0px')
-  await expect(page.getByRole('navigation', { name: '주요 메뉴' })).toBeHidden()
+  await expect(page).toHaveURL(`/rooms/${roomId}/books/${bookChatId}`)
+  await expect(page.getByLabel('민규의 영상 재생')).toBeVisible()
+  await expect(page.getByRole('heading', { name: '영상 보기' })).toBeHidden()
 })
 
 test('opens the video picker directly from the archive empty state', async ({ page }) => {
@@ -1095,11 +1261,11 @@ test('filters saved videos with the SEED member menu', async ({ page }, testInfo
 
   await expect(page.getByRole('button', { name: '전체' })).toHaveCSS(
     'background-color',
-    'rgb(255, 131, 95)',
+    'rgb(173, 61, 34)',
   )
   await expect(page.getByRole('button', { name: '내 영상' })).toHaveCSS(
     'background-color',
-    'rgb(255, 255, 255)',
+    'rgb(16, 16, 16)',
   )
   await page.screenshot({
     path: `artifacts/seed-comparison/5-video-archive-after-${testInfo.project.name}.png`,
@@ -1295,6 +1461,25 @@ async function mockMuxPlaybackAuthorizationFailure(page: Page) {
   })
 }
 
+/** 실제 Mux 네트워크를 열지 않도록 재생 권한 조회 성공을 테스트 응답으로 대체한다. */
+async function mockMuxPlaybackAuthorization(page: Page) {
+  await page.route('**/functions/v1/mux-playback-token', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        data: {
+          expiresAt: 1_784_269_999,
+          playbackId: 'playback-inline',
+          thumbnailToken: 'thumbnail-token',
+          token: 'playback-token',
+        },
+        ok: true,
+      }),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+}
+
 /** 일괄 썸네일 요청 본문에서 문자열 영상 식별자 목록만 안전하게 읽는다. */
 function readRequestedPostIds(value: unknown): string[] {
   if (value === null || typeof value !== 'object' || !('postIds' in value)) return []
@@ -1358,6 +1543,42 @@ async function mockAuthenticatedPageData(page: Page) {
       body: JSON.stringify([]),
       contentType: 'application/json',
       headers: { 'content-range': '0-0/0' },
+      status: 200,
+    })
+  })
+}
+
+/** 메인 책방 목록 row 정렬을 검증할 수 있는 최근 대화가 있는 책방 응답을 제공한다. */
+async function mockReadingRoomSummaries(page: Page) {
+  await page.route('**/rest/v1/rpc/get_my_reading_room_summaries', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify([
+        {
+          created_at: '2026-08-12T14:00:00+00:00',
+          description: '정민규님과 함께 읽는 책방',
+          id: roomId,
+          last_message_author_name: '정민규',
+          last_message_body: null,
+          last_message_created_at: '2026-08-12T14:15:00+00:00',
+          last_message_type: 'video',
+          name: '민정이',
+          updated_at: '2026-08-12T14:15:00+00:00',
+        },
+      ]),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+  await page.route('**/rest/v1/room_members?*', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify([
+        {
+          joined_at: '2026-08-12T14:00:00+00:00',
+          room_display_name: '정민규',
+          room_id: roomId,
+        },
+      ]),
+      contentType: 'application/json',
       status: 200,
     })
   })
@@ -1486,6 +1707,15 @@ async function expectDialogToFitViewport(page: Page, name: string, viewportHeigh
   if (!dialogBox) throw new Error(`${name} 시트의 위치를 읽지 못했어요.`)
 
   expect(Math.ceil(dialogBox.y + dialogBox.height)).toBeLessThanOrEqual(viewportHeight)
+}
+
+/** 열린 바텀시트가 스크롤 기능은 유지하되 스크롤바를 시각적으로 숨기는지 검사한다. */
+async function expectBottomSheetToHideInternalScrollbar(page: Page) {
+  await page.waitForTimeout(350)
+  const scrollbarStyle = await page
+    .locator('.talkhugam-bottom-sheet')
+    .evaluate((element) => window.getComputedStyle(element).scrollbarWidth)
+  expect(scrollbarStyle).toBe('none')
 }
 
 /** 현재 페이지의 axe-core 자동 접근성 위반을 검사하되, 별도 h1 검증과 중복되는 규칙은 제외한다. */

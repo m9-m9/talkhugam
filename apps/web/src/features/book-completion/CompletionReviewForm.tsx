@@ -59,8 +59,8 @@ export function CompletionReviewForm({
               aria-pressed={rating === value}
               className={`min-h-11 min-w-11 cursor-pointer rounded-md text-lg font-bold ${
                 rating !== null && value <= rating
-                  ? 'bg-primary/10 text-primary'
-                  : 'border-ink/10 text-ink-subtle border'
+                  ? 'border-primary text-primary border bg-white'
+                  : 'border-border text-ink-subtle border bg-white'
               }`}
               key={value}
               onClick={() => handleSelectRating(value)}
@@ -85,7 +85,7 @@ export function CompletionReviewForm({
           </TextField.Root>
         </FormField>
       </div>
-      <div className="mt-4 grid grid-cols-2 gap-2">
+      <div className="mt-4 grid grid-cols-2 gap-3">
         <ActionButton disabled={isSaving} onClick={onCancel} type="button" variant="neutralOutline">
           취소
         </ActionButton>

@@ -198,7 +198,7 @@ export function VideoArchivePage() {
         >
           <span
             aria-hidden="true"
-            className="bg-primary text-ink flex size-12 items-center justify-center rounded-full shadow-sm"
+            className="bg-ink text-surface flex size-12 items-center justify-center rounded-full shadow-sm"
           >
             <PlusIcon className="size-6" />
           </span>

@@ -24,7 +24,7 @@ export function BookCover({ alt, className, thumbnailUrl }: BookCoverProps) {
   return (
     <div
       aria-hidden="true"
-      className={`bg-surface-muted text-primary flex h-16 w-12 shrink-0 items-center justify-center rounded-sm border border-transparent text-xs font-bold ${className ?? ''}`}
+      className={`border-border bg-surface-muted text-ink-subtle flex h-16 w-12 shrink-0 items-center justify-center rounded-sm border text-xs font-medium ${className ?? ''}`}
     >
       책
     </div>

@@ -155,7 +155,7 @@ function BookChatsContent({
       {chats.map((chat) => (
         <li key={chat.id}>
           <ActionButton
-            className="border-ink/10 hover:!border-primary !h-auto min-h-24 w-full !justify-start gap-3 rounded-lg border !bg-white p-4 text-left !whitespace-normal"
+            className="talkhugam-information-surface border-border hover:!border-ink !h-auto min-h-24 w-full !justify-start gap-3 rounded-lg border p-4 text-left !whitespace-normal"
             onClick={() => void navigate(`/rooms/${roomId}/books/${chat.id}`)}
             size="large"
             type="button"

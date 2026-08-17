@@ -209,7 +209,7 @@ function AccountInformation({
 }) {
   return (
     <section className="mt-8" aria-label="계정 정보">
-      <dl className="talkhugam-information-surface border-ink/10 overflow-hidden rounded-lg border bg-white">
+      <dl className="talkhugam-information-surface border-border overflow-hidden rounded-lg border bg-white">
         <AccountDetail label="이메일" value={account.email} />
         <AccountDetail
           label="로그인 수단"
@@ -218,7 +218,7 @@ function AccountInformation({
       </dl>
       {account.hasNaverProvider ? (
         <ActionButton
-          className="border-ink/10 mt-4 h-auto min-h-12 w-full justify-between rounded-lg border bg-white px-4 text-left !whitespace-normal"
+          className="border-border mt-4 h-auto min-h-12 w-full justify-between rounded-lg border bg-white px-4 text-left !whitespace-normal"
           onClick={onShowNaverInfo}
           size="large"
           type="button"
@@ -270,9 +270,9 @@ function NotificationPreferencesSection({
           <BrandLoadingSpinner label="알림 설정을 불러오고 있어요." size="xs" />
         </div>
       ) : preferences ? (
-        <ul className="talkhugam-information-surface border-ink/10 mt-4 overflow-hidden rounded-lg border bg-white">
+        <ul className="talkhugam-information-surface border-border mt-4 overflow-hidden rounded-lg border bg-white">
           {(Object.keys(notificationPreferenceLabels) as NotificationPreferenceKey[]).map((key) => (
-            <li className="border-ink/10 border-b last:border-b-0" key={key}>
+            <li className="border-border border-b last:border-b-0" key={key}>
               <NotificationPreferenceToggle
                 checked={preferences[key]}
                 disabled={isSaving}

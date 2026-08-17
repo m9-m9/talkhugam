@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ActionButton, Avatar, Icon, List, Text } from '@seed-design/react'
+import { ActionButton, Avatar, Icon } from '@seed-design/react'
 
 import {
   formatRoomMemberSummary,
@@ -38,8 +38,8 @@ export function RoomsPage() {
 
   return (
     <main className="app-page bg-surface flex flex-col px-4">
-      <header className="border-ink/10 -mx-4 flex min-h-16 items-center justify-between border-b px-4">
-        <img alt="Talk후감" className="h-10 w-auto" src="/brand/talkhugam-wordmark.svg" />
+      <header className="border-border -mx-4 flex min-h-16 items-center justify-between border-b px-4">
+        <img alt="Talk후감" className="h-10 w-auto" src="/brand/talkhugam-wordmark-inverse.svg" />
         <NotificationInboxButton />
       </header>
 
@@ -135,7 +135,7 @@ function BestsellerCarousel({ books }: { books: BookBestseller[] }) {
             <li className="min-w-0" key={book.id}>
               <ActionButton
                 aria-label={`${book.title} 추천 보기`}
-                className="border-ink/10 hover:!border-primary !flex !h-auto min-h-32 w-full !flex-col !items-start !justify-start gap-2 overflow-hidden rounded-md border !bg-white p-2 text-left"
+                className="border-border hover:!border-ink !bg-surface-muted !flex !h-auto min-h-32 w-full !flex-col !items-start !justify-start gap-2 overflow-hidden rounded-md border p-2 text-left"
                 onClick={() => handleSelectPreviewBook(index)}
                 size="large"
                 type="button"
@@ -146,7 +146,7 @@ function BestsellerCarousel({ books }: { books: BookBestseller[] }) {
                   className="h-16 w-12"
                   thumbnailUrl={book.thumbnailUrl}
                 />
-                <span className="text-ink line-clamp-2 block w-full min-w-0 !whitespace-normal text-xs font-semibold">
+                <span className="text-ink line-clamp-2 block w-full min-w-0 text-xs font-semibold !whitespace-normal">
                   {book.title}
                 </span>
               </ActionButton>
@@ -158,7 +158,7 @@ function BestsellerCarousel({ books }: { books: BookBestseller[] }) {
         <div className="flex items-center justify-between">
           <ActionButton
             aria-label="이전 추천 보기"
-            className="border-ink/10 text-ink hover:!border-primary disabled:text-ink/30 min-h-11 min-w-11 rounded-full border text-lg"
+            className="border-border text-ink hover:!border-ink disabled:text-ink/30 min-h-11 min-w-11 rounded-full border text-lg"
             disabled={activeIndex === 0}
             onClick={handlePreviousBook}
             size="medium"
@@ -172,7 +172,7 @@ function BestsellerCarousel({ books }: { books: BookBestseller[] }) {
           </span>
           <ActionButton
             aria-label="다음 추천 보기"
-            className="border-ink/10 text-ink hover:!border-primary disabled:text-ink/30 min-h-11 min-w-11 rounded-full border text-lg"
+            className="border-border text-ink hover:!border-ink disabled:text-ink/30 min-h-11 min-w-11 rounded-full border text-lg"
             disabled={activeIndex === books.length - 1}
             onClick={handleNextBook}
             size="medium"
@@ -220,14 +220,20 @@ function BestsellerFeature({ book, isActive }: { book: BookBestseller; isActive:
   )
 
   const className =
-    'border-ink/10 hover:border-primary focus-visible:outline-primary flex min-h-32 items-center gap-3 rounded-lg border bg-white p-3 text-left'
+    'border-border bg-surface hover:border-ink focus-visible:outline-primary flex min-h-32 items-center gap-3 rounded-lg border p-3 text-left'
 
-  if (!book.externalUrl) return <div className={className}>{content}</div>
+  if (!book.externalUrl)
+    return (
+      <div className={className} data-testid="bestseller-feature">
+        {content}
+      </div>
+    )
 
   return (
     <a
       aria-label={`${book.title} 자세히 보기`}
       className={className}
+      data-testid="bestseller-feature"
       href={book.externalUrl}
       rel="noreferrer"
       tabIndex={isActive ? 0 : -1}
@@ -260,7 +266,7 @@ function NotificationInboxButton() {
       {unreadCount > 0 ? (
         <span
           aria-hidden="true"
-          className="bg-primary text-ink absolute top-1 right-1 flex min-w-4 items-center justify-center rounded-full px-1 text-xs font-bold"
+          className="bg-primary absolute top-1 right-1 flex min-w-4 items-center justify-center rounded-full px-1 text-xs font-bold text-white"
         >
           {unreadCount > 99 ? '99+' : unreadCount}
         </span>
@@ -360,59 +366,47 @@ function RoomsList({ rooms }: { rooms: ReadingRoom[] }) {
   const navigate = useNavigate()
 
   return (
-    <List.Root gap="12px">
+    <ul className="space-y-3">
       {rooms.map((room) => (
-        <List.Item className="border-ink/10 rounded-lg border bg-white" key={room.id}>
-          <List.Prefix>
+        <li className="border-border rounded-lg border bg-white" key={room.id}>
+          <ActionButton
+            className="!grid !h-auto min-h-24 w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 p-4 text-left !whitespace-normal"
+            onClick={() => void navigate(`/rooms/${room.id}`)}
+            size="large"
+            type="button"
+            variant="ghost"
+          >
             <RoomMemberAvatars members={room.members} />
-          </List.Prefix>
-          <List.Content asChild gap="6px">
-            <ActionButton
-              className="h-auto w-full justify-start p-0 text-left"
-              onClick={() => void navigate(`/rooms/${room.id}`)}
-              size="large"
-              type="button"
-              variant="ghost"
-            >
-              <List.Title>
-                <Text color="fg.neutral" maxLines={1} textStyle="t5Bold">
-                  {room.name}
-                </Text>
-              </List.Title>
-              <List.Detail>
-                <Text color="fg.neutralSubtle" maxLines={1} textStyle="t3Regular">
-                  {formatRoomMessagePreview(room)}
-                </Text>
-              </List.Detail>
-              <List.Detail>
-                <Text color="fg.neutralMuted" maxLines={1} textStyle="t3Medium">
-                  {formatRoomMemberSummary(room.members)}
-                </Text>
-              </List.Detail>
-            </ActionButton>
-          </List.Content>
-          <List.Suffix gap="6px">
-            <Text color="fg.neutralSubtle" textStyle="t4Medium">
+            <span className="min-w-0">
+              <span className="text-ink block truncate text-base font-semibold">{room.name}</span>
+              <span className="text-ink-subtle mt-2 block truncate text-sm">
+                {formatRoomMessagePreview(room)}
+              </span>
+              <span className="text-ink-subtle mt-1 block truncate text-xs">
+                {formatRoomMemberSummary(room.members)}
+              </span>
+            </span>
+            <span className="text-ink-subtle flex shrink-0 items-center gap-2 text-sm">
               {formatRoomMessageTime(room.lastMessage?.createdAt ?? null) ?? '새 책방'}
-            </Text>
-            <Icon
-              size="20px"
-              svg={
-                <svg fill="none" viewBox="0 0 24 24">
-                  <path
-                    d="m9 18 6-6-6-6"
-                    stroke="currentColor"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                  />
-                </svg>
-              }
-            />
-          </List.Suffix>
-        </List.Item>
+              <Icon
+                size="20px"
+                svg={
+                  <svg fill="none" viewBox="0 0 24 24">
+                    <path
+                      d="m9 18 6-6-6-6"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                    />
+                  </svg>
+                }
+              />
+            </span>
+          </ActionButton>
+        </li>
       ))}
-    </List.Root>
+    </ul>
   )
 }
 
@@ -432,7 +426,7 @@ function RoomMemberAvatars({ members }: { members: readonly ReadingRoomMember[] 
       ))}
       {remainingCount > 0 ? (
         <Avatar.Root size="36">
-          <Avatar.Fallback className="bg-primary text-ink text-xs font-semibold">
+          <Avatar.Fallback className="bg-ink text-surface text-xs font-semibold">
             +{remainingCount}
           </Avatar.Fallback>
         </Avatar.Root>

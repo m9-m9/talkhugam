@@ -76,7 +76,8 @@ describe('RoomDetailPage', () => {
     const bookCard = (await screen.findByText('미움받을 용기')).closest('button')
     if (!bookCard) throw new Error('책 대화 카드 버튼을 찾을 수 없어요.')
     expect(bookCard).toHaveClass('!justify-start')
-    expect(bookCard).toHaveClass('!bg-white')
+    expect(bookCard).toHaveClass('talkhugam-information-surface')
+    expect(bookCard).not.toHaveClass('!bg-white')
     fireEvent.click(bookCard)
 
     expect(await screen.findByText('책 대화 화면')).toBeInTheDocument()

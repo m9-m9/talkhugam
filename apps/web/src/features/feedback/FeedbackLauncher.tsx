@@ -73,12 +73,12 @@ export function FeedbackLauncher() {
     <>
       <ActionButton
         aria-label="의견 보내기"
-        className="talkhugam-feedback-launcher talkhugam-primary-action fixed z-30 size-12 rounded-full p-0 shadow-lg"
+        className="talkhugam-feedback-launcher talkhugam-primary-action fixed z-30 size-12 rounded-full p-0 shadow-lg [--seed-icon-size:28px]"
         onClick={handleOpen}
         type="button"
         variant="brandSolid"
       >
-        <SupportIcon className="text-ink size-6" />
+        <SupportIcon className="talkhugam-feedback-launcher__icon text-ink" />
       </ActionButton>
       {isOpen ? (
         <BottomSheet onClose={handleClose} title="의견 보내기">

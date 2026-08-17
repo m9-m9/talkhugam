@@ -26,6 +26,7 @@ import {
 import {
   createMuxThumbnailUrl,
   getVideoFilterMembers,
+  getVideoPlaybackAuthorization,
   getVideoPosts,
   getVideoThumbnailAuthorizations,
   mapVideoThumbnailAuthorizations,
@@ -66,6 +67,7 @@ import { trackAnalyticsEvent } from '../../shared/analytics'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { BottomSheet } from '../../shared/ui/BottomSheet'
 import { CompletionMark } from '../../shared/ui/CompletionMark'
+import { LazyMuxVideoPlayer } from '../../shared/ui/LazyMuxVideoPlayer'
 import { BookLoadingIndicator, BrandLoadingSpinner } from '../../shared/ui/LoadingSpinner'
 import { RetryState } from '../../shared/ui/RetryState'
 
@@ -366,9 +368,6 @@ export function BookDiscussionPage() {
             retryMessage={timelineRetryMessage}
             videos={videosQuery.data ?? []}
             isThumbnailLoading={thumbnailsQuery.isLoading}
-            onOpenVideo={(videoId) =>
-              void navigate(`/rooms/${roomId}/books/${bookChatId}/videos/${videoId}`)
-            }
             thumbnailsByPostId={thumbnailsByPostId}
           />
         )}
@@ -454,7 +453,6 @@ function DiscussionTimeline({
   hasVideoError,
   isRetrying,
   isThumbnailLoading,
-  onOpenVideo,
   onReply,
   onRetry,
   posts,
@@ -469,7 +467,6 @@ function DiscussionTimeline({
   hasVideoError: boolean
   isRetrying: boolean
   isThumbnailLoading: boolean
-  onOpenVideo: (videoId: string) => void
   onReply: (id: string) => void
   onRetry: () => void
   posts: DiscussionPost[]
@@ -477,13 +474,44 @@ function DiscussionTimeline({
   thumbnailsByPostId: ReadonlyMap<string, VideoThumbnailAuthorization>
   videos: VideoPost[]
 }) {
+  const [activeTab, setActiveTab] = useState<'reviews' | 'videos'>('reviews')
   const errorMessage =
     getDiscussionTimelineErrorMessage(hasPostError, hasVideoError) ?? retryMessage
   const isShowingLoadingFeedback = hasPendingQuery || isRetrying
   const loadingLabel = isRetrying ? '대화를 다시 불러오고 있어요.' : '대화를 불러오고 있어요.'
+  const visiblePosts = activeTab === 'reviews' ? posts : []
+  const visibleVideos = activeTab === 'videos' ? videos : []
 
   return (
     <div className="space-y-4">
+      <div
+        aria-label="대화 종류"
+        className="border-border grid grid-cols-2 overflow-hidden rounded-md border"
+        role="tablist"
+      >
+        <button
+          aria-selected={activeTab === 'reviews'}
+          className={`min-h-11 text-sm font-semibold ${
+            activeTab === 'reviews' ? 'bg-action text-action-text' : 'bg-surface text-ink-subtle'
+          }`}
+          onClick={() => setActiveTab('reviews')}
+          role="tab"
+          type="button"
+        >
+          책갈피
+        </button>
+        <button
+          aria-selected={activeTab === 'videos'}
+          className={`border-border min-h-11 border-l text-sm font-semibold ${
+            activeTab === 'videos' ? 'bg-action text-action-text' : 'bg-surface text-ink-subtle'
+          }`}
+          onClick={() => setActiveTab('videos')}
+          role="tab"
+          type="button"
+        >
+          영상
+        </button>
+      </div>
       {errorMessage ? (
         <RetryState isRetrying={isRetrying} message={errorMessage} onRetry={onRetry} />
       ) : null}
@@ -492,10 +520,9 @@ function DiscussionTimeline({
         currentMemberId={currentMemberId}
         onReply={onReply}
         isThumbnailLoading={isThumbnailLoading}
-        onOpenVideo={onOpenVideo}
-        posts={posts}
+        posts={visiblePosts}
         showEmptyState={!errorMessage && !hasPendingQuery}
-        videos={videos}
+        videos={visibleVideos}
         thumbnailsByPostId={thumbnailsByPostId}
       />
       {isShowingLoadingFeedback ? <BrandLoadingSpinner label={loadingLabel} size="xs" /> : null}
@@ -816,7 +843,7 @@ function ChatComposer({
         <ul className="mb-3 flex flex-wrap gap-2" aria-label="선택한 라벨">
           {labels.map((label, index) => (
             <li
-              className="bg-primary/10 text-primary flex min-h-8 items-center gap-1 rounded-md px-2 text-xs"
+              className="border-border text-ink-subtle flex min-h-8 items-center gap-1 rounded-md border bg-white px-2 text-xs"
               key={`${label.kind}-${label.value}`}
             >
               {formatLabel(label)}
@@ -1121,7 +1148,6 @@ function ChatTimeline({
   allPosts,
   currentMemberId,
   isThumbnailLoading,
-  onOpenVideo,
   onReply,
   posts,
   showEmptyState = true,
@@ -1131,7 +1157,6 @@ function ChatTimeline({
   allPosts: DiscussionPost[]
   currentMemberId: string | null
   isThumbnailLoading: boolean
-  onOpenVideo: (videoId: string) => void
   onReply: (id: string) => void
   posts: DiscussionPost[]
   showEmptyState?: boolean
@@ -1141,7 +1166,7 @@ function ChatTimeline({
   const messages = createChatMessages(posts, videos)
   if (messages.length === 0 && showEmptyState)
     return (
-      <div className="bg-surface-muted rounded-lg p-6 text-center">
+      <div className="border-border border-t border-b py-6 text-center">
         <p className="text-ink font-medium">첫 독후감을 남겨 보세요</p>
         <p className="text-ink-subtle mt-2 text-sm">페이지나 챕터 라벨만 먼저 남겨도 괜찮아요.</p>
       </div>
@@ -1149,40 +1174,53 @@ function ChatTimeline({
   if (messages.length === 0) return null
   return (
     <ul className="space-y-4">
-      {messages.map((message) =>
-        message.type === 'text' ? (
-          <li
-            className={`flex ${
-              isCurrentMemberMessage(message.post.authorMemberId, currentMemberId)
-                ? 'justify-end'
-                : 'justify-start'
-            }`}
-            key={message.post.id}
-          >
-            <article className="border-ink/10 w-fit max-w-[70%] rounded-lg border bg-white px-4 py-3">
-              <p className="text-ink text-sm font-medium">{message.post.authorName}</p>
-              <PostLabels labels={message.post.labels} />
-              {message.post.body ? (
-                <p className="text-ink mt-2 text-sm whitespace-pre-wrap">
-                  <HighlightedMentionText body={message.post.body} />
-                </p>
-              ) : null}
-              <SeedActionButton
-                className="text-primary mt-2"
-                onClick={() => onReply(message.post.id)}
-                size="small"
-                type="button"
-                variant="ghost"
+      {messages.map((message) => {
+        if (message.type === 'text') {
+          const isMine = isCurrentMemberMessage(message.post.authorMemberId, currentMemberId)
+
+          return (
+            <li
+              className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}
+              key={message.post.id}
+            >
+              <article
+                className={`border-border w-fit max-w-[70%] rounded-lg border px-4 py-3 ${
+                  isMine ? 'bg-ink text-white' : 'text-ink bg-white'
+                }`}
               >
-                답글 남기기
-              </SeedActionButton>
-              <Replies
-                currentMemberId={currentMemberId}
-                posts={allPosts.filter((reply) => reply.rootPostId === message.post.id)}
-              />
-            </article>
-          </li>
-        ) : (
+                <p className={`text-sm font-medium ${isMine ? 'text-white/70' : 'text-ink'}`}>
+                  {message.post.authorName}
+                </p>
+                <PostLabels labels={message.post.labels} />
+                {message.post.body ? (
+                  <p
+                    className={`mt-2 text-sm whitespace-pre-wrap ${
+                      isMine ? 'text-white' : 'text-ink'
+                    }`}
+                  >
+                    <HighlightedMentionText body={message.post.body} />
+                  </p>
+                ) : null}
+                <SeedActionButton
+                  className={`mt-2 ${isMine ? '!text-white/80' : '!text-ink-subtle'}`}
+                  onClick={() => onReply(message.post.id)}
+                  size="small"
+                  type="button"
+                  variant="ghost"
+                >
+                  답글 남기기
+                </SeedActionButton>
+                <Replies
+                  currentMemberId={currentMemberId}
+                  isInverted={isMine}
+                  posts={allPosts.filter((reply) => reply.rootPostId === message.post.id)}
+                />
+              </article>
+            </li>
+          )
+        }
+
+        return (
           <li
             className={`flex ${
               isCurrentMemberMessage(message.video.authorMemberId, currentMemberId)
@@ -1193,13 +1231,12 @@ function ChatTimeline({
           >
             <VideoMessage
               isThumbnailLoading={isThumbnailLoading}
-              onOpen={() => onOpenVideo(message.video.id)}
               thumbnailAuthorization={thumbnailsByPostId.get(message.video.id)}
               video={message.video}
             />
           </li>
-        ),
-      )}
+        )
+      })}
     </ul>
   )
 }
@@ -1207,26 +1244,93 @@ function ChatTimeline({
 /** 영상 메시지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function VideoMessage({
   isThumbnailLoading,
-  onOpen,
   thumbnailAuthorization,
   video,
 }: {
   isThumbnailLoading: boolean
-  onOpen: () => void
   thumbnailAuthorization: VideoThumbnailAuthorization | undefined
   video: VideoPost
 }) {
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [hasPlaybackMediaError, setHasPlaybackMediaError] = useState(false)
+  const playbackQuery = useQuery({
+    enabled: video.status === 'ready' && isPlaying,
+    queryFn: fetchPlaybackAuthorization,
+    queryKey: videoKeys.playback(video.id),
+    staleTime: 4 * 60 * 1_000,
+  })
+
+  /** 현재 영상 메시지의 Mux 재생 권한을 요청해 inline 플레이어에 전달한다. */
+  function fetchPlaybackAuthorization() {
+    return getVideoPlaybackAuthorization(createSupabaseClient(), video.id)
+  }
+
+  /** 썸네일 프레임을 같은 자리의 재생 프레임으로 전환한다. */
+  function handleStartPlayback() {
+    setHasPlaybackMediaError(false)
+    setIsPlaying(true)
+  }
+
+  /** Mux 플레이어가 전달한 재생 실패를 같은 프레임 안의 오류 상태로 바꾼다. */
+  function handlePlaybackMediaError() {
+    setHasPlaybackMediaError(true)
+  }
+
+  /** 실패한 재생 권한 또는 미디어 재생을 같은 영상 프레임에서 다시 시도한다. */
+  function handleRetryPlayback() {
+    setHasPlaybackMediaError(false)
+    void playbackQuery.refetch()
+  }
+
   if (video.status === 'ready')
-    return (
+    return isPlaying ? (
+      <article
+        aria-label={`${video.authorName}의 영상 재생`}
+        className="border-ink/10 bg-ink relative aspect-video w-full max-w-full overflow-hidden rounded-lg border"
+      >
+        {playbackQuery.isPending ? (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <BookLoadingIndicator label="재생 정보를 불러오고 있어요." size="sm" tone="inverse" />
+          </div>
+        ) : playbackQuery.isError || hasPlaybackMediaError ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-4 text-center">
+            <p className="text-sm font-medium text-white" role="alert">
+              영상을 재생하지 못했어요.
+            </p>
+            <SeedActionButton
+              className="!border-white/40 !text-white"
+              onClick={handleRetryPlayback}
+              size="small"
+              type="button"
+              variant="neutralOutline"
+            >
+              다시 시도
+            </SeedActionButton>
+          </div>
+        ) : playbackQuery.data ? (
+          <LazyMuxVideoPlayer
+            className="absolute inset-0 size-full"
+            metadata={{ videoId: video.id, videoTitle: `${video.authorName}의 영상` }}
+            onPlaybackError={handlePlaybackMediaError}
+            playbackId={playbackQuery.data.playbackId}
+            tone="inverse"
+            tokens={{
+              playback: playbackQuery.data.token,
+              thumbnail: playbackQuery.data.thumbnailToken,
+            }}
+          />
+        ) : null}
+      </article>
+    ) : (
       <SeedActionButton
         aria-label={`${video.authorName}님의 영상 보기`}
-        className="border-ink/10 bg-ink relative !aspect-square !h-auto w-[70%] max-w-[70%] overflow-hidden rounded-lg border p-0 text-left"
-        onClick={onOpen}
+        className="border-ink/10 bg-ink relative aspect-video !h-auto w-full max-w-full overflow-hidden rounded-lg border p-0 text-left"
+        onClick={handleStartPlayback}
         size="large"
         type="button"
         variant="ghost"
       >
-        <div className="relative aspect-square">
+        <div className="relative size-full">
           {thumbnailAuthorization ? (
             <img
               alt=""
@@ -1252,7 +1356,7 @@ function VideoMessage({
   const message = getVideoMessageLabel(video)
   const isLoading = video.status !== 'failed'
   return (
-    <article className="border-ink/10 bg-ink flex aspect-square w-[70%] max-w-[70%] flex-col items-center justify-center rounded-lg border px-4 text-center">
+    <article className="border-ink/10 bg-ink flex aspect-video w-full max-w-full flex-col items-center justify-center rounded-lg border px-4 text-center">
       {isLoading ? (
         <BookLoadingIndicator label={message} size="sm" tone="inverse" />
       ) : (
@@ -1262,7 +1366,7 @@ function VideoMessage({
   )
 }
 
-/** 정방형 영상 미리보기 위에 재생 가능 여부를 나타내는 제어 아이콘을 렌더링한다. */
+/** 비율형 영상 미리보기 위에 재생 가능 여부를 나타내는 제어 아이콘을 렌더링한다. */
 function VideoPlayIcon() {
   return (
     <span
@@ -1283,7 +1387,7 @@ function PostLabels({ labels }: { labels: DiscussionPost['labels'] }) {
     <ul className="mt-2 flex flex-wrap gap-2">
       {labels.map((label) => (
         <li
-          className="bg-primary/10 text-primary rounded-md px-2 py-1 text-xs"
+          className="border-border text-ink-subtle rounded-md border bg-white px-2 py-1 text-xs"
           key={`${label.kind}-${label.value}`}
         >
           {formatLabel(label)}
@@ -1296,14 +1400,18 @@ function PostLabels({ labels }: { labels: DiscussionPost['labels'] }) {
 /** 답글 목록 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function Replies({
   currentMemberId,
+  isInverted = false,
   posts,
 }: {
   currentMemberId: string | null
+  isInverted?: boolean
   posts: DiscussionPost[]
 }) {
   if (posts.length === 0) return null
   return (
-    <ul className="border-ink/10 mt-3 space-y-3 border-l pl-3">
+    <ul
+      className={`mt-3 space-y-3 border-l pl-3 ${isInverted ? 'border-white/20' : 'border-border'}`}
+    >
       {posts.map((post) => (
         <li
           className={`flex ${
@@ -1314,9 +1422,15 @@ function Replies({
           key={post.id}
         >
           <div className="w-fit max-w-[70%]">
-            <p className="text-ink text-xs font-medium">{post.authorName}</p>
+            <p className={`text-xs font-medium ${isInverted ? 'text-white/70' : 'text-ink'}`}>
+              {post.authorName}
+            </p>
             {post.body ? (
-              <p className="text-ink-subtle mt-1 text-xs whitespace-pre-wrap">
+              <p
+                className={`mt-1 text-xs whitespace-pre-wrap ${
+                  isInverted ? 'text-white/80' : 'text-ink-subtle'
+                }`}
+              >
                 <HighlightedMentionText body={post.body} />
               </p>
             ) : null}

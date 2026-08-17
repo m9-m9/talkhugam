@@ -47,10 +47,12 @@ describe('LegalConsentPage', () => {
   it('keeps the consent choices and continuation action separated by foundation spacing', () => {
     renderLegalConsentPage()
 
-    expect(screen.getByRole('checkbox', { name: '이용약관에 동의합니다.' }).closest('fieldset')).toHaveClass(
-      'space-y-6',
+    expect(
+      screen.getByRole('checkbox', { name: '이용약관에 동의합니다.' }).closest('fieldset'),
+    ).toHaveClass('space-y-6')
+    expect(screen.getByRole('button', { name: '동의하고 계속하기' }).parentElement).toHaveClass(
+      'mt-8',
     )
-    expect(screen.getByRole('button', { name: '동의하고 계속하기' }).parentElement).toHaveClass('mt-8')
   })
 })
 

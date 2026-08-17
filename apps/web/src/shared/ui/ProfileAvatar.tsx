@@ -21,7 +21,7 @@ export function ProfileAvatar({ avatarUrl, displayName, size = 'lg' }: ProfileAv
   return (
     <div
       aria-hidden="true"
-      className={`bg-primary flex ${sizeClassName} shrink-0 items-center justify-center rounded-full font-semibold text-white`}
+      className={`bg-ink text-surface flex ${sizeClassName} shrink-0 items-center justify-center rounded-full font-semibold`}
     >
       {displayName.slice(0, 1)}
     </div>

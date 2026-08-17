@@ -238,15 +238,15 @@ export function RoomManagementPage() {
             <span className="text-ink-subtle text-xs">방장만 관리할 수 있어요</span>
           ) : null}
         </div>
-        <ul className="border-ink/10 mt-4 overflow-hidden rounded-lg border bg-white">
+        <ul className="border-border mt-4 overflow-hidden rounded-lg border bg-white">
           {room.members.map((member) => (
             <li
-              className="border-ink/10 flex min-h-16 items-center gap-3 border-b p-4 last:border-b-0"
+              className="border-border flex min-h-16 items-center gap-3 border-b p-4 last:border-b-0"
               key={member.id}
             >
               <span
                 aria-hidden="true"
-                className="bg-surface-muted text-primary flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-bold"
+                className="bg-ink text-surface flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold"
               >
                 {member.displayName.slice(0, 1)}
               </span>

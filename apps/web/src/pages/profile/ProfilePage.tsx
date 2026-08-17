@@ -95,7 +95,7 @@ export function ProfilePage() {
         <h2 className="text-ink text-base font-bold" id="profile-menu-heading">
           내 정보 메뉴
         </h2>
-        <div className="border-ink/10 mt-4 border-y bg-white">
+        <div className="border-ink/10 bg-surface mt-4 border-y">
           <ProfileNavigationRow
             description="이름과 소개를 바꿔요."
             label="내 정보 수정"
@@ -132,7 +132,7 @@ function ProfileNavigationRow({ description, label, onClick }: ProfileNavigation
   return (
     <ActionButton
       aria-label={label}
-      className="hover:!bg-surface-muted !h-auto min-h-16 w-full !justify-between gap-4 !rounded-none !border-0 !border-b !border-[#e7ded7] !bg-white px-4 py-3 text-left !whitespace-normal last:!border-b-0"
+      className="hover:!bg-surface-muted !border-border !bg-surface !h-auto min-h-16 w-full !justify-between gap-4 !rounded-none !border-0 !border-b px-4 py-3 text-left !whitespace-normal last:!border-b-0"
       onClick={onClick}
       size="large"
       type="button"

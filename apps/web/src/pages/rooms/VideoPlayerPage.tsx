@@ -284,7 +284,7 @@ function VideoUnavailableState({ message, onReturn }: { message: string; onRetur
         {message}
       </p>
       <ActionButton
-        className="border-primary text-primary"
+        className="border-white/40 text-white"
         onClick={onReturn}
         size="medium"
         type="button"

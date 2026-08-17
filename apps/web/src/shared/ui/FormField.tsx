@@ -23,7 +23,7 @@ export function FormField({
   return (
     <Field.Root invalid={Boolean(errorMessage)} name={name}>
       <Field.Header>
-        <Field.Label weight="medium">
+        <Field.Label className="talkhugam-form-field-label" weight="medium">
           {label}
           {optional ? <Field.IndicatorText aria-hidden="true">선택</Field.IndicatorText> : null}
         </Field.Label>

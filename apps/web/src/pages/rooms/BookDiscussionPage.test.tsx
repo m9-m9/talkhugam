@@ -15,6 +15,7 @@ const {
   getReadingRoom,
   getPosts,
   getVideoFilterMembers,
+  getVideoPlaybackAuthorization,
   getVideoPosts,
   getVideoThumbnailAuthorizations,
   parsePostForm,
@@ -66,6 +67,12 @@ const {
       isCurrentUser: true,
     },
   ]),
+  getVideoPlaybackAuthorization: vi.fn().mockResolvedValue({
+    expiresAt: 1_784_269_999,
+    playbackId: 'playback-id',
+    thumbnailToken: 'thumbnail-token',
+    token: 'playback-token',
+  }),
   getVideoPosts: vi.fn().mockResolvedValue([]),
   getVideoThumbnailAuthorizations: vi.fn().mockResolvedValue([]),
   parsePostForm: vi.fn(
@@ -112,6 +119,7 @@ vi.mock('../../entities/book-chat', () => ({
 vi.mock('../../entities/video', () => ({
   createMuxThumbnailUrl: () => 'https://image.mux.com/playback-id/thumbnail.webp?token=token',
   getVideoFilterMembers,
+  getVideoPlaybackAuthorization,
   getVideoPosts,
   getVideoThumbnailAuthorizations,
   mapVideoThumbnailAuthorizations: (authorizations: Array<{ postId: string }>) =>
@@ -119,8 +127,15 @@ vi.mock('../../entities/video', () => ({
   videoKeys: {
     byBookChat: (bookChatId: string) => ['video-posts', bookChatId],
     members: (roomId: string) => ['video-filter-members', roomId],
+    playback: (postId: string) => ['video-playback', postId],
     thumbnails: (postIds: string[]) => ['video-thumbnails', postIds],
   },
+}))
+
+vi.mock('../../shared/ui/LazyMuxVideoPlayer', () => ({
+  LazyMuxVideoPlayer: ({ playbackId }: { playbackId: string }) => (
+    <div data-playback-id={playbackId} data-testid="inline-mux-player" />
+  ),
 }))
 
 vi.mock('../../entities/reading-room', () => ({
@@ -174,6 +189,13 @@ describe('BookDiscussionPage', () => {
     getPosts.mockResolvedValue([])
     getVideoThumbnailAuthorizations.mockClear()
     getVideoThumbnailAuthorizations.mockResolvedValue([])
+    getVideoPlaybackAuthorization.mockClear()
+    getVideoPlaybackAuthorization.mockResolvedValue({
+      expiresAt: 1_784_269_999,
+      playbackId: 'playback-id',
+      thumbnailToken: 'thumbnail-token',
+      token: 'playback-token',
+    })
     getVideoFilterMembers.mockClear()
     getVideoPosts.mockClear()
     getVideoPosts.mockResolvedValue([])
@@ -254,6 +276,7 @@ describe('BookDiscussionPage', () => {
     expect((await screen.findByText('내 독후감')).closest('li')).toHaveClass('justify-end')
     expect(screen.getByText('내 답글').closest('li')).toHaveClass('justify-end')
     expect(screen.getByText('다른 멤버의 독후감').closest('li')).toHaveClass('justify-start')
+    await openVideoTab()
     expect(
       screen.getByText('영상 처리를 완료하지 못했어요. 잠시 후 다시 시도해 주세요.').closest('li'),
     ).toHaveClass('justify-end')
@@ -334,7 +357,7 @@ describe('BookDiscussionPage', () => {
     expect(screen.getByRole('heading', { name: '미움받을 용기' })).toBeInTheDocument()
   })
 
-  it('opens a square seventy-percent video preview in the immersive player', async () => {
+  it('plays a full-width ratio video inline from the bookmark video tab', async () => {
     getVideoPosts.mockResolvedValueOnce([
       {
         authorName: '민규',
@@ -353,14 +376,22 @@ describe('BookDiscussionPage', () => {
     ])
     renderBookDiscussionPage()
 
+    expect(await screen.findByRole('tab', { name: '책갈피' })).toBeInTheDocument()
+    await openVideoTab()
     const preview = await screen.findByRole('button', { name: '민규님의 영상 보기' })
-    expect(preview).toHaveClass('w-[70%]')
-    expect(preview.querySelector('.aspect-square')).toBeInTheDocument()
+    expect(preview).toHaveClass('w-full')
+    expect(preview).toHaveClass('aspect-video')
+    expect(preview.querySelector('img')).toBeInTheDocument()
     expect(getVideoThumbnailAuthorizations).toHaveBeenCalledWith(undefined, ['video-1'])
 
     fireEvent.click(preview)
 
-    expect(screen.getByText('몰입형 영상 화면')).toBeInTheDocument()
+    expect(await screen.findByTestId('inline-mux-player')).toHaveAttribute(
+      'data-playback-id',
+      'playback-id',
+    )
+    expect(getVideoPlaybackAuthorization).toHaveBeenCalledWith(undefined, 'video-1')
+    expect(screen.queryByText('몰입형 영상 화면')).not.toBeInTheDocument()
   })
 
   it('opens the message actions in a SEED action sheet', () => {
@@ -656,6 +687,7 @@ describe('BookDiscussionPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       '독후감을 불러오지 못했어요. 다시 시도해 주세요.',
     )
+    await openVideoTab()
     expect(screen.getByRole('status', { name: '영상 준비 중…' })).toBeInTheDocument()
   })
 
@@ -928,10 +960,16 @@ describe('BookDiscussionPage', () => {
     ])
     renderBookDiscussionPage()
 
+    await openVideoTab()
     const status = await screen.findByRole('status', { name: '영상 준비 중…' })
     expect(status.querySelector('.talkhugam-book-loader')).toBeInTheDocument()
   })
 })
+
+/** 책 대화 테스트에서 영상 탭을 열어 영상 메시지를 검증할 수 있게 한다. */
+async function openVideoTab() {
+  fireEvent.click(await screen.findByRole('tab', { name: '영상' }))
+}
 
 function openPageLabelEditor() {
   fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))

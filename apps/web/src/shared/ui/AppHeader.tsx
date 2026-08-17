@@ -10,10 +10,10 @@ type AppHeaderProps = {
 
 /** 앱 헤더 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 export function AppHeader({ action, onBack, title, titleAsHeading = false }: AppHeaderProps) {
-  const titleClassName = 'text-ink text-base font-bold'
+  const titleClassName = 'text-ink text-base font-semibold'
 
   return (
-    <header className="border-ink/10 -mx-4 flex min-h-16 items-center gap-2 border-b px-4">
+    <header className="border-border -mx-4 flex min-h-16 items-center gap-2 border-b px-4">
       {onBack ? (
         <ActionButton
           aria-label="이전 화면으로"

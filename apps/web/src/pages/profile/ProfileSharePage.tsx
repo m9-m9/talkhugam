@@ -59,7 +59,7 @@ export function ProfileSharePage() {
 
       <section
         aria-labelledby="profile-share-card-heading"
-        className="border-primary bg-surface-muted mt-12 overflow-hidden rounded-lg border p-6"
+        className="border-ink bg-surface mt-12 overflow-hidden rounded-lg border p-6"
       >
         <p className="text-primary text-sm font-semibold">Talk후감</p>
         <h2 className="text-ink mt-8 text-2xl font-bold" id="profile-share-card-heading">
@@ -68,7 +68,7 @@ export function ProfileSharePage() {
         <p className="text-ink mt-4 text-lg font-medium">
           {profile.bio || '읽고 느낀 마음을 함께 나눠요.'}
         </p>
-        <div className="border-primary/30 mt-12 border-t pt-4">
+        <div className="border-border mt-12 border-t pt-4">
           <p className="text-ink mt-1 text-sm font-semibold">함께 읽고, 함께 나누는 Talk후감</p>
         </div>
       </section>

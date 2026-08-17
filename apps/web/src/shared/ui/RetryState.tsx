@@ -18,6 +18,7 @@ export function RetryState({
         {message}
       </p>
       <ActionButton
+        className="talkhugam-foundation-action--outline"
         disabled={isRetrying}
         onClick={onRetry}
         size="medium"

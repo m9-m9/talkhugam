@@ -105,7 +105,7 @@ export function AdminPage() {
                 variant="neutralWeak"
               >
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-primary text-xs font-bold">
+                  <span className="text-primary text-xs font-semibold">
                     {formatFeedbackCategory(ticket.category)}
                   </span>
                   <span className="text-ink-subtle text-xs">
@@ -122,7 +122,7 @@ export function AdminPage() {
       {selectedTicket ? (
         <BottomSheet onClose={handleCloseTicket} title="의견 상세">
           <section className="pt-5">
-            <p className="text-primary text-sm font-bold">
+            <p className="text-primary text-sm font-semibold">
               {formatFeedbackCategory(selectedTicket.category)}
             </p>
             <p className="text-ink mt-3 text-sm leading-6 whitespace-pre-wrap">
