@@ -2,7 +2,7 @@ begin;
 
 \ir ../helpers/auth.inc
 
-select plan(9);
+select plan(11);
 
 select has_table('public', 'user_legal_consents', 'legal consent table should exist');
 select col_is_fk(
@@ -36,8 +36,8 @@ select tests.authenticate_as('00000000-0000-0000-0000-000000000165');
 set local role authenticated;
 
 select lives_ok(
-  $$ select public.record_required_legal_consents('2026-07-18', '2026-07-18') $$,
-  'an authenticated user should record the required document versions'
+  $$ select public.record_required_legal_consents('2026-07-18.2', '2026-07-18.2') $$,
+  'an authenticated user should record the canonical required document versions'
 );
 select is(
   (select count(*) from public.user_legal_consents),
@@ -45,13 +45,25 @@ select is(
   'a consent action should create one row for each required document'
 );
 select lives_ok(
-  $$ select public.record_required_legal_consents('2026-07-18', '2026-07-18') $$,
+  $$ select public.record_required_legal_consents('2026-07-18.2', '2026-07-18.2') $$,
   'recording an already accepted version should be idempotent'
 );
 select is(
   (select count(*) from public.user_legal_consents),
   2::bigint,
   'the same consent version should not create duplicate rows'
+);
+select throws_ok(
+  $$ select public.record_required_legal_consents('2026-07-18', '2026-07-18.2') $$,
+  'P0001',
+  'LEGAL_DOCUMENT_VERSION_REQUIRED',
+  'an outdated document version should be rejected'
+);
+select throws_ok(
+  $$ select public.record_required_legal_consents('2026-07-18.2', 'arbitrary-version') $$,
+  'P0001',
+  'LEGAL_DOCUMENT_VERSION_REQUIRED',
+  'an arbitrary document version should be rejected'
 );
 
 reset role;

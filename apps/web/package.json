@@ -23,6 +23,7 @@
     "@seed-design/react": "^2.0.4",
     "@seed-design/react-snackbar": "^2.0.0",
     "@supabase/supabase-js": "^2.110.7",
+    "@talkhugam/domain": "workspace:*",
     "@tanstack/react-query": "^5.101.2",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",

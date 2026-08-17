@@ -1,6 +1,6 @@
-export const legalDocumentVersion = '2026-07-18.2' as const
+import { legalDocumentVersion, type LegalDocumentId } from '@talkhugam/domain'
 
-export type LegalDocumentId = 'terms' | 'privacy'
+export { legalDocumentVersion, type LegalDocumentId } from '@talkhugam/domain'
 
 export type LegalDocumentSection = {
   body: string[]
