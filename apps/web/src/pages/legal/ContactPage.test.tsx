@@ -4,9 +4,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { ContactPage } from './ContactPage'
 
-vi.mock('../../app/env', () => ({
-  getClientEnv: () => ({ VITE_SUPPORT_EMAIL: 'support@talkhugam.com' }),
+const { getClientEnv } = vi.hoisted(() => ({
+  getClientEnv: vi.fn(() => ({ VITE_SUPPORT_EMAIL: 'support@talkhugam.com' })),
 }))
+
+vi.mock('../../app/env', () => ({ getClientEnv }))
 
 describe('ContactPage', () => {
   afterEach(cleanup)
@@ -23,6 +25,15 @@ describe('ContactPage', () => {
     expect(screen.getByRole('link', { name: 'support@talkhugam.com' })).toHaveAttribute(
       'href',
       'mailto:support@talkhugam.com',
+    )
+  })
+
+  it('keeps the unavailable support copy concise on narrow screens', () => {
+    getClientEnv.mockReturnValueOnce({ VITE_SUPPORT_EMAIL: '' })
+    renderServiceInfoPage()
+
+    expect(screen.getByText('문의 이메일은 출시 전에 안내됩니다.')).toHaveClass(
+      'talkhugam-balanced-copy',
     )
   })
 })

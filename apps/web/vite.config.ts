@@ -11,6 +11,11 @@ export default defineConfig(({ mode }) => ({
   test: {
     environment: 'jsdom',
     exclude: [...configDefaults.exclude, 'e2e/**'],
+    server: {
+      deps: {
+        inline: ['@seed-design/react', '@seed-design/css'],
+      },
+    },
     setupFiles: './src/test/setup.ts',
   },
 }))

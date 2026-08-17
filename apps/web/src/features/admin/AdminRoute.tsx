@@ -3,7 +3,7 @@ import { Navigate, Outlet } from 'react-router-dom'
 
 import { getAdminAccess } from '../../entities/feedback'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
-import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { BrandLoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 /** 운영함 허용 목록을 확인한 뒤 운영자만 하위 관리 화면으로 진입시킨다. */
 export function AdminRoute() {
@@ -27,7 +27,7 @@ export function AdminRoute() {
   if (hasAdminAccess === undefined) {
     return (
       <main className="bg-surface flex min-h-screen items-center justify-center px-4">
-        <LoadingSpinner label="운영함 권한을 확인하고 있어요." />
+        <BrandLoadingSpinner label="운영함 권한을 확인하고 있어요." />
       </main>
     )
   }

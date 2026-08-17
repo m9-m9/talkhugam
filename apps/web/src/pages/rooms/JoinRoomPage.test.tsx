@@ -56,6 +56,16 @@ describe('JoinRoomPage', () => {
     expect(screen.getByLabelText('6자리 초대 코드')).toBeEnabled()
   })
 
+  it('marks an invalid invite code so the error is conveyed with the field', async () => {
+    renderJoinRoomPage()
+
+    const inviteCodeInput = screen.getByLabelText('6자리 초대 코드')
+    fireEvent.click(screen.getByRole('button', { name: '함께 읽기 시작하기' }))
+
+    expect(await screen.findByText('6자리 초대 코드를 입력해 주세요.')).toBeInTheDocument()
+    expect(inviteCodeInput).toHaveAttribute('data-invalid', '')
+  })
+
   it('uses an invite token in the link without asking the visitor to copy a code', async () => {
     const token = 'a'.repeat(64)
     joinRoomByCode.mockResolvedValue('room-1')
@@ -73,6 +83,28 @@ describe('JoinRoomPage', () => {
       )
     })
     expect(await screen.findByText('내 독서방 화면')).toBeInTheDocument()
+  })
+
+  it('uses a white information surface for an entered invite code', () => {
+    renderJoinRoomPage()
+
+    expect(
+      screen.getByLabelText('6자리 초대 코드').closest('.talkhugam-information-field'),
+    ).not.toBeNull()
+    expect(
+      screen.getByLabelText('6자리 초대 코드').closest('.talkhugam-invite-code-field'),
+    ).not.toBeNull()
+    expect(screen.getByText('대문자·소문자는 안 가려도 돼요')).toHaveClass(
+      'talkhugam-invite-code-help',
+    )
+  })
+
+  it('keeps the invite explanation on natural Korean word boundaries', () => {
+    renderJoinRoomPage()
+
+    expect(screen.getByText(/어떤 책방인지 미리 확인할 수 있어요/)).toHaveClass(
+      'talkhugam-balanced-copy',
+    )
   })
 })
 

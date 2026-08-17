@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { FeedbackLauncher } from './FeedbackLauncher'
@@ -13,7 +13,10 @@ vi.mock('../../shared/api/supabaseClient', () => ({ createSupabaseClient: vi.fn(
 vi.mock('../../shared/analytics', () => ({ trackAnalyticsEvent: vi.fn() }))
 
 describe('FeedbackLauncher', () => {
-  afterEach(() => vi.clearAllMocks())
+  afterEach(() => {
+    cleanup()
+    vi.clearAllMocks()
+  })
 
   it('submits a feature suggestion and confirms that it was received', async () => {
     submitFeedback.mockResolvedValue('ticket-1')
@@ -24,8 +27,10 @@ describe('FeedbackLauncher', () => {
     fireEvent.change(screen.getByLabelText('의견 내용'), {
       target: { value: '독서방 알림을 더 세밀하게 바꾸고 싶어요.' },
     })
-    const submitButton = screen.getAllByRole('button', { name: '의견 보내기' }).at(1)
-    if (!submitButton) throw new Error('피드백 제출 버튼을 찾지 못했습니다.')
+    const submitButton = within(screen.getByRole('dialog', { name: '의견 보내기' })).getByRole(
+      'button',
+      { name: '의견 보내기' },
+    )
     fireEvent.click(submitButton)
 
     await waitFor(() => {
@@ -35,5 +40,20 @@ describe('FeedbackLauncher', () => {
       })
     })
     expect(await screen.findByText('의견을 받았어요.')).toBeInTheDocument()
+  })
+
+  it('uses SEED controls for the launcher, category toggle, text field, and submit action', () => {
+    render(<FeedbackLauncher />)
+
+    expect(screen.getByRole('button', { name: '의견 보내기' })).toHaveClass('seed-action-button')
+    fireEvent.click(screen.getByRole('button', { name: '의견 보내기' }))
+
+    expect(screen.getByRole('button', { name: '기능 제안' })).toHaveClass('seed-toggle-button')
+    expect(screen.getByRole('textbox', { name: '의견 내용' })).toHaveClass('seed-text-input__value')
+    expect(
+      within(screen.getByRole('dialog', { name: '의견 보내기' })).getByRole('button', {
+        name: '의견 보내기',
+      }),
+    ).toHaveClass('seed-action-button')
   })
 })

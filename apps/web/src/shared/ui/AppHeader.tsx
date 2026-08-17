@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { ActionButton } from '@seed-design/react'
 
 type AppHeaderProps = {
   action?: ReactNode
@@ -9,16 +10,18 @@ type AppHeaderProps = {
 
 /** 앱 헤더 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 export function AppHeader({ action, onBack, title, titleAsHeading = false }: AppHeaderProps) {
-  const titleClassName = 'text-ink text-base font-bold'
+  const titleClassName = 'text-ink text-base font-semibold'
 
   return (
-    <header className="border-ink/10 -mx-4 flex min-h-16 items-center gap-2 border-b px-4">
+    <header className="border-border -mx-4 flex min-h-16 items-center gap-2 border-b px-4">
       {onBack ? (
-        <button
+        <ActionButton
           aria-label="이전 화면으로"
-          className="text-ink -ml-3 flex min-h-11 min-w-11 items-center justify-center"
+          className="text-ink -ml-3 min-h-11 min-w-11 p-0"
           onClick={onBack}
+          size="small"
           type="button"
+          variant="ghost"
         >
           <svg aria-hidden="true" fill="none" viewBox="0 0 24 24" className="size-5">
             <path
@@ -28,7 +31,7 @@ export function AppHeader({ action, onBack, title, titleAsHeading = false }: App
               strokeWidth="1.8"
             />
           </svg>
-        </button>
+        </ActionButton>
       ) : null}
       {titleAsHeading ? (
         <h1 className={titleClassName}>{title}</h1>

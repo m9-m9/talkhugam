@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { ActionButton, Dialog } from '@seed-design/react'
 
 import {
   createManagedRoomInvite,
@@ -26,7 +27,7 @@ import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { getClientEnv } from '../../app/env'
 import { AppHeader } from '../../shared/ui/AppHeader'
-import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { BookLoadingIndicator, BrandLoadingSpinner } from '../../shared/ui/LoadingSpinner'
 
 type PendingAction =
   | { member: RoomManagementMember; type: 'remove' | 'transfer' }
@@ -165,24 +166,28 @@ export function RoomManagementPage() {
             방 관리
           </h2>
           <div className="mt-4 grid grid-cols-2 gap-3">
-            <button
-              className="border-primary text-primary min-h-12 rounded-md border bg-white px-4 text-sm font-semibold"
+            <ActionButton
+              className="talkhugam-foundation-action--outline w-full"
               onClick={() => inviteMutation.mutate()}
+              size="large"
               type="button"
+              variant="neutralOutline"
             >
               초대 코드 만들기
-            </button>
-            <button
-              className="border-ink/10 text-ink min-h-12 rounded-md border bg-white px-4 text-sm font-semibold"
+            </ActionButton>
+            <ActionButton
+              className="w-full"
               onClick={() => void navigate(`/rooms/${roomId}/manage/settings`)}
+              size="large"
               type="button"
+              variant="neutralOutline"
             >
               방 설정
-            </button>
+            </ActionButton>
           </div>
           {inviteMutation.isPending ? (
             <div className="mt-4">
-              <LoadingSpinner label="초대 코드를 만들고 있어요." size="xs" />
+              <BrandLoadingSpinner label="초대 코드를 만들고 있어요." size="xs" />
             </div>
           ) : null}
           {inviteMutation.isError ? (
@@ -191,19 +196,21 @@ export function RoomManagementPage() {
             </p>
           ) : null}
           {createdInvite ? (
-            <div className="bg-surface-muted mt-4 rounded-lg p-4">
+            <div className="talkhugam-information-surface border-border mt-4 rounded-lg border p-4">
               <p className="text-ink-subtle text-xs">지금 한 번만 확인할 수 있는 초대 코드예요.</p>
               <p className="text-ink mt-2 text-2xl font-bold tracking-[0.2em]">
                 {createdInvite.code}
               </p>
-              <button
-                className="bg-primary mt-4 min-h-12 w-full rounded-md px-4 text-sm font-semibold text-white"
+              <ActionButton
+                className="talkhugam-primary-action mt-4 w-full"
                 onClick={() => setIsInviteShareSheetOpen(true)}
                 ref={inviteShareTriggerRef}
+                size="large"
                 type="button"
+                variant="brandSolid"
               >
                 친구에게 공유하기
-              </button>
+              </ActionButton>
               <p className="text-ink-subtle mt-2 text-xs">
                 카카오톡, 문자, 인스타그램, 페이스북으로 초대할 수 있어요.
               </p>
@@ -231,15 +238,15 @@ export function RoomManagementPage() {
             <span className="text-ink-subtle text-xs">방장만 관리할 수 있어요</span>
           ) : null}
         </div>
-        <ul className="border-ink/10 mt-4 overflow-hidden rounded-lg border bg-white">
+        <ul className="border-border mt-4 overflow-hidden rounded-lg border bg-white">
           {room.members.map((member) => (
             <li
-              className="border-ink/10 flex min-h-16 items-center gap-3 border-b p-4 last:border-b-0"
+              className="border-border flex min-h-16 items-center gap-3 border-b p-4 last:border-b-0"
               key={member.id}
             >
               <span
                 aria-hidden="true"
-                className="bg-surface-muted text-primary flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-bold"
+                className="bg-ink text-surface flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold"
               >
                 {member.displayName.slice(0, 1)}
               </span>
@@ -263,19 +270,21 @@ export function RoomManagementPage() {
         <p className="text-ink-subtle mt-2 text-sm">
           대화는 방에 남고, 다시 참여하려면 초대 코드가 필요해요.
         </p>
-        <button
-          className="border-ink/10 text-ink mt-4 min-h-11 w-full rounded-md border bg-white px-4 text-sm font-semibold"
+        <ActionButton
+          className="mt-4 w-full"
           onClick={() =>
             setPendingAction({
               type: room.isCurrentUserOwner && room.members.length === 1 ? 'archive' : 'leave',
             })
           }
+          size="large"
           type="button"
+          variant="neutralOutline"
         >
           {room.isCurrentUserOwner && room.members.length === 1
             ? '방 보관하고 나가기'
             : '책방 나가기'}
-        </button>
+        </ActionButton>
       </section>
 
       {pendingAction ? (
@@ -390,20 +399,24 @@ function MemberMenu({
         ⋯
       </summary>
       <div className="border-ink/10 absolute right-0 z-10 mt-2 w-32 rounded-md border bg-white p-1 shadow-lg">
-        <button
-          className="text-ink hover:bg-surface-muted min-h-11 w-full rounded-sm px-3 text-left text-sm"
+        <ActionButton
+          className="text-ink hover:!bg-surface-muted min-h-11 w-full justify-start rounded-sm px-3 text-left"
           onClick={onTransfer}
+          size="medium"
           type="button"
+          variant="ghost"
         >
           방장 이양
-        </button>
-        <button
-          className="hover:bg-surface-muted min-h-11 w-full rounded-sm px-3 text-left text-sm text-red-600"
+        </ActionButton>
+        <ActionButton
+          className="hover:!bg-surface-muted min-h-11 w-full justify-start rounded-sm px-3 text-left text-red-600"
           onClick={onRemove}
+          size="medium"
           type="button"
+          variant="ghost"
         >
           내보내기
-        </button>
+        </ActionButton>
       </div>
     </details>
   )
@@ -422,35 +435,47 @@ function RoomManagementConfirmDialog({
   onConfirm: () => void
 }) {
   const content = getActionContent(action)
+
+  /** SEED 대화상자가 닫힘을 요청하면 처리 중이 아닐 때만 관리 동작을 취소한다. */
+  function handleOpenChange(open: boolean) {
+    if (open || isPending) return
+    onCancel()
+  }
+
   return (
-    <div
-      aria-modal="true"
-      className="bg-ink/30 fixed inset-0 z-30 flex items-end justify-center px-4 pb-4"
-      role="dialog"
-    >
-      <div className="app-page rounded-lg bg-white p-6">
-        <h2 className="text-ink text-lg font-bold">{content.title}</h2>
-        <p className="text-ink-subtle mt-2 text-sm">{content.description}</p>
-        <div className="mt-6 grid grid-cols-2 gap-3">
-          <button
-            className="border-ink/10 min-h-12 rounded-md border text-sm font-semibold"
-            disabled={isPending}
-            onClick={onCancel}
-            type="button"
-          >
-            취소
-          </button>
-          <button
-            className="bg-primary min-h-12 rounded-md text-sm font-semibold text-white disabled:opacity-50"
-            disabled={isPending}
-            onClick={onConfirm}
-            type="button"
-          >
-            {isPending ? '처리 중…' : content.confirmLabel}
-          </button>
-        </div>
-      </div>
-    </div>
+    <Dialog.Root onOpenChange={handleOpenChange} open>
+      <Dialog.Positioner>
+        <Dialog.Backdrop />
+        <Dialog.Content className="talkhugam-room-management-dialog">
+          <Dialog.Header>
+            <Dialog.Title>{content.title}</Dialog.Title>
+            <Dialog.Description>{content.description}</Dialog.Description>
+          </Dialog.Header>
+          <Dialog.Footer>
+            <ActionButton
+              disabled={isPending}
+              onClick={onCancel}
+              size="large"
+              type="button"
+              variant="neutralOutline"
+            >
+              취소
+            </ActionButton>
+            <ActionButton
+              className="talkhugam-primary-action"
+              disabled={isPending}
+              loading={isPending}
+              onClick={onConfirm}
+              size="large"
+              type="button"
+              variant="brandSolid"
+            >
+              {content.confirmLabel}
+            </ActionButton>
+          </Dialog.Footer>
+        </Dialog.Content>
+      </Dialog.Positioner>
+    </Dialog.Root>
   )
 }
 
@@ -486,13 +511,15 @@ function RoomManagementUnavailablePage({ onBack }: { onBack: () => void }) {
   return (
     <main className="app-page bg-surface flex min-h-screen flex-col items-center justify-center px-4 text-center">
       <p className="text-ink text-lg font-bold">이 책방을 찾을 수 없어요</p>
-      <button
-        className="bg-primary mt-6 min-h-11 rounded-md px-4 text-sm font-semibold text-white"
+      <ActionButton
+        className="talkhugam-primary-action mt-6"
         onClick={onBack}
+        size="large"
         type="button"
+        variant="brandSolid"
       >
         내 책방으로
-      </button>
+      </ActionButton>
     </main>
   )
 }
@@ -501,7 +528,7 @@ function RoomManagementUnavailablePage({ onBack }: { onBack: () => void }) {
 function RoomManagementLoadingPage() {
   return (
     <main className="app-page bg-surface flex min-h-screen items-center justify-center px-4">
-      <LoadingSpinner label="방 정보를 불러오고 있어요." variant="book" />
+      <BookLoadingIndicator label="방 정보를 불러오고 있어요." />
     </main>
   )
 }

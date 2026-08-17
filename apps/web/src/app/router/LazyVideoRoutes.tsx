@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react'
 
-import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { BookLoadingIndicator } from '../../shared/ui/LoadingSpinner'
 
 const VideoArchivePage = lazy(async () => {
   const { VideoArchivePage: VideoArchivePageComponent } =
@@ -48,7 +48,7 @@ function VideoRouteLoadingState({
     <main
       className={`app-page ${backgroundClassName} flex min-h-dvh items-center justify-center px-4`}
     >
-      <LoadingSpinner label={label} tone={tone} variant="book" />
+      <BookLoadingIndicator label={label} tone={tone} />
     </main>
   )
 }

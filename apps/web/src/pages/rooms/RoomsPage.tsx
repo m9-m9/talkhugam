@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { ActionButton, Avatar, Icon } from '@seed-design/react'
 
 import {
   formatRoomMemberSummary,
@@ -20,7 +21,7 @@ import {
 import { getUnreadNotificationCount, notificationKeys } from '../../entities/notification'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { BookCover } from '../../shared/ui/BookCover'
-import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { BookLoadingIndicator } from '../../shared/ui/LoadingSpinner'
 
 /** 참여 중인 책방을 최근 대화 순서로 보여 주는 메인 화면을 렌더링한다. */
 export function RoomsPage() {
@@ -33,30 +34,45 @@ export function RoomsPage() {
     queryKey: bookBestsellerKeys.current,
     staleTime: 10 * 60 * 1000,
   })
+  const isMainContentPending = roomsQuery.isPending || bestsellersQuery.isPending
 
   return (
     <main className="app-page bg-surface flex flex-col px-4">
-      <header className="border-ink/10 -mx-4 flex min-h-16 items-center justify-between border-b px-4">
-        <img alt="Talk후감" className="h-10 w-auto" src="/brand/talkhugam-wordmark.svg" />
+      <header className="border-border -mx-4 flex min-h-16 items-center justify-between border-b px-4">
+        <img alt="Talk후감" className="h-10 w-auto" src="/brand/talkhugam-wordmark-inverse.svg" />
         <NotificationInboxButton />
       </header>
 
-      <section aria-labelledby="recent-rooms-heading" className="flex flex-1 flex-col gap-6 py-8">
-        <BestsellerSection result={bestsellersQuery.data} />
-        <div className="flex flex-col gap-4">
-          <h2 className="text-ink text-base font-bold" id="recent-rooms-heading">
-            함께 읽는 책방
-          </h2>
-          <RoomsContent
-            error={roomsQuery.error}
-            isPending={roomsQuery.isPending}
-            onRetry={() => void roomsQuery.refetch()}
-            rooms={roomsQuery.data}
-          />
-        </div>
-      </section>
+      {isMainContentPending ? (
+        <section
+          aria-label="메인 콘텐츠 로딩"
+          className="flex flex-1 items-center justify-center py-8"
+        >
+          <MainContentLoadingState />
+        </section>
+      ) : (
+        <section aria-labelledby="recent-rooms-heading" className="flex flex-1 flex-col gap-6 py-8">
+          <BestsellerSection result={bestsellersQuery.data} />
+          <div className="flex flex-col gap-4">
+            <h2 className="text-ink text-base font-bold" id="recent-rooms-heading">
+              함께 읽는 책방
+            </h2>
+            <RoomsContent
+              error={roomsQuery.error}
+              isPending={roomsQuery.isPending}
+              onRetry={() => void roomsQuery.refetch()}
+              rooms={roomsQuery.data}
+            />
+          </div>
+        </section>
+      )}
     </main>
   )
+}
+
+/** 초기 책방과 베스트셀러 데이터를 함께 준비하는 동안 책 모양 로딩 상태를 렌더링한다. */
+function MainContentLoadingState() {
+  return <BookLoadingIndicator label="책방을 준비하고 있어요." size="sm" />
 }
 
 /** 알라딘 키가 설정됐을 때만 이번 주 베스트셀러 카드를 화면 상단에 렌더링한다. */
@@ -116,47 +132,55 @@ function BestsellerCarousel({ books }: { books: BookBestseller[] }) {
       {previewBooks.length > 0 ? (
         <ul aria-label="다른 추천 도서" className="grid grid-cols-3 gap-2">
           {previewBooks.map(({ book, index }) => (
-            <li key={book.id}>
-              <button
+            <li className="min-w-0" key={book.id}>
+              <ActionButton
                 aria-label={`${book.title} 추천 보기`}
-                className="border-ink/10 hover:border-primary focus-visible:outline-primary flex min-h-32 w-full cursor-pointer flex-col items-start gap-2 rounded-md border bg-white p-2 text-left"
+                className="border-border hover:!border-ink !bg-surface-muted !flex !h-auto min-h-32 w-full !flex-col !items-start !justify-start gap-2 overflow-hidden rounded-md border p-2 text-left"
                 onClick={() => handleSelectPreviewBook(index)}
+                size="large"
                 type="button"
+                variant="neutralWeak"
               >
                 <BookCover
                   alt={`${book.title} 표지`}
                   className="h-16 w-12"
                   thumbnailUrl={book.thumbnailUrl}
                 />
-                <span className="text-ink line-clamp-2 text-xs font-semibold">{book.title}</span>
-              </button>
+                <span className="text-ink line-clamp-2 block w-full min-w-0 text-xs font-semibold !whitespace-normal">
+                  {book.title}
+                </span>
+              </ActionButton>
             </li>
           ))}
         </ul>
       ) : null}
       {books.length > 1 ? (
         <div className="flex items-center justify-between">
-          <button
+          <ActionButton
             aria-label="이전 추천 보기"
-            className="border-ink/10 text-ink hover:border-primary focus-visible:outline-primary disabled:text-ink/30 flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-full border text-lg disabled:cursor-not-allowed"
+            className="border-border text-ink hover:!border-ink disabled:text-ink/30 min-h-11 min-w-11 rounded-full border text-lg"
             disabled={activeIndex === 0}
             onClick={handlePreviousBook}
+            size="medium"
             type="button"
+            variant="neutralOutline"
           >
             ‹
-          </button>
+          </ActionButton>
           <span aria-live="polite" className="text-ink-subtle text-xs">
             {activeIndex + 1} / {books.length}
           </span>
-          <button
+          <ActionButton
             aria-label="다음 추천 보기"
-            className="border-ink/10 text-ink hover:border-primary focus-visible:outline-primary disabled:text-ink/30 flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-full border text-lg disabled:cursor-not-allowed"
+            className="border-border text-ink hover:!border-ink disabled:text-ink/30 min-h-11 min-w-11 rounded-full border text-lg"
             disabled={activeIndex === books.length - 1}
             onClick={handleNextBook}
+            size="medium"
             type="button"
+            variant="neutralOutline"
           >
             ›
-          </button>
+          </ActionButton>
         </div>
       ) : null}
     </div>
@@ -196,14 +220,20 @@ function BestsellerFeature({ book, isActive }: { book: BookBestseller; isActive:
   )
 
   const className =
-    'border-ink/10 hover:border-primary focus-visible:outline-primary flex min-h-32 items-center gap-3 rounded-lg border bg-white p-3 text-left'
+    'border-border bg-surface hover:border-ink focus-visible:outline-primary flex min-h-32 items-center gap-3 rounded-lg border p-3 text-left'
 
-  if (!book.externalUrl) return <div className={className}>{content}</div>
+  if (!book.externalUrl)
+    return (
+      <div className={className} data-testid="bestseller-feature">
+        {content}
+      </div>
+    )
 
   return (
     <a
       aria-label={`${book.title} 자세히 보기`}
       className={className}
+      data-testid="bestseller-feature"
       href={book.externalUrl}
       rel="noreferrer"
       tabIndex={isActive ? 0 : -1}
@@ -224,22 +254,24 @@ function NotificationInboxButton() {
   const unreadCount = unreadCountQuery.data ?? 0
 
   return (
-    <button
+    <ActionButton
       aria-label={formatNotificationInboxLabel(unreadCount)}
-      className="text-ink hover:bg-surface-muted focus-visible:ring-primary relative flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-full focus-visible:ring-2 focus-visible:outline-none"
+      className="text-ink hover:!bg-surface-muted relative min-h-11 min-w-11 rounded-full"
       onClick={() => void navigate('/notifications')}
+      size="medium"
       type="button"
+      variant="ghost"
     >
       <NotificationBellIcon />
       {unreadCount > 0 ? (
         <span
           aria-hidden="true"
-          className="bg-primary text-ink absolute top-1 right-1 flex min-w-4 items-center justify-center rounded-full px-1 text-xs font-bold"
+          className="bg-primary absolute top-1 right-1 flex min-w-4 items-center justify-center rounded-full px-1 text-xs font-bold text-white"
         >
           {unreadCount > 99 ? '99+' : unreadCount}
         </span>
       ) : null}
-    </button>
+    </ActionButton>
   )
 }
 
@@ -252,15 +284,20 @@ function formatNotificationInboxLabel(unreadCount: number): string {
 /** 알림함으로 이동하는 버튼에 사용할 종 모양 아이콘을 렌더링한다. */
 function NotificationBellIcon() {
   return (
-    <svg aria-hidden="true" className="size-5" fill="none" viewBox="0 0 24 24">
-      <path
-        d="M18 10a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.8"
-      />
-    </svg>
+    <Icon
+      size="20px"
+      svg={
+        <svg fill="none" viewBox="0 0 24 24">
+          <path
+            d="M18 10a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="1.8"
+          />
+        </svg>
+      }
+    />
   )
 }
 
@@ -289,7 +326,7 @@ function RoomsContent({
 function RoomsLoadingState() {
   return (
     <div className="flex flex-1 items-center justify-center">
-      <LoadingSpinner label="책방을 불러오고 있어요." variant="book" />
+      <BookLoadingIndicator label="책방을 불러오고 있어요." />
     </div>
   )
 }
@@ -300,13 +337,15 @@ function RoomsErrorState({ onRetry }: { onRetry: () => void }) {
     <div className="flex flex-1 flex-col items-center justify-center text-center">
       <p className="text-ink text-lg font-medium">책방을 불러오지 못했어요</p>
       <p className="text-ink-subtle mt-2 text-sm">잠시 후 다시 시도해 주세요.</p>
-      <button
-        className="bg-primary mt-6 min-h-11 rounded-md px-4 text-sm font-semibold text-white"
+      <ActionButton
+        className="talkhugam-primary-action mt-6"
         onClick={onRetry}
+        size="large"
         type="button"
+        variant="brandSolid"
       >
         다시 시도하기
-      </button>
+      </ActionButton>
     </div>
   )
 }
@@ -329,31 +368,42 @@ function RoomsList({ rooms }: { rooms: ReadingRoom[] }) {
   return (
     <ul className="space-y-3">
       {rooms.map((room) => (
-        <li key={room.id}>
-          <button
-            className="border-ink/10 hover:border-primary focus-visible:outline-primary min-h-24 w-full rounded-lg border bg-white p-4 text-left"
+        <li className="border-border rounded-lg border bg-white" key={room.id}>
+          <ActionButton
+            className="!grid !h-auto min-h-24 w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 p-4 text-left !whitespace-normal"
             onClick={() => void navigate(`/rooms/${room.id}`)}
+            size="large"
             type="button"
+            variant="ghost"
           >
-            <span className="flex items-start gap-3">
-              <RoomMemberAvatars members={room.members} />
-              <span className="min-w-0 flex-1">
-                <span className="text-ink block text-sm font-bold">{room.name}</span>
-                <span className="text-ink-subtle mt-1 block truncate text-xs">
-                  {formatRoomMessagePreview(room)}
-                </span>
-                <span className="text-ink-subtle mt-3 block text-xs">
-                  {formatRoomMemberSummary(room.members)}
-                </span>
+            <RoomMemberAvatars members={room.members} />
+            <span className="min-w-0">
+              <span className="text-ink block truncate text-base font-semibold">{room.name}</span>
+              <span className="text-ink-subtle mt-2 block truncate text-sm">
+                {formatRoomMessagePreview(room)}
               </span>
-              <span className="text-ink-subtle flex flex-col items-end gap-2 pt-1 text-xs">
-                {formatRoomMessageTime(room.lastMessage?.createdAt ?? null) ?? '새 책방'}
-                <span aria-hidden="true" className="text-lg">
-                  ›
-                </span>
+              <span className="text-ink-subtle mt-1 block truncate text-xs">
+                {formatRoomMemberSummary(room.members)}
               </span>
             </span>
-          </button>
+            <span className="text-ink-subtle flex shrink-0 items-center gap-2 text-sm">
+              {formatRoomMessageTime(room.lastMessage?.createdAt ?? null) ?? '새 책방'}
+              <Icon
+                size="20px"
+                svg={
+                  <svg fill="none" viewBox="0 0 24 24">
+                    <path
+                      d="m9 18 6-6-6-6"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                    />
+                  </svg>
+                }
+              />
+            </span>
+          </ActionButton>
         </li>
       ))}
     </ul>
@@ -366,20 +416,21 @@ function RoomMemberAvatars({ members }: { members: readonly ReadingRoomMember[] 
   const remainingCount = members.length - visibleMembers.length
 
   return (
-    <span aria-hidden="true" className="flex shrink-0 -space-x-2 pt-1">
+    <Avatar.Stack aria-hidden="true" size="36">
       {visibleMembers.map((member) => (
-        <span
-          className="border-surface bg-surface-muted text-ink-subtle flex size-8 items-center justify-center rounded-full border-2 text-xs font-semibold"
-          key={member.joinedAt}
-        >
-          {member.displayName.slice(0, 1)}
-        </span>
+        <Avatar.Root key={member.joinedAt} size="36">
+          <Avatar.Fallback className="bg-surface-muted text-ink-subtle text-xs font-semibold">
+            {member.displayName.slice(0, 1)}
+          </Avatar.Fallback>
+        </Avatar.Root>
       ))}
       {remainingCount > 0 ? (
-        <span className="border-surface bg-primary text-ink flex size-8 items-center justify-center rounded-full border-2 text-xs font-semibold">
-          +{remainingCount}
-        </span>
+        <Avatar.Root size="36">
+          <Avatar.Fallback className="bg-ink text-surface text-xs font-semibold">
+            +{remainingCount}
+          </Avatar.Fallback>
+        </Avatar.Root>
       ) : null}
-    </span>
+    </Avatar.Stack>
   )
 }

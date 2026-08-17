@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { type ChangeEvent, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { ActionButton, Dialog, TextField } from '@seed-design/react'
 
 import { bookChatKeys, deleteManagedBookChat, getManagedBookChat } from '../../entities/book-chat'
 import {
@@ -21,7 +22,7 @@ import { AppHeader } from '../../shared/ui/AppHeader'
 import { BookCover } from '../../shared/ui/BookCover'
 import { BottomSheet } from '../../shared/ui/BottomSheet'
 import { CompletionMark } from '../../shared/ui/CompletionMark'
-import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { BookLoadingIndicator } from '../../shared/ui/LoadingSpinner'
 
 /** 책 대화방의 개인 완독 기록과 삭제 요청을 관리하는 화면을 렌더링한다. */
 export function BookChatManagementPage() {
@@ -71,6 +72,21 @@ export function BookChatManagementPage() {
     setIsCompletionEditorOpen(true)
   }
 
+  /** 삭제 확인 다이얼로그를 열어 책 이름 재입력을 요구한다. */
+  function handleOpenDeleteDialog() {
+    setIsDeleteDialogOpen(true)
+  }
+
+  /** 삭제 확인 다이얼로그를 닫고 현재 책 대화방을 유지한다. */
+  function handleCloseDeleteDialog() {
+    setIsDeleteDialogOpen(false)
+  }
+
+  /** 입력한 책 이름을 삭제 요청 mutation으로 전달한다. */
+  function handleConfirmDeletion(confirmationName: string) {
+    deletionMutation.mutate(confirmationName)
+  }
+
   /** 완독 기록 작성 팝업을 닫고 기존 완독 상태를 유지한다. */
   function handleCloseCompletionEditor() {
     setIsCompletionEditorOpen(false)
@@ -91,7 +107,7 @@ export function BookChatManagementPage() {
         <p className="text-primary text-sm font-medium">책 대화</p>
         <h1 className="text-ink mt-2 text-xl font-bold">{chat.title}</h1>
       </header>
-      <section className="border-ink/10 mt-8 flex items-center gap-4 rounded-lg border bg-white p-4">
+      <section className="border-border mt-8 flex items-center gap-4 rounded-lg border bg-white p-4">
         <BookCover alt={`${chat.title} 표지`} thumbnailUrl={chat.thumbnailUrl} />
         <div className="min-w-0 flex-1">
           <span className="text-ink block text-sm font-bold">{chat.name}</span>
@@ -104,22 +120,26 @@ export function BookChatManagementPage() {
           채팅방 관리
         </h2>
         <div className="mt-4 space-y-3">
-          <button
-            className="border-ink/10 min-h-12 w-full rounded-md border bg-white px-4 text-left text-sm font-semibold"
+          <ActionButton
+            className="w-full justify-start"
             disabled={completionMutation.isPending}
             onClick={handleOpenCompletionEditor}
+            size="large"
             type="button"
+            variant="neutralOutline"
           >
             {ownCompletion ? '수정하기' : '완독하기'}
-          </button>
-          <button
-            className="border-ink/10 min-h-12 w-full rounded-md border bg-white px-4 text-left text-sm font-semibold text-red-600"
+          </ActionButton>
+          <ActionButton
+            className="text-danger w-full justify-start"
             disabled={deletionMutation.isPending}
-            onClick={() => setIsDeleteDialogOpen(true)}
+            onClick={handleOpenDeleteDialog}
+            size="large"
             type="button"
+            variant="neutralOutline"
           >
             삭제 요청
-          </button>
+          </ActionButton>
         </div>
       </section>
       {isDeleteDialogOpen ? (
@@ -127,8 +147,8 @@ export function BookChatManagementPage() {
           bookName={chat.name}
           errorMessage={deletionMutation.isError ? '이름이 일치하는지 확인해 주세요.' : null}
           isDeleting={deletionMutation.isPending}
-          onCancel={() => setIsDeleteDialogOpen(false)}
-          onConfirm={(confirmationName) => deletionMutation.mutate(confirmationName)}
+          onCancel={handleCloseDeleteDialog}
+          onConfirm={handleConfirmDeletion}
         />
       ) : null}
       {isCompletionEditorOpen ? (
@@ -168,51 +188,72 @@ function BookChatDeletionDialog({
   onConfirm: (confirmationName: string) => void
 }) {
   const [confirmationName, setConfirmationName] = useState('')
+
+  /** 다이얼로그가 닫힐 때 진행 중이지 않은 삭제 요청만 취소한다. */
+  function handleOpenChange(open: boolean) {
+    if (!open && !isDeleting) onCancel()
+  }
+
+  /** 입력값이 책 이름과 일치할 때만 삭제 요청을 부모 화면에 전달한다. */
+  function handleConfirm() {
+    onConfirm(confirmationName)
+  }
+
+  /** 사용자가 입력한 책 이름을 확인 상태에 반영한다. */
+  function handleConfirmationNameChange(event: ChangeEvent<HTMLInputElement>) {
+    setConfirmationName(event.target.value)
+  }
+
   return (
-    <div
-      aria-modal="true"
-      className="bg-ink/30 fixed inset-0 z-30 flex items-end justify-center px-4 pb-4"
-      role="dialog"
-    >
-      <div className="app-page rounded-lg bg-white p-6">
-        <h2 className="text-ink text-lg font-bold">책 대화방을 삭제할까요?</h2>
-        <p className="text-ink-subtle mt-2 text-sm">
-          영상 삭제 요청도 함께 시작돼요. 계속하려면 책 이름을 입력해 주세요.
-        </p>
-        <label className="mt-4 block">
-          <span className="sr-only">삭제할 책 이름</span>
-          <input
-            className="border-ink/10 focus:border-primary min-h-12 w-full rounded-md border px-4 text-sm outline-none"
-            onChange={(event) => setConfirmationName(event.target.value)}
-            placeholder={bookName}
-            value={confirmationName}
-          />
-        </label>
-        {errorMessage ? (
-          <p className="mt-3 text-sm text-red-600" role="alert">
-            {errorMessage}
-          </p>
-        ) : null}
-        <div className="mt-6 grid grid-cols-2 gap-3">
-          <button
-            className="border-ink/10 min-h-12 rounded-md border text-sm font-semibold"
-            disabled={isDeleting}
-            onClick={onCancel}
-            type="button"
-          >
-            취소
-          </button>
-          <button
-            className="bg-primary min-h-12 rounded-md text-sm font-semibold text-white disabled:opacity-50"
-            disabled={isDeleting || confirmationName.trim() !== bookName}
-            onClick={() => onConfirm(confirmationName)}
-            type="button"
-          >
-            {isDeleting ? '삭제 요청 중…' : '삭제 요청하기'}
-          </button>
-        </div>
-      </div>
-    </div>
+    <Dialog.Root onOpenChange={handleOpenChange} open>
+      <Dialog.Positioner>
+        <Dialog.Backdrop />
+        <Dialog.Content className="talkhugam-room-management-dialog">
+          <Dialog.Header>
+            <Dialog.Title>책 대화방을 삭제할까요?</Dialog.Title>
+            <Dialog.Description>
+              영상 삭제 요청도 함께 시작돼요. 계속하려면 책 이름을 입력해 주세요.
+            </Dialog.Description>
+          </Dialog.Header>
+          <TextField.Root className="mt-4">
+            <TextField.Input
+              aria-label="삭제할 책 이름"
+              onChange={handleConfirmationNameChange}
+              placeholder={bookName}
+              value={confirmationName}
+            />
+          </TextField.Root>
+          {errorMessage ? (
+            <p className="mt-3 text-sm text-red-600" role="alert">
+              {errorMessage}
+            </p>
+          ) : null}
+          <Dialog.Footer className="!gap-2">
+            <ActionButton
+              className="flex-1"
+              disabled={isDeleting}
+              onClick={onCancel}
+              size="large"
+              type="button"
+              variant="neutralOutline"
+            >
+              취소
+            </ActionButton>
+            <ActionButton
+              className="talkhugam-primary-action flex-1"
+              disabled={isDeleting || confirmationName.trim() !== bookName}
+              loading={isDeleting}
+              onClick={handleConfirm}
+              size="large"
+              type="button"
+              variant="brandSolid"
+            >
+              삭제 요청하기
+            </ActionButton>
+          </Dialog.Footer>
+        </Dialog.Content>
+      </Dialog.Positioner>
+    </Dialog.Root>
   )
 }
 
@@ -220,7 +261,7 @@ function BookChatDeletionDialog({
 function BookChatManagementLoadingPage() {
   return (
     <main className="app-page bg-surface flex min-h-screen items-center justify-center">
-      <LoadingSpinner label="책 대화방을 불러오고 있어요." variant="book" />
+      <BookLoadingIndicator label="책 대화방을 불러오고 있어요." />
     </main>
   )
 }
@@ -230,13 +271,15 @@ function BookChatManagementUnavailablePage({ onBack }: { onBack: () => void }) {
   return (
     <main className="app-page bg-surface flex min-h-screen flex-col items-center justify-center px-4 text-center">
       <p className="text-ink text-lg font-bold">책 대화방을 찾을 수 없어요</p>
-      <button
-        className="bg-primary mt-6 min-h-11 rounded-md px-4 text-sm font-semibold text-white"
+      <ActionButton
+        className="talkhugam-primary-action mt-6"
         onClick={onBack}
+        size="large"
         type="button"
+        variant="brandSolid"
       >
         책방으로
-      </button>
+      </ActionButton>
     </main>
   )
 }

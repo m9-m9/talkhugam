@@ -15,13 +15,18 @@ vi.mock('../../shared/api/supabaseClient', () => ({ createSupabaseClient: () => 
 describe('ConsentRequiredRoute', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('provides a page heading while the required-consent check is loading', () => {
+  it('provides a page heading and book loader while the required-consent check is loading', () => {
     getHasRequiredLegalConsent.mockReturnValue(new Promise(() => undefined))
 
     renderConsentRequiredRoute()
 
     expect(
       screen.getByRole('heading', { name: '서비스 이용 동의를 확인하고 있어요.' }),
+    ).toBeInTheDocument()
+    expect(
+      screen
+        .getByRole('status', { name: '서비스 이용 동의를 확인하고 있어요.' })
+        .querySelector('.talkhugam-book-loader'),
     ).toBeInTheDocument()
   })
 

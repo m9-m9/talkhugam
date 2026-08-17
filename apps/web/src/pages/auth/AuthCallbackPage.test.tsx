@@ -29,13 +29,13 @@ describe('AuthCallbackPage', () => {
     expect(getUser).not.toHaveBeenCalled()
   })
 
-  it('uses the brand spinner while the login session is being checked', () => {
+  it('uses the book loader while the login session is being checked', () => {
     getUser.mockReturnValue(new Promise(() => undefined))
 
     renderCallback('/auth/callback')
 
     const status = screen.getByRole('status', { name: '로그인 정보를 확인하고 있어요.' })
-    expect(status.querySelector('.talkhugam-brand-spinner')).toBeInTheDocument()
+    expect(status.querySelector('.talkhugam-book-loader')).toBeInTheDocument()
   })
 
   it('sends a completed profile to the room list', async () => {

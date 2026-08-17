@@ -1,13 +1,43 @@
+@import '@seed-design/css/base.css';
+@import '@seed-design/css/recipes/avatar.css';
+@import '@seed-design/css/recipes/avatar-stack.css';
+@import '@seed-design/css/recipes/list-item.css';
+@import '@seed-design/css/recipes/text.css';
+@import '@seed-design/css/recipes/action-button.css';
+@import '@seed-design/css/recipes/dialog.css';
+@import '@seed-design/css/recipes/checkbox.css';
+@import '@seed-design/css/recipes/checkmark.css';
+@import '@seed-design/css/recipes/field.css';
+@import '@seed-design/css/recipes/field-label.css';
+@import '@seed-design/css/recipes/menu.css';
+@import '@seed-design/css/recipes/menu-item.css';
+@import '@seed-design/css/recipes/menu-sheet.css';
+@import '@seed-design/css/recipes/menu-sheet-item.css';
+@import '@seed-design/css/recipes/bottom-sheet-handle.css';
+@import '@seed-design/css/recipes/text-input.css';
+@import '@seed-design/css/recipes/toggle-button.css';
+@import '@seed-design/css/recipes/switch.css';
+@import '@seed-design/css/recipes/switchmark.css';
+@import '@seed-design/css/recipes/snackbar.css';
+@import '@seed-design/css/recipes/snackbar-region.css';
 @import 'tailwindcss';
 
 @theme {
-  --color-surface: #fffaf8;
-  --color-surface-muted: #fff1ec;
-  --color-border: #e7ded7;
-  --color-ink: #272320;
-  --color-ink-subtle: #706a64;
-  --color-primary: #ff835f;
-  --color-primary-text: #ad3d22;
+  --color-surface: #000000;
+  --color-surface-muted: #101010;
+  --color-surface-raised: #101010;
+  --color-border: #2a2a2a;
+  --color-ink: #ffffff;
+  --color-ink-subtle: #c7c7c7;
+  --color-brand: #ff835f;
+  --color-brand-soft: #ffb59c;
+  --color-accent: #ff835f;
+  --color-accent-text: #ffb59c;
+  --color-action: #ad3d22;
+  --color-action-text: #ffffff;
+  --color-danger: #ff6b6b;
+  --color-primary: var(--color-accent);
+  --color-primary-text: var(--color-accent-text);
   --spacing-0: 0px;
   --spacing-1: 4px;
   --spacing-2: 8px;
@@ -24,12 +54,239 @@
 }
 
 .text-primary {
-  color: var(--color-primary-text);
+  color: var(--color-accent-text);
+}
+
+.talkhugam-primary-action {
+  --seed-prefix-icon-color: var(--color-action-text);
+  --seed-suffix-icon-color: var(--color-action-text);
+
+  background: var(--color-action);
+  color: var(--color-action-text);
+}
+
+.talkhugam-primary-action svg {
+  color: var(--color-action-text);
+}
+
+.talkhugam-primary-action:is(:hover, :active, [data-loading]) {
+  background: color-mix(in srgb, var(--color-action) 86%, white);
+}
+
+.talkhugam-primary-action:is(:disabled, [disabled], [data-disabled]) {
+  background: color-mix(in srgb, var(--color-action) 28%, var(--color-surface));
+  color: color-mix(in srgb, var(--color-action-text) 70%, transparent);
+}
+
+.talkhugam-foundation-action--outline {
+  background: var(--color-surface-raised);
+  border: 1px solid color-mix(in srgb, var(--color-action) 62%, transparent);
+  color: var(--color-accent-text);
+}
+
+.talkhugam-foundation-action--outline:is(:hover, :active, [data-loading]) {
+  background: var(--color-surface-muted);
+  border-color: var(--color-action);
+}
+
+.talkhugam-foundation-toggle {
+  background: var(--color-surface-raised);
+  border: 1px solid color-mix(in srgb, var(--color-action) 42%, var(--color-border));
+  color: var(--color-accent-text);
+}
+
+.talkhugam-foundation-toggle:is([aria-pressed='true'], [data-pressed]) {
+  background: var(--color-action);
+  border-color: var(--color-action);
+  color: var(--color-action-text);
+}
+
+.talkhugam-foundation-toggle:is([aria-pressed='true'], [data-pressed]):is(:hover, :active) {
+  background: var(--color-action);
+  border-color: var(--color-action);
+}
+
+.talkhugam-foundation-toggle:is([aria-pressed='true'], [data-pressed]) {
+  --seed-prefix-icon-color: var(--color-action-text);
+  --seed-suffix-icon-color: var(--color-action-text);
+}
+
+.talkhugam-video-filter-toggle {
+  background: var(--color-surface-raised);
+}
+
+.talkhugam-video-filter-toggle:is([aria-pressed='true'], [data-pressed]) {
+  background: var(--color-action);
+  color: var(--color-action-text);
+}
+
+.talkhugam-action-sheet-choice:not(:is(:disabled, [disabled], [data-disabled])) {
+  background: var(--color-surface-raised);
+  border: 1px solid color-mix(in srgb, var(--color-action) 42%, var(--color-border));
+  color: var(--color-accent-text);
+}
+
+.talkhugam-action-sheet-choice:not(:is(:disabled, [disabled], [data-disabled])):is(
+    :hover,
+    :active,
+    [data-loading]
+  ) {
+  background: var(--color-surface-muted);
+  border-color: var(--color-action);
+}
+
+.talkhugam-information-field.seed-text-input__root,
+.talkhugam-information-field .seed-input-button__button,
+.talkhugam-information-surface {
+  background: var(--color-surface-raised);
+}
+
+.seed-text-input__value,
+.seed-text-input__textarea {
+  color: var(--color-ink);
+}
+
+.talkhugam-form-field-label.seed-field-label__root {
+  color: var(--color-ink);
+}
+
+.seed-text-input__value::placeholder,
+.seed-text-input__textarea::placeholder {
+  color: var(--color-ink-subtle);
+}
+
+.seed-switchmark__root--tone_brand:is(:checked, [data-checked]) {
+  background: var(--color-action);
+}
+
+.seed-switchmark__thumb--tone_brand {
+  background: var(--color-surface);
+}
+
+.talkhugam-balanced-copy {
+  text-wrap: pretty;
+  word-break: keep-all;
+}
+
+.seed-dialog__footer,
+.talkhugam-dialog-actions {
+  gap: var(--spacing-2);
+}
+
+.talkhugam-invite-code-field .seed-field__header {
+  margin-bottom: var(--spacing-3);
+}
+
+.talkhugam-account-deletion-dialog {
+  margin: auto var(--spacing-4);
+  max-width: 448px;
+  width: calc(100% - var(--spacing-8));
+}
+
+.talkhugam-room-management-dialog {
+  margin: auto var(--spacing-4);
+  max-width: 448px;
+  width: calc(100% - var(--spacing-8));
+}
+
+.talkhugam-social-login-button {
+  --talkhugam-social-login-icon-size: 20px;
+  min-height: var(--spacing-12);
+  width: 100%;
+}
+
+.talkhugam-login-page {
+  min-height: 100dvh;
+}
+
+.talkhugam-login-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+  margin-inline: auto;
+  max-width: 448px;
+  width: 100%;
+}
+
+.talkhugam-bottom-sheet {
+  background: var(--color-surface) !important;
+  color: var(--color-ink);
+  max-height: calc(100dvh - var(--spacing-4));
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.talkhugam-bottom-sheet .seed-menu-sheet__title {
+  color: var(--color-ink) !important;
+}
+
+.talkhugam-bottom-sheet::-webkit-scrollbar {
+  display: none;
+}
+
+.talkhugam-bottom-sheet[data-drawer]::after {
+  display: none;
+}
+
+.talkhugam-bottom-navigation-snackbar {
+  --snackbar-region-offset: var(--app-bottom-navigation-height);
+}
+
+.talkhugam-social-login-button__content {
+  align-items: center;
+  display: grid;
+  gap: var(--spacing-3);
+  grid-template-columns: var(--talkhugam-social-login-icon-size) 1fr;
+  margin-inline: auto;
+  text-align: left;
+  width: 208px;
+}
+
+.talkhugam-social-login-button__icon {
+  align-items: center;
+  display: flex;
+  height: var(--talkhugam-social-login-icon-size);
+  justify-content: center;
+  width: var(--talkhugam-social-login-icon-size);
+}
+
+.talkhugam-social-login-button__icon svg {
+  display: block;
+  height: var(--talkhugam-social-login-icon-size);
+  width: var(--talkhugam-social-login-icon-size);
+}
+
+.talkhugam-social-login-button--kakao {
+  background: #fee500 !important;
+  color: #191919 !important;
+}
+
+.talkhugam-social-login-button--naver {
+  background: #03c75a !important;
+  color: #191919 !important;
+}
+
+.talkhugam-social-login-button--google {
+  background: white !important;
+  border: 1px solid #747775;
+  color: #191919 !important;
+}
+
+.talkhugam-social-login-button--kakao:is(:hover, :active, [data-loading]) {
+  background: #fee500 !important;
+}
+
+.talkhugam-social-login-button--naver:is(:hover, :active, [data-loading]) {
+  background: #03c75a !important;
+}
+
+.talkhugam-social-login-button--google:is(:hover, :active, [data-loading]) {
+  background: #f8f8f8 !important;
 }
 
 @layer base {
   :root {
-    --app-bottom-navigation-height: calc(var(--spacing-16) + var(--spacing-8));
+    --app-bottom-navigation-height: calc(var(--spacing-12) + var(--spacing-6));
     color: var(--color-ink);
     background: var(--color-surface);
     font-family:
@@ -41,10 +298,23 @@
   }
 
   body {
-    background: var(--color-surface-muted);
+    background: var(--color-surface);
     min-width: 320px;
     min-height: 100vh;
     margin: 0;
+    scrollbar-width: none;
+  }
+
+  body::-webkit-scrollbar {
+    display: none;
+  }
+
+  * {
+    scrollbar-width: none;
+  }
+
+  *::-webkit-scrollbar {
+    display: none;
   }
 
   button,
@@ -63,6 +333,90 @@
   }
 }
 
+#root {
+  background: var(--color-surface);
+  color: var(--color-ink);
+  min-height: 100vh;
+}
+
+.bg-surface,
+.app-page .bg-surface {
+  background-color: var(--color-surface) !important;
+}
+
+.\!bg-surface,
+.app-page .\!bg-surface {
+  background-color: var(--color-surface) !important;
+}
+
+.bg-white,
+.app-page .bg-white {
+  background-color: var(--color-surface-raised) !important;
+}
+
+.\!bg-white,
+.app-page .\!bg-white {
+  background-color: var(--color-surface-raised) !important;
+}
+
+.text-black,
+.text-ink,
+.text-surface,
+.app-page .text-black,
+.app-page .text-ink,
+.app-page .text-surface {
+  color: var(--color-ink) !important;
+}
+
+.\!text-black,
+.\!text-ink,
+.\!text-surface,
+.app-page .\!text-black,
+.app-page .\!text-ink,
+.app-page .\!text-surface {
+  color: var(--color-ink) !important;
+}
+
+.app-page .text-white,
+.app-page .text-surface,
+.app-page .bg-ink :is(.text-ink, .text-surface) {
+  color: var(--color-ink) !important;
+}
+
+.app-page .bg-ink {
+  background-color: var(--color-surface) !important;
+}
+
+.app-page
+  .seed-action-button:not(
+    .talkhugam-primary-action,
+    .talkhugam-foundation-action--outline,
+    .talkhugam-foundation-toggle,
+    .talkhugam-video-filter-toggle,
+    .talkhugam-action-sheet-choice,
+    .talkhugam-social-login-button,
+    .text-danger
+  ) {
+  background-color: var(--color-surface-raised) !important;
+  color: var(--color-ink) !important;
+}
+
+.app-page .text-red-600 {
+  color: #ff6b6b !important;
+}
+
+.app-page .text-danger {
+  color: var(--color-danger) !important;
+}
+
+.app-page .border-danger {
+  border-color: var(--color-danger) !important;
+}
+
+.app-page :is(.border-white\/15, .border-white\/40, .border-ink\/10, .border-ink\/15) {
+  border-color: var(--color-border) !important;
+}
+
 .app-page {
   margin-inline: auto;
   max-width: 640px;
@@ -76,15 +430,30 @@
 }
 
 .talkhugam-feedback-launcher {
-  bottom: calc(var(--app-bottom-navigation-height) + var(--spacing-4));
-  right: var(--spacing-4);
+  --seed-icon-size: 28px;
+
+  bottom: calc(var(--app-bottom-navigation-height) + var(--spacing-4)) !important;
+  height: var(--spacing-12) !important;
+  left: auto !important;
+  position: fixed !important;
+  right: max(var(--spacing-4), calc(50% - 304px)) !important;
+  width: var(--spacing-12) !important;
 }
 
-@media (min-width: 640px) {
-  .talkhugam-feedback-launcher {
-    left: calc(50% + 256px);
-    right: auto;
-  }
+.talkhugam-feedback-launcher svg {
+  height: 28px !important;
+  stroke-width: 2.1;
+  width: 28px !important;
+}
+
+.talkhugam-feedback-launcher__icon {
+  transform: scale(1.75);
+  transform-origin: center;
+}
+
+body:has([role='dialog']) .talkhugam-feedback-launcher {
+  pointer-events: none;
+  visibility: hidden;
 }
 
 .app-bottom-navigation {
@@ -101,6 +470,43 @@
   z-index: 20;
 }
 
+.app-bottom-navigation:is([aria-hidden='true'], [data-aria-hidden='true']) {
+  pointer-events: none;
+}
+
+.app-bottom-navigation__items {
+  align-items: center;
+  display: grid;
+  height: 100%;
+  position: relative;
+  z-index: 10;
+}
+
+.app-bottom-navigation__items[data-item-count='2'] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.app-bottom-navigation__items[data-item-count='3'] {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.app-bottom-navigation__items[data-item-count='4'] {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.app-bottom-navigation__item {
+  justify-self: center;
+}
+
+.talkhugam-bottom-navigation-action {
+  background: var(--color-action);
+  color: var(--color-action-text);
+}
+
+.talkhugam-bottom-navigation-action:is(:hover, :active) {
+  background: color-mix(in srgb, var(--color-action) 86%, white);
+}
+
 .talkhugam-action-book {
   bottom: calc(var(--bottom-navigation-height) + var(--spacing-6));
   left: 50%;
@@ -111,7 +517,7 @@
 }
 
 .talkhugam-action-backdrop {
-  background: rgb(39 35 32 / 15%);
+  background: rgb(17 17 17 / 20%);
   border: 0;
   bottom: var(--bottom-navigation-height);
   left: 50%;
@@ -125,7 +531,7 @@
 }
 
 .talkhugam-action-book__pages {
-  filter: drop-shadow(0 12px 24px rgb(39 35 32 / 18%));
+  filter: drop-shadow(0 12px 24px rgb(17 17 17 / 14%));
   position: relative;
   transform-style: preserve-3d;
 }
@@ -307,7 +713,7 @@
 .talkhugam-book-loader__page {
   animation: talkhugam-book-page-turn 2.2s ease-in-out infinite;
   background: var(--color-surface);
-  border: 3.5px solid var(--color-primary);
+  border: 3.5px solid var(--color-brand);
   border-left: 0;
   border-radius: 0 6px 6px 0;
   box-sizing: border-box;
@@ -323,7 +729,7 @@
 .talkhugam-book-loader__bubble {
   animation: talkhugam-bubble-float 1.7s ease-in-out infinite;
   background: var(--color-surface);
-  border: 3px solid var(--color-primary);
+  border: 3px solid var(--color-brand);
   border-radius: 6px;
   box-sizing: border-box;
   position: relative;
@@ -331,8 +737,8 @@
 
 .talkhugam-book-loader__bubble::after {
   background: var(--color-surface);
-  border-bottom: 3px solid var(--color-primary);
-  border-right: 3px solid var(--color-primary);
+  border-bottom: 3px solid var(--color-brand);
+  border-right: 3px solid var(--color-brand);
   bottom: -6px;
   content: '';
   height: 8px;
@@ -352,13 +758,13 @@
 
 .talkhugam-book-loader__bubble--right {
   animation-delay: 0.4s;
-  border-color: #ffb59c;
+  border-color: var(--color-brand-soft);
   height: 16px;
   width: 22px;
 }
 
 .talkhugam-book-loader__bubble--right::after {
-  border-color: #ffb59c;
+  border-color: var(--color-brand-soft);
   right: 6px;
 }
 
@@ -372,7 +778,7 @@
 
 .talkhugam-book-loader__cover {
   background: var(--color-surface);
-  border: 3.5px solid var(--color-primary);
+  border: 3.5px solid var(--color-brand);
   box-sizing: border-box;
   height: 64px;
   position: absolute;
@@ -393,7 +799,7 @@
 }
 
 .talkhugam-book-loader__spine {
-  background: var(--color-primary);
+  background: var(--color-brand);
   height: 64px;
   left: 44.5px;
   position: absolute;
@@ -411,9 +817,9 @@
 .talkhugam-brand-spinner {
   --brand-spinner-size: var(--spacing-8);
   animation: talkhugam-brand-spinner-rotate 720ms linear infinite;
-  border: 2px solid color-mix(in srgb, var(--color-primary) 24%, transparent);
+  border: 2px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
   border-radius: 9999px;
-  border-top-color: var(--color-primary);
+  border-top-color: var(--color-brand);
   box-sizing: border-box;
   height: var(--brand-spinner-size);
   width: var(--brand-spinner-size);

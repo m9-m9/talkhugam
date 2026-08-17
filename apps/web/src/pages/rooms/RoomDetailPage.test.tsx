@@ -75,6 +75,9 @@ describe('RoomDetailPage', () => {
 
     const bookCard = (await screen.findByText('미움받을 용기')).closest('button')
     if (!bookCard) throw new Error('책 대화 카드 버튼을 찾을 수 없어요.')
+    expect(bookCard).toHaveClass('!justify-start')
+    expect(bookCard).toHaveClass('talkhugam-information-surface')
+    expect(bookCard).not.toHaveClass('!bg-white')
     fireEvent.click(bookCard)
 
     expect(await screen.findByText('책 대화 화면')).toBeInTheDocument()
@@ -96,6 +99,19 @@ describe('RoomDetailPage', () => {
     renderRoomDetailPage('/rooms/room-1')
 
     expect(await screen.findByText('완독')).toBeInTheDocument()
+  })
+
+  it('uses a white information surface when the room has no books yet', async () => {
+    getReadingRoom.mockResolvedValue({ description: null, id: 'room-1', name: '금요일 아침 모임' })
+    getBookChats.mockResolvedValue([])
+
+    renderRoomDetailPage('/rooms/room-1')
+
+    expect(
+      (await screen.findByText('아직 함께 읽는 책이 없어요')).closest(
+        '.talkhugam-information-surface',
+      ),
+    ).not.toBeNull()
   })
 
   it('shows my personal reading progress in the room book list before completion', async () => {

@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 
-import { BrandSymbol } from './BrandSymbol'
-
 /** 앱 하단 이동 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 export function AppBottomNavigation() {
   const location = useLocation()
@@ -13,6 +11,10 @@ export function AppBottomNavigation() {
   const [isActionBookOpen, setIsActionBookOpen] = useState(false)
   const isRoomsActive = location.pathname.startsWith('/rooms')
   const isProfileActive = location.pathname.startsWith('/profile')
+  const navigationItems = [
+    { isActive: isRoomsActive, label: '책방', pathname: '/rooms' },
+    { isActive: isProfileActive, label: '내 정보', pathname: '/profile' },
+  ]
 
   useEffect(() => {
     if (!isActionBookOpen) return
@@ -85,7 +87,10 @@ export function AppBottomNavigation() {
   }
 
   return (
-    <nav aria-label="주요 메뉴" className="app-bottom-navigation bg-surface border-ink/10 border-t">
+    <nav
+      aria-label="주요 메뉴"
+      className="app-bottom-navigation app-bottom-navigation--compact border-border bg-surface border-t"
+    >
       {isActionBookOpen ? (
         <button
           aria-label="메뉴 바깥 영역을 눌러 닫기"
@@ -115,13 +120,13 @@ export function AppBottomNavigation() {
               <path
                 d="M7 7C31 1 75 1 100 7V94C75 88 26 88 1 94V13Q1 7 7 7Z"
                 fill="var(--color-surface)"
-                stroke="var(--color-primary)"
+                stroke="var(--color-border)"
                 vectorEffect="non-scaling-stroke"
               />
               <path
                 d="M100 7C125 1 169 1 193 7Q199 7 199 13V94C174 88 125 88 100 94V7Z"
                 fill="var(--color-surface)"
-                stroke="var(--color-primary)"
+                stroke="var(--color-border)"
                 vectorEffect="non-scaling-stroke"
               />
             </svg>
@@ -132,9 +137,9 @@ export function AppBottomNavigation() {
               ref={firstActionButtonRef}
               type="button"
             >
-              <span className="text-primary text-sm font-bold">새로운 이야기</span>
+              <span className="text-ink-subtle text-sm font-medium">새로운 이야기</span>
               <span>
-                <span className="text-ink block text-base font-bold whitespace-nowrap">
+                <span className="text-ink block text-base font-semibold whitespace-nowrap">
                   새 책방 만들기
                 </span>
                 <span className="text-ink-subtle mt-1 block text-xs">
@@ -148,9 +153,9 @@ export function AppBottomNavigation() {
               onClick={handleJoinRoom}
               type="button"
             >
-              <span className="text-primary text-sm font-bold">함께 읽기</span>
+              <span className="text-ink-subtle text-sm font-medium">함께 읽기</span>
               <span>
-                <span className="text-ink block text-base font-bold whitespace-nowrap">
+                <span className="text-ink block text-base font-semibold whitespace-nowrap">
                   초대 코드로 참여
                 </span>
                 <span className="text-ink-subtle mt-1 block text-xs">
@@ -161,52 +166,43 @@ export function AppBottomNavigation() {
           </div>
         </section>
       ) : null}
-      <div className="relative z-10 grid h-full grid-cols-3 items-end px-4 pb-4">
+      <div className="app-bottom-navigation__items" data-item-count={navigationItems.length}>
+        {navigationItems.map((navigationItem) => (
+          <button
+            aria-current={navigationItem.isActive ? 'page' : undefined}
+            className={`app-bottom-navigation__item min-h-11 px-0 text-sm font-medium ${
+              navigationItem.isActive ? 'text-ink' : 'text-ink-subtle'
+            }`}
+            key={navigationItem.pathname}
+            onClick={() => void navigate(navigationItem.pathname)}
+            type="button"
+          >
+            {navigationItem.label}
+          </button>
+        ))}
+      </div>
+      <div className="absolute top-0 left-1/2 z-20 -translate-x-1/2 -translate-y-1/2">
         <button
-          aria-current={isRoomsActive ? 'page' : undefined}
-          className={`min-h-11 text-sm font-medium ${isRoomsActive ? 'text-primary' : 'text-ink-subtle'}`}
-          onClick={() => void navigate('/rooms')}
+          aria-expanded={isActionBookOpen}
+          aria-label={isActionBookOpen ? '책방 시작 메뉴 닫기' : '책방 시작 메뉴 열기'}
+          className="talkhugam-bottom-navigation-action flex size-16 items-center justify-center rounded-full shadow-lg"
+          onClick={handleToggleActionBook}
+          ref={actionMenuButtonRef}
           type="button"
         >
-          책방
-        </button>
-        <button
-          aria-label="Talk후감 메인으로"
-          className="flex min-h-11 items-center justify-center"
-          onClick={() => void navigate('/rooms')}
-          type="button"
-        >
-          <BrandSymbol alt="" className="size-12" tone="coral" />
-        </button>
-        <button
-          aria-current={isProfileActive ? 'page' : undefined}
-          className={`min-h-11 text-sm font-medium ${isProfileActive ? 'text-primary' : 'text-ink-subtle'}`}
-          onClick={() => void navigate('/profile')}
-          type="button"
-        >
-          내 정보
+          <svg aria-hidden="true" className="size-8" fill="none" viewBox="0 0 24 24">
+            <path
+              className={`origin-center transition-transform duration-300 ${
+                isActionBookOpen ? 'rotate-45' : ''
+              }`}
+              d="M12 5v14M5 12h14"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeWidth="2.8"
+            />
+          </svg>
         </button>
       </div>
-      <button
-        aria-expanded={isActionBookOpen}
-        aria-label={isActionBookOpen ? '책방 시작 메뉴 닫기' : '책방 시작 메뉴 열기'}
-        className="bg-primary text-ink absolute top-0 left-1/2 z-20 flex size-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full shadow-lg"
-        onClick={handleToggleActionBook}
-        ref={actionMenuButtonRef}
-        type="button"
-      >
-        <svg aria-hidden="true" className="size-8" fill="none" viewBox="0 0 24 24">
-          <path
-            className={`origin-center transition-transform duration-300 ${
-              isActionBookOpen ? 'rotate-45' : ''
-            }`}
-            d="M12 5v14M5 12h14"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeWidth="2.8"
-          />
-        </svg>
-      </button>
     </nav>
   )
 }

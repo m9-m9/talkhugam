@@ -13,7 +13,7 @@ export function InviteShareSheet({
     <BottomSheet onClose={onClose} title="책방 초대하기">
       <p className="text-ink-subtle mt-2 text-sm">친구에게 초대 링크와 코드를 보내 보세요.</p>
       {inviteCode ? (
-        <div className="bg-surface-muted mt-4 rounded-md px-4 py-3">
+        <div className="talkhugam-information-surface border-border mt-4 rounded-md border px-4 py-3">
           <p className="text-ink-subtle text-xs">초대 코드</p>
           <p className="text-ink mt-1 text-lg font-bold tracking-[0.16em]">{inviteCode}</p>
         </div>

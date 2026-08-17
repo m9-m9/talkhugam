@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
+import { ActionButton, TextField } from '@seed-design/react'
+
 import { bookChatKeys, getMyReadingBooks, type ReadingBook } from '../../entities/book-chat'
 import {
   bookCompletionKeys,
@@ -29,7 +31,8 @@ import { AppHeader } from '../../shared/ui/AppHeader'
 import { BookCover } from '../../shared/ui/BookCover'
 import { BottomSheet } from '../../shared/ui/BottomSheet'
 import { CompletionMark } from '../../shared/ui/CompletionMark'
-import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { FormField } from '../../shared/ui/FormField'
+import { BookLoadingIndicator } from '../../shared/ui/LoadingSpinner'
 import { RetryState } from '../../shared/ui/RetryState'
 
 type CompletionRecordSheetProps = {
@@ -170,7 +173,7 @@ export function MyReadingBooksPage() {
 
       {isLoading ? (
         <div className="mt-12">
-          <LoadingSpinner label="읽고 있는 책을 불러오고 있어요." size="sm" variant="book" />
+          <BookLoadingIndicator label="읽고 있는 책을 불러오고 있어요." size="sm" />
         </div>
       ) : null}
       {hasError ? (
@@ -267,48 +270,51 @@ function ReadingProgressSheet({
     <BottomSheet onClose={onClose} title="독서 진행률 기록">
       <p className="text-ink text-sm font-semibold">{selectedBook.title}</p>
       <p className="text-ink-subtle mt-2 text-sm">전체 페이지는 처음 기록할 때 직접 입력해요.</p>
-      <label className="text-ink mt-4 block text-sm font-medium" htmlFor="current-reading-page">
-        현재 읽은 페이지
-      </label>
-      <input
-        className="border-ink/10 focus:border-primary mt-2 min-h-11 w-full rounded-md border px-3 text-sm outline-none"
-        id="current-reading-page"
-        inputMode="numeric"
-        min="0"
-        onChange={(event) => setCurrentPage(event.target.value)}
-        type="number"
-        value={currentPage}
-      />
-      <label className="text-ink mt-4 block text-sm font-medium" htmlFor="total-reading-pages">
-        전체 페이지
-      </label>
-      <input
-        className="border-ink/10 focus:border-primary mt-2 min-h-11 w-full rounded-md border px-3 text-sm outline-none"
-        id="total-reading-pages"
-        inputMode="numeric"
-        min="1"
-        onChange={(event) => setTotalPages(event.target.value)}
-        type="number"
-        value={totalPages}
-      />
-      {errorMessage ? <p className="text-danger mt-3 text-sm">{errorMessage}</p> : null}
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        <button
-          className="border-ink/10 text-ink min-h-11 cursor-pointer rounded-md border px-3 text-sm font-semibold"
-          disabled={isSaving}
-          onClick={onClose}
-          type="button"
+      <div className="mt-4 space-y-4">
+        <FormField
+          errorMessage={errorMessage || undefined}
+          label="현재 읽은 페이지"
+          name="current-reading-page"
         >
+          <TextField.Root invalid={Boolean(errorMessage)}>
+            <TextField.Input
+              aria-invalid={Boolean(errorMessage)}
+              id="current-reading-page"
+              inputMode="numeric"
+              min="0"
+              onChange={(event) => setCurrentPage(event.target.value)}
+              type="number"
+              value={currentPage}
+            />
+          </TextField.Root>
+        </FormField>
+        <FormField label="전체 페이지" name="total-reading-pages">
+          <TextField.Root invalid={Boolean(errorMessage)}>
+            <TextField.Input
+              aria-invalid={Boolean(errorMessage)}
+              id="total-reading-pages"
+              inputMode="numeric"
+              min="1"
+              onChange={(event) => setTotalPages(event.target.value)}
+              type="number"
+              value={totalPages}
+            />
+          </TextField.Root>
+        </FormField>
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        <ActionButton disabled={isSaving} onClick={onClose} variant="neutralOutline" type="button">
           취소
-        </button>
-        <button
-          className="bg-primary min-h-11 cursor-pointer rounded-md px-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+        </ActionButton>
+        <ActionButton
+          className="talkhugam-primary-action"
           disabled={isSaving}
+          loading={isSaving}
           onClick={handleSubmit}
           type="button"
         >
           진행률 저장
-        </button>
+        </ActionButton>
       </div>
     </BottomSheet>
   )
@@ -352,7 +358,7 @@ function ReadingBookGroups({
   const groups = groupReadingBooksByRoom(books)
   if (groups.length === 0) {
     return (
-      <section className="bg-surface-muted mt-12 rounded-lg p-6 text-center">
+      <section className="talkhugam-information-surface border-border mt-12 rounded-lg border p-6 text-center">
         <h2 className="text-ink text-base font-bold">아직 읽고 있는 책이 없어요</h2>
         <p className="text-ink-subtle mt-2 text-sm">
           책방에서 첫 책을 골라 이야기를 시작해 보세요.
@@ -409,7 +415,7 @@ function ReadingBookCard({
   }
 
   return (
-    <article className="border-ink/10 overflow-hidden rounded-lg border bg-white">
+    <article className="talkhugam-information-surface border-border overflow-hidden rounded-lg border">
       <Link
         aria-label={`${book.title} 책 대화로 이동`}
         className="hover:bg-surface-muted flex min-h-20 items-center gap-3 p-3"
@@ -429,31 +435,33 @@ function ReadingBookCard({
         </span>
       </Link>
       {!isCompleted ? <ReadingProgressSummary progress={progress} /> : null}
-      <div className="border-ink/10 flex items-center justify-between gap-3 border-t px-3 py-2">
+      <div className="border-border flex items-center justify-between gap-3 border-t px-3 py-2">
         <span className="text-ink-subtle text-xs">
           {isCompleted ? '완독 기록을 남겼어요.' : '별점과 총평을 남길 수 있어요.'}
         </span>
         <div className="flex shrink-0 gap-2">
           {!isCompleted ? (
-            <button
+            <ActionButton
               aria-label={`${book.title} 진행률 기록하기`}
-              className="border-primary text-primary min-h-11 cursor-pointer rounded-md border bg-white px-3 text-sm font-semibold"
+              className="talkhugam-foundation-action--outline"
               onClick={handleOpenProgress}
               type="button"
+              variant="neutralOutline"
             >
               진행률 기록하기
-            </button>
+            </ActionButton>
           ) : null}
-          <button
+          <ActionButton
             aria-label={`${book.title} ${actionLabel}`}
-            className={`min-h-11 cursor-pointer rounded-md px-3 text-sm font-semibold ${
-              isCompleted ? 'border-primary text-primary border bg-white' : 'bg-primary text-white'
-            }`}
+            className={
+              isCompleted ? 'talkhugam-foundation-action--outline' : 'talkhugam-primary-action'
+            }
             onClick={handleOpenCompletion}
             type="button"
+            variant={isCompleted ? 'neutralOutline' : 'brandSolid'}
           >
             {actionLabel}
-          </button>
+          </ActionButton>
         </div>
       </div>
     </article>

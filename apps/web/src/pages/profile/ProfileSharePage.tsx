@@ -1,12 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { ActionButton } from '@seed-design/react'
 
 import { getProfile } from '../../entities/profile'
 import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
-import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { BrandLoadingSpinner } from '../../shared/ui/LoadingSpinner'
 import { RetryState } from '../../shared/ui/RetryState'
 
 /** 현재 사용자의 독서 성향을 공유 가능한 카드로 미리 보여 준다. */
@@ -58,7 +59,7 @@ export function ProfileSharePage() {
 
       <section
         aria-labelledby="profile-share-card-heading"
-        className="border-primary bg-surface-muted mt-12 overflow-hidden rounded-lg border p-6"
+        className="border-ink bg-surface mt-12 overflow-hidden rounded-lg border p-6"
       >
         <p className="text-primary text-sm font-semibold">Talk후감</p>
         <h2 className="text-ink mt-8 text-2xl font-bold" id="profile-share-card-heading">
@@ -67,19 +68,20 @@ export function ProfileSharePage() {
         <p className="text-ink mt-4 text-lg font-medium">
           {profile.bio || '읽고 느낀 마음을 함께 나눠요.'}
         </p>
-        <div className="border-primary/30 mt-12 border-t pt-4">
-          <p className="text-ink-subtle text-sm">{profile.mbti || '나만의 독서 취향'}</p>
+        <div className="border-border mt-12 border-t pt-4">
           <p className="text-ink mt-1 text-sm font-semibold">함께 읽고, 함께 나누는 Talk후감</p>
         </div>
       </section>
 
-      <button
-        className="bg-primary mt-12 min-h-12 w-full rounded-md px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+      <ActionButton
+        className="talkhugam-primary-action !mt-8 w-full"
         onClick={() => void handleShare()}
+        size="large"
         type="button"
+        variant="brandSolid"
       >
         공유하기
-      </button>
+      </ActionButton>
       {feedback ? (
         <p className="text-primary mt-3 text-center text-sm" role="status">
           {feedback}
@@ -102,7 +104,7 @@ function createProfileShareData(displayName: string, bio: string | null) {
 function ProfileShareLoadingPage({ message }: { message: string }) {
   return (
     <main className="app-page bg-surface flex min-h-screen items-center justify-center px-4">
-      <LoadingSpinner label={message} />
+      <BrandLoadingSpinner label={message} />
     </main>
   )
 }
@@ -115,13 +117,15 @@ function ProfileShareErrorPage({ onBack, onRetry }: { onBack: () => void; onRetr
         message="공유 카드를 불러오지 못했어요. 잠시 후 다시 시도해 주세요."
         onRetry={onRetry}
       />
-      <button
-        className="border-ink/10 min-h-11 rounded-md border bg-white px-4 text-sm font-semibold"
+      <ActionButton
+        className="talkhugam-foundation-action--outline"
         onClick={onBack}
+        size="large"
         type="button"
+        variant="neutralOutline"
       >
         내 정보로 돌아가기
-      </button>
+      </ActionButton>
     </main>
   )
 }

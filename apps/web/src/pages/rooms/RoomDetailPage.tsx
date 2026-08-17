@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
+import { ActionButton } from '@seed-design/react'
 
 import { bookChatKeys, getBookChats, getReadingRoom } from '../../entities/book-chat'
 import { bookCompletionKeys, getMyBookChatCompletionIds } from '../../entities/book-completion'
@@ -13,7 +14,7 @@ import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { BookCover } from '../../shared/ui/BookCover'
-import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { BookLoadingIndicator } from '../../shared/ui/LoadingSpinner'
 import { RetryState } from '../../shared/ui/RetryState'
 import { CompletionMark } from '../../shared/ui/CompletionMark'
 
@@ -57,21 +58,25 @@ export function RoomDetailPage() {
       <AppHeader
         action={
           <div className="flex items-center gap-1">
-            <button
-              className="text-primary min-h-11 px-3 text-sm font-medium"
+            <ActionButton
+              className="text-primary min-h-11 px-3"
               onClick={() => void navigate(`/rooms/${roomId}/books/new`)}
+              size="small"
               type="button"
+              variant="ghost"
             >
               새 책
-            </button>
-            <button
+            </ActionButton>
+            <ActionButton
               aria-label="방 정보와 멤버 관리"
               className="text-ink min-h-11 min-w-11 px-3 text-xl"
               onClick={() => void navigate(`/rooms/${roomId}/manage`)}
+              size="small"
               type="button"
+              variant="ghost"
             >
               ⋯
-            </button>
+            </ActionButton>
           </div>
         }
         onBack={() => void navigate('/rooms')}
@@ -128,13 +133,13 @@ function BookChatsContent({
   if (isPending)
     return (
       <div className="mt-6">
-        <LoadingSpinner label="책을 불러오고 있어요." size="sm" variant="book" />
+        <BookLoadingIndicator label="책을 불러오고 있어요." size="sm" />
       </div>
     )
   if (isRetrying)
     return (
       <div className="mt-6">
-        <LoadingSpinner label="책을 다시 불러오고 있어요." size="sm" variant="book" />
+        <BookLoadingIndicator label="책을 다시 불러오고 있어요." size="sm" />
       </div>
     )
   if (isError)
@@ -149,10 +154,12 @@ function BookChatsContent({
     <ul className="mt-4 space-y-3">
       {chats.map((chat) => (
         <li key={chat.id}>
-          <button
-            className="border-ink/10 hover:border-primary flex min-h-24 w-full items-center gap-3 rounded-lg border bg-white p-4 text-left"
+          <ActionButton
+            className="talkhugam-information-surface border-border hover:!border-ink !h-auto min-h-24 w-full !justify-start gap-3 rounded-lg border p-4 text-left !whitespace-normal"
             onClick={() => void navigate(`/rooms/${roomId}/books/${chat.id}`)}
+            size="large"
             type="button"
+            variant="neutralWeak"
           >
             <BookCover alt={`${chat.title} 표지`} thumbnailUrl={chat.thumbnailUrl} />
             <span className="min-w-0">
@@ -165,7 +172,7 @@ function BookChatsContent({
                 <BookChatProgress progress={progressesByBookChatId.get(chat.id)} />
               ) : null}
             </span>
-          </button>
+          </ActionButton>
         </li>
       ))}
     </ul>
@@ -209,7 +216,7 @@ function BookChatProgress({ progress }: { progress: ReadingProgress | undefined 
 /** 빈 책 대화 목록 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function EmptyBookChats() {
   return (
-    <div className="bg-surface-muted mt-6 rounded-lg p-6 text-center">
+    <div className="talkhugam-information-surface border-ink/10 mt-6 rounded-lg border p-6 text-center">
       <p className="text-ink text-base font-medium">아직 함께 읽는 책이 없어요</p>
       <p className="text-ink-subtle mt-2 text-sm">첫 책을 골라 이야기를 시작해 보세요.</p>
     </div>
@@ -220,7 +227,7 @@ function EmptyBookChats() {
 function RoomLoadingPage() {
   return (
     <main className="bg-surface flex min-h-screen items-center justify-center px-4">
-      <LoadingSpinner label="책방을 불러오고 있어요." variant="book" />
+      <BookLoadingIndicator label="책방을 불러오고 있어요." />
     </main>
   )
 }
@@ -231,13 +238,15 @@ function RoomUnavailablePage({ onBack }: { onBack: () => void }) {
     <main className="bg-surface flex min-h-screen flex-col items-center justify-center px-4 text-center">
       <p className="text-ink text-lg font-medium">이 책방을 찾을 수 없어요</p>
       <p className="text-ink-subtle mt-2 text-sm">참여 중인 책방인지 확인해 주세요.</p>
-      <button
-        className="bg-primary mt-6 min-h-11 rounded-md px-4 text-sm font-semibold text-white"
+      <ActionButton
+        className="talkhugam-primary-action mt-6"
         onClick={onBack}
+        size="large"
         type="button"
+        variant="brandSolid"
       >
         내 책방으로
-      </button>
+      </ActionButton>
     </main>
   )
 }

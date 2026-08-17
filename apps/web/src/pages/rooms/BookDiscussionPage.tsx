@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Fragment, useEffect, useRef, useState, type RefObject } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
+import { ActionButton as SeedActionButton, TextField } from '@seed-design/react'
+
 import { bookChatKeys, getManagedBookChat, getReadingRoom } from '../../entities/book-chat'
 import {
   createPost,
@@ -24,6 +26,7 @@ import {
 import {
   createMuxThumbnailUrl,
   getVideoFilterMembers,
+  getVideoPlaybackAuthorization,
   getVideoPosts,
   getVideoThumbnailAuthorizations,
   mapVideoThumbnailAuthorizations,
@@ -64,7 +67,8 @@ import { trackAnalyticsEvent } from '../../shared/analytics'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { BottomSheet } from '../../shared/ui/BottomSheet'
 import { CompletionMark } from '../../shared/ui/CompletionMark'
-import { LoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { LazyMuxVideoPlayer } from '../../shared/ui/LazyMuxVideoPlayer'
+import { BookLoadingIndicator, BrandLoadingSpinner } from '../../shared/ui/LoadingSpinner'
 import { RetryState } from '../../shared/ui/RetryState'
 
 type LabelKind = 'page' | 'chapter'
@@ -327,14 +331,16 @@ export function BookDiscussionPage() {
     <main className="app-page bg-surface flex min-h-screen flex-col px-4 pb-6">
       <AppHeader
         action={
-          <button
+          <SeedActionButton
             aria-label="책 대화 관리"
-            className="text-ink min-h-11 min-w-11 px-3 text-xl"
+            className="text-ink min-h-11 min-w-11 text-xl"
             onClick={() => void navigate(`/rooms/${roomId}/books/${bookChatId}/manage`)}
+            size="medium"
             type="button"
+            variant="ghost"
           >
             ⋯
-          </button>
+          </SeedActionButton>
         }
         onBack={() => void navigate(`/rooms/${roomId}`)}
         title={roomQuery.data?.name ?? '책방'}
@@ -347,7 +353,7 @@ export function BookDiscussionPage() {
       </header>
       <section className="mt-8 flex-1">
         {postsQuery.isPending && videosQuery.isPending ? (
-          <LoadingSpinner label="대화를 불러오고 있어요." size="sm" />
+          <BookLoadingIndicator label="대화를 불러오고 있어요." size="sm" />
         ) : (
           <DiscussionTimeline
             allPosts={postsQuery.data ?? []}
@@ -362,9 +368,6 @@ export function BookDiscussionPage() {
             retryMessage={timelineRetryMessage}
             videos={videosQuery.data ?? []}
             isThumbnailLoading={thumbnailsQuery.isLoading}
-            onOpenVideo={(videoId) =>
-              void navigate(`/rooms/${roomId}/books/${bookChatId}/videos/${videoId}`)
-            }
             thumbnailsByPostId={thumbnailsByPostId}
           />
         )}
@@ -421,6 +424,7 @@ export function BookDiscussionPage() {
           onOpenEditor={handleOpenCompletionEditor}
           onRemove={handleRemoveCompletion}
           onSave={handleSaveCompletion}
+          returnFocusRef={completionTriggerRef}
         />
       ) : null}
       {createdInvite !== null && isInviteShareSheetOpen ? (
@@ -449,7 +453,6 @@ function DiscussionTimeline({
   hasVideoError,
   isRetrying,
   isThumbnailLoading,
-  onOpenVideo,
   onReply,
   onRetry,
   posts,
@@ -464,7 +467,6 @@ function DiscussionTimeline({
   hasVideoError: boolean
   isRetrying: boolean
   isThumbnailLoading: boolean
-  onOpenVideo: (videoId: string) => void
   onReply: (id: string) => void
   onRetry: () => void
   posts: DiscussionPost[]
@@ -472,13 +474,44 @@ function DiscussionTimeline({
   thumbnailsByPostId: ReadonlyMap<string, VideoThumbnailAuthorization>
   videos: VideoPost[]
 }) {
+  const [activeTab, setActiveTab] = useState<'reviews' | 'videos'>('reviews')
   const errorMessage =
     getDiscussionTimelineErrorMessage(hasPostError, hasVideoError) ?? retryMessage
   const isShowingLoadingFeedback = hasPendingQuery || isRetrying
   const loadingLabel = isRetrying ? '대화를 다시 불러오고 있어요.' : '대화를 불러오고 있어요.'
+  const visiblePosts = activeTab === 'reviews' ? posts : []
+  const visibleVideos = activeTab === 'videos' ? videos : []
 
   return (
     <div className="space-y-4">
+      <div
+        aria-label="대화 종류"
+        className="border-border grid grid-cols-2 overflow-hidden rounded-md border"
+        role="tablist"
+      >
+        <button
+          aria-selected={activeTab === 'reviews'}
+          className={`min-h-11 text-sm font-semibold ${
+            activeTab === 'reviews' ? 'bg-action text-action-text' : 'bg-surface text-ink-subtle'
+          }`}
+          onClick={() => setActiveTab('reviews')}
+          role="tab"
+          type="button"
+        >
+          책갈피
+        </button>
+        <button
+          aria-selected={activeTab === 'videos'}
+          className={`border-border min-h-11 border-l text-sm font-semibold ${
+            activeTab === 'videos' ? 'bg-action text-action-text' : 'bg-surface text-ink-subtle'
+          }`}
+          onClick={() => setActiveTab('videos')}
+          role="tab"
+          type="button"
+        >
+          영상
+        </button>
+      </div>
       {errorMessage ? (
         <RetryState isRetrying={isRetrying} message={errorMessage} onRetry={onRetry} />
       ) : null}
@@ -487,13 +520,12 @@ function DiscussionTimeline({
         currentMemberId={currentMemberId}
         onReply={onReply}
         isThumbnailLoading={isThumbnailLoading}
-        onOpenVideo={onOpenVideo}
-        posts={posts}
+        posts={visiblePosts}
         showEmptyState={!errorMessage && !hasPendingQuery}
-        videos={videos}
+        videos={visibleVideos}
         thumbnailsByPostId={thumbnailsByPostId}
       />
-      {isShowingLoadingFeedback ? <LoadingSpinner label={loadingLabel} size="xs" /> : null}
+      {isShowingLoadingFeedback ? <BrandLoadingSpinner label={loadingLabel} size="xs" /> : null}
     </div>
   )
 }
@@ -522,6 +554,7 @@ function CompletionSheet({
   onOpenEditor,
   onRemove,
   onSave,
+  returnFocusRef,
 }: {
   bookChatId: string
   completions: BookChatCompletion[]
@@ -534,13 +567,12 @@ function CompletionSheet({
   onOpenEditor: () => void
   onRemove: () => void
   onSave: (input: BookCompletionInput) => void
+  returnFocusRef: RefObject<HTMLElement | null>
 }) {
   const ownCompletion = completions.find((completion) => completion.isMe)
   return (
-    <BottomSheet onClose={onClose} title="완독 기록">
-      {isLoading ? (
-        <LoadingSpinner label="완독 현황을 불러오고 있어요." size="xs" variant="book" />
-      ) : null}
+    <BottomSheet onClose={onClose} returnFocusRef={returnFocusRef} title="완독 기록">
+      {isLoading ? <BookLoadingIndicator label="완독 현황을 불러오고 있어요." size="xs" /> : null}
       {!isLoading ? (
         <>
           {isEditorOpen ? (
@@ -618,23 +650,27 @@ function CompletionSummary({
       <p className="text-ink text-sm font-semibold">함께 읽은 기록 · {completionCount}명 완독</p>
       <div className="mt-3 flex items-center gap-2">
         {hasOwnCompletion ? <CompletionMark label="내 완독" /> : null}
-        <button
-          className="bg-primary min-h-11 cursor-pointer rounded-md px-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+        <SeedActionButton
+          className="talkhugam-primary-action"
           disabled={isSaving}
           onClick={onOpenEditor}
+          size="medium"
           type="button"
+          variant="brandSolid"
         >
           {hasOwnCompletion ? '완독 기록 수정' : '완독하기'}
-        </button>
+        </SeedActionButton>
         {hasOwnCompletion ? (
-          <button
-            className="border-primary text-primary min-h-11 cursor-pointer rounded-md border px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40"
+          <SeedActionButton
+            className="talkhugam-foundation-action--outline"
             disabled={isSaving}
             onClick={onRemove}
+            size="medium"
             type="button"
+            variant="neutralOutline"
           >
             완독 취소
-          </button>
+          </SeedActionButton>
         ) : null}
       </div>
     </div>
@@ -691,10 +727,10 @@ function ChatComposer({
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const messageInputRef = useRef<HTMLTextAreaElement>(null)
-  const actionMenuRef = useRef<HTMLDivElement>(null)
   const actionMenuButtonRef = useRef<HTMLButtonElement>(null)
   const firstActionButtonRef = useRef<HTMLButtonElement>(null)
   const mentionMenuRef = useRef<HTMLDivElement>(null)
+  const shouldRestoreActionTrayFocusRef = useRef(true)
   const [isActionTrayOpen, setIsActionTrayOpen] = useState(false)
   const [labelKind, setLabelKind] = useState<LabelKind | null>(null)
   const [isMentionMenuDismissed, setIsMentionMenuDismissed] = useState(false)
@@ -712,8 +748,8 @@ function ChatComposer({
     const nextLabel = createDraftLabel(labelKind, labelDrafts[labelKind])
     if (!nextLabel) return
     onChangeLabels([...labels, nextLabel])
-    handleCloseActionTray()
-    messageInputRef.current?.focus()
+    handleCloseActionTray(false)
+    window.setTimeout(() => messageInputRef.current?.focus(), 250)
   }
 
   /** 라벨 입력창에서 Enter를 누르면 현재 라벨을 추가한다. */
@@ -748,7 +784,8 @@ function ChatComposer({
   }
 
   /** 라벨 임시 입력을 비우고 메시지 추가 메뉴를 닫는다. */
-  function handleCloseActionTray() {
+  function handleCloseActionTray(shouldRestoreFocus = true) {
+    shouldRestoreActionTrayFocusRef.current = shouldRestoreFocus
     setIsActionTrayOpen(false)
     setLabelKind(null)
     setLabelDrafts({ chapter: '', page: '' })
@@ -760,6 +797,7 @@ function ChatComposer({
       handleCloseActionTray()
       return
     }
+    shouldRestoreActionTrayFocusRef.current = true
     setIsActionTrayOpen(true)
   }
 
@@ -771,10 +809,6 @@ function ChatComposer({
       const isMessageInputTarget = messageInputRef.current?.contains(event.target)
       if (shouldShowMentionMenu && !isMentionMenuTarget && !isMessageInputTarget)
         setIsMentionMenuDismissed(true)
-      if (!isActionTrayOpen) return
-      if (actionMenuRef.current?.contains(event.target)) return
-      if (actionMenuButtonRef.current?.contains(event.target)) return
-      handleCloseActionTray()
     }
 
     /** Escape 키 요청이나 사용자 동작을 처리한다. */
@@ -785,9 +819,6 @@ function ChatComposer({
         messageInputRef.current?.focus()
         return
       }
-      if (!isActionTrayOpen) return
-      handleCloseActionTray()
-      actionMenuButtonRef.current?.focus()
     }
 
     document.addEventListener('pointerdown', handleOutsidePointerDown)
@@ -796,161 +827,173 @@ function ChatComposer({
       document.removeEventListener('pointerdown', handleOutsidePointerDown)
       window.removeEventListener('keydown', handleEscape)
     }
-  }, [isActionTrayOpen, shouldShowMentionMenu])
+  }, [shouldShowMentionMenu])
 
   return (
     <section className="border-ink/10 relative mt-6 border-t pt-4">
       {isReplying ? (
         <div className="mb-3 flex items-center justify-between gap-3">
           <p className="text-ink-subtle text-xs">답글 남기기</p>
-          <button
-            className="text-primary min-h-11 px-2 text-xs"
-            onClick={onCancelReply}
-            type="button"
-          >
+          <SeedActionButton onClick={onCancelReply} size="small" type="button" variant="ghost">
             취소
-          </button>
+          </SeedActionButton>
         </div>
       ) : null}
       {labels.length > 0 ? (
         <ul className="mb-3 flex flex-wrap gap-2" aria-label="선택한 라벨">
           {labels.map((label, index) => (
             <li
-              className="bg-primary/10 text-primary flex min-h-8 items-center gap-1 rounded-md px-2 text-xs"
+              className="border-border text-ink-subtle flex min-h-8 items-center gap-1 rounded-md border bg-white px-2 text-xs"
               key={`${label.kind}-${label.value}`}
             >
               {formatLabel(label)}
-              <button
+              <SeedActionButton
                 aria-label={`${formatLabel(label)} 삭제`}
                 className="min-h-6 min-w-6"
                 onClick={() => handleRemoveLabel(index)}
+                size="small"
                 type="button"
+                variant="ghost"
               >
                 ×
-              </button>
+              </SeedActionButton>
             </li>
           ))}
         </ul>
       ) : null}
       {isActionTrayOpen ? (
-        <div
-          aria-labelledby="chat-action-menu-title"
-          className="talkhugam-chat-action-menu border-ink/10 rounded-lg border bg-white p-3 shadow-lg"
-          ref={actionMenuRef}
-          role="dialog"
+        <BottomSheet
+          onClose={handleCloseActionTray}
+          returnFocusRef={actionMenuButtonRef}
+          shouldRestoreFocus={() => shouldRestoreActionTrayFocusRef.current}
+          title={
+            labelKind === 'page'
+              ? '페이지 라벨'
+              : labelKind === 'chapter'
+                ? '챕터 라벨'
+                : '메시지 추가'
+          }
         >
           {labelKind ? (
-            <div>
+            <div className="space-y-3">
               <div className="mb-2 flex min-h-11 items-center gap-2">
-                <button
+                <SeedActionButton
                   aria-label="라벨 종류 선택으로 돌아가기"
-                  className="text-ink hover:bg-surface-muted flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-md"
                   onClick={handleReturnToLabelSelection}
                   type="button"
+                  variant="ghost"
                 >
-                  <svg aria-hidden="true" className="size-5" fill="none" viewBox="0 0 24 24">
-                    <path
-                      d="m14.5 5-7 7 7 7"
-                      stroke="currentColor"
-                      strokeLinecap="round"
-                      strokeWidth="1.8"
-                    />
-                  </svg>
-                </button>
-                <h2 className="text-ink text-sm font-semibold" id="chat-action-menu-title">
-                  {labelKind === 'page' ? '페이지 라벨' : '챕터 라벨'}
-                </h2>
+                  이전
+                </SeedActionButton>
               </div>
               <div className="flex items-center gap-2">
                 <label className="sr-only" htmlFor="post-label-value">
                   {labelKind === 'page' ? '페이지 번호' : '챕터 이름 또는 번호'}
                 </label>
-                <input
-                  autoFocus
-                  className="border-ink/10 focus:border-primary min-h-11 min-w-0 flex-1 rounded-md border px-3 text-sm outline-none"
-                  id="post-label-value"
-                  onChange={(event) =>
-                    setLabelDrafts((drafts) => ({
-                      ...drafts,
-                      [labelKind]: event.target.value,
-                    }))
-                  }
-                  onKeyDown={handleLabelInputKeyDown}
-                  placeholder={labelKind === 'page' ? '예: 87' : '예: 3장 또는 고독'}
-                  value={labelDrafts[labelKind]}
-                />
-                <button
+                <TextField.Root className="talkhugam-information-field min-w-0 flex-1">
+                  <TextField.Input
+                    autoFocus
+                    aria-label={labelKind === 'page' ? '페이지 번호' : '챕터 이름 또는 번호'}
+                    id="post-label-value"
+                    onChange={(event) =>
+                      setLabelDrafts((drafts) => ({
+                        ...drafts,
+                        [labelKind]: event.target.value,
+                      }))
+                    }
+                    onKeyDown={handleLabelInputKeyDown}
+                    placeholder={labelKind === 'page' ? '예: 87' : '예: 3장 또는 고독'}
+                    value={labelDrafts[labelKind]}
+                  />
+                </TextField.Root>
+                <SeedActionButton
                   aria-label="라벨 추가"
-                  className="bg-primary text-ink min-h-11 cursor-pointer rounded-md px-3 text-sm font-medium"
+                  className="talkhugam-primary-action"
                   onClick={handleAddLabel}
                   type="button"
                 >
                   추가
-                </button>
+                </SeedActionButton>
               </div>
             </div>
           ) : (
-            <>
-              <h2 className="sr-only" id="chat-action-menu-title">
-                메시지 추가 메뉴
-              </h2>
-              <div className="grid grid-cols-2 gap-2">
-                <ActionButton
-                  buttonRef={firstActionButtonRef}
-                  disabled={isReplying}
-                  label="페이지 라벨"
-                  onClick={() => setLabelKind('page')}
-                />
-                <ActionButton
-                  disabled={isReplying}
-                  label="챕터 라벨"
-                  onClick={() => setLabelKind('chapter')}
-                />
-                <ActionButton
-                  label="영상 올리기"
+            <div className="grid grid-cols-2 gap-2">
+              <SeedActionButton
+                className="talkhugam-action-sheet-choice"
+                disabled={isReplying}
+                onClick={() => setLabelKind('page')}
+                ref={firstActionButtonRef}
+                variant="neutralWeak"
+              >
+                페이지 라벨
+              </SeedActionButton>
+              <SeedActionButton
+                className="talkhugam-action-sheet-choice"
+                disabled={isReplying}
+                onClick={() => setLabelKind('chapter')}
+                variant="neutralWeak"
+              >
+                챕터 라벨
+              </SeedActionButton>
+              <SeedActionButton
+                className="talkhugam-action-sheet-choice"
+                onClick={() => {
+                  handleCloseActionTray(false)
+                  fileInputRef.current?.click()
+                }}
+                variant="neutralWeak"
+              >
+                영상 올리기
+              </SeedActionButton>
+              <SeedActionButton
+                className="talkhugam-action-sheet-choice"
+                onClick={() => {
+                  handleCloseActionTray(false)
+                  onOpenVideoArchive()
+                }}
+                variant="neutralWeak"
+              >
+                영상 기록
+              </SeedActionButton>
+              <SeedActionButton
+                className="talkhugam-action-sheet-choice"
+                onClick={() => {
+                  completionTriggerRef.current = actionMenuButtonRef.current
+                  handleCloseActionTray(false)
+                  onOpenCompletion()
+                }}
+                variant="neutralWeak"
+              >
+                완독 기록
+              </SeedActionButton>
+              {isCurrentUserOwner ? (
+                <SeedActionButton
+                  className="talkhugam-action-sheet-choice"
+                  onClick={() => {
+                    handleCloseActionTray(false)
+                    onOpenRoomInvite()
+                  }}
+                  ref={inviteTriggerRef}
+                  variant="neutralWeak"
+                >
+                  책방 초대하기
+                </SeedActionButton>
+              ) : (
+                <SeedActionButton
+                  className="talkhugam-action-sheet-choice"
+                  disabled={isRequestingRoomInvite}
                   onClick={() => {
                     handleCloseActionTray()
-                    fileInputRef.current?.click()
+                    onRequestRoomInvite()
                   }}
-                />
-                <ActionButton
-                  label="영상 기록"
-                  onClick={() => {
-                    handleCloseActionTray()
-                    onOpenVideoArchive()
-                  }}
-                />
-                <ActionButton
-                  label="완독 기록"
-                  onClick={() => {
-                    completionTriggerRef.current = actionMenuButtonRef.current
-                    handleCloseActionTray()
-                    onOpenCompletion()
-                  }}
-                />
-                {isCurrentUserOwner ? (
-                  <ActionButton
-                    buttonRef={inviteTriggerRef}
-                    label="책방 초대하기"
-                    onClick={() => {
-                      handleCloseActionTray()
-                      onOpenRoomInvite()
-                    }}
-                  />
-                ) : (
-                  <ActionButton
-                    disabled={isRequestingRoomInvite}
-                    label="초대 요청"
-                    onClick={() => {
-                      handleCloseActionTray()
-                      onRequestRoomInvite()
-                    }}
-                  />
-                )}
-              </div>
-            </>
+                  variant="neutralWeak"
+                >
+                  초대 요청
+                </SeedActionButton>
+              )}
+            </div>
           )}
-        </div>
+        </BottomSheet>
       ) : null}
       <div className="talkhugam-chat-composer-row">
         <input
@@ -964,13 +1007,14 @@ function ChatComposer({
           ref={fileInputRef}
           type="file"
         />
-        <button
+        <SeedActionButton
           aria-expanded={isActionTrayOpen}
           aria-label={isActionTrayOpen ? '메시지 추가 메뉴 닫기' : '메시지 추가 메뉴 열기'}
-          className="border-ink/20 text-ink flex size-11 cursor-pointer items-center justify-center rounded-full border"
+          className="!size-11 shrink-0 rounded-full p-0"
           onClick={handleToggleActionTray}
           ref={actionMenuButtonRef}
           type="button"
+          variant="neutralOutline"
         >
           <svg aria-hidden="true" className="size-6" fill="none" viewBox="0 0 24 24">
             <path
@@ -983,7 +1027,7 @@ function ChatComposer({
               strokeWidth="2.4"
             />
           </svg>
-        </button>
+        </SeedActionButton>
         <div className="relative min-w-0 flex-1">
           {shouldShowMentionMenu ? (
             <div
@@ -995,27 +1039,31 @@ function ChatComposer({
                   <p className="text-sm text-red-600">
                     멘션할 멤버를 불러오지 못했어요. 다시 시도해 주세요.
                   </p>
-                  <button
-                    className="border-ink/10 text-ink min-h-11 cursor-pointer rounded-md border px-3 text-sm font-medium"
+                  <SeedActionButton
+                    className="border-ink/10 text-ink min-h-11 rounded-md border"
                     onClick={onRetryMentionMembers}
+                    size="medium"
                     type="button"
+                    variant="neutralOutline"
                   >
                     다시 시도
-                  </button>
+                  </SeedActionButton>
                 </div>
               ) : matchingMentionCandidates.length > 0 ? (
                 <div aria-label="멘션할 멤버" id="mention-candidates" role="listbox">
                   {matchingMentionCandidates.map((member) => (
-                    <button
+                    <SeedActionButton
                       aria-label={`${member.displayName} 멘션 추가`}
-                      className="hover:bg-surface-muted text-ink flex min-h-11 w-full cursor-pointer items-center rounded-md px-3 text-left text-sm font-medium"
+                      className="hover:!bg-surface-muted text-ink min-h-11 w-full justify-start rounded-md px-3 text-left"
                       key={member.id}
                       onClick={() => handleSelectMention(member)}
                       role="option"
+                      size="medium"
                       type="button"
+                      variant="ghost"
                     >
                       @{member.displayName}
-                    </button>
+                    </SeedActionButton>
                   ))}
                 </div>
               ) : (
@@ -1026,31 +1074,34 @@ function ChatComposer({
           <label className="sr-only" htmlFor="discussion-message">
             메시지 입력
           </label>
-          <textarea
-            aria-autocomplete="list"
-            aria-controls={shouldShowMentionMenu ? 'mention-candidates' : undefined}
-            className="border-ink/10 focus:border-primary block min-h-11 w-full resize-none rounded-md border bg-white px-3 py-2 text-base outline-none"
-            id="discussion-message"
-            onChange={(event) => handleChangeMessage(event.target.value)}
-            onKeyDown={(event) => {
-              if (!shouldSubmitMessage(event.key, event.shiftKey)) return
-              event.preventDefault()
-              onSubmit()
-            }}
-            placeholder={isReplying ? '답글을 입력하세요' : '메시지 입력'}
-            ref={messageInputRef}
-            rows={1}
-            value={value}
-          />
+          <TextField.Root className="!h-11 !min-h-11">
+            <TextField.Textarea
+              aria-autocomplete="list"
+              aria-controls={shouldShowMentionMenu ? 'mention-candidates' : undefined}
+              aria-label="메시지 입력"
+              autoresize={false}
+              className="!h-11 !min-h-11 text-base"
+              id="discussion-message"
+              onChange={(event) => handleChangeMessage(event.target.value)}
+              onKeyDown={(event) => {
+                if (!shouldSubmitMessage(event.key, event.shiftKey)) return
+                event.preventDefault()
+                onSubmit()
+              }}
+              placeholder={isReplying ? '답글을 입력하세요' : '메시지 입력'}
+              ref={messageInputRef}
+              value={value}
+            />
+          </TextField.Root>
         </div>
-        <button
-          className="bg-primary text-ink min-h-11 shrink-0 rounded-md px-3 text-sm font-semibold disabled:opacity-40"
+        <SeedActionButton
+          className="talkhugam-primary-action !h-11 !min-h-11 shrink-0"
           disabled={value.trim().length === 0 && labels.length === 0}
           onClick={onSubmit}
           type="button"
         >
           전송
-        </button>
+        </SeedActionButton>
       </div>
       {errorMessage ? (
         <p className="mt-2 text-sm text-red-600" role="alert">
@@ -1059,37 +1110,10 @@ function ChatComposer({
       ) : null}
       {isUploadingVideo ? (
         <div className="mt-3">
-          <LoadingSpinner label="영상을 채팅에 올리고 있어요…" size="xs" variant="book" />
+          <BookLoadingIndicator label="영상을 채팅에 올리고 있어요…" size="xs" />
         </div>
       ) : null}
     </section>
-  )
-}
-
-/** 동작 버튼 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
-function ActionButton({
-  buttonRef,
-  className = '',
-  disabled = false,
-  label,
-  onClick,
-}: {
-  buttonRef?: RefObject<HTMLButtonElement | null>
-  className?: string
-  disabled?: boolean
-  label: string
-  onClick: () => void
-}) {
-  return (
-    <button
-      className={`border-ink/10 text-ink min-h-11 cursor-pointer rounded-md border px-3 text-left text-sm disabled:cursor-not-allowed disabled:opacity-40 ${className}`}
-      disabled={disabled}
-      onClick={onClick}
-      ref={buttonRef}
-      type="button"
-    >
-      {label}
-    </button>
   )
 }
 
@@ -1124,7 +1148,6 @@ function ChatTimeline({
   allPosts,
   currentMemberId,
   isThumbnailLoading,
-  onOpenVideo,
   onReply,
   posts,
   showEmptyState = true,
@@ -1134,7 +1157,6 @@ function ChatTimeline({
   allPosts: DiscussionPost[]
   currentMemberId: string | null
   isThumbnailLoading: boolean
-  onOpenVideo: (videoId: string) => void
   onReply: (id: string) => void
   posts: DiscussionPost[]
   showEmptyState?: boolean
@@ -1144,7 +1166,7 @@ function ChatTimeline({
   const messages = createChatMessages(posts, videos)
   if (messages.length === 0 && showEmptyState)
     return (
-      <div className="bg-surface-muted rounded-lg p-6 text-center">
+      <div className="border-border border-t border-b py-6 text-center">
         <p className="text-ink font-medium">첫 독후감을 남겨 보세요</p>
         <p className="text-ink-subtle mt-2 text-sm">페이지나 챕터 라벨만 먼저 남겨도 괜찮아요.</p>
       </div>
@@ -1152,38 +1174,53 @@ function ChatTimeline({
   if (messages.length === 0) return null
   return (
     <ul className="space-y-4">
-      {messages.map((message) =>
-        message.type === 'text' ? (
-          <li
-            className={`flex ${
-              isCurrentMemberMessage(message.post.authorMemberId, currentMemberId)
-                ? 'justify-end'
-                : 'justify-start'
-            }`}
-            key={message.post.id}
-          >
-            <article className="border-ink/10 w-fit max-w-[70%] rounded-lg border bg-white px-4 py-3">
-              <p className="text-ink text-sm font-medium">{message.post.authorName}</p>
-              <PostLabels labels={message.post.labels} />
-              {message.post.body ? (
-                <p className="text-ink mt-2 text-sm whitespace-pre-wrap">
-                  <HighlightedMentionText body={message.post.body} />
-                </p>
-              ) : null}
-              <button
-                className="text-primary mt-2 min-h-11 text-xs"
-                onClick={() => onReply(message.post.id)}
-                type="button"
+      {messages.map((message) => {
+        if (message.type === 'text') {
+          const isMine = isCurrentMemberMessage(message.post.authorMemberId, currentMemberId)
+
+          return (
+            <li
+              className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}
+              key={message.post.id}
+            >
+              <article
+                className={`border-border w-fit max-w-[70%] rounded-lg border px-4 py-3 ${
+                  isMine ? 'bg-ink text-white' : 'text-ink bg-white'
+                }`}
               >
-                답글 남기기
-              </button>
-              <Replies
-                currentMemberId={currentMemberId}
-                posts={allPosts.filter((reply) => reply.rootPostId === message.post.id)}
-              />
-            </article>
-          </li>
-        ) : (
+                <p className={`text-sm font-medium ${isMine ? 'text-white/70' : 'text-ink'}`}>
+                  {message.post.authorName}
+                </p>
+                <PostLabels labels={message.post.labels} />
+                {message.post.body ? (
+                  <p
+                    className={`mt-2 text-sm whitespace-pre-wrap ${
+                      isMine ? 'text-white' : 'text-ink'
+                    }`}
+                  >
+                    <HighlightedMentionText body={message.post.body} />
+                  </p>
+                ) : null}
+                <SeedActionButton
+                  className={`mt-2 ${isMine ? '!text-white/80' : '!text-ink-subtle'}`}
+                  onClick={() => onReply(message.post.id)}
+                  size="small"
+                  type="button"
+                  variant="ghost"
+                >
+                  답글 남기기
+                </SeedActionButton>
+                <Replies
+                  currentMemberId={currentMemberId}
+                  isInverted={isMine}
+                  posts={allPosts.filter((reply) => reply.rootPostId === message.post.id)}
+                />
+              </article>
+            </li>
+          )
+        }
+
+        return (
           <li
             className={`flex ${
               isCurrentMemberMessage(message.video.authorMemberId, currentMemberId)
@@ -1194,13 +1231,12 @@ function ChatTimeline({
           >
             <VideoMessage
               isThumbnailLoading={isThumbnailLoading}
-              onOpen={() => onOpenVideo(message.video.id)}
               thumbnailAuthorization={thumbnailsByPostId.get(message.video.id)}
               video={message.video}
             />
           </li>
-        ),
-      )}
+        )
+      })}
     </ul>
   )
 }
@@ -1208,24 +1244,93 @@ function ChatTimeline({
 /** 영상 메시지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function VideoMessage({
   isThumbnailLoading,
-  onOpen,
   thumbnailAuthorization,
   video,
 }: {
   isThumbnailLoading: boolean
-  onOpen: () => void
   thumbnailAuthorization: VideoThumbnailAuthorization | undefined
   video: VideoPost
 }) {
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [hasPlaybackMediaError, setHasPlaybackMediaError] = useState(false)
+  const playbackQuery = useQuery({
+    enabled: video.status === 'ready' && isPlaying,
+    queryFn: fetchPlaybackAuthorization,
+    queryKey: videoKeys.playback(video.id),
+    staleTime: 4 * 60 * 1_000,
+  })
+
+  /** 현재 영상 메시지의 Mux 재생 권한을 요청해 inline 플레이어에 전달한다. */
+  function fetchPlaybackAuthorization() {
+    return getVideoPlaybackAuthorization(createSupabaseClient(), video.id)
+  }
+
+  /** 썸네일 프레임을 같은 자리의 재생 프레임으로 전환한다. */
+  function handleStartPlayback() {
+    setHasPlaybackMediaError(false)
+    setIsPlaying(true)
+  }
+
+  /** Mux 플레이어가 전달한 재생 실패를 같은 프레임 안의 오류 상태로 바꾼다. */
+  function handlePlaybackMediaError() {
+    setHasPlaybackMediaError(true)
+  }
+
+  /** 실패한 재생 권한 또는 미디어 재생을 같은 영상 프레임에서 다시 시도한다. */
+  function handleRetryPlayback() {
+    setHasPlaybackMediaError(false)
+    void playbackQuery.refetch()
+  }
+
   if (video.status === 'ready')
-    return (
-      <button
-        aria-label={`${video.authorName}님의 영상 보기`}
-        className="border-ink/10 focus-visible:ring-primary bg-ink relative w-[70%] max-w-[70%] overflow-hidden rounded-lg border text-left focus-visible:ring-2 focus-visible:outline-none"
-        onClick={onOpen}
-        type="button"
+    return isPlaying ? (
+      <article
+        aria-label={`${video.authorName}의 영상 재생`}
+        className="border-ink/10 bg-ink relative aspect-video w-full max-w-full overflow-hidden rounded-lg border"
       >
-        <div className="relative aspect-square">
+        {playbackQuery.isPending ? (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <BookLoadingIndicator label="재생 정보를 불러오고 있어요." size="sm" tone="inverse" />
+          </div>
+        ) : playbackQuery.isError || hasPlaybackMediaError ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-4 text-center">
+            <p className="text-sm font-medium text-white" role="alert">
+              영상을 재생하지 못했어요.
+            </p>
+            <SeedActionButton
+              className="!border-white/40 !text-white"
+              onClick={handleRetryPlayback}
+              size="small"
+              type="button"
+              variant="neutralOutline"
+            >
+              다시 시도
+            </SeedActionButton>
+          </div>
+        ) : playbackQuery.data ? (
+          <LazyMuxVideoPlayer
+            className="absolute inset-0 size-full"
+            metadata={{ videoId: video.id, videoTitle: `${video.authorName}의 영상` }}
+            onPlaybackError={handlePlaybackMediaError}
+            playbackId={playbackQuery.data.playbackId}
+            tone="inverse"
+            tokens={{
+              playback: playbackQuery.data.token,
+              thumbnail: playbackQuery.data.thumbnailToken,
+            }}
+          />
+        ) : null}
+      </article>
+    ) : (
+      <SeedActionButton
+        aria-label={`${video.authorName}님의 영상 보기`}
+        className="border-ink/10 bg-ink relative aspect-video !h-auto w-full max-w-full overflow-hidden rounded-lg border p-0 text-left"
+        onClick={handleStartPlayback}
+        size="large"
+        type="button"
+        variant="ghost"
+      >
+        <div className="relative size-full">
           {thumbnailAuthorization ? (
             <img
               alt=""
@@ -1234,12 +1339,7 @@ function VideoMessage({
             />
           ) : isThumbnailLoading ? (
             <div className="absolute inset-0 flex items-center justify-center">
-              <LoadingSpinner
-                label="미리보기를 준비하고 있어요."
-                size="sm"
-                tone="inverse"
-                variant="book"
-              />
+              <BookLoadingIndicator label="미리보기를 준비하고 있어요." size="sm" tone="inverse" />
             </div>
           ) : (
             <p className="absolute inset-0 flex items-center justify-center px-4 text-center text-sm font-medium text-white">
@@ -1251,14 +1351,14 @@ function VideoMessage({
             {video.authorName}의 영상
           </span>
         </div>
-      </button>
+      </SeedActionButton>
     )
   const message = getVideoMessageLabel(video)
   const isLoading = video.status !== 'failed'
   return (
-    <article className="border-ink/10 bg-ink flex aspect-square w-[70%] max-w-[70%] flex-col items-center justify-center rounded-lg border px-4 text-center">
+    <article className="border-ink/10 bg-ink flex aspect-video w-full max-w-full flex-col items-center justify-center rounded-lg border px-4 text-center">
       {isLoading ? (
-        <LoadingSpinner label={message} size="sm" tone="inverse" variant="book" />
+        <BookLoadingIndicator label={message} size="sm" tone="inverse" />
       ) : (
         <p className="text-sm font-medium text-white">{message}</p>
       )}
@@ -1266,7 +1366,7 @@ function VideoMessage({
   )
 }
 
-/** 정방형 영상 미리보기 위에 재생 가능 여부를 나타내는 제어 아이콘을 렌더링한다. */
+/** 비율형 영상 미리보기 위에 재생 가능 여부를 나타내는 제어 아이콘을 렌더링한다. */
 function VideoPlayIcon() {
   return (
     <span
@@ -1287,7 +1387,7 @@ function PostLabels({ labels }: { labels: DiscussionPost['labels'] }) {
     <ul className="mt-2 flex flex-wrap gap-2">
       {labels.map((label) => (
         <li
-          className="bg-primary/10 text-primary rounded-md px-2 py-1 text-xs"
+          className="border-border text-ink-subtle rounded-md border bg-white px-2 py-1 text-xs"
           key={`${label.kind}-${label.value}`}
         >
           {formatLabel(label)}
@@ -1300,14 +1400,18 @@ function PostLabels({ labels }: { labels: DiscussionPost['labels'] }) {
 /** 답글 목록 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function Replies({
   currentMemberId,
+  isInverted = false,
   posts,
 }: {
   currentMemberId: string | null
+  isInverted?: boolean
   posts: DiscussionPost[]
 }) {
   if (posts.length === 0) return null
   return (
-    <ul className="border-ink/10 mt-3 space-y-3 border-l pl-3">
+    <ul
+      className={`mt-3 space-y-3 border-l pl-3 ${isInverted ? 'border-white/20' : 'border-border'}`}
+    >
       {posts.map((post) => (
         <li
           className={`flex ${
@@ -1318,9 +1422,15 @@ function Replies({
           key={post.id}
         >
           <div className="w-fit max-w-[70%]">
-            <p className="text-ink text-xs font-medium">{post.authorName}</p>
+            <p className={`text-xs font-medium ${isInverted ? 'text-white/70' : 'text-ink'}`}>
+              {post.authorName}
+            </p>
             {post.body ? (
-              <p className="text-ink-subtle mt-1 text-xs whitespace-pre-wrap">
+              <p
+                className={`mt-1 text-xs whitespace-pre-wrap ${
+                  isInverted ? 'text-white/80' : 'text-ink-subtle'
+                }`}
+              >
                 <HighlightedMentionText body={post.body} />
               </p>
             ) : null}

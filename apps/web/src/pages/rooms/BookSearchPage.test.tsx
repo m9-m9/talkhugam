@@ -80,8 +80,15 @@ describe('BookSearchPage', () => {
 
     await act(() => vi.runOnlyPendingTimersAsync())
     expect(screen.getByRole('heading', { name: '지금 많이 읽는 책' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /미움받을 용기/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /미움받을 용기/ })).toHaveClass(/seed-action-button/)
     expect(screen.getByRole('list', { name: '이번 주 추천 도서' })).toHaveClass('grid-cols-2')
+  })
+
+  it('places the search input and action on the same baseline below its label', () => {
+    renderBookSearchPage()
+
+    expect(screen.getByTestId('book-search-controls')).toHaveClass('items-end')
+    expect(screen.getByRole('button', { name: '검색' })).not.toHaveClass('mt-7')
   })
 
   it('starts the current valid search when Enter is pressed in the search input', async () => {
@@ -94,6 +101,18 @@ describe('BookSearchPage', () => {
 
     await act(() => vi.advanceTimersByTimeAsync(300))
     expect(searchBooks).toHaveBeenCalledOnce()
+  })
+
+  it('invalid search query exposes its error state to assistive technology', () => {
+    renderBookSearchPage()
+
+    fireEvent.click(screen.getByRole('button', { name: '검색' }))
+
+    const input = screen.getByRole('textbox', { name: '책 제목 또는 저자' })
+    expect(input).toHaveAttribute('aria-invalid', 'true')
+    expect(document.getElementById(input.getAttribute('aria-describedby') ?? '')).toHaveTextContent(
+      '책 제목이나 저자를 두 글자 이상 입력해 주세요.',
+    )
   })
 
   it('shows the book loader only after a slow book search has waited 400ms', async () => {
