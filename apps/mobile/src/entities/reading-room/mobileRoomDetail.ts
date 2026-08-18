@@ -1,8 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
+  managedBookChatRowSchema,
+  mapManagedBookChat,
   parseBookChats,
   readingRoomDetailSchema,
   type BookChat,
+  type ManagedBookChat,
   type ReadingRoomDetail,
 } from '@talkhugam/domain'
 import { z } from 'zod'
@@ -34,4 +37,22 @@ export async function getMobileBookChats(client: SupabaseClient, roomId: string)
 
   if (response.error) throw response.error
   return parseBookChats(response.data)
+}
+
+/** 경로의 책방에 실제로 속하고 RLS로 보이는 책 대화만 상세 화면용 모델로 반환한다. */
+export async function getMobileDiscussionBookChat(
+  client: SupabaseClient,
+  roomId: string,
+  bookChatId: string,
+): Promise<ManagedBookChat | null> {
+  const response = await client
+    .from('book_chats')
+    .select('id, name, room_id, status, books(title, thumbnail_url)')
+    .eq('id', z.string().uuid().parse(bookChatId))
+    .eq('room_id', z.string().uuid().parse(roomId))
+    .maybeSingle()
+
+  if (response.error) throw response.error
+  if (response.data === null) return null
+  return mapManagedBookChat(managedBookChatRowSchema.parse(response.data))
 }

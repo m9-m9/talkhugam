@@ -64,12 +64,16 @@ export async function getReadingRoom(
 /** 관리 화면용 책 대화방 상태와 책 정보를 조회한다. */
 export async function getManagedBookChat(
   client: SupabaseClient,
+  roomId: string,
   bookChatId: string,
 ): Promise<ManagedBookChat | null> {
+  const parsedRoomId = z.string().uuid().parse(roomId)
+  const parsedBookChatId = z.string().uuid().parse(bookChatId)
   const response = await client
     .from('book_chats')
     .select('id, name, room_id, status, books(title, thumbnail_url)')
-    .eq('id', bookChatId)
+    .eq('id', parsedBookChatId)
+    .eq('room_id', parsedRoomId)
     .maybeSingle()
 
   if (response.error) throw response.error

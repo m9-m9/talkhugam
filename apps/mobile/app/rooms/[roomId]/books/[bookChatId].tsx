@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { z } from 'zod'
 
 import { useMobileProtectedRoute } from '../../../../src/features/auth/useMobileProtectedRoute'
+import { MobileBookDiscussionScreen } from '../../../../src/features/reading-room/MobileBookDiscussionScreen'
 import { MobileRouteLoadingScreen } from '../../../../src/shared/ui/MobileRouteLoadingScreen'
 
 /** 동적 경로 값 하나를 UUID로 제한해 잘못된 식별자가 서버 조회·후속 경로에 쓰이지 않게 한다. */
@@ -12,7 +13,7 @@ function parseRouteId(value: string | string[] | undefined): string | null {
   return result.success ? result.data : null
 }
 
-/** 인증된 회원에게 향후 책 대화 기능이 연결될 안전한 경로 셸을 표시한다. */
+/** 인증된 회원에게 경로의 책방·책 대화가 일치하는 텍스트 토론 화면을 표시한다. */
 export default function BookChatRouteShell(): React.JSX.Element {
   const router = useRouter()
   const parameters = useLocalSearchParams<{
@@ -31,22 +32,7 @@ export default function BookChatRouteShell(): React.JSX.Element {
   if (!isAllowed) return <MobileRouteLoadingScreen label="책 대화를 확인하고 있어요." />
   if (roomId === null || bookChatId === null) return <UnavailableBookChatRoute onBack={handleBack} />
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>책 대화를 준비하고 있어요.</Text>
-        <Text style={styles.description}>곧 이 책을 함께 읽으며 나눈 이야기를 이어갈 수 있어요.</Text>
-        <Pressable
-          accessibilityLabel="책방으로 돌아가기"
-          accessibilityRole="button"
-          onPress={handleBack}
-          style={styles.button}
-        >
-          <Text style={styles.buttonText}>책방으로 돌아가기</Text>
-        </Pressable>
-      </View>
-    </SafeAreaView>
-  )
+  return <MobileBookDiscussionScreen bookChatId={bookChatId} onBack={handleBack} roomId={roomId} />
 }
 
 /** 잘못된 책방·책 대화 식별자에서 서버 접근 없이 책방 목록 복귀를 안내한다. */

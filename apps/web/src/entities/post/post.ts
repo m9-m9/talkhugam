@@ -13,14 +13,18 @@ export {
 /** 메시지 목록 데이터를 조회하거나 계산해 반환한다. */
 export async function getPosts(
   client: SupabaseClient,
+  roomId: string,
   bookChatId: string,
 ): Promise<DiscussionPost[]> {
+  const parsedRoomId = z.string().uuid().parse(roomId)
+  const parsedBookChatId = z.string().uuid().parse(bookChatId)
   const response = await client
     .from('posts')
     .select(
-      'id, body, depth, root_post_id, author_member_id, author_name_snapshot, created_at, post_labels(kind, value, sort_order)',
+      'id, body, depth, root_post_id, author_member_id, author_name_snapshot, created_at, post_labels(kind, value, sort_order), book_chats!inner(room_id)',
     )
-    .eq('book_chat_id', bookChatId)
+    .eq('book_chat_id', parsedBookChatId)
+    .eq('book_chats.room_id', parsedRoomId)
     .eq('type', 'text')
     .is('deleted_at', null)
     .order('created_at', { ascending: true })

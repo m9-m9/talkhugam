@@ -9,8 +9,8 @@ const memberId = 'b3c8b282-6092-45f8-b15f-523a9dcd0eab'
 describe('book discussion domain', () => {
   it('returns query keys scoped to the book chat and reading room', () => {
     expect(bookChatKeys.byRoom(roomId)).toEqual(['book-chats', roomId])
-    expect(bookChatKeys.detail(bookChatId)).toEqual(['book-chat', bookChatId])
-    expect(postKeys.byBookChat(bookChatId)).toEqual(['posts', bookChatId])
+    expect(bookChatKeys.detail(roomId, bookChatId)).toEqual(['book-chat', roomId, bookChatId])
+    expect(postKeys.byBookChat(roomId, bookChatId)).toEqual(['posts', roomId, bookChatId])
   })
 
   it('maps a book chat row while its related book is unavailable', () => {

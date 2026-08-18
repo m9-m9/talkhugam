@@ -163,8 +163,8 @@ export const bookChatKeys = {
   byRoom: (roomId: string) => ['book-chats', roomId] as const,
   /** 책방 식별자로 책방 상세 query key를 생성한다. */
   room: (roomId: string) => ['reading-room', roomId] as const,
-  /** 책 대화 식별자로 제목과 소속 책방을 조회하는 query key를 생성한다. */
-  detail: (bookChatId: string) => ['book-chat', bookChatId] as const,
+  /** 책방과 책 대화 식별자로 경로 간 캐시 공유를 막는 상세 query key를 생성한다. */
+  detail: (roomId: string, bookChatId: string) => ['book-chat', roomId, bookChatId] as const,
   /** 프로필별 보관한 책 대화 목록 query key를 생성한다. */
   myArchived: (profileId: string) => ['archived-book-chats', profileId] as const,
   /** 프로필과 개인 완독 상태로 모든 참여 책방의 읽는 책 목록 query key를 생성한다. */
@@ -173,8 +173,8 @@ export const bookChatKeys = {
 }
 
 export const postKeys = {
-  /** 책 대화방 식별자로 안정적인 query key를 생성한다. */
-  byBookChat: (bookChatId: string) => ['posts', bookChatId] as const,
+  /** 책방과 책 대화 식별자로 경로 간 타임라인 캐시 공유를 막는 query key를 생성한다. */
+  byBookChat: (roomId: string, bookChatId: string) => ['posts', roomId, bookChatId] as const,
 }
 
 /** 외부 입력을 검증해 책 대화방 목록 도메인 모델로 변환해 반환한다. */

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import {
   bookChatKeys,
+  getManagedBookChat,
   getMyArchivedBookChats,
   parseReadingBooks,
   parseBookChats,
@@ -110,6 +111,24 @@ describe('getMyArchivedBookChats', () => {
 
     expect(from).toHaveBeenCalledWith('book_chats')
     expect(status).toHaveBeenCalledWith('status', 'archived')
+  })
+})
+
+describe('getManagedBookChat', () => {
+  it('limits a managed book chat lookup to its route room', async () => {
+    const maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null })
+    const roomIdFilter = vi.fn().mockReturnValue({ maybeSingle })
+    const bookChatIdFilter = vi.fn().mockReturnValue({ eq: roomIdFilter })
+    const select = vi.fn().mockReturnValue({ eq: bookChatIdFilter })
+    const from = vi.fn().mockReturnValue({ select })
+    const client = { from }
+    const roomId = '11dd2691-ca0d-4b86-bb2b-9fa7c6cd374f'
+    const bookChatId = 'f17c0d6d-3e6e-4b7f-a1f1-5d652aa2a85e'
+
+    await getManagedBookChat(client as never, roomId, bookChatId)
+
+    expect(bookChatIdFilter).toHaveBeenCalledWith('id', bookChatId)
+    expect(roomIdFilter).toHaveBeenCalledWith('room_id', roomId)
   })
 })
 
