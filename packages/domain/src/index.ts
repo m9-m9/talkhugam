@@ -40,6 +40,20 @@ export {
   type JoinRoomForm,
 } from './readingRoomEntry'
 export {
+  bookChatCompletionIdRowSchema,
+  bookChatCompletionRowSchema,
+  bookCompletionInputSchema,
+  bookCompletionKeys,
+  completedBookRowSchema,
+  parseBookChatCompletionIds,
+  parseBookChatCompletions,
+  parseBookCompletionInput,
+  parseCompletedBooks,
+  type BookChatCompletion,
+  type BookCompletionInput,
+  type CompletedBook,
+} from './bookCompletion'
+export {
   archivedBookChatRowSchema,
   bookBestsellerKeys,
   bookChatKeys,

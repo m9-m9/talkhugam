@@ -1,5 +1,16 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { bookChatKeys, parsePostForm, postKeys, readingRoomKeys, type DiscussionPost, type PostForm } from '@talkhugam/domain'
+import {
+  bookChatKeys,
+  bookCompletionKeys,
+  parseBookCompletionInput,
+  parsePostForm,
+  postKeys,
+  readingRoomKeys,
+  type BookChatCompletion,
+  type BookCompletionInput,
+  type DiscussionPost,
+  type PostForm,
+} from '@talkhugam/domain'
 import { useState } from 'react'
 import {
   ActivityIndicator,
@@ -21,7 +32,13 @@ import {
   getMobileDiscussionPosts,
   type MobileDiscussionMember,
 } from '../../entities/post'
+import {
+  getMobileBookChatCompletions,
+  removeMobileBookChatCompletion,
+  upsertMobileBookChatCompletion,
+} from '../../entities/book-completion'
 import { getMobileDiscussionBookChat } from '../../entities/reading-room'
+import { useMobileSessionProfileId } from '../../shared/api/MobileAppProviders'
 import { createMobileSupabaseClient } from '../../shared/api/mobileSupabaseClient'
 
 type MobileBookDiscussionScreenProps = {
@@ -43,12 +60,19 @@ export function MobileBookDiscussionScreen({
   roomId,
 }: MobileBookDiscussionScreenProps): React.JSX.Element {
   const queryClient = useQueryClient()
+  const profileId = useMobileSessionProfileId()
   const [body, setBody] = useState('')
   const [label, setLabel] = useState('')
   const [replyTo, setReplyTo] = useState<DiscussionPost | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [failedSubmission, setFailedSubmission] = useState<Submission | null>(null)
+  const [isCompletionSheetOpen, setIsCompletionSheetOpen] = useState(false)
+  const [isCompletionEditorOpen, setIsCompletionEditorOpen] = useState(false)
+  const [completionRating, setCompletionRating] = useState<number | null>(null)
+  const [completionReview, setCompletionReview] = useState('')
+  const [completionError, setCompletionError] = useState<string | null>(null)
+  const [isCompletionSaving, setIsCompletionSaving] = useState(false)
 
   /** 경로의 책방과 일치하는 책 대화만 RLS 범위에서 조회한다. */
   async function fetchBookChat() {
@@ -83,6 +107,21 @@ export function MobileBookDiscussionScreen({
       bookChatQuery.data.status !== 'archived',
     queryFn: fetchMembers,
     queryKey: ['mobile-discussion-members', roomId],
+  })
+
+  /** 현재 로그인 회원을 기준으로 책 대화 완독 기록과 방 멤버 표시명을 함께 읽어 온다. */
+  async function fetchCompletions(): Promise<BookChatCompletion[]> {
+    if (profileId === null) return []
+    return getMobileBookChatCompletions(createMobileSupabaseClient(), bookChatId, profileId)
+  }
+
+  const completionsQuery = useQuery({
+    enabled:
+      profileId !== null &&
+      bookChatQuery.data !== null &&
+      bookChatQuery.data !== undefined,
+    queryFn: fetchCompletions,
+    queryKey: bookCompletionKeys.byChat(bookChatId),
   })
 
   /** 저장할 값과 멘션 대상을 검증해 한 번의 제출에 사용할 입력 모델로 만든다. */
@@ -178,6 +217,84 @@ export function MobileBookDiscussionScreen({
     void postsQuery.refetch()
   }
 
+  /** 완독 기록 시트를 열고 기존 기록은 목록 상태로 먼저 확인하도록 한다. */
+  function handleOpenCompletionSheet(): void {
+    setCompletionError(null)
+    setIsCompletionEditorOpen(false)
+    setIsCompletionSheetOpen(true)
+  }
+
+  /** 완독 기록 시트와 작성 중이던 입력을 닫아 다음 열기에서 최신 데이터를 사용한다. */
+  function handleCloseCompletionSheet(): void {
+    if (isCompletionSaving) return
+    setCompletionError(null)
+    setIsCompletionEditorOpen(false)
+    setIsCompletionSheetOpen(false)
+  }
+
+  /** 현재 회원의 기존 완독 값 또는 빈 입력으로 별점·총평 편집 상태를 연다. */
+  function handleOpenCompletionEditor(): void {
+    const ownCompletion = completionsQuery.data?.find((completion) => completion.isMe)
+    setCompletionRating(ownCompletion?.rating ?? null)
+    setCompletionReview(ownCompletion?.review ?? '')
+    setCompletionError(null)
+    setIsCompletionEditorOpen(true)
+  }
+
+  /** 편집 상태만 닫고 완독 멤버 목록과 기존 저장 내용은 유지한다. */
+  function handleCancelCompletionEditor(): void {
+    if (isCompletionSaving) return
+    setCompletionError(null)
+    setIsCompletionEditorOpen(false)
+  }
+
+  /** 별점과 천 자 이내 총평을 검증해 현재 회원의 완독 기록으로 저장한다. */
+  async function handleSaveCompletion(): Promise<void> {
+    if (profileId === null || isCompletionSaving) return
+
+    let input: BookCompletionInput
+    try {
+      input = parseBookCompletionInput({
+        bookChatId,
+        rating: completionRating,
+        review: completionReview.trim() || null,
+      })
+    } catch {
+      setCompletionError('별점은 1점부터 5점까지, 총평은 1,000자 이내로 남겨 주세요.')
+      return
+    }
+
+    setIsCompletionSaving(true)
+    setCompletionError(null)
+    try {
+      await upsertMobileBookChatCompletion(createMobileSupabaseClient(), input)
+      setIsCompletionEditorOpen(false)
+      await invalidateCompletionCaches(queryClient, bookChatId, profileId)
+      await completionsQuery.refetch()
+    } catch {
+      setCompletionError('완독 기록을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.')
+    } finally {
+      setIsCompletionSaving(false)
+    }
+  }
+
+  /** 현재 회원의 완독 기록만 제거하고 책방·내 정보 화면의 관련 캐시를 갱신한다. */
+  async function handleRemoveCompletion(): Promise<void> {
+    if (profileId === null || isCompletionSaving) return
+
+    setIsCompletionSaving(true)
+    setCompletionError(null)
+    try {
+      await removeMobileBookChatCompletion(createMobileSupabaseClient(), bookChatId)
+      await invalidateCompletionCaches(queryClient, bookChatId, profileId)
+      await completionsQuery.refetch()
+    } catch {
+      setCompletionError('완독 기록을 취소하지 못했어요. 잠시 후 다시 시도해 주세요.')
+    } finally {
+      setIsCompletionSaving(false)
+    }
+  }
+
   if (bookChatQuery.isPending) return <DiscussionLoadingState label="책 대화를 불러오고 있어요." />
   if (bookChatQuery.isError) return <DiscussionErrorState onRetry={handleRetryBookChat} />
   if (bookChatQuery.data === null) return <DiscussionUnavailableState onBack={onBack} />
@@ -201,7 +318,14 @@ export function MobileBookDiscussionScreen({
               책 대화
             </Text>
           </View>
-          <View style={styles.headerSpacer} />
+          <Pressable
+            accessibilityLabel="완독 기록"
+            accessibilityRole="button"
+            onPress={handleOpenCompletionSheet}
+            style={styles.completionHeaderAction}
+          >
+            <Text style={styles.completionHeaderActionText}>완독</Text>
+          </Pressable>
         </View>
         <ScrollView contentContainerStyle={styles.timeline} keyboardShouldPersistTaps="handled">
           <DiscussionTimeline
@@ -292,6 +416,27 @@ export function MobileBookDiscussionScreen({
           </View>
         </View>
         )}
+        {isCompletionSheetOpen ? (
+          <CompletionSheet
+            completions={completionsQuery.data ?? []}
+            completionError={completionError}
+            completionRating={completionRating}
+            completionReview={completionReview}
+            isArchived={isArchived}
+            isEditorOpen={isCompletionEditorOpen}
+            isError={completionsQuery.isError}
+            isLoading={completionsQuery.isPending}
+            isSaving={isCompletionSaving}
+            onCancelEditor={handleCancelCompletionEditor}
+            onClose={handleCloseCompletionSheet}
+            onOpenEditor={handleOpenCompletionEditor}
+            onRemove={handleRemoveCompletion}
+            onRetry={() => void completionsQuery.refetch()}
+            onReviewChange={setCompletionReview}
+            onSave={handleSaveCompletion}
+            onSelectRating={setCompletionRating}
+          />
+        ) : null}
       </KeyboardAvoidingView>
     </SafeAreaView>
   )
@@ -485,6 +630,240 @@ function createSubmissionClientId(): string {
   return globalThis.crypto.randomUUID()
 }
 
+type CompletionSheetProps = {
+  completionError: string | null
+  completionRating: number | null
+  completionReview: string
+  completions: readonly BookChatCompletion[]
+  isArchived: boolean
+  isEditorOpen: boolean
+  isError: boolean
+  isLoading: boolean
+  isSaving: boolean
+  onCancelEditor(): void
+  onClose(): void
+  onOpenEditor(): void
+  onRemove(): void
+  onRetry(): void
+  onReviewChange(value: string): void
+  onSave(): void
+  onSelectRating(rating: number): void
+}
+
+/** 책 대화의 완독 멤버 현황과 현재 회원의 작성·수정·취소 제어를 하단 시트로 표시한다. */
+function CompletionSheet({
+  completionError,
+  completionRating,
+  completionReview,
+  completions,
+  isArchived,
+  isEditorOpen,
+  isError,
+  isLoading,
+  isSaving,
+  onCancelEditor,
+  onClose,
+  onOpenEditor,
+  onRemove,
+  onRetry,
+  onReviewChange,
+  onSave,
+  onSelectRating,
+}: CompletionSheetProps): React.JSX.Element {
+  const ownCompletion = completions.find((completion) => completion.isMe)
+
+  return (
+    <View
+      accessibilityLabel="완독 기록 시트"
+      accessibilityViewIsModal
+      style={styles.completionBackdrop}
+    >
+      <View style={styles.completionSheet}>
+        <View style={styles.completionSheetHeader}>
+          <Text style={styles.completionSheetTitle}>완독 기록</Text>
+          <Pressable
+            accessibilityLabel="완독 기록 닫기"
+            accessibilityRole="button"
+            disabled={isSaving}
+            onPress={onClose}
+            style={styles.completionCloseAction}
+          >
+            <Text style={styles.completionCloseActionText}>닫기</Text>
+          </Pressable>
+        </View>
+        {isLoading ? <CompletionLoadingState /> : null}
+        {!isLoading && isError ? <CompletionErrorState onRetry={onRetry} /> : null}
+        {!isLoading && !isError && isEditorOpen ? (
+          <CompletionEditor
+            error={completionError}
+            isSaving={isSaving}
+            onCancel={onCancelEditor}
+            onReviewChange={onReviewChange}
+            onSave={onSave}
+            onSelectRating={onSelectRating}
+            rating={completionRating}
+            review={completionReview}
+          />
+        ) : null}
+        {!isLoading && !isError && !isEditorOpen ? (
+          <>
+            <CompletionRoster completions={completions} />
+            {completionError ? <Text accessibilityRole="alert" style={styles.saveError}>{completionError}</Text> : null}
+            {!isArchived ? (
+              <View style={styles.completionActions}>
+                <Pressable
+                  accessibilityLabel={ownCompletion ? '완독 기록 수정' : '완독하기'}
+                  accessibilityRole="button"
+                  disabled={isSaving}
+                  onPress={onOpenEditor}
+                  style={styles.completionPrimaryAction}
+                >
+                  <Text style={styles.completionPrimaryActionText}>{ownCompletion ? '완독 기록 수정' : '완독하기'}</Text>
+                </Pressable>
+                {ownCompletion ? (
+                  <Pressable
+                    accessibilityLabel="완독 취소"
+                    accessibilityRole="button"
+                    disabled={isSaving}
+                    onPress={onRemove}
+                    style={styles.completionSecondaryAction}
+                  >
+                    <Text style={styles.completionSecondaryActionText}>완독 취소</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            ) : null}
+          </>
+        ) : null}
+      </View>
+    </View>
+  )
+}
+
+/** 완독 현황 조회 실패를 알리고 같은 책 대화 범위에서만 다시 불러온다. */
+function CompletionErrorState({ onRetry }: { onRetry(): void }): React.JSX.Element {
+  return (
+    <View style={styles.completionLoadingState}>
+      <Text accessibilityRole="alert" style={styles.errorText}>완독 현황을 불러오지 못했어요. 다시 시도해 주세요.</Text>
+      <SecondaryAction label="완독 현황 다시 시도" onPress={onRetry} />
+    </View>
+  )
+}
+
+/** 완독 현황을 기다리는 동안 시트 안에서 짧은 진행 상태를 제공한다. */
+function CompletionLoadingState(): React.JSX.Element {
+  return (
+    <View accessibilityLabel="완독 현황을 불러오고 있어요." accessibilityRole="progressbar" style={styles.completionLoadingState}>
+      <ActivityIndicator color="#FF835F" />
+      <Text style={styles.stateText}>완독 현황을 불러오고 있어요.</Text>
+    </View>
+  )
+}
+
+/** 책방 멤버가 남긴 별점과 총평을 개인 표시와 함께 시간순으로 렌더링한다. */
+function CompletionRoster({ completions }: { completions: readonly BookChatCompletion[] }): React.JSX.Element {
+  if (completions.length === 0) {
+    return <Text style={styles.completionEmptyText}>아직 완독한 멤버가 없어요.</Text>
+  }
+
+  return (
+    <View accessibilityLabel="완독한 멤버" style={styles.completionRoster}>
+      {completions.map((completion) => (
+        <View key={completion.profileId} style={styles.completionMember}>
+          <Text style={styles.completionMemberName}>{completion.isMe ? '나' : completion.displayName}</Text>
+          {completion.rating ? <Text accessibilityLabel={`${completion.rating}점`} style={styles.completionRatingText}>{'★'.repeat(completion.rating)}</Text> : null}
+          {completion.review ? <Text style={styles.completionReviewText}>{completion.review}</Text> : null}
+        </View>
+      ))}
+    </View>
+  )
+}
+
+type CompletionEditorProps = {
+  error: string | null
+  isSaving: boolean
+  onCancel(): void
+  onReviewChange(value: string): void
+  onSave(): void
+  onSelectRating(rating: number): void
+  rating: number | null
+  review: string
+}
+
+/** 별점과 천 자 이내 총평을 입력해 개인 완독 기록으로 저장하는 편집기를 표시한다. */
+function CompletionEditor({
+  error,
+  isSaving,
+  onCancel,
+  onReviewChange,
+  onSave,
+  onSelectRating,
+  rating,
+  review,
+}: CompletionEditorProps): React.JSX.Element {
+  return (
+    <View style={styles.completionEditor}>
+      <Text style={styles.completionEditorLabel}>별점</Text>
+      <View accessibilityLabel="별점 선택" style={styles.ratingActions}>
+        {[1, 2, 3, 4, 5].map((score) => (
+          <Pressable
+            accessibilityLabel={`${score}점`}
+            accessibilityRole="button"
+            accessibilityState={{ selected: rating === score }}
+            key={score}
+            onPress={() => onSelectRating(score)}
+            style={[styles.ratingAction, rating !== null && score <= rating && styles.ratingActionSelected]}
+          >
+            <Text style={[styles.ratingActionText, rating !== null && score <= rating && styles.ratingActionTextSelected]}>★</Text>
+          </Pressable>
+        ))}
+      </View>
+      <TextInput
+        accessibilityLabel="총평"
+        editable={!isSaving}
+        maxLength={1000}
+        multiline
+        onChangeText={onReviewChange}
+        placeholder="이 책을 다 읽고 남은 생각을 적어 주세요."
+        placeholderTextColor="#8C8C8C"
+        style={styles.completionReviewInput}
+        value={review}
+      />
+      <Text accessibilityLabel={`총평 ${review.length}자`} style={styles.completionLengthText}>{review.length}/1000</Text>
+      {error ? <Text accessibilityRole="alert" style={styles.saveError}>{error}</Text> : null}
+      <View style={styles.completionActions}>
+        <Pressable accessibilityLabel="취소" accessibilityRole="button" disabled={isSaving} onPress={onCancel} style={styles.completionSecondaryAction}>
+          <Text style={styles.completionSecondaryActionText}>취소</Text>
+        </Pressable>
+        <Pressable
+          accessibilityLabel="완독 기록 저장"
+          accessibilityRole="button"
+          disabled={isSaving}
+          onPress={onSave}
+          style={[styles.completionPrimaryAction, isSaving && styles.submitActionDisabled]}
+        >
+          {isSaving ? <ActivityIndicator color="#000000" /> : <Text style={styles.completionPrimaryActionText}>완독 기록 저장</Text>}
+        </Pressable>
+      </View>
+    </View>
+  )
+}
+
+/** 완독 변경 뒤 책 대화와 개인 프로필·책방 읽기 목록 캐시를 모두 최신화한다. */
+async function invalidateCompletionCaches(
+  queryClient: ReturnType<typeof useQueryClient>,
+  bookChatId: string,
+  profileId: string,
+): Promise<void> {
+  await Promise.all([
+    queryClient.invalidateQueries({ queryKey: bookCompletionKeys.byChat(bookChatId) }),
+    queryClient.invalidateQueries({ queryKey: bookCompletionKeys.myBooks(profileId) }),
+    queryClient.invalidateQueries({ queryKey: bookCompletionKeys.myBookChatIds(profileId) }),
+    queryClient.invalidateQueries({ queryKey: bookChatKeys.myReading(profileId, []) }),
+    queryClient.invalidateQueries({ queryKey: readingRoomKeys.all }),
+  ])
+}
+
 const styles = StyleSheet.create({
   backButton: { alignItems: 'center', justifyContent: 'center', minHeight: 44, minWidth: 44 },
   archivedDescription: { color: '#BDBDBD', fontSize: 14, lineHeight: 20, marginTop: 4 },
@@ -494,6 +873,30 @@ const styles = StyleSheet.create({
   bodyInput: { backgroundColor: '#101010', borderColor: '#393939', borderRadius: 12, borderWidth: 1, color: '#FFFFFF', fontSize: 16, lineHeight: 24, maxHeight: 120, minHeight: 76, padding: 12, textAlignVertical: 'top' },
   composer: { backgroundColor: '#000000', borderColor: '#393939', borderTopWidth: 1, gap: 8, paddingBottom: 12, paddingHorizontal: 16, paddingTop: 12 },
   composerActions: { alignItems: 'center', flexDirection: 'row', gap: 8, justifyContent: 'flex-end' },
+  completionActions: { flexDirection: 'row', gap: 8, justifyContent: 'flex-end', marginTop: 16 },
+  completionBackdrop: { backgroundColor: 'rgba(0, 0, 0, 0.72)', bottom: 0, justifyContent: 'flex-end', left: 0, position: 'absolute', right: 0, top: 0 },
+  completionCloseAction: { alignItems: 'center', justifyContent: 'center', minHeight: 44, paddingHorizontal: 8 },
+  completionCloseActionText: { color: '#FFB5A3', fontSize: 14, fontWeight: '700', lineHeight: 20 },
+  completionEditor: { gap: 12, marginTop: 16 },
+  completionEditorLabel: { color: '#FFFFFF', fontSize: 15, fontWeight: '700', lineHeight: 22 },
+  completionEmptyText: { color: '#C7C7C7', fontSize: 15, lineHeight: 22, marginTop: 16 },
+  completionHeaderAction: { alignItems: 'center', justifyContent: 'center', minHeight: 44, minWidth: 44, paddingHorizontal: 4 },
+  completionHeaderActionText: { color: '#FFB5A3', fontSize: 13, fontWeight: '700', lineHeight: 20 },
+  completionLengthText: { alignSelf: 'flex-end', color: '#8C8C8C', fontSize: 12, lineHeight: 18, marginTop: -8 },
+  completionLoadingState: { alignItems: 'center', gap: 12, minHeight: 180, justifyContent: 'center' },
+  completionMember: { borderColor: '#393939', borderRadius: 12, borderWidth: 1, padding: 12 },
+  completionMemberName: { color: '#FFFFFF', fontSize: 15, fontWeight: '700', lineHeight: 22 },
+  completionPrimaryAction: { alignItems: 'center', backgroundColor: '#FF835F', borderRadius: 12, flex: 1, justifyContent: 'center', minHeight: 44, paddingHorizontal: 12 },
+  completionPrimaryActionText: { color: '#000000', fontSize: 14, fontWeight: '700', lineHeight: 20 },
+  completionRatingText: { color: '#FF835F', fontSize: 15, letterSpacing: 1, lineHeight: 22, marginTop: 4 },
+  completionReviewInput: { backgroundColor: '#101010', borderColor: '#393939', borderRadius: 12, borderWidth: 1, color: '#FFFFFF', fontSize: 16, lineHeight: 24, minHeight: 108, padding: 12, textAlignVertical: 'top' },
+  completionReviewText: { color: '#C7C7C7', fontSize: 14, lineHeight: 20, marginTop: 4 },
+  completionRoster: { gap: 8, marginTop: 16 },
+  completionSecondaryAction: { alignItems: 'center', borderColor: '#FF835F', borderRadius: 12, borderWidth: 1, justifyContent: 'center', minHeight: 44, paddingHorizontal: 12 },
+  completionSecondaryActionText: { color: '#FF835F', fontSize: 14, fontWeight: '700', lineHeight: 20 },
+  completionSheet: { backgroundColor: '#101010', borderColor: '#393939', borderTopLeftRadius: 20, borderTopRightRadius: 20, borderTopWidth: 1, maxHeight: '82%', paddingBottom: 24, paddingHorizontal: 16, paddingTop: 12 },
+  completionSheetHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
+  completionSheetTitle: { color: '#FFFFFF', fontSize: 18, fontWeight: '700', lineHeight: 26 },
   container: { backgroundColor: '#000000', flex: 1 },
   emptyTitle: { color: '#FFFFFF', fontSize: 17, fontWeight: '700', lineHeight: 24, textAlign: 'center' },
   errorText: { color: '#FF8A8A', fontSize: 15, lineHeight: 22, textAlign: 'center' },
@@ -521,6 +924,11 @@ const styles = StyleSheet.create({
   replyCancelButton: { alignItems: 'center', justifyContent: 'center', minHeight: 44, paddingHorizontal: 8 },
   replyCancelText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700', lineHeight: 20 },
   replyCard: { borderColor: '#FF835F', marginLeft: 24 },
+  ratingAction: { alignItems: 'center', justifyContent: 'center', minHeight: 44, minWidth: 44 },
+  ratingActionSelected: { backgroundColor: '#2D1712', borderRadius: 12 },
+  ratingActionText: { color: '#606060', fontSize: 28, lineHeight: 36 },
+  ratingActionTextSelected: { color: '#FF835F' },
+  ratingActions: { flexDirection: 'row', gap: 4 },
   saveError: { color: '#FF8A8A', fontSize: 14, lineHeight: 20 },
   secondaryAction: { alignItems: 'center', borderColor: '#FF835F', borderRadius: 12, borderWidth: 1, justifyContent: 'center', minHeight: 44, paddingHorizontal: 12 },
   secondaryActionPressed: { backgroundColor: '#2D1712' },

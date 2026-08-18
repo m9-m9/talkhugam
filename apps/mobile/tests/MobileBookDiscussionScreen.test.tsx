@@ -1,12 +1,16 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { readingRoomKeys } from '@talkhugam/domain'
+import { bookChatKeys, bookCompletionKeys, readingRoomKeys } from '@talkhugam/domain'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native'
 import { beforeEach, describe, expect, it, jest } from '@jest/globals'
 import type { PropsWithChildren } from 'react'
 
 jest.mock('../src/entities/post')
+jest.mock('../src/entities/book-completion')
 jest.mock('../src/entities/reading-room')
 jest.mock('../src/shared/api/mobileSupabaseClient')
+jest.mock('../src/shared/api/MobileAppProviders', () => ({
+  useMobileSessionProfileId: jest.fn(),
+}))
 
 import {
   createMobileDiscussionPost,
@@ -14,9 +18,15 @@ import {
   getMobileDiscussionMembers,
   getMobileDiscussionPosts,
 } from '../src/entities/post'
+import {
+  getMobileBookChatCompletions,
+  removeMobileBookChatCompletion,
+  upsertMobileBookChatCompletion,
+} from '../src/entities/book-completion'
 import { getMobileDiscussionBookChat } from '../src/entities/reading-room'
 import { MobileBookDiscussionScreen } from '../src/features/reading-room/MobileBookDiscussionScreen'
 import { createMobileSupabaseClient } from '../src/shared/api/mobileSupabaseClient'
+import { useMobileSessionProfileId } from '../src/shared/api/MobileAppProviders'
 
 const roomId = '00000000-0000-4000-8000-000000000001'
 const bookChatId = '00000000-0000-4000-8000-000000000002'
@@ -27,10 +37,14 @@ const submissionClientId = '00000000-0000-4000-8000-000000000006'
 
 const mockCreateMobileDiscussionPost = jest.mocked(createMobileDiscussionPost)
 const mockCreateMobileDiscussionReply = jest.mocked(createMobileDiscussionReply)
+const mockGetMobileBookChatCompletions = jest.mocked(getMobileBookChatCompletions)
 const mockGetMobileDiscussionBookChat = jest.mocked(getMobileDiscussionBookChat)
 const mockGetMobileDiscussionMembers = jest.mocked(getMobileDiscussionMembers)
 const mockGetMobileDiscussionPosts = jest.mocked(getMobileDiscussionPosts)
 const mockCreateMobileSupabaseClient = jest.mocked(createMobileSupabaseClient)
+const mockRemoveMobileBookChatCompletion = jest.mocked(removeMobileBookChatCompletion)
+const mockUpsertMobileBookChatCompletion = jest.mocked(upsertMobileBookChatCompletion)
+const mockUseMobileSessionProfileId = jest.mocked(useMobileSessionProfileId)
 
 /** 화면 상태를 격리할 Query Client를 생성한다. */
 function createQueryClient(): QueryClient {
@@ -67,6 +81,10 @@ describe('MobileBookDiscussionScreen', () => {
     mockCreateMobileSupabaseClient.mockReturnValue({} as never)
     mockCreateMobileDiscussionPost.mockResolvedValue(rootPostId)
     mockCreateMobileDiscussionReply.mockResolvedValue(rootPostId)
+    mockGetMobileBookChatCompletions.mockResolvedValue([])
+    mockRemoveMobileBookChatCompletion.mockResolvedValue()
+    mockUpsertMobileBookChatCompletion.mockResolvedValue()
+    mockUseMobileSessionProfileId.mockReturnValue(firstMemberId)
     Object.defineProperty(global, 'crypto', {
       configurable: true,
       value: { randomUUID: jest.fn(() => submissionClientId) },
@@ -254,5 +272,114 @@ describe('MobileBookDiscussionScreen', () => {
     await waitFor(() => expect(mockCreateMobileDiscussionPost).toHaveBeenCalledTimes(2))
     expect(mockCreateMobileDiscussionPost.mock.calls[0]?.[2]).toBe(submissionClientId)
     expect(mockCreateMobileDiscussionPost.mock.calls[1]?.[2]).toBe(submissionClientId)
+  })
+
+  it('opens a completion sheet with an accessible rating editor and saves a review', async () => {
+    const queryClient = createQueryClient()
+    const invalidateQueries = jest.spyOn(queryClient, 'invalidateQueries')
+
+    render(<MobileBookDiscussionScreen bookChatId={bookChatId} onBack={jest.fn()} roomId={roomId} />, {
+      wrapper: createQueryWrapper(queryClient),
+    })
+
+    expect(await screen.findByRole('button', { name: '완독 기록' })).toBeVisible()
+    fireEvent.press(screen.getByRole('button', { name: '완독 기록' }))
+    expect(await screen.findByLabelText('완독 기록 시트')).toBeVisible()
+    fireEvent.press(screen.getByRole('button', { name: '완독하기' }))
+    fireEvent.press(screen.getByRole('button', { name: '5점' }))
+    fireEvent.changeText(screen.getByLabelText('총평'), ' 끝까지 읽고 남은 생각이에요. ')
+    fireEvent.press(screen.getByRole('button', { name: '완독 기록 저장' }))
+
+    await waitFor(() =>
+      expect(mockUpsertMobileBookChatCompletion).toHaveBeenCalledWith(expect.anything(), {
+        bookChatId,
+        rating: 5,
+        review: '끝까지 읽고 남은 생각이에요.',
+      }),
+    )
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: bookCompletionKeys.byChat(bookChatId) })
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: bookCompletionKeys.myBooks(firstMemberId) })
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: bookChatKeys.myReading(firstMemberId, []),
+    })
+  })
+
+  it('shows current member completion records and prevents archived conversations from editing them', async () => {
+    mockGetMobileBookChatCompletions.mockResolvedValue([
+      {
+        avatarPath: null,
+        completedAt: '2026-08-18T01:00:00.000+00:00',
+        displayName: '민지',
+        isMe: false,
+        profileId: secondMemberId,
+        rating: 4,
+        review: '천천히 다시 읽고 싶어요.',
+      },
+    ])
+    mockGetMobileDiscussionBookChat.mockResolvedValue({
+      id: bookChatId,
+      name: '미움받을 용기',
+      roomId,
+      status: 'archived',
+      thumbnailUrl: null,
+      title: '미움받을 용기',
+    })
+
+    render(<MobileBookDiscussionScreen bookChatId={bookChatId} onBack={jest.fn()} roomId={roomId} />, {
+      wrapper: createQueryWrapper(),
+    })
+
+    expect(await screen.findByRole('button', { name: '완독 기록' })).toBeVisible()
+    fireEvent.press(screen.getByRole('button', { name: '완독 기록' }))
+    expect(await screen.findByText('민지')).toBeVisible()
+    expect(screen.getByText('천천히 다시 읽고 싶어요.')).toBeVisible()
+    expect(screen.queryByRole('button', { name: '완독하기' })).toBeNull()
+  })
+
+  it('shows a retryable error when the completion roster query fails', async () => {
+    mockGetMobileBookChatCompletions
+      .mockRejectedValueOnce(new Error('network unavailable'))
+      .mockResolvedValueOnce([])
+
+    render(<MobileBookDiscussionScreen bookChatId={bookChatId} onBack={jest.fn()} roomId={roomId} />, {
+      wrapper: createQueryWrapper(),
+    })
+
+    fireEvent.press(await screen.findByRole('button', { name: '완독 기록' }))
+    expect(
+      await screen.findByRole('alert', { name: '완독 현황을 불러오지 못했어요. 다시 시도해 주세요.' }),
+    ).toBeVisible()
+
+    fireEvent.press(screen.getByRole('button', { name: '완독 현황 다시 시도' }))
+    await waitFor(() => expect(mockGetMobileBookChatCompletions).toHaveBeenCalledTimes(2))
+    expect(await screen.findByText('아직 완독한 멤버가 없어요.')).toBeVisible()
+  })
+
+  it('keeps the completion roster open when cancelling a completion fails', async () => {
+    mockGetMobileBookChatCompletions.mockResolvedValue([
+      {
+        avatarPath: null,
+        completedAt: '2026-08-18T01:00:00.000+00:00',
+        displayName: '나',
+        isMe: true,
+        profileId: firstMemberId,
+        rating: 5,
+        review: '끝까지 읽었어요.',
+      },
+    ])
+    mockRemoveMobileBookChatCompletion.mockRejectedValue(new Error('network unavailable'))
+
+    render(<MobileBookDiscussionScreen bookChatId={bookChatId} onBack={jest.fn()} roomId={roomId} />, {
+      wrapper: createQueryWrapper(),
+    })
+
+    await waitFor(() => expect(mockGetMobileBookChatCompletions).toHaveBeenCalledTimes(1))
+    fireEvent.press(await screen.findByRole('button', { name: '완독 기록' }))
+    fireEvent.press(await screen.findByRole('button', { name: '완독 취소' }))
+
+    expect(
+      await screen.findByRole('alert', { name: '완독 기록을 취소하지 못했어요. 잠시 후 다시 시도해 주세요.' }),
+    ).toBeVisible()
+    expect(screen.getByText('끝까지 읽었어요.')).toBeVisible()
   })
 })
