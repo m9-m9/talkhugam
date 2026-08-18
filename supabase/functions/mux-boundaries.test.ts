@@ -51,6 +51,14 @@ Deno.test('mux upload rejects an origin outside the allowlist before auth', asyn
   })
 })
 
+Deno.test('mux upload without an origin still requires a user session for native clients', async () => {
+  await withEnv({ ALLOWED_ORIGINS: 'https://talkhugam.test' }, async () => {
+    const request = createJsonRequest('mux-create-upload', {})
+
+    assertEquals((await handleMuxCreateUpload(request)).status, 401)
+  })
+})
+
 Deno.test('mux webhook rejects an invalid signature', async () => {
   await withEnv({ MUX_WEBHOOK_SECRET: 'webhook-secret' }, async () => {
     const request = new Request('http://localhost/mux-webhook', {

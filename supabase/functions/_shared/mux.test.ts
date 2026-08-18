@@ -60,6 +60,24 @@ Deno.test('createDirectUpload requests signed basic-quality playback', async () 
   )
 })
 
+Deno.test('createDirectUpload omits the CORS origin for a native direct upload', async () => {
+  const requestBodies: Record<string, unknown>[] = []
+  const fetcher: typeof fetch = (_input, init) => {
+    requestBodies.push(JSON.parse(String(init?.body)) as Record<string, unknown>)
+    return Promise.resolve(new Response(JSON.stringify({
+      data: { id: 'upload-native-1', url: 'https://storage.example.test/native-upload' },
+    }), { status: 201 }))
+  }
+
+  await createDirectUpload(
+    { tokenId: 'token-id', tokenSecret: 'token-secret' },
+    { postId: crypto.randomUUID() },
+    fetcher,
+  )
+
+  assertEquals(requestBodies[0]?.cors_origin, undefined)
+})
+
 Deno.test('verifyMuxWebhook validates raw body HMAC and timestamp tolerance', async () => {
   const body = '{"type":"video.asset.ready"}'
   const now = 1_700_000_000
