@@ -16,9 +16,13 @@ jest.mock('expo-router', () => {
     return null
   }
 
-  return { Stack: MockStack }
+  return { Stack: MockStack, useRouter: () => ({ push: jest.fn() }) }
 })
 jest.mock('../src/shared/api/mobileSupabaseClient')
+jest.mock('expo-notifications', () => ({
+  addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
+  getLastNotificationResponseAsync: jest.fn(async () => null),
+}))
 
 import { createMobileSupabaseClient } from '../src/shared/api/mobileSupabaseClient'
 
