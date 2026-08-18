@@ -44,6 +44,7 @@ import { createMobileSupabaseClient } from '../../shared/api/mobileSupabaseClien
 type MobileBookDiscussionScreenProps = {
   bookChatId: string
   onBack(): void
+  onOpenVideoArchive?(): void
   roomId: string
 }
 
@@ -57,6 +58,7 @@ type Submission = {
 export function MobileBookDiscussionScreen({
   bookChatId,
   onBack,
+  onOpenVideoArchive,
   roomId,
 }: MobileBookDiscussionScreenProps): React.JSX.Element {
   const queryClient = useQueryClient()
@@ -217,6 +219,11 @@ export function MobileBookDiscussionScreen({
     void postsQuery.refetch()
   }
 
+  /** 현재 책 대화와 연결된 영상 기록 화면을 상위 라우터에 요청한다. */
+  function handleOpenVideoArchive(): void {
+    onOpenVideoArchive?.()
+  }
+
   /** 완독 기록 시트를 열고 기존 기록은 목록 상태로 먼저 확인하도록 한다. */
   function handleOpenCompletionSheet(): void {
     setCompletionError(null)
@@ -318,6 +325,16 @@ export function MobileBookDiscussionScreen({
               책 대화
             </Text>
           </View>
+          {onOpenVideoArchive ? (
+            <Pressable
+              accessibilityLabel="영상 기록"
+              accessibilityRole="button"
+              onPress={handleOpenVideoArchive}
+              style={styles.videoHeaderAction}
+            >
+              <Text style={styles.videoHeaderActionText}>영상</Text>
+            </Pressable>
+          ) : null}
           <Pressable
             accessibilityLabel="완독 기록"
             accessibilityRole="button"
@@ -942,4 +959,6 @@ const styles = StyleSheet.create({
   timeline: { flexGrow: 1, padding: 16 },
   timelineState: { alignItems: 'center', flex: 1, gap: 12, justifyContent: 'center', minHeight: 240 },
   title: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', lineHeight: 24 },
+  videoHeaderAction: { alignItems: 'center', justifyContent: 'center', minHeight: 44, minWidth: 44 },
+  videoHeaderActionText: { color: '#FF835F', fontSize: 14, fontWeight: '700' },
 })

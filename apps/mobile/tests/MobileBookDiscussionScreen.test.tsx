@@ -92,6 +92,27 @@ describe('MobileBookDiscussionScreen', () => {
     mockReadableDiscussion()
   })
 
+  it('opens the protected video archive from a readable book discussion', async () => {
+    const onOpenVideoArchive = jest.fn()
+    const queryClient = createQueryClient()
+    render(
+      <MobileBookDiscussionScreen
+        bookChatId={bookChatId}
+        onBack={jest.fn()}
+        onOpenVideoArchive={onOpenVideoArchive}
+        roomId={roomId}
+      />,
+      { wrapper: createQueryWrapper(queryClient) },
+    )
+
+    expect(await screen.findByRole('button', { name: '영상 기록' })).toBeVisible()
+    fireEvent.press(screen.getByRole('button', { name: '영상 기록' }))
+
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0))
+
+    expect(onOpenVideoArchive).toHaveBeenCalledTimes(1)
+  })
+
   it('renders one-level replies and identifies duplicate display-name mention candidates by member id', async () => {
     const queryClient = createQueryClient()
     const invalidateQueries = jest.spyOn(queryClient, 'invalidateQueries')

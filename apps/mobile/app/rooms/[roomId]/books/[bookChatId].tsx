@@ -29,10 +29,16 @@ export default function BookChatRouteShell(): React.JSX.Element {
     router.replace('/rooms')
   }
 
+  /** 현재 책 대화의 영상 기록 보관함으로 이동한다. */
+  function handleOpenVideoArchive(): void {
+    if (roomId === null || bookChatId === null) return
+    router.push(`/rooms/${roomId}/books/${bookChatId}/videos`)
+  }
+
   if (!isAllowed) return <MobileRouteLoadingScreen label="책 대화를 확인하고 있어요." />
   if (roomId === null || bookChatId === null) return <UnavailableBookChatRoute onBack={handleBack} />
 
-  return <MobileBookDiscussionScreen bookChatId={bookChatId} onBack={handleBack} roomId={roomId} />
+  return <MobileBookDiscussionScreen bookChatId={bookChatId} onBack={handleBack} onOpenVideoArchive={handleOpenVideoArchive} roomId={roomId} />
 }
 
 /** 잘못된 책방·책 대화 식별자에서 서버 접근 없이 책방 목록 복귀를 안내한다. */
