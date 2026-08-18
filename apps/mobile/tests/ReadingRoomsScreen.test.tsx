@@ -98,7 +98,7 @@ describe('MobileReadingRoomsScreen', () => {
   })
 
   it('shows a retryable error when protected room retrieval fails', async () => {
-    mockGetMobileReadingRooms.mockRejectedValue(new Error('network unavailable'))
+    mockGetMobileReadingRooms.mockRejectedValueOnce(new Error('network unavailable')).mockResolvedValueOnce([])
 
     render(<MobileReadingRoomsScreen onCreateRoom={jest.fn()} onJoinRoom={jest.fn()} onOpenRoom={jest.fn()} />, {
       wrapper: createQueryWrapper(),
@@ -109,6 +109,7 @@ describe('MobileReadingRoomsScreen', () => {
     ).toBeVisible()
     fireEvent.press(screen.getByRole('button', { name: '다시 시도' }))
     await waitFor(() => expect(mockGetMobileReadingRooms).toHaveBeenCalledTimes(2))
+    expect(await screen.findByText('아직 함께 읽는 책방이 없어요.')).toBeVisible()
   })
 
   it('renders a member-scoped room card with its invite-only summary', async () => {
