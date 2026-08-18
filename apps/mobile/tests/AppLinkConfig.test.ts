@@ -17,4 +17,19 @@ describe('Android App Link configuration', () => {
 
     expect(roomLink).toBeDefined()
   })
+
+  it('routes verified open community links into the native community route', () => {
+    const intentFilters = appConfig.expo.android.intentFilters
+    const communityLink = intentFilters
+      .flatMap((filter) => filter.data)
+      .find((data) => {
+        return (
+          data.scheme === 'https' &&
+          data.host === 'talkhugam.vercel.app' &&
+          data.pathPrefix === '/community'
+        )
+      })
+
+    expect(communityLink).toBeDefined()
+  })
 })

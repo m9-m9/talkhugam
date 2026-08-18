@@ -28,6 +28,11 @@
               "scheme": "https",
               "host": "talkhugam.vercel.app",
               "pathPrefix": "/rooms"
+            },
+            {
+              "scheme": "https",
+              "host": "talkhugam.vercel.app",
+              "pathPrefix": "/community"
             }
           ],
           "category": [
