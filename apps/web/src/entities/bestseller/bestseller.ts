@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { bookBestsellerKeys } from '@talkhugam/domain'
 import { z } from 'zod'
 
 const bestsellerSchema = z.object({
@@ -25,9 +26,7 @@ const bestsellerResponseSchema = z.object({
 export type BookBestseller = z.infer<typeof bestsellerSchema>
 export type BookBestsellerResult = z.infer<typeof bestsellerResultSchema>
 
-export const bookBestsellerKeys = {
-  current: ['book-bestsellers'] as const,
-}
+export { bookBestsellerKeys }
 
 /** Edge Function 성공 응답을 검증해 베스트셀러 도메인 결과로 변환한다. */
 export function parseBookBestsellerResponse(value: unknown): BookBestsellerResult {
