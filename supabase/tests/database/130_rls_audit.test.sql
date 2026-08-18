@@ -10,8 +10,8 @@ select is(
     where pg_namespace.nspname = 'public'
       and pg_class.relkind = 'r'
   ),
-  21::bigint,
-  'the backend should expose exactly twenty-one public tables'
+  22::bigint,
+  'the backend should expose exactly twenty-two public tables'
 );
 select is(
   (

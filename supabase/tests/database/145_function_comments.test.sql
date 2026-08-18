@@ -44,11 +44,14 @@ with documented_function_names(function_name) as (
     ('public.finish_account_deletion'),
     ('public.finish_deletion_job'),
     ('public.finish_notification_push_job'),
+    ('public.follow_profile'),
+    ('public.get_public_profile'),
     ('public.get_deletion_job_asset_ids'),
     ('public.get_my_reading_room_summaries'),
     ('public.join_room_by_invite'),
     ('public.leave_room'),
     ('public.mark_notifications_read'),
+    ('public.list_public_profile_followers'),
     ('public.prepare_account_deletion'),
     ('public.restore_book_chat'),
     ('public.restore_reading_room'),
@@ -58,6 +61,7 @@ with documented_function_names(function_name) as (
     ('public.revoke_room_invite'),
     ('public.set_book_chat_status'),
     ('public.transfer_room_ownership'),
+    ('public.unfollow_profile'),
     ('public.upsert_book_chat_completion'),
     ('public.upsert_book_chat_reading_progress'),
     ('public.update_room_member_profile')
@@ -74,7 +78,7 @@ database_functions as (
 )
 select is(
   count(distinct function_name),
-  57::bigint,
+  61::bigint,
   '모든 애플리케이션 데이터베이스 함수가 존재한다'
 )
 from database_functions;
@@ -121,11 +125,14 @@ with documented_function_names(function_name) as (
     ('public.finish_account_deletion'),
     ('public.finish_deletion_job'),
     ('public.finish_notification_push_job'),
+    ('public.follow_profile'),
+    ('public.get_public_profile'),
     ('public.get_deletion_job_asset_ids'),
     ('public.get_my_reading_room_summaries'),
     ('public.join_room_by_invite'),
     ('public.leave_room'),
     ('public.mark_notifications_read'),
+    ('public.list_public_profile_followers'),
     ('public.prepare_account_deletion'),
     ('public.restore_book_chat'),
     ('public.restore_reading_room'),
@@ -135,6 +142,7 @@ with documented_function_names(function_name) as (
     ('public.revoke_room_invite'),
     ('public.set_book_chat_status'),
     ('public.transfer_room_ownership'),
+    ('public.unfollow_profile'),
     ('public.upsert_book_chat_completion'),
     ('public.upsert_book_chat_reading_progress'),
     ('public.update_room_member_profile')
