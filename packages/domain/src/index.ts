@@ -16,6 +16,12 @@ export {
 } from './authFlow'
 export { normalizeProfileForm, profileFormSchema, type ProfileForm } from './profileForm'
 export {
+  mapPublicProfile,
+  publicProfileKeys,
+  publicProfileSchema,
+  type PublicProfile,
+} from './social'
+export {
   formatRoomMemberSummary,
   formatRoomMessagePreview,
   formatRoomMessageTime,

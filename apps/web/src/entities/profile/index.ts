@@ -2,6 +2,12 @@ export { completeOnboarding, createInitialProfileForm } from './completeOnboardi
 export { getOnboardingCompletedAt } from './getOnboardingStatus'
 export { getProfile } from './getProfile'
 export {
+  followPublicProfile,
+  getPublicProfile,
+  listPublicProfileFollowers,
+  unfollowPublicProfile,
+} from './publicProfile'
+export {
   createAvatarObjectPath,
   getAvatarUploadError,
   getProfileAvatarUrl,

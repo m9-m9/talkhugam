@@ -1,0 +1,89 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { publicProfileKeys } from '@talkhugam/domain'
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
+
+import {
+  followMobilePublicProfile,
+  getMobilePublicProfile,
+  getMobilePublicProfileFollowers,
+  unfollowMobilePublicProfile,
+} from '../../entities/profile'
+import { createMobileSupabaseClient } from '../../shared/api/mobileSupabaseClient'
+
+type MobilePublicProfileScreenProps = { onBack(): void; profileId: string }
+
+/** 다른 회원의 공개 허용 정보, 팔로워, 단방향 팔로우 행동을 표시한다. */
+export function MobilePublicProfileScreen({ onBack, profileId }: MobilePublicProfileScreenProps): React.JSX.Element {
+  const queryClient = useQueryClient()
+  const profileQuery = useQuery({
+    queryFn: () => getMobilePublicProfile(createMobileSupabaseClient(), profileId),
+    queryKey: publicProfileKeys.detail(profileId),
+  })
+  const followersQuery = useQuery({
+    queryFn: () => getMobilePublicProfileFollowers(createMobileSupabaseClient(), profileId),
+    queryKey: publicProfileKeys.followers(profileId),
+  })
+  const followMutation = useMutation({
+    mutationFn: (isFollowing: boolean) => isFollowing
+      ? unfollowMobilePublicProfile(createMobileSupabaseClient(), profileId)
+      : followMobilePublicProfile(createMobileSupabaseClient(), profileId),
+    onSuccess: (_result, wasFollowing) => {
+      queryClient.setQueryData(publicProfileKeys.detail(profileId), (current: typeof profileQuery.data) => current
+        ? { ...current, followerCount: Math.max(0, current.followerCount + (wasFollowing ? -1 : 1)), isFollowing: !wasFollowing }
+        : current)
+      void queryClient.invalidateQueries({ queryKey: publicProfileKeys.followers(profileId) })
+    },
+  })
+
+  /** 현재 팔로우 상태를 반전해 서버 RPC에 저장한다. */
+  function handleToggleFollow(): void {
+    if (!profileQuery.data || followMutation.isPending) return
+    followMutation.mutate(profileQuery.data.isFollowing)
+  }
+
+  if (profileQuery.isPending) return <PublicProfileStatus label="프로필을 불러오고 있어요." />
+  if (profileQuery.isError || !profileQuery.data) return <PublicProfileError onBack={onBack} onRetry={() => void profileQuery.refetch()} />
+
+  const profile = profileQuery.data
+  const actionLabel = `${profile.displayName} ${profile.isFollowing ? '언팔로우' : '팔로우'}`
+  return (
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <Pressable accessibilityLabel="이전 화면으로 돌아가기" accessibilityRole="button" onPress={onBack} style={styles.back}><Text style={styles.backText}>‹ 이전</Text></Pressable>
+        <View style={styles.profileCard}>
+          <View style={styles.avatar}><Text style={styles.avatarText}>{profile.displayName.slice(0, 1)}</Text></View>
+          <Text accessibilityRole="header" style={styles.name}>{profile.displayName}</Text>
+          <Text style={styles.bio}>{profile.bio || '아직 소개를 작성하지 않았어요.'}</Text>
+          <Text style={styles.count}>팔로워 {profile.followerCount}명</Text>
+          <Pressable accessibilityLabel={actionLabel} accessibilityRole="button" disabled={followMutation.isPending} onPress={handleToggleFollow} style={[styles.followButton, profile.isFollowing && styles.followingButton]}>
+            <Text style={[styles.followButtonText, profile.isFollowing && styles.followingButtonText]}>{followMutation.isPending ? '저장 중…' : profile.isFollowing ? '언팔로우' : '팔로우'}</Text>
+          </Pressable>
+          {followMutation.isError ? <Text accessibilityRole="alert" style={styles.error}>팔로우 상태를 저장하지 못했어요. 다시 시도해 주세요.</Text> : null}
+        </View>
+        <View style={styles.followerSection}>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>팔로워</Text>
+          {followersQuery.isPending ? <ActivityIndicator accessibilityLabel="팔로워를 불러오고 있어요." color="#FF835F" /> : null}
+          {followersQuery.isError ? <Pressable accessibilityLabel="팔로워 다시 불러오기" accessibilityRole="button" onPress={() => void followersQuery.refetch()} style={styles.retry}><Text style={styles.retryText}>다시 시도</Text></Pressable> : null}
+          {followersQuery.data?.length === 0 ? <Text style={styles.muted}>아직 팔로워가 없어요.</Text> : null}
+          {followersQuery.data?.map((follower) => <Text key={follower.id} style={styles.follower}>{follower.displayName}</Text>)}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  )
+}
+
+/** 공개 프로필 데이터를 불러오는 동안 전체 화면 진행 상태를 표시한다. */
+function PublicProfileStatus({ label }: { label: string }): React.JSX.Element {
+  return <SafeAreaView style={styles.container}><View accessibilityLabel={label} accessibilityRole="progressbar" style={styles.center}><ActivityIndicator color="#FF835F" /><Text style={styles.muted}>{label}</Text></View></SafeAreaView>
+}
+
+/** 공개 프로필을 찾지 못하거나 조회 실패했을 때 재시도와 뒤로가기를 제공한다. */
+function PublicProfileError({ onBack, onRetry }: { onBack(): void; onRetry(): void }): React.JSX.Element {
+  return <SafeAreaView style={styles.container}><View style={styles.center}><Text accessibilityRole="alert" style={styles.error}>프로필을 불러오지 못했어요.</Text><Pressable accessibilityLabel="프로필 다시 불러오기" accessibilityRole="button" onPress={onRetry} style={styles.retry}><Text style={styles.retryText}>다시 시도</Text></Pressable><Pressable accessibilityLabel="이전 화면으로 돌아가기" accessibilityRole="button" onPress={onBack} style={styles.back}><Text style={styles.backText}>이전으로</Text></Pressable></View></SafeAreaView>
+}
+
+const styles = StyleSheet.create({
+  avatar: { alignItems: 'center', backgroundColor: '#AD3D22', borderRadius: 40, height: 80, justifyContent: 'center', width: 80 },
+  avatarText: { color: '#FFFFFF', fontSize: 30, fontWeight: '700' }, back: { alignSelf: 'flex-start', justifyContent: 'center', minHeight: 44, minWidth: 72 }, backText: { color: '#FF835F', fontWeight: '700' }, bio: { color: '#C7C7C7', lineHeight: 22, textAlign: 'center' }, center: { alignItems: 'center', flex: 1, gap: 16, justifyContent: 'center', padding: 16 }, container: { backgroundColor: '#000000', flex: 1, paddingHorizontal: 16 }, content: { paddingBottom: 32 }, count: { color: '#FFFFFF', fontWeight: '700', marginTop: 16 }, error: { color: '#FF8A8A', textAlign: 'center' }, followButton: { alignItems: 'center', backgroundColor: '#FF835F', borderRadius: 12, justifyContent: 'center', marginTop: 20, minHeight: 48, width: '100%' }, followButtonText: { color: '#000000', fontWeight: '700' }, follower: { color: '#FFFFFF', minHeight: 44, paddingVertical: 12 }, followerSection: { borderTopColor: '#333333', borderTopWidth: 1, marginTop: 32, paddingTop: 24 }, followingButton: { backgroundColor: '#191919', borderColor: '#FF835F', borderWidth: 1 }, followingButtonText: { color: '#FF835F' }, muted: { color: '#C7C7C7' }, name: { color: '#FFFFFF', fontSize: 24, fontWeight: '700', marginTop: 16 }, profileCard: { alignItems: 'center', marginTop: 20 }, retry: { alignItems: 'center', borderColor: '#FF835F', borderRadius: 12, borderWidth: 1, justifyContent: 'center', marginTop: 12, minHeight: 44, paddingHorizontal: 16 }, retryText: { color: '#FF835F', fontWeight: '700' }, sectionTitle: { color: '#FFFFFF', fontSize: 18, fontWeight: '700', marginBottom: 12 },
+})
