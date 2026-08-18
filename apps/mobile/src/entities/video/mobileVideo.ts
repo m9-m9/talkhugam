@@ -1,5 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
+  parseVideoAsset,
+  parseVideoUploadResponse,
   parseVideoFilterMembers,
   parseVideoPlaybackAuthorization,
   parseVideoPosts,
@@ -12,6 +14,35 @@ import {
 import { z } from 'zod'
 
 import { getMobileAuthenticatedProfileId } from '../profile'
+
+/** 활성 책 대화에 멱등 clientId를 포함한 Mux 직접 업로드 생성을 요청한다. */
+export async function createMobileVideoUpload(
+  client: SupabaseClient,
+  bookChatId: string,
+  clientId: string,
+): Promise<{ postId: string; uploadUrl: string }> {
+  const response = await client.functions.invoke('mux-create-upload', {
+    body: {
+      bookChatId: z.string().uuid().parse(bookChatId),
+      clientId: z.string().uuid().parse(clientId),
+      labels: [],
+      mentionedMemberIds: [],
+    },
+  })
+  if (response.error) throw response.error
+  return parseVideoUploadResponse(response.data)
+}
+
+/** RLS로 허용된 영상 자산 하나의 처리 상태를 반환한다. */
+export async function getMobileVideoAsset(client: SupabaseClient, postId: string) {
+  const response = await client
+    .from('video_assets')
+    .select('post_id, status, error_code')
+    .eq('post_id', z.string().uuid().parse(postId))
+    .maybeSingle()
+  if (response.error) throw response.error
+  return response.data ? parseVideoAsset(response.data) : null
+}
 
 /** 활성 멤버에게 보이는 특정 책 대화의 삭제되지 않은 영상만 최신순으로 반환한다. */
 export async function getMobileVideoPosts(

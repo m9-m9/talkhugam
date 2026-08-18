@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { getMobileVideoFilterMembers, getMobileVideoPosts } from '../../entities/video'
 import { createMobileSupabaseClient } from '../../shared/api/mobileSupabaseClient'
+import { MobileVideoUploadSheet } from './MobileVideoUploadSheet'
 
 type MobileVideoArchiveScreenProps = {
   bookChatId: string
@@ -22,6 +23,7 @@ export function MobileVideoArchiveScreen({
   roomId,
 }: MobileVideoArchiveScreenProps): React.JSX.Element {
   const [filter, setFilter] = useState<VideoPostFilter>({ kind: 'all' })
+  const [isUploadSheetOpen, setIsUploadSheetOpen] = useState(false)
 
   /** 경로의 책방과 책 대화에 함께 속한 영상만 RLS 범위에서 읽는다. */
   async function fetchVideos() {
@@ -60,6 +62,12 @@ export function MobileVideoArchiveScreen({
     onOpenVideo(videoId)
   }
 
+  /** 영상 촬영·선택 시트를 열어 직접 업로드 시작을 허용한다. */
+  function handleOpenUploadSheet(): void { setIsUploadSheetOpen(true) }
+
+  /** 업로드 완료 또는 취소 뒤 시트를 닫는다. */
+  function handleCloseUploadSheet(): void { setIsUploadSheetOpen(false) }
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -72,6 +80,7 @@ export function MobileVideoArchiveScreen({
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>함께 남긴 독서 순간</Text>
         <Text style={styles.description}>이 책을 읽으며 남긴 영상이에요.</Text>
+        <Pressable accessibilityLabel="영상 추가" accessibilityRole="button" onPress={handleOpenUploadSheet} style={styles.uploadButton}><Text style={styles.uploadButtonText}>영상 추가</Text></Pressable>
         <VideoFilterBar
           currentMemberId={currentMemberId}
           filter={filter}
@@ -87,6 +96,7 @@ export function MobileVideoArchiveScreen({
           videos={videos}
         />
       </ScrollView>
+      {isUploadSheetOpen ? <MobileVideoUploadSheet bookChatId={bookChatId} onClose={handleCloseUploadSheet} roomId={roomId} /> : null}
     </SafeAreaView>
   )
 }
@@ -207,4 +217,6 @@ const styles = StyleSheet.create({
   videoPlaceholder: { alignItems: 'center', backgroundColor: '#AD3D22', borderRadius: 8, height: 56, justifyContent: 'center', width: 80 },
   videoPlaceholderText: { color: '#FFFFFF', fontSize: 22 },
   videoStatus: { color: '#C7C7C7', fontSize: 13, lineHeight: 19, marginTop: 4 },
+  uploadButton: { alignItems: 'center', alignSelf: 'flex-start', borderColor: '#FF835F', borderRadius: 12, borderWidth: 1, justifyContent: 'center', marginTop: 16, minHeight: 44, paddingHorizontal: 16 },
+  uploadButtonText: { color: '#FF835F', fontWeight: '700' },
 })

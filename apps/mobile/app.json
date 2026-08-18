@@ -8,7 +8,9 @@
     "userInterfaceStyle": "light",
     "ios": {
       "bundleIdentifier": "app.talkhugam",
-      "associatedDomains": ["applinks:talkhugam.vercel.app"]
+      "associatedDomains": [
+        "applinks:talkhugam.vercel.app"
+      ]
     },
     "android": {
       "package": "app.talkhugam",
@@ -28,10 +30,21 @@
               "pathPrefix": "/rooms"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
-    "plugins": ["expo-router", "expo-secure-store"]
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      ["expo-image-picker", {
+        "cameraPermission": "독서 순간 영상을 촬영하려면 카메라 접근이 필요합니다.",
+        "photosPermission": "독서 순간 영상을 선택하려면 사진 보관함 접근이 필요합니다."
+      }],
+      "expo-video"
+    ]
   }
 }
