@@ -20,7 +20,12 @@ const mockCreateMobileSupabaseClient = jest.mocked(createMobileSupabaseClient)
 
 /** 화면별 서버 캐시를 격리하는 Query Client를 반환한다. */
 function createQueryClient(): QueryClient {
-  return new QueryClient({ defaultOptions: { queries: { gcTime: Infinity, retry: false } } })
+  return new QueryClient({
+    defaultOptions: {
+      mutations: { gcTime: Infinity, retry: false },
+      queries: { gcTime: Infinity, retry: false },
+    },
+  })
 }
 
 /** 테스트 화면에 React Query provider를 주입하는 래퍼를 반환한다. */
@@ -49,6 +54,9 @@ describe('MobileVideoArchiveScreen', () => {
     render(<MobileVideoArchiveScreen bookChatId={bookChatId} onBack={jest.fn()} onOpenVideo={onOpenVideo} roomId={roomId} />, { wrapper: createQueryWrapper() })
 
     expect(await screen.findByText('민규의 영상')).toBeVisible()
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: '내 영상' })).toBeEnabled()
+    })
     fireEvent.press(screen.getByRole('button', { name: '내 영상' }))
     fireEvent.press(screen.getByRole('button', { name: '민규의 영상 열기' }))
 
@@ -60,7 +68,13 @@ describe('MobileVideoArchiveScreen', () => {
     render(<MobileVideoArchiveScreen bookChatId={bookChatId} onBack={jest.fn()} onOpenVideo={jest.fn()} roomId={roomId} />, { wrapper: createQueryWrapper() })
 
     expect(await screen.findByRole('alert')).toHaveTextContent('영상 기록을 불러오지 못했어요. 다시 시도해 주세요.')
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: '내 영상' })).toBeEnabled()
+    })
     fireEvent.press(screen.getByRole('button', { name: '영상 기록 다시 시도' }))
     await waitFor(() => expect(mockGetMobileVideoPosts).toHaveBeenCalledTimes(2))
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('영상 기록을 불러오지 못했어요. 다시 시도해 주세요.')
+    })
   })
 })

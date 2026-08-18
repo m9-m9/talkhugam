@@ -10,7 +10,10 @@
       "bundleIdentifier": "app.talkhugam",
       "associatedDomains": [
         "applinks:talkhugam.vercel.app"
-      ]
+      ],
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "app.talkhugam",
@@ -40,6 +43,9 @@
             "DEFAULT"
           ]
         }
+      ],
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "plugins": [
@@ -61,6 +67,12 @@
         "projectId": "df9281eb-d568-434a-a7a7-a3b8ea5feb64"
       }
     },
-    "owner": "facilance"
+    "owner": "facilance",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/df9281eb-d568-434a-a7a7-a3b8ea5feb64"
+    }
   }
 }
