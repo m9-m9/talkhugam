@@ -41,6 +41,7 @@ export {
 } from './readingRoomEntry'
 export {
   archivedBookChatRowSchema,
+  bookBestsellerKeys,
   bookChatKeys,
   bookChatRowSchema,
   bookSearchItemSchema,

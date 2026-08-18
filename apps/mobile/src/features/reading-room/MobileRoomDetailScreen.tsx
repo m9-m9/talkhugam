@@ -7,6 +7,7 @@ import { getMobileBookChats, getMobileReadingRoomDetail } from '../../entities/r
 import { createMobileSupabaseClient } from '../../shared/api/mobileSupabaseClient'
 
 type MobileRoomDetailScreenProps = {
+  onAddBook?(): void
   onBack(): void
   onOpenBookChat(bookChatId: string): void
   roomId: string | null
@@ -14,6 +15,7 @@ type MobileRoomDetailScreenProps = {
 
 /** 현재 회원에게 허용된 책방과 진행 중인 책 대화 목록을 상태별로 표시한다. */
 export function MobileRoomDetailScreen({
+  onAddBook,
   onBack,
   onOpenBookChat,
   roomId,
@@ -73,7 +75,10 @@ export function MobileRoomDetailScreen({
           ) : null}
         </View>
         <View style={styles.booksSection}>
-          <Text style={styles.sectionTitle}>지금 함께 읽는 책</Text>
+          <View style={styles.booksSectionHeader}>
+            <Text style={styles.sectionTitle}>지금 함께 읽는 책</Text>
+            {onAddBook ? <SecondaryAction label="새 책 대화 시작" onPress={onAddBook} /> : null}
+          </View>
           <BookChatsContent
             bookChats={bookChatsQuery.data ?? []}
             isError={bookChatsQuery.isError}
@@ -257,6 +262,7 @@ const styles = StyleSheet.create({
   bookPlaceholderText: { color: '#FFB5A3', fontSize: 12, fontWeight: '700', lineHeight: 18 },
   bookTitle: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', lineHeight: 24 },
   booksSection: { marginTop: 40 },
+  booksSectionHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
   container: { backgroundColor: '#000000', flex: 1, paddingHorizontal: 16 },
   description: { color: '#C7C7C7', fontSize: 15, lineHeight: 22, marginTop: 12 },
   emptyState: { alignItems: 'center', backgroundColor: '#101010', borderColor: '#393939', borderRadius: 12, borderWidth: 1, gap: 8, marginTop: 16, padding: 24 },
@@ -272,8 +278,8 @@ const styles = StyleSheet.create({
   primaryActionText: { color: '#000000', fontSize: 16, fontWeight: '700', lineHeight: 24 },
   roomName: { color: '#FFFFFF', fontSize: 28, fontWeight: '700', lineHeight: 38, marginTop: 8 },
   scrollContent: { flexGrow: 1, paddingBottom: 32 },
-  secondaryAction: { alignItems: 'center', borderColor: '#FF835F', borderRadius: 12, borderWidth: 1, justifyContent: 'center', minHeight: 48, minWidth: 120, paddingHorizontal: 16 },
-  secondaryActionText: { color: '#FF835F', fontSize: 16, fontWeight: '700', lineHeight: 24 },
+  secondaryAction: { alignItems: 'center', borderColor: '#FF835F', borderRadius: 12, borderWidth: 1, justifyContent: 'center', minHeight: 44, minWidth: 120, paddingHorizontal: 12 },
+  secondaryActionText: { color: '#FF835F', fontSize: 14, fontWeight: '700', lineHeight: 20 },
   sectionTitle: { color: '#FFFFFF', fontSize: 18, fontWeight: '700', lineHeight: 26 },
   state: { alignItems: 'center', gap: 12, minHeight: 180, justifyContent: 'center' },
   stateText: { color: '#C7C7C7', fontSize: 15, lineHeight: 22, maxWidth: 280, textAlign: 'center' },

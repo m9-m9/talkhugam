@@ -30,6 +30,11 @@ export const bookSearchResponseSchema = z.object({
   requestId: z.string(),
 })
 
+/** 웹과 네이티브가 같은 추천 도서 캐시를 식별할 때 사용하는 Query Key를 제공한다. */
+export const bookBestsellerKeys = {
+  current: ['book-bestsellers'] as const,
+}
+
 export const readingRoomDetailSchema = z.object({
   description: z.string().nullable(),
   id: z.string().uuid(),

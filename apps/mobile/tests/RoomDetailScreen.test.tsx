@@ -71,6 +71,29 @@ describe('MobileRoomDetailScreen', () => {
     expect(onOpenBookChat).toHaveBeenCalledWith(bookChatId)
   })
 
+  it('offers a member-scoped action to add the first book conversation', async () => {
+    mockGetMobileReadingRoomDetail.mockResolvedValue({
+      description: null,
+      id: roomId,
+      name: '금요일 아침 책방',
+    })
+    mockGetMobileBookChats.mockResolvedValue([])
+    const onAddBook = jest.fn()
+
+    render(
+      <MobileRoomDetailScreen
+        onAddBook={onAddBook}
+        onBack={jest.fn()}
+        onOpenBookChat={jest.fn()}
+        roomId={roomId}
+      />,
+      { wrapper: createQueryWrapper() },
+    )
+
+    fireEvent.press(await screen.findByRole('button', { name: '새 책 대화 시작' }))
+    expect(onAddBook).toHaveBeenCalledTimes(1)
+  })
+
   it('returns to my rooms when RLS hides a room outside the member boundary', async () => {
     mockGetMobileReadingRoomDetail.mockResolvedValue(null)
     const onBack = jest.fn()

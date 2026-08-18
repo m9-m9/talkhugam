@@ -29,9 +29,20 @@ export default function RoomDetailRoute(): React.JSX.Element {
     router.push(`/rooms/${roomId}/books/${bookChatId}`)
   }
 
+  /** 현재 회원이 참여 중인 책방의 새 책 검색 화면으로 이동한다. */
+  function handleAddBook(): void {
+    if (roomId === null) return
+    router.push(`/rooms/${roomId}/books/new`)
+  }
+
   if (!isAllowed) return <MobileRouteLoadingScreen label="책방을 확인하고 있어요." />
 
   return (
-    <MobileRoomDetailScreen onBack={handleBack} onOpenBookChat={handleOpenBookChat} roomId={roomId} />
+    <MobileRoomDetailScreen
+      onAddBook={handleAddBook}
+      onBack={handleBack}
+      onOpenBookChat={handleOpenBookChat}
+      roomId={roomId}
+    />
   )
 }

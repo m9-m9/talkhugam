@@ -5,6 +5,12 @@ export {
   getMobileReadingRoomDetail,
 } from './mobileRoomDetail'
 export {
+  createMobileBookChat,
+  getMobileBookBestsellers,
+  mobileBookSearchQuerySchema,
+  searchMobileBooks,
+} from './mobileBookDiscovery'
+export {
   createMobileRoomWithInvite,
   joinMobileRoomByCode,
   type MobileCreatedRoomInvite,
