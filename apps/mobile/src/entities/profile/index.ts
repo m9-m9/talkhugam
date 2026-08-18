@@ -2,7 +2,10 @@ export {
   completeMobileOnboarding,
   getMobileAuthenticatedProfileId,
   getMobileProfile,
+  getMobileProfileAvatarUrl,
+  requestMobileAccountDeletion,
   updateMobileProfile,
+  uploadMobileProfileAvatar,
   type MobileProfile,
 } from './mobileProfile'
 export {
@@ -10,3 +13,4 @@ export {
   updateMobileNotificationPreferences,
   type MobileNotificationPreferences,
 } from './mobileNotificationPreferences'
+export { parseMobileAvatarFile, type MobileAvatarFile } from './mobileProfileAvatar'

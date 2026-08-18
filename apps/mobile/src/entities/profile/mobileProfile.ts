@@ -100,3 +100,38 @@ export async function updateMobileProfile(
   profileUpdateRowSchema.parse(response.data)
   return profile
 }
+
+/** 현재 회원 고정 경로의 private avatar 객체를 교체하고 profiles 행을 갱신한다. */
+export async function uploadMobileProfileAvatar(
+  client: SupabaseClient,
+  input: { file: Blob; mimeType: 'image/jpeg' | 'image/png' | 'image/webp' },
+): Promise<string> {
+  const profileId = await getMobileAuthenticatedProfileId(client)
+  const avatarPath = `${profileId}/avatar`
+  const uploadResponse = await client.storage.from('avatars').upload(avatarPath, input.file, {
+    contentType: input.mimeType,
+    upsert: true,
+  })
+  if (uploadResponse.error) throw uploadResponse.error
+  const profileResponse = await client.from('profiles').update({ avatar_path: avatarPath }).eq('id', profileId).select('id').single()
+  if (profileResponse.error) throw profileResponse.error
+  profileUpdateRowSchema.parse(profileResponse.data)
+  return avatarPath
+}
+
+/** 현재 회원에게 허용된 private avatar 객체의 짧은 signed URL을 반환한다. */
+export async function getMobileProfileAvatarUrl(client: SupabaseClient, avatarPath: string | null): Promise<string | null> {
+  if (!avatarPath) return null
+  const response = await client.storage.from('avatars').createSignedUrl(avatarPath, 60 * 60)
+  if (response.error) throw response.error
+  return response.data.signedUrl
+}
+
+/** 보호된 Edge Function에 현재 회원의 계정 삭제 방식을 요청한다. */
+export async function requestMobileAccountDeletion(
+  client: SupabaseClient,
+  mode: 'anonymize' | 'delete_content',
+): Promise<void> {
+  const response = await client.functions.invoke('account-delete', { body: { mode } })
+  if (response.error) throw response.error
+}

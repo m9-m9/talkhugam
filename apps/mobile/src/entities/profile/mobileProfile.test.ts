@@ -1,7 +1,12 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { describe, expect, it, vi } from 'vitest'
 
-import { completeMobileOnboarding, getMobileProfile, updateMobileProfile } from './mobileProfile'
+import {
+  completeMobileOnboarding,
+  getMobileProfile,
+  requestMobileAccountDeletion,
+  updateMobileProfile,
+} from './mobileProfile'
 
 const profileId = '4493a33c-c880-4743-a03d-1dae1cd28309'
 
@@ -115,5 +120,24 @@ describe('mobileProfile', () => {
     await expect(
       updateMobileProfile(client, { bio: '같이 읽을 책을 찾고 있어요.', displayName: '민규' }),
     ).rejects.toThrow('The result contains 0 rows')
+  })
+
+  it('sends only the selected deletion mode to the protected account-delete function', async () => {
+    const invoke = vi.fn(async () => ({ data: null, error: null }))
+    const client = { functions: { invoke } } as unknown as SupabaseClient
+
+    await expect(requestMobileAccountDeletion(client, 'delete_content')).resolves.toBeUndefined()
+
+    expect(invoke).toHaveBeenCalledWith('account-delete', {
+      body: { mode: 'delete_content' },
+    })
+  })
+
+  it('propagates an account-delete function failure without attempting a local fallback', async () => {
+    const invoke = vi.fn(async () => ({ data: null, error: new Error('forbidden') }))
+    const client = { functions: { invoke } } as unknown as SupabaseClient
+
+    await expect(requestMobileAccountDeletion(client, 'anonymize')).rejects.toThrow('forbidden')
+    expect(invoke).toHaveBeenCalledOnce()
   })
 })

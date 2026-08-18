@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -13,7 +14,9 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 import {
   getMobileNotificationPreferences,
+  getMobileProfileAvatarUrl,
   getMobileProfile,
+  requestMobileAccountDeletion,
   updateMobileNotificationPreferences,
   type MobileNotificationPreferences,
 } from '../../entities/profile'
@@ -45,6 +48,9 @@ export function MobileProfileScreen({
   const [isSigningOut, setIsSigningOut] = useState(false)
   const [isPreferenceSaving, setIsPreferenceSaving] = useState(false)
   const [signOutErrorMessage, setSignOutErrorMessage] = useState<string | null>(null)
+  const [deletionMode, setDeletionMode] = useState<'anonymize' | 'delete_content' | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deletionError, setDeletionError] = useState<string | null>(null)
   const signOutLockedRef = useRef(false)
   const preferenceLockedRef = useRef(false)
   const profileQuery = useQuery({
@@ -56,6 +62,11 @@ export function MobileProfileScreen({
     enabled: profileId !== null,
     queryFn: () => getMobileNotificationPreferences(createMobileSupabaseClient()),
     queryKey: ['notification-preferences', profileId],
+  })
+  const avatarQuery = useQuery({
+    enabled: Boolean(profileQuery.data?.avatarPath),
+    queryFn: () => getMobileProfileAvatarUrl(createMobileSupabaseClient(), profileQuery.data?.avatarPath ?? null),
+    queryKey: ['mobile-profile-avatar', profileId, profileQuery.data?.avatarPath, profileQuery.data?.updatedAt],
   })
   const preferenceMutation = useMutation({
     mutationFn: (preferences: MobileNotificationPreferences) =>
@@ -116,6 +127,22 @@ export function MobileProfileScreen({
     }
   }
 
+  /** 삭제 방식을 선택해 사용자가 최종 확인할 수 있는 상태로 전환한다. */
+  function handleSelectDeletionMode(mode: 'anonymize' | 'delete_content'): void { setDeletionMode(mode); setDeletionError(null) }
+
+  /** 서버 삭제 성공 뒤에만 기기 세션을 지우고 로그인 시작 화면 이동을 요청한다. */
+  async function handleConfirmDeletion(): Promise<void> {
+    if (!deletionMode || isDeleting) return
+    setIsDeleting(true); setDeletionError(null)
+    try {
+      await requestMobileAccountDeletion(createMobileSupabaseClient(), deletionMode)
+      const response = await createMobileSupabaseClient().auth.signOut()
+      if (response.error) throw response.error
+      queryClient.clear()
+      onSignedOut()
+    } catch { setDeletionError('계정 삭제를 완료하지 못했어요. 잠시 후 다시 시도해 주세요.') } finally { setIsDeleting(false) }
+  }
+
   if (profileQuery.isPending) return <ProfileLoadingState />
   if (profileQuery.isError || !profileQuery.data)
     return <ProfileLoadErrorState onRetry={handleRetryProfile} />
@@ -132,7 +159,7 @@ export function MobileProfileScreen({
           <View style={styles.topBarSpacer} />
         </View>
         <View style={styles.profileCard}>
-          <View style={styles.avatar}><Text style={styles.avatarText}>{profile.displayName.slice(0, 1)}</Text></View>
+          <View style={styles.avatar}>{avatarQuery.data ? <Image accessibilityLabel="프로필 사진" source={{ uri: avatarQuery.data }} style={styles.avatarImage} /> : <Text style={styles.avatarText}>{profile.displayName.slice(0, 1)}</Text>}</View>
           <View style={styles.profileCopy}>
             <Text style={styles.displayName}>{profile.displayName}</Text>
             <Text style={styles.bio}>{profile.bio || '아직 소개를 작성하지 않았어요.'}</Text>
@@ -154,10 +181,18 @@ export function MobileProfileScreen({
             saveError={preferenceMutation.isError}
           />
         </View>
+        {avatarQuery.isError ? <Pressable accessibilityLabel="프로필 사진 다시 불러오기" accessibilityRole="button" onPress={() => void avatarQuery.refetch()} style={styles.retryButton}><Text style={styles.retryText}>프로필 사진 다시 불러오기</Text></Pressable> : null}
+        <View style={styles.section}>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>계정 삭제</Text>
+          <Text style={styles.sectionDescription}>삭제 방식은 되돌릴 수 없어요.</Text>
+          <Pressable accessibilityLabel="프로필만 익명화하고 계정 삭제" accessibilityRole="button" disabled={isDeleting} onPress={() => handleSelectDeletionMode('anonymize')} style={styles.outlineButton}><Text style={styles.outlineButtonText}>프로필 익명화 후 삭제</Text></Pressable>
+          <Pressable accessibilityLabel="콘텐츠까지 삭제하고 계정 삭제" accessibilityRole="button" disabled={isDeleting} onPress={() => handleSelectDeletionMode('delete_content')} style={styles.outlineButton}><Text style={styles.outlineButtonText}>콘텐츠까지 삭제</Text></Pressable>
+        </View>
         {signOutErrorMessage ? <Text accessibilityRole="alert" style={styles.errorText}>{signOutErrorMessage}</Text> : null}
         <Pressable accessibilityLabel={isSigningOut ? '로그아웃하고 있어요.' : '로그아웃'} accessibilityRole="button" disabled={isSigningOut} onPress={() => void handleSignOut()} style={({ pressed }) => [styles.signOutButton, isSigningOut && styles.disabledButton, pressed && !isSigningOut && styles.signOutButtonPressed]}>
           {isSigningOut ? <ActivityIndicator color="#FF835F" /> : <Text style={styles.signOutText}>로그아웃</Text>}
         </Pressable>
+        {deletionMode ? <View accessibilityLabel="계정 삭제 확인" accessibilityViewIsModal style={styles.deletionSheet}><Text style={styles.sectionTitle}>{deletionMode === 'anonymize' ? '프로필을 익명화하고 삭제할까요?' : '콘텐츠까지 삭제할까요?'}</Text><Text style={styles.sectionDescription}>이 작업은 되돌릴 수 없어요.</Text>{deletionError ? <Text accessibilityRole="alert" style={styles.errorText}>{deletionError}</Text> : null}<Pressable accessibilityLabel="계정 삭제 최종 확인" accessibilityRole="button" disabled={isDeleting} onPress={() => void handleConfirmDeletion()} style={styles.deleteConfirm}><Text style={styles.deleteConfirmText}>{isDeleting ? '삭제 중…' : '삭제하기'}</Text></Pressable><Pressable accessibilityLabel="계정 삭제 취소" accessibilityRole="button" disabled={isDeleting} onPress={() => setDeletionMode(null)} style={styles.closeDeletion}><Text style={styles.closeDeletionText}>취소</Text></Pressable></View> : null}
       </ScrollView>
     </SafeAreaView>
   )
@@ -202,6 +237,7 @@ function ProfileLoadErrorState({ onRetry }: { onRetry(): void }): React.JSX.Elem
 
 const styles = StyleSheet.create({
   avatar: { alignItems: 'center', backgroundColor: '#AD3D22', borderRadius: 32, height: 64, justifyContent: 'center', width: 64 },
+  avatarImage: { borderRadius: 32, height: 64, width: 64 },
   avatarText: { color: '#FFFFFF', fontSize: 24, fontWeight: '700' },
   backButton: { justifyContent: 'center', minHeight: 44, minWidth: 72 },
   backButtonText: { color: '#FF835F', fontSize: 15, fontWeight: '700' },
@@ -209,6 +245,11 @@ const styles = StyleSheet.create({
   centered: { alignItems: 'center', flex: 1, gap: 16, justifyContent: 'center', padding: 16 },
   container: { backgroundColor: '#000000', flex: 1, paddingHorizontal: 16 },
   disabledButton: { opacity: 0.5 },
+  deletionSheet: { backgroundColor: '#101010', borderColor: '#393939', borderRadius: 16, borderWidth: 1, gap: 12, marginTop: 24, padding: 16 },
+  deleteConfirm: { alignItems: 'center', backgroundColor: '#FF835F', borderRadius: 12, justifyContent: 'center', minHeight: 48 },
+  deleteConfirmText: { color: '#000000', fontWeight: '700' },
+  closeDeletion: { alignItems: 'center', justifyContent: 'center', minHeight: 44 },
+  closeDeletionText: { color: '#C7C7C7', fontWeight: '700' },
   displayName: { color: '#FFFFFF', fontSize: 22, fontWeight: '700', lineHeight: 30 },
   errorText: { color: '#FF8A8A', fontSize: 14, lineHeight: 20, textAlign: 'center' },
   heading: { color: '#FFFFFF', fontSize: 18, fontWeight: '700', lineHeight: 26 },

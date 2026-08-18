@@ -10,6 +10,8 @@ jest.mock('../src/shared/api/MobileAppProviders', () => ({ useMobileSessionProfi
 import {
   getMobileNotificationPreferences,
   getMobileProfile,
+  getMobileProfileAvatarUrl,
+  requestMobileAccountDeletion,
   updateMobileNotificationPreferences,
 } from '../src/entities/profile'
 import { MobileProfileScreen } from '../src/features/profile/MobileProfileScreen'
@@ -18,6 +20,8 @@ import { createMobileSupabaseClient } from '../src/shared/api/mobileSupabaseClie
 
 const mockGetMobileNotificationPreferences = jest.mocked(getMobileNotificationPreferences)
 const mockGetMobileProfile = jest.mocked(getMobileProfile)
+const mockGetMobileProfileAvatarUrl = jest.mocked(getMobileProfileAvatarUrl)
+const mockRequestMobileAccountDeletion = jest.mocked(requestMobileAccountDeletion)
 const mockUpdateMobileNotificationPreferences = jest.mocked(updateMobileNotificationPreferences)
 const mockUseMobileSessionProfileId = jest.mocked(useMobileSessionProfileId)
 const mockCreateMobileSupabaseClient = jest.mocked(createMobileSupabaseClient)
@@ -62,6 +66,8 @@ describe('MobileProfileScreen', () => {
       repliesEnabled: true,
       roomEventsEnabled: false,
     })
+    mockGetMobileProfileAvatarUrl.mockResolvedValue(null)
+    mockRequestMobileAccountDeletion.mockResolvedValue(undefined)
     mockUpdateMobileNotificationPreferences.mockResolvedValue({
       mentionsEnabled: false,
       repliesEnabled: true,
@@ -148,6 +154,65 @@ describe('MobileProfileScreen', () => {
     fireEvent.press(await screen.findByRole('button', { name: '로그아웃' }))
 
     await waitFor(() => {
+      expect(signOut).toHaveBeenCalledTimes(1)
+      expect(onSignedOut).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  it('displays a private avatar signed URL and retries its failed retrieval', async () => {
+    mockGetMobileProfile.mockResolvedValue({
+      avatarPath: `${profileId}/avatar`,
+      bio: '느리게 읽어요.',
+      displayName: '민규',
+      onboardingCompletedAt: '2026-08-18T00:00:00.000Z',
+      updatedAt: '2026-08-18T00:00:00.000Z',
+    })
+    mockGetMobileProfileAvatarUrl
+      .mockRejectedValueOnce(new Error('signed URL failed'))
+      .mockResolvedValueOnce('https://storage.example/avatar?token=short-lived')
+
+    render(
+      <MobileProfileScreen onBack={jest.fn()} onEditProfile={jest.fn()} onSignedOut={jest.fn()} />,
+      { wrapper: createQueryWrapper() },
+    )
+
+    fireEvent.press(await screen.findByRole('button', { name: '프로필 사진 다시 불러오기' }))
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('프로필 사진')).toHaveProp('source', {
+        uri: 'https://storage.example/avatar?token=short-lived',
+      })
+    })
+    expect(mockGetMobileProfileAvatarUrl).toHaveBeenCalledTimes(2)
+    expect(mockGetMobileProfileAvatarUrl).toHaveBeenLastCalledWith(mobileClient, `${profileId}/avatar`)
+  })
+
+  it('requires a deletion mode confirmation, retries an error, then clears the session', async () => {
+    const onSignedOut = jest.fn()
+    mockRequestMobileAccountDeletion
+      .mockRejectedValueOnce(new Error('network'))
+      .mockResolvedValueOnce(undefined)
+
+    render(
+      <MobileProfileScreen onBack={jest.fn()} onEditProfile={jest.fn()} onSignedOut={onSignedOut} />,
+      { wrapper: createQueryWrapper() },
+    )
+
+    fireEvent.press(await screen.findByRole('button', { name: '프로필만 익명화하고 계정 삭제' }))
+    expect(screen.getByLabelText('계정 삭제 확인')).toBeVisible()
+    expect(screen.getByText('프로필을 익명화하고 삭제할까요?')).toBeVisible()
+    fireEvent.press(screen.getByRole('button', { name: '계정 삭제 취소' }))
+
+    fireEvent.press(screen.getByRole('button', { name: '콘텐츠까지 삭제하고 계정 삭제' }))
+    fireEvent.press(screen.getByRole('button', { name: '계정 삭제 최종 확인' }))
+    expect(
+      await screen.findByRole('alert', { name: '계정 삭제를 완료하지 못했어요. 잠시 후 다시 시도해 주세요.' }),
+    ).toBeVisible()
+    expect(signOut).not.toHaveBeenCalled()
+
+    fireEvent.press(screen.getByRole('button', { name: '계정 삭제 최종 확인' }))
+    await waitFor(() => {
+      expect(mockRequestMobileAccountDeletion).toHaveBeenLastCalledWith(mobileClient, 'delete_content')
       expect(signOut).toHaveBeenCalledTimes(1)
       expect(onSignedOut).toHaveBeenCalledTimes(1)
     })
