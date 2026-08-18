@@ -19,6 +19,10 @@ import { ProfilePage } from '../../pages/profile/ProfilePage'
 import { PublicProfilePage } from '../../pages/profile/PublicProfilePage'
 import { MyReadingBooksPage } from '../../pages/profile/MyReadingBooksPage'
 import { NotificationsPage } from '../../pages/notifications/NotificationsPage'
+import { CommunityRoomsPage } from '../../pages/community/CommunityRoomsPage'
+import { JoinCommunityRoomPage } from '../../pages/community/JoinCommunityRoomPage'
+import { CreateCommunityRoomPage } from '../../pages/community/CreateCommunityRoomPage'
+import { CommunityRoomDetailPage } from '../../pages/community/CommunityRoomDetailPage'
 import { BookSearchPage } from '../../pages/rooms/BookSearchPage'
 import { BookDiscussionPage } from '../../pages/rooms/BookDiscussionPage'
 import { BookChatManagementPage } from '../../pages/rooms/BookChatManagementPage'
@@ -70,6 +74,10 @@ export const router = createBrowserRouter([
                 errorElement: <RouteRecoveryPage kind="error" />,
                 children: [
                   { path: '/rooms', element: <RoomsPage /> },
+                  { path: '/community', element: <CommunityRoomsPage /> },
+                  { path: '/community/create', element: <CreateCommunityRoomPage /> },
+                  { path: '/community/:roomId/join', element: <JoinCommunityRoomPage /> },
+                  { path: '/community/:roomId', element: <CommunityRoomDetailPage /> },
                   { path: '/notifications', element: <NotificationsPage /> },
                   { path: '/profile', element: <ProfilePage /> },
                   { path: '/profiles/:profileId', element: <PublicProfilePage /> },

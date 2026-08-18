@@ -48,6 +48,7 @@ with documented_function_names(function_name) as (
     ('public.finish_notification_push_job'),
     ('public.follow_profile'),
     ('public.get_public_profile'),
+    ('public.get_community_room'),
     ('public.get_deletion_job_asset_ids'),
     ('public.get_my_reading_room_summaries'),
     ('public.join_room_by_invite'),
@@ -56,6 +57,7 @@ with documented_function_names(function_name) as (
     ('public.mark_notifications_read'),
     ('public.list_public_profile_followers'),
     ('public.list_community_rooms'),
+    ('public.list_community_messages'),
     ('public.prepare_account_deletion'),
     ('public.restore_book_chat'),
     ('public.restore_reading_room'),
@@ -84,7 +86,7 @@ database_functions as (
 )
 select is(
   count(distinct function_name),
-  67::bigint,
+  69::bigint,
   '모든 애플리케이션 데이터베이스 함수가 존재한다'
 )
 from database_functions;
@@ -135,6 +137,7 @@ with documented_function_names(function_name) as (
     ('public.finish_notification_push_job'),
     ('public.follow_profile'),
     ('public.get_public_profile'),
+    ('public.get_community_room'),
     ('public.get_deletion_job_asset_ids'),
     ('public.get_my_reading_room_summaries'),
     ('public.join_room_by_invite'),
@@ -143,6 +146,7 @@ with documented_function_names(function_name) as (
     ('public.mark_notifications_read'),
     ('public.list_public_profile_followers'),
     ('public.list_community_rooms'),
+    ('public.list_community_messages'),
     ('public.prepare_account_deletion'),
     ('public.restore_book_chat'),
     ('public.restore_reading_room'),

@@ -22,6 +22,17 @@ export {
   type PublicProfile,
 } from './social'
 export {
+  communityKeys,
+  createCommunityRoomFormSchema,
+  joinCommunityRoomFormSchema,
+  parseCommunityRooms,
+  parseJoinCommunityRoomResult,
+  type CommunityRoom,
+  type CreateCommunityRoomForm,
+  type JoinCommunityRoomForm,
+  type JoinCommunityRoomResult,
+} from './community'
+export {
   formatRoomMemberSummary,
   formatRoomMessagePreview,
   formatRoomMessageTime,
