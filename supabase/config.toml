@@ -106,6 +106,9 @@ verify_jwt = false
 [functions.deletion-worker]
 verify_jwt = false
 
+[functions.notification-push-worker]
+verify_jwt = false
+
 [functions.account-delete]
 verify_jwt = false
 

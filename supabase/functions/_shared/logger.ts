@@ -11,6 +11,7 @@ export type OperationalEvent =
   | 'mux_upload_failed'
   | 'mux_upload_started'
   | 'mux_webhook_failed'
+  | 'notification_push_worker_completed'
   | 'naver_oauth_failed'
   | 'naver_oauth_succeeded'
 

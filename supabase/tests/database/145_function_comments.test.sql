@@ -30,6 +30,7 @@ with documented_function_names(function_name) as (
     ('public.apply_mux_video_event'),
     ('public.backend_operational_health'),
     ('public.claim_deletion_jobs'),
+    ('public.claim_notification_push_jobs'),
     ('public.consume_rate_limit'),
     ('public.create_book_chat'),
     ('public.create_post'),
@@ -42,6 +43,7 @@ with documented_function_names(function_name) as (
     ('public.delete_video_post'),
     ('public.finish_account_deletion'),
     ('public.finish_deletion_job'),
+    ('public.finish_notification_push_job'),
     ('public.get_deletion_job_asset_ids'),
     ('public.get_my_reading_room_summaries'),
     ('public.join_room_by_invite'),
@@ -72,7 +74,7 @@ database_functions as (
 )
 select is(
   count(distinct function_name),
-  55::bigint,
+  57::bigint,
   '모든 애플리케이션 데이터베이스 함수가 존재한다'
 )
 from database_functions;
@@ -105,6 +107,7 @@ with documented_function_names(function_name) as (
     ('public.apply_mux_video_event'),
     ('public.backend_operational_health'),
     ('public.claim_deletion_jobs'),
+    ('public.claim_notification_push_jobs'),
     ('public.consume_rate_limit'),
     ('public.create_book_chat'),
     ('public.create_post'),
@@ -117,6 +120,7 @@ with documented_function_names(function_name) as (
     ('public.delete_video_post'),
     ('public.finish_account_deletion'),
     ('public.finish_deletion_job'),
+    ('public.finish_notification_push_job'),
     ('public.get_deletion_job_asset_ids'),
     ('public.get_my_reading_room_summaries'),
     ('public.join_room_by_invite'),

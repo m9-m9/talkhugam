@@ -52,6 +52,55 @@ create index notification_push_outbox_pending_idx
 on public.notification_push_outbox (next_retry_at, created_at)
 where status in ('pending', 'retry');
 
+create or replace function public.claim_notification_push_jobs(p_limit integer default 20)
+returns table (id uuid, notification_id uuid, recipient_profile_id uuid, attempts smallint, type public.notification_type, room_id uuid, book_chat_id uuid)
+language plpgsql security definer set search_path = pg_catalog, public
+as $$
+begin
+  if p_limit is null or p_limit not between 1 and 50 then
+    raise exception using errcode = 'P0001', message = 'VALIDATION_FAILED';
+  end if;
+  return query
+  with claimable as (
+    select outbox.id from public.notification_push_outbox as outbox
+    where outbox.status in ('pending', 'retry') and outbox.next_retry_at <= now()
+    order by outbox.created_at limit p_limit for update skip locked
+  )
+  update public.notification_push_outbox as outbox
+  set status = 'processing', attempts = outbox.attempts + 1, claimed_at = now()
+  from claimable join public.notifications as notification on notification.id = outbox.notification_id
+  where outbox.id = claimable.id
+  returning outbox.id, outbox.notification_id, outbox.recipient_profile_id, outbox.attempts,
+    notification.type, notification.room_id, notification.book_chat_id;
+end;
+$$;
+
+create or replace function public.finish_notification_push_job(
+  p_job_id uuid, p_succeeded boolean, p_last_error_code text default null,
+  p_next_retry_at timestamptz default null
+)
+returns boolean language plpgsql security definer set search_path = pg_catalog, public
+as $$
+declare v_job public.notification_push_outbox%rowtype;
+begin
+  select * into v_job from public.notification_push_outbox where id = p_job_id for update;
+  if v_job.id is null or v_job.status <> 'processing' then return false; end if;
+  if p_succeeded then
+    update public.notification_push_outbox set status = 'sent', sent_at = now(), last_error_code = null where id = p_job_id;
+    return true;
+  end if;
+  if v_job.attempts >= 5 or p_next_retry_at is null then
+    update public.notification_push_outbox set status = 'failed',
+      last_error_code = coalesce(nullif(btrim(p_last_error_code), ''), 'PUSH_FAILED') where id = p_job_id;
+    return true;
+  end if;
+  update public.notification_push_outbox set status = 'retry',
+    last_error_code = coalesce(nullif(btrim(p_last_error_code), ''), 'PUSH_RETRY'),
+    next_retry_at = p_next_retry_at where id = p_job_id;
+  return true;
+end;
+$$;
+
 alter table public.device_tokens enable row level security;
 alter table public.notification_push_outbox enable row level security;
 
@@ -163,8 +212,12 @@ for each row execute function private.enqueue_notification_push_outbox();
 
 revoke all on function public.register_device_token(text, text) from public, anon;
 revoke all on function public.revoke_device_token(text) from public, anon;
+revoke all on function public.claim_notification_push_jobs(integer) from public, anon, authenticated;
+revoke all on function public.finish_notification_push_job(uuid, boolean, text, timestamptz) from public, anon, authenticated;
 grant execute on function public.register_device_token(text, text) to authenticated;
 grant execute on function public.revoke_device_token(text) to authenticated;
+grant execute on function public.claim_notification_push_jobs(integer) to service_role;
+grant execute on function public.finish_notification_push_job(uuid, boolean, text, timestamptz) to service_role;
 revoke all on function private.enqueue_notification_push_outbox() from public, anon, authenticated;
 
 comment on table public.device_tokens is
@@ -177,5 +230,9 @@ comment on function public.register_device_token(text, text) is
   '현재 인증 회원의 검증된 Expo 기기 토큰만 등록하거나 재활성화한다.';
 comment on function public.revoke_device_token(text) is
   '현재 인증 회원이 소유한 Expo 기기 토큰만 해제해 다른 회원 토큰의 상태를 숨긴다.';
+comment on function public.claim_notification_push_jobs(integer) is
+  '실행 가능한 푸시 outbox 작업을 잠그고 worker에 필요한 안전한 알림 경로 정보만 할당한다.';
+comment on function public.finish_notification_push_job(uuid, boolean, text, timestamptz) is
+  '푸시 worker 결과를 성공·재시도·실패 상태로 한 번만 반영한다.';
 comment on function private.enqueue_notification_push_outbox() is
   '답글·멘션·초대 계열 내부 알림에서 전체 푸시 수신 설정을 확인해 중복 없는 worker 작업을 만든다.';
