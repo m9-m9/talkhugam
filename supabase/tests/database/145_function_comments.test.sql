@@ -35,6 +35,7 @@ with documented_function_names(function_name) as (
     ('public.create_book_chat'),
     ('public.create_community_room'),
     ('public.create_content_report'),
+    ('public.list_content_reports'),
     ('public.create_post'),
     ('public.create_reading_room'),
     ('public.create_reply'),
@@ -68,6 +69,7 @@ with documented_function_names(function_name) as (
     ('public.revoke_room_invite'),
     ('public.set_book_chat_status'),
     ('public.transfer_room_ownership'),
+    ('public.update_content_report'),
     ('public.ban_community_member'),
     ('public.unfollow_profile'),
     ('public.upsert_book_chat_completion'),
@@ -86,7 +88,7 @@ database_functions as (
 )
 select is(
   count(distinct function_name),
-  69::bigint,
+  71::bigint,
   '모든 애플리케이션 데이터베이스 함수가 존재한다'
 )
 from database_functions;
@@ -124,6 +126,7 @@ with documented_function_names(function_name) as (
     ('public.create_book_chat'),
     ('public.create_community_room'),
     ('public.create_content_report'),
+    ('public.list_content_reports'),
     ('public.create_post'),
     ('public.create_reading_room'),
     ('public.create_reply'),
@@ -157,6 +160,7 @@ with documented_function_names(function_name) as (
     ('public.revoke_room_invite'),
     ('public.set_book_chat_status'),
     ('public.transfer_room_ownership'),
+    ('public.update_content_report'),
     ('public.ban_community_member'),
     ('public.unfollow_profile'),
     ('public.upsert_book_chat_completion'),

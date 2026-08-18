@@ -51,7 +51,9 @@ describe('CommunityRoomsPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: '다시 시도' }))
 
     await waitFor(() => expect(getCommunityRooms).toHaveBeenCalledTimes(2))
-    expect(await screen.findByText('아직 열린 책방이 없어요. 첫 책방을 열어 보세요.')).toBeInTheDocument()
+    expect(
+      await screen.findByText('아직 열린 책방이 없어요. 첫 책방을 열어 보세요.'),
+    ).toBeInTheDocument()
   })
 })
 

@@ -33,6 +33,29 @@ const communityMessagesSchema = z.array(
     sender_display_name: z.string(),
   }),
 )
+const contentReportStatusSchema = z.enum(['open', 'reviewing', 'resolved', 'dismissed'])
+const contentReportActionSchema = z.object({
+  createdAt: z.string().datetime({ offset: true }),
+  id: z.string().uuid(),
+  nextStatus: contentReportStatusSchema,
+  operatorProfileId: z.string().uuid(),
+  previousStatus: contentReportStatusSchema,
+  resolutionNote: z.string().nullable(),
+})
+const adminContentReportSchema = z.object({
+  actions: z.array(contentReportActionSchema),
+  created_at: z.string().datetime({ offset: true }),
+  id: z.string().uuid(),
+  reason: z.string().min(1).max(500),
+  reporter_profile_id: z.string().uuid(),
+  resolution_note: z.string().nullable(),
+  resolved_at: z.string().datetime({ offset: true }).nullable(),
+  resolved_by: z.string().uuid().nullable(),
+  status: contentReportStatusSchema,
+  target_id: z.string().uuid(),
+  target_type: z.enum(['room', 'profile', 'community_message']),
+})
+const adminContentReportUpdateSchema = adminContentReportSchema.omit({ actions: true })
 
 export { communityKeys, createCommunityRoomFormSchema, parseCommunityRooms }
 export type { CommunityRoom, CreateCommunityRoomForm, JoinCommunityRoomResult }
@@ -49,6 +72,21 @@ export type CommunityMessage = {
   createdAt: string
   senderMemberId: string
   senderDisplayName: string
+}
+export type ContentReportStatus = z.infer<typeof contentReportStatusSchema>
+export type AdminContentReportAction = z.infer<typeof contentReportActionSchema>
+export type AdminContentReport = {
+  actions: AdminContentReportAction[]
+  createdAt: string
+  id: string
+  reason: string
+  reporterProfileId: string
+  resolutionNote: string | null
+  resolvedAt: string | null
+  resolvedBy: string | null
+  status: ContentReportStatus
+  targetId: string
+  targetType: 'room' | 'profile' | 'community_message'
 }
 
 /** 오픈 책방 발견 목록을 팔로우 생성자 우선순위 그대로 조회한다. */
@@ -83,15 +121,13 @@ export async function getCommunityMessages(
 ): Promise<CommunityMessage[]> {
   const response = await client.rpc('list_community_messages', { p_limit: 100, p_room_id: roomId })
   if (response.error) throw response.error
-  return communityMessagesSchema
-    .parse(response.data)
-    .map((message) => ({
-      body: message.body,
-      createdAt: message.created_at,
-      id: message.id,
-      senderDisplayName: message.sender_display_name,
-      senderMemberId: message.sender_member_id,
-    }))
+  return communityMessagesSchema.parse(response.data).map((message) => ({
+    body: message.body,
+    createdAt: message.created_at,
+    id: message.id,
+    senderDisplayName: message.sender_display_name,
+    senderMemberId: message.sender_member_id,
+  }))
 }
 
 /** 현재 사용자를 방장으로 하는 오픈 책방을 만들고 방 식별자를 반환한다. */
@@ -168,4 +204,51 @@ export async function reportCommunityTarget(
   })
   if (response.error) throw response.error
   return z.string().uuid().parse(response.data)
+}
+
+/** 운영자 권한을 가진 현재 사용자에게만 신고 원본과 조치 이력 목록을 반환한다. */
+export async function listAdminContentReports(
+  client: SupabaseClient,
+  status?: ContentReportStatus,
+): Promise<AdminContentReport[]> {
+  const response = await client.rpc('list_content_reports', { p_status: status ?? null })
+  if (response.error) throw response.error
+  return z.array(adminContentReportSchema).parse(response.data).map(mapAdminContentReport)
+}
+
+/** 운영자만 신고 상태와 종결 메모를 저장하고 변경된 신고를 반환한다. */
+export async function updateAdminContentReport(
+  client: SupabaseClient,
+  reportId: string,
+  status: ContentReportStatus,
+  resolutionNote: string,
+): Promise<Omit<AdminContentReport, 'actions'>> {
+  const response = await client.rpc('update_content_report', {
+    p_report_id: reportId,
+    p_resolution_note: resolutionNote || null,
+    p_status: status,
+  })
+  if (response.error) throw response.error
+  const report = z.array(adminContentReportUpdateSchema).length(1).parse(response.data).at(0)
+  if (!report) throw new Error('신고 처리 결과가 없어요.')
+  return mapAdminContentReport({ ...report, actions: [] })
+}
+
+/** 운영자 RPC의 snake_case 신고 원본을 화면 전용 camelCase 모델로 변환한다. */
+function mapAdminContentReport(
+  report: z.infer<typeof adminContentReportSchema>,
+): AdminContentReport {
+  return {
+    actions: report.actions,
+    createdAt: report.created_at,
+    id: report.id,
+    reason: report.reason,
+    reporterProfileId: report.reporter_profile_id,
+    resolutionNote: report.resolution_note,
+    resolvedAt: report.resolved_at,
+    resolvedBy: report.resolved_by,
+    status: report.status,
+    targetId: report.target_id,
+    targetType: report.target_type,
+  }
 }

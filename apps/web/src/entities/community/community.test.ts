@@ -5,8 +5,10 @@ import {
   createCommunityRoom,
   getCommunityRooms,
   joinCommunityRoom,
+  listAdminContentReports,
   reportCommunityTarget,
   sendCommunityMessage,
+  updateAdminContentReport,
 } from './community'
 
 const roomId = '22222222-2222-4222-8222-222222222222'
@@ -82,6 +84,56 @@ describe('community repository', () => {
       p_reason: '운영자 확인이 필요해요',
       p_target_id: roomId,
       p_target_type: 'room',
+    })
+  })
+
+  it('운영자 신고 목록과 조치도 관리자 RPC로만 요청한다', async () => {
+    const reportId = '55555555-5555-4555-8555-555555555555'
+    const listResponse = {
+      data: [
+        {
+          actions: [],
+          created_at: '2026-08-18T12:00:00.000Z',
+          id: reportId,
+          reason: '확인이 필요해요',
+          reporter_profile_id: '33333333-3333-4333-8333-333333333333',
+          resolution_note: null,
+          resolved_at: null,
+          resolved_by: null,
+          status: 'open',
+          target_id: roomId,
+          target_type: 'room',
+        },
+      ],
+      error: null,
+    }
+    const client = createClient(listResponse)
+    client.rpc.mockResolvedValueOnce(listResponse).mockResolvedValueOnce({
+      data: [
+        {
+          created_at: '2026-08-18T12:00:00.000Z',
+          id: reportId,
+          reason: '확인이 필요해요',
+          reporter_profile_id: '33333333-3333-4333-8333-333333333333',
+          resolution_note: '검토 완료',
+          resolved_at: '2026-08-18T13:00:00.000Z',
+          resolved_by: '44444444-4444-4444-8444-444444444444',
+          status: 'resolved',
+          target_id: roomId,
+          target_type: 'room',
+        },
+      ],
+      error: null,
+    })
+
+    await listAdminContentReports(client as never, 'open')
+    await updateAdminContentReport(client as never, reportId, 'resolved', '검토 완료')
+
+    expect(client.rpc).toHaveBeenNthCalledWith(1, 'list_content_reports', { p_status: 'open' })
+    expect(client.rpc).toHaveBeenNthCalledWith(2, 'update_content_report', {
+      p_report_id: reportId,
+      p_resolution_note: '검토 완료',
+      p_status: 'resolved',
     })
   })
 })
