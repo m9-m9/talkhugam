@@ -15,6 +15,7 @@ import { createMobileSupabaseClient } from '../../shared/api/mobileSupabaseClien
 type MobileReadingRoomsScreenProps = {
   onCreateRoom(): void
   onJoinRoom(): void
+  onOpenCommunity?(): void
   onOpenProfile?(): void
   onOpenRoom(roomId: string): void
 }
@@ -23,6 +24,7 @@ type MobileReadingRoomsScreenProps = {
 export function MobileReadingRoomsScreen({
   onCreateRoom,
   onJoinRoom,
+  onOpenCommunity,
   onOpenProfile,
   onOpenRoom,
 }: MobileReadingRoomsScreenProps): React.JSX.Element {
@@ -66,6 +68,7 @@ export function MobileReadingRoomsScreen({
         <View style={styles.actions}>
           <PrimaryAction label="새 책방 만들기" onPress={onCreateRoom} />
           <SecondaryAction label="초대 코드로 참여" onPress={onJoinRoom} />
+          {onOpenCommunity ? <SecondaryAction label="오픈 책방 둘러보기" onPress={onOpenCommunity} /> : null}
         </View>
       </ScrollView>
     </SafeAreaView>

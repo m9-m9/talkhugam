@@ -29,6 +29,11 @@ export default function RoomsRoute(): React.JSX.Element {
     router.push('/profile')
   }
 
+  /** 공개 오픈 책방 발견 화면으로 이동한다. */
+  function handleOpenCommunity(): void {
+    router.push('/community')
+  }
+
   if (!isAllowed) return <MobileRouteLoadingScreen label="책방을 불러오고 있어요." />
 
   return (
@@ -36,6 +41,7 @@ export default function RoomsRoute(): React.JSX.Element {
       onCreateRoom={handleCreateRoom}
       onJoinRoom={handleJoinRoom}
       onOpenProfile={handleOpenProfile}
+      onOpenCommunity={handleOpenCommunity}
       onOpenRoom={handleOpenRoom}
     />
   )
