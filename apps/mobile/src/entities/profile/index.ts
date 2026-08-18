@@ -14,3 +14,4 @@ export {
   type MobileNotificationPreferences,
 } from './mobileNotificationPreferences'
 export { parseMobileAvatarFile, type MobileAvatarFile } from './mobileProfileAvatar'
+export { registerMobilePushToken, revokeMobilePushToken } from './mobilePushToken'
