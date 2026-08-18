@@ -78,6 +78,25 @@ describe('MobileReadingRoomsScreen', () => {
     expect(onJoinRoom).toHaveBeenCalledTimes(1)
   })
 
+  it('opens the current member profile from the bookroom header', async () => {
+    mockGetMobileReadingRooms.mockResolvedValue([])
+    const onOpenProfile = jest.fn()
+
+    render(
+      <MobileReadingRoomsScreen
+        onCreateRoom={jest.fn()}
+        onJoinRoom={jest.fn()}
+        onOpenProfile={onOpenProfile}
+        onOpenRoom={jest.fn()}
+      />,
+      { wrapper: createQueryWrapper() },
+    )
+
+    await screen.findByText('아직 함께 읽는 책방이 없어요.')
+    fireEvent.press(screen.getByRole('button', { name: '내 정보 열기' }))
+    expect(onOpenProfile).toHaveBeenCalledTimes(1)
+  })
+
   it('shows a retryable error when protected room retrieval fails', async () => {
     mockGetMobileReadingRooms.mockRejectedValue(new Error('network unavailable'))
 

@@ -14,6 +14,10 @@ const onboardingCompletionRowSchema = z.object({
   onboarding_completed_at: z.string().datetime({ offset: true }),
 })
 
+const profileUpdateRowSchema = z.object({
+  id: z.string().uuid(),
+})
+
 export type MobileProfile = {
   avatarPath: string | null
   bio: string | null
@@ -22,8 +26,8 @@ export type MobileProfile = {
   updatedAt: string
 }
 
-/** 현재 Supabase 세션의 UUID를 확인해 프로필 쿼리에 사용할 식별자를 반환한다. */
-async function getAuthenticatedProfileId(client: SupabaseClient): Promise<string> {
+/** 현재 Supabase 세션의 UUID를 확인해 회원 전용 저장소가 사용할 식별자를 반환한다. */
+export async function getMobileAuthenticatedProfileId(client: SupabaseClient): Promise<string> {
   const userResponse = await client.auth.getUser()
   if (userResponse.error) throw userResponse.error
   if (!userResponse.data.user) throw new Error('로그인 정보를 확인하지 못했어요.')
@@ -45,7 +49,7 @@ function mapMobileProfile(input: unknown): MobileProfile {
 
 /** 현재 로그인한 회원의 프로필만 읽어 모바일 온보딩 모델로 반환한다. */
 export async function getMobileProfile(client: SupabaseClient): Promise<MobileProfile> {
-  const profileId = await getAuthenticatedProfileId(client)
+  const profileId = await getMobileAuthenticatedProfileId(client)
   const response = await client
     .from('profiles')
     .select('avatar_path, display_name, bio, onboarding_completed_at, updated_at')
@@ -62,7 +66,7 @@ export async function completeMobileOnboarding(
   input: unknown,
 ): Promise<void> {
   const profile = normalizeProfileForm(profileFormSchema.parse(input))
-  const profileId = await getAuthenticatedProfileId(client)
+  const profileId = await getMobileAuthenticatedProfileId(client)
   const response = await client
     .from('profiles')
     .update({
@@ -76,4 +80,23 @@ export async function completeMobileOnboarding(
 
   if (response.error) throw response.error
   onboardingCompletionRowSchema.parse(response.data)
+}
+
+/** 현재 로그인한 회원의 이름과 소개만 검증해 저장하고 정규화한 폼 값을 반환한다. */
+export async function updateMobileProfile(
+  client: SupabaseClient,
+  input: unknown,
+): Promise<ProfileForm> {
+  const profile = normalizeProfileForm(profileFormSchema.parse(input))
+  const profileId = await getMobileAuthenticatedProfileId(client)
+  const response = await client
+    .from('profiles')
+    .update({ bio: profile.bio ?? null, display_name: profile.displayName })
+    .eq('id', profileId)
+    .select('id')
+    .single()
+
+  if (response.error) throw response.error
+  profileUpdateRowSchema.parse(response.data)
+  return profile
 }

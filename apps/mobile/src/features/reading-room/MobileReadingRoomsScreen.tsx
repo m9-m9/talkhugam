@@ -15,6 +15,7 @@ import { createMobileSupabaseClient } from '../../shared/api/mobileSupabaseClien
 type MobileReadingRoomsScreenProps = {
   onCreateRoom(): void
   onJoinRoom(): void
+  onOpenProfile?(): void
   onOpenRoom(roomId: string): void
 }
 
@@ -22,6 +23,7 @@ type MobileReadingRoomsScreenProps = {
 export function MobileReadingRoomsScreen({
   onCreateRoom,
   onJoinRoom,
+  onOpenProfile,
   onOpenRoom,
 }: MobileReadingRoomsScreenProps): React.JSX.Element {
   const profileId = useMobileSessionProfileId()
@@ -40,6 +42,16 @@ export function MobileReadingRoomsScreen({
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
+          {onOpenProfile ? (
+            <Pressable
+              accessibilityLabel="내 정보 열기"
+              accessibilityRole="button"
+              onPress={onOpenProfile}
+              style={({ pressed }) => [styles.profileButton, pressed && styles.profileButtonPressed]}
+            >
+              <Text style={styles.profileButtonText}>내 정보</Text>
+            </Pressable>
+          ) : null}
           <Text style={styles.eyebrow}>내 책방</Text>
           <Text style={styles.title}>함께 읽는 이야기를{`\n`}이어 가요</Text>
           <Text style={styles.description}>초대받은 사람만 함께할 수 있는 비공개 책방이에요.</Text>
@@ -213,6 +225,18 @@ const styles = StyleSheet.create({
   },
   primaryActionPressed: { backgroundColor: '#E46845' },
   primaryActionText: { color: '#000000', fontSize: 16, fontWeight: '700', lineHeight: 24 },
+  profileButton: {
+    alignSelf: 'flex-end',
+    borderColor: '#393939',
+    borderRadius: 12,
+    borderWidth: 1,
+    justifyContent: 'center',
+    marginBottom: 16,
+    minHeight: 44,
+    paddingHorizontal: 12,
+  },
+  profileButtonPressed: { backgroundColor: '#1B1B1B', borderColor: '#FF835F' },
+  profileButtonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700', lineHeight: 20 },
   roomCard: {
     backgroundColor: '#101010',
     borderColor: '#393939',

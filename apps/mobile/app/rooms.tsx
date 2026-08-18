@@ -24,12 +24,18 @@ export default function RoomsRoute(): React.JSX.Element {
     router.push(`/rooms/${roomId}`)
   }
 
+  /** 현재 로그인한 회원의 내 정보 화면으로 이동한다. */
+  function handleOpenProfile(): void {
+    router.push('/profile')
+  }
+
   if (!isAllowed) return <MobileRouteLoadingScreen label="책방을 불러오고 있어요." />
 
   return (
     <MobileReadingRoomsScreen
       onCreateRoom={handleCreateRoom}
       onJoinRoom={handleJoinRoom}
+      onOpenProfile={handleOpenProfile}
       onOpenRoom={handleOpenRoom}
     />
   )

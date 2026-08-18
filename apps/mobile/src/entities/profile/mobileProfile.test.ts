@@ -1,12 +1,12 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { describe, expect, it, vi } from 'vitest'
 
-import { completeMobileOnboarding, getMobileProfile } from './mobileProfile'
+import { completeMobileOnboarding, getMobileProfile, updateMobileProfile } from './mobileProfile'
 
 const profileId = '4493a33c-c880-4743-a03d-1dae1cd28309'
 
 /** 인증된 사용자의 프로필 행을 반환하는 최소 Supabase 클라이언트를 만든다. */
-function createClient(input?: { userId?: string | null }) {
+function createClient(input?: { profileUpdateError?: Error; userId?: string | null }) {
   const eq = vi.fn(() => ({
     single: vi.fn(async () => ({
       data: {
@@ -20,10 +20,13 @@ function createClient(input?: { userId?: string | null }) {
     })),
   }))
   const select = vi.fn(() => ({ eq }))
-  const updateSelect = vi.fn(() => ({
+  const updateSelect = vi.fn((columns: string) => ({
     single: vi.fn(async () => ({
-      data: { onboarding_completed_at: '2026-08-18T00:00:00.000Z' },
-      error: null,
+      data:
+        columns === 'id'
+          ? { id: profileId }
+          : { onboarding_completed_at: '2026-08-18T00:00:00.000Z' },
+      error: columns === 'id' ? input?.profileUpdateError ?? null : null,
     })),
   }))
   const updateEq = vi.fn(() => ({ select: updateSelect }))
@@ -42,6 +45,7 @@ function createClient(input?: { userId?: string | null }) {
     select,
     update,
     updateEq,
+    updateSelect,
   }
 }
 
@@ -87,5 +91,29 @@ describe('mobileProfile', () => {
       onboarding_completed_at: expect.any(String),
     })
     expect(updateEq).toHaveBeenCalledWith('id', profileId)
+  })
+
+  it('updates only the authenticated member profile without changing onboarding completion', async () => {
+    const { client, update, updateEq, updateSelect } = createClient()
+
+    await expect(
+      updateMobileProfile(client, { bio: '  같이 읽을 책을 찾고 있어요.  ', displayName: '  민규  ' }),
+    ).resolves.toEqual({ bio: '같이 읽을 책을 찾고 있어요.', displayName: '민규' })
+
+    expect(update).toHaveBeenCalledWith({
+      bio: '같이 읽을 책을 찾고 있어요.',
+      display_name: '민규',
+    })
+    expect(updateEq).toHaveBeenCalledWith('id', profileId)
+    expect(updateSelect).toHaveBeenCalledWith('id')
+  })
+
+  it('rejects an RLS-filtered profile update instead of treating it as a successful save', async () => {
+    const updateError = new Error('The result contains 0 rows')
+    const { client } = createClient({ profileUpdateError: updateError })
+
+    await expect(
+      updateMobileProfile(client, { bio: '같이 읽을 책을 찾고 있어요.', displayName: '민규' }),
+    ).rejects.toThrow('The result contains 0 rows')
   })
 })
