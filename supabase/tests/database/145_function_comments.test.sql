@@ -13,6 +13,7 @@ with documented_function_names(function_name) as (
     ('private.enqueue_deletion_job'),
     ('private.enqueue_book_chat_activity_notifications'),
     ('private.enqueue_notification'),
+    ('private.enqueue_notification_push_outbox'),
     ('private.generate_invite_code'),
     ('private.handle_new_auth_user'),
     ('private.hash_invite_value'),
@@ -49,6 +50,8 @@ with documented_function_names(function_name) as (
     ('public.prepare_account_deletion'),
     ('public.restore_book_chat'),
     ('public.restore_reading_room'),
+    ('public.register_device_token'),
+    ('public.revoke_device_token'),
     ('public.remove_book_chat_completion'),
     ('public.revoke_room_invite'),
     ('public.set_book_chat_status'),
@@ -69,7 +72,7 @@ database_functions as (
 )
 select is(
   count(distinct function_name),
-  52::bigint,
+  55::bigint,
   '모든 애플리케이션 데이터베이스 함수가 존재한다'
 )
 from database_functions;
@@ -85,6 +88,7 @@ with documented_function_names(function_name) as (
     ('private.enqueue_deletion_job'),
     ('private.enqueue_book_chat_activity_notifications'),
     ('private.enqueue_notification'),
+    ('private.enqueue_notification_push_outbox'),
     ('private.generate_invite_code'),
     ('private.handle_new_auth_user'),
     ('private.hash_invite_value'),
@@ -121,6 +125,8 @@ with documented_function_names(function_name) as (
     ('public.prepare_account_deletion'),
     ('public.restore_book_chat'),
     ('public.restore_reading_room'),
+    ('public.register_device_token'),
+    ('public.revoke_device_token'),
     ('public.remove_book_chat_completion'),
     ('public.revoke_room_invite'),
     ('public.set_book_chat_status'),
