@@ -73,8 +73,8 @@ async function createMobileReadingRoom(
   return getSingleResult(createRoomResultSchema.parse(response.data)).room_id
 }
 
-/** 새 책방의 일회용 초대 값만 서버 RPC에서 받아 반환한다. */
-async function createMobileRoomInvite(
+/** 책방의 일회용 초대 값만 서버 RPC(방장·운영자만 허용)에서 받아 반환한다. */
+export async function createMobileRoomInvite(
   client: SupabaseClient,
   roomId: string,
 ): Promise<Omit<MobileCreatedRoomInvite, 'roomId'>> {

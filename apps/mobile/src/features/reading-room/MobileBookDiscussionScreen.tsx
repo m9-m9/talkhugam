@@ -3,10 +3,13 @@ import {
   bookChatKeys,
   bookRatingKeys,
   calculateAverageRating,
+  canManageRoomContent,
+  insertQuoteIntoDraft,
   parseBookRatingInput,
   parsePostForm,
   postKeys,
   readingRoomKeys,
+  roomRoleKeys,
   type BookChatRating,
   type BookRatingInput,
   type DiscussionPost,
@@ -19,6 +22,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -38,9 +42,29 @@ import {
   removeMobileBookChatRating,
   upsertMobileBookChatRating,
 } from '../../entities/book-rating'
-import { getMobileDiscussionBookChat } from '../../entities/reading-room'
+import {
+  createMobileInviteShareMessage,
+  createMobileRoomInvite,
+  getMobileDiscussionBookChat,
+  getMobileMyRoomRole,
+  requestMobileRoomInvite,
+} from '../../entities/reading-room'
 import { useMobileSessionProfileId } from '../../shared/api/MobileAppProviders'
 import { createMobileSupabaseClient } from '../../shared/api/mobileSupabaseClient'
+import { mobileColors, mobileRadius, mobileSpacing, mobileTouchTarget } from '../../shared/ui/mobileTheme'
+import {
+  MobilePhotoQuoteFlow,
+  pickPhotoForQuote,
+  type MobilePhotoQuoteInsert,
+  type PhotoSource,
+  type PickedPhoto,
+} from '../photo-quote'
+import { MobileVideoUploadSheet } from '../video/MobileVideoUploadSheet'
+import {
+  MobileMessageActionSheet,
+  type MobileLabelKind,
+  type MobileMenuView,
+} from './MobileMessageActionSheet'
 
 type MobileBookDiscussionScreenProps = {
   bookChatId: string
@@ -48,6 +72,11 @@ type MobileBookDiscussionScreenProps = {
   onOpenVideoArchive?(): void
   roomId: string
 }
+
+type PostLabel = PostForm['labels'][number]
+
+/** 문장 인용 확인 화면에 넘길 사진. photo가 null이면 직접 입력이다. */
+type QuoteSource = { photo: PickedPhoto | null }
 
 type Submission = {
   clientId: string
@@ -65,7 +94,13 @@ export function MobileBookDiscussionScreen({
   const queryClient = useQueryClient()
   const profileId = useMobileSessionProfileId()
   const [body, setBody] = useState('')
-  const [label, setLabel] = useState('')
+  const [labels, setLabels] = useState<PostLabel[]>([])
+  const [menuView, setMenuView] = useState<MobileMenuView | null>(null)
+  const [quoteSource, setQuoteSource] = useState<QuoteSource | null>(null)
+  const [lastPhotoSource, setLastPhotoSource] = useState<PhotoSource>('library')
+  const [isVideoUploadOpen, setIsVideoUploadOpen] = useState(false)
+  const [composerNotice, setComposerNotice] = useState<string | null>(null)
+  const [isInviteBusy, setIsInviteBusy] = useState(false)
   const [replyTo, setReplyTo] = useState<DiscussionPost | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -127,12 +162,19 @@ export function MobileBookDiscussionScreen({
     queryKey: bookRatingKeys.byChat(bookChatId),
   })
 
+  /** 현재 회원의 책방 역할을 읽어 초대 만들기와 초대 요청 중 보여 줄 항목을 정한다. */
+  async function fetchRoomRole() {
+    return getMobileMyRoomRole(createMobileSupabaseClient(), roomId)
+  }
+
+  const roleQuery = useQuery({ queryFn: fetchRoomRole, queryKey: roomRoleKeys.mine(roomId) })
+
   /** 저장할 값과 멘션 대상을 검증해 한 번의 제출에 사용할 입력 모델로 만든다. */
   function createSubmission(): Submission | null {
     try {
       const values = parsePostForm({
         body,
-        labels: replyTo === null && label.trim() ? [{ kind: 'custom', value: label }] : [],
+        labels: replyTo === null ? labels : [],
         mentionedMemberIds: getMentionedMemberIds(body, membersQuery.data ?? []),
       })
       return { clientId: createSubmissionClientId(), rootPostId: replyTo?.id ?? null, values }
@@ -163,7 +205,7 @@ export function MobileBookDiscussionScreen({
         )
       }
       setBody('')
-      setLabel('')
+      setLabels([])
       setReplyTo(null)
       setFailedSubmission(null)
       await postsQuery.refetch()
@@ -193,7 +235,6 @@ export function MobileBookDiscussionScreen({
   /** 루트 글 하나를 답글 대상으로 지정하고 라벨 입력을 비운다. */
   function handleReply(post: DiscussionPost): void {
     setReplyTo(post)
-    setLabel('')
     setSaveError(null)
     setFailedSubmission(null)
   }
@@ -208,6 +249,73 @@ export function MobileBookDiscussionScreen({
   /** 선택한 고유 멘션 토큰을 현재 입력의 활성 @검색어 위치에 넣는다. */
   function handleSelectMention(member: MobileDiscussionMember): void {
     setBody((currentBody) => insertMentionToken(currentBody, member.mentionToken))
+  }
+
+  /** 시트에서 고른 종류와 값으로 라벨을 더한다. 값이 올바르지 않으면 false를 반환한다. */
+  function handleAddLabel(kind: MobileLabelKind, value: string): boolean {
+    const nextLabel = createDraftLabel(kind, value)
+    if (!nextLabel) return false
+    setLabels((current) => [...current, nextLabel])
+    return true
+  }
+
+  /** 붙인 라벨 하나를 지운다. */
+  function handleRemoveLabel(index: number): void {
+    setLabels((current) => current.filter((_, labelIndex) => labelIndex !== index))
+  }
+
+  /** 카메라·앨범에서 사진을 받아 문장 고르기를 열고, 권한이 없으면 입력창 아래에 안내한다. */
+  async function handlePickPhoto(source: PhotoSource): Promise<void> {
+    setComposerNotice(null)
+    setLastPhotoSource(source)
+    const result = await pickPhotoForQuote(source)
+    if (result.status === 'denied') {
+      setComposerNotice(source === 'camera' ? '카메라 권한을 허용해 주세요.' : '사진 보관함 권한을 허용해 주세요.')
+      return
+    }
+    if (result.status === 'picked') setQuoteSource({ photo: result.photo })
+  }
+
+  /** 열지 못한 사진 대신 같은 방법(카메라·앨범)으로 다른 사진을 고르게 한다. */
+  function handlePickAnotherPhoto(): void {
+    setQuoteSource(null)
+    void handlePickPhoto(lastPhotoSource)
+  }
+
+  /** 확인한 인용 문장을 입력 끝에 넣고, 쪽이 있으면 페이지 라벨을 그 쪽으로 바꾼다(답글 제외). */
+  function handleInsertQuote({ page, quote }: MobilePhotoQuoteInsert): void {
+    setBody((currentBody) => insertQuoteIntoDraft(currentBody, quote))
+    const pageLabel = page && replyTo === null ? createDraftLabel('page', page) : null
+    if (pageLabel) setLabels((current) => [...current.filter((item) => item.kind !== 'page'), pageLabel])
+    setQuoteSource(null)
+  }
+
+  /** 방장·운영자가 일회용 초대를 만들어 기기 공유 창으로 보낸다. */
+  async function handleOpenRoomInvite(): Promise<void> {
+    setIsInviteBusy(true)
+    setComposerNotice(null)
+    try {
+      const invite = await createMobileRoomInvite(createMobileSupabaseClient(), roomId)
+      await Share.share({ message: createMobileInviteShareMessage(invite) })
+    } catch {
+      setComposerNotice('초대 코드를 만들지 못했어요. 다시 시도해 주세요.')
+    } finally {
+      setIsInviteBusy(false)
+    }
+  }
+
+  /** 참여자가 방장·운영자에게 초대를 요청하고 결과를 짧게 알린다. */
+  async function handleRequestRoomInvite(): Promise<void> {
+    setIsInviteBusy(true)
+    setComposerNotice(null)
+    try {
+      const isCreated = await requestMobileRoomInvite(createMobileSupabaseClient(), roomId)
+      setComposerNotice(isCreated ? '방장에게 책방 초대를 요청했어요.' : '방장이 아직 초대 요청을 확인하고 있어요.')
+    } catch {
+      setComposerNotice('방장에게 초대 요청을 보내지 못했어요. 다시 시도해 주세요.')
+    } finally {
+      setIsInviteBusy(false)
+    }
   }
 
   /** 실패한 책 대화 조회를 다시 요청해 일시적 네트워크 오류를 분리한다. */
@@ -371,6 +479,41 @@ export function MobileBookDiscussionScreen({
               </Pressable>
             </View>
           ) : null}
+          {labels.length > 0 ? (
+            <View accessibilityLabel="선택한 라벨" style={styles.labelChips}>
+              {labels.map((postLabel, index) => (
+                <Pressable
+                  accessibilityLabel={`${formatPostLabel(postLabel)} 삭제`}
+                  accessibilityRole="button"
+                  key={`${postLabel.kind}-${postLabel.value}`}
+                  onPress={() => handleRemoveLabel(index)}
+                  style={styles.labelChip}
+                >
+                  <Text style={styles.labelChipText}>{formatPostLabel(postLabel)}</Text>
+                  <Text importantForAccessibility="no" style={styles.labelChipText}>
+                    ×
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+          <View style={styles.composerRow}>
+            <Pressable
+              accessibilityLabel="메시지 추가 메뉴 열기"
+              accessibilityRole="button"
+              onPress={() => setMenuView('root')}
+              style={styles.composerIconButton}
+            >
+              <Text style={styles.composerIconText}>+</Text>
+            </Pressable>
+            <Pressable
+              accessibilityLabel="사진에서 문장 가져오기"
+              accessibilityRole="button"
+              onPress={() => setMenuView('photo-source')}
+              style={styles.composerIconButton}
+            >
+              <Text style={styles.composerPhotoText}>사진</Text>
+            </Pressable>
           <TextInput
             accessibilityLabel={isReplying ? '답글 입력' : '대화 입력'}
             editable={!isSubmitting}
@@ -378,9 +521,10 @@ export function MobileBookDiscussionScreen({
             onChangeText={setBody}
             placeholder={isReplying ? '답글을 남겨 주세요' : '이 책의 생각을 나눠 주세요'}
             placeholderTextColor="#8C8C8C"
-            style={styles.bodyInput}
+            style={[styles.bodyInput, styles.bodyInputFlexible]}
             value={body}
           />
+          </View>
           {mentionCandidates.length > 0 ? (
             <View accessibilityLabel="멘션 후보" style={styles.mentionCandidates}>
               {mentionCandidates.map((member) => (
@@ -398,16 +542,10 @@ export function MobileBookDiscussionScreen({
               ))}
             </View>
           ) : null}
-          {!isReplying ? (
-            <TextInput
-              accessibilityLabel="라벨"
-              editable={!isSubmitting}
-              onChangeText={setLabel}
-              placeholder="라벨 (예: 87쪽)"
-              placeholderTextColor="#8C8C8C"
-              style={styles.labelInput}
-              value={label}
-            />
+          {composerNotice ? (
+            <Text accessibilityLiveRegion="polite" style={styles.composerNotice}>
+              {composerNotice}
+            </Text>
           ) : null}
           {saveError ? <Text accessibilityRole="alert" style={styles.saveError}>{saveError}</Text> : null}
           <View style={styles.composerActions}>
@@ -455,9 +593,54 @@ export function MobileBookDiscussionScreen({
             onSelectRating={setSelectedRating}
           />
         ) : null}
+        {menuView !== null ? (
+          <MobileMessageActionSheet
+            canCreateRoomInvite={canManageRoomContent(roleQuery.data ?? null)}
+            initialView={menuView}
+            isInviteBusy={isInviteBusy}
+            isReplying={isReplying}
+            onAddLabel={handleAddLabel}
+            onClose={() => setMenuView(null)}
+            onOpenRating={handleOpenRatingSheet}
+            onOpenRoomInvite={() => void handleOpenRoomInvite()}
+            onOpenVideoArchive={handleOpenVideoArchive}
+            onOpenVideoUpload={() => setIsVideoUploadOpen(true)}
+            onPickPhoto={(source) => void handlePickPhoto(source)}
+            onRequestRoomInvite={() => void handleRequestRoomInvite()}
+            onWriteQuote={() => setQuoteSource({ photo: null })}
+          />
+        ) : null}
+        {isVideoUploadOpen ? (
+          <MobileVideoUploadSheet bookChatId={bookChatId} onClose={() => setIsVideoUploadOpen(false)} roomId={roomId} />
+        ) : null}
+        {quoteSource ? (
+          <MobilePhotoQuoteFlow
+            bookChatId={bookChatId}
+            onClose={() => setQuoteSource(null)}
+            onInsert={handleInsertQuote}
+            onPickAnotherPhoto={handlePickAnotherPhoto}
+            photo={quoteSource.photo}
+          />
+        ) : null}
       </KeyboardAvoidingView>
     </SafeAreaView>
   )
+}
+
+/** 라벨 종류와 값을 검증해 저장 가능한 라벨로 만들고, 올바르지 않으면 null을 반환한다. */
+function createDraftLabel(kind: MobileLabelKind, value: string): PostLabel | null {
+  try {
+    return parsePostForm({ body: '', labels: [{ kind, value }] }).labels[0] ?? null
+  } catch {
+    return null
+  }
+}
+
+/** 라벨을 화면 표시용 문자열(페이지 87·챕터 3장)로 바꾼다. 직접 적은 라벨은 그대로 둔다. */
+function formatPostLabel(postLabel: PostLabel): string {
+  if (postLabel.kind === 'page') return `페이지 ${postLabel.value}`
+  if (postLabel.kind === 'chapter') return `챕터 ${postLabel.value}`
+  return postLabel.value
 }
 
 type DiscussionTimelineProps = {
@@ -536,7 +719,7 @@ function DiscussionPostCard({
       <Text style={styles.postAuthor}>{post.authorName}</Text>
       {post.labels.length > 0 ? (
         <View style={styles.labels}>
-          {post.labels.map((postLabel) => <Text key={`${postLabel.kind}-${postLabel.value}`} style={styles.label}>{postLabel.value}</Text>)}
+          {post.labels.map((postLabel) => <Text key={`${postLabel.kind}-${postLabel.value}`} style={styles.label}>{formatPostLabel(postLabel)}</Text>)}
         </View>
       ) : null}
       {post.body ? <Text style={styles.postBody}>{post.body}</Text> : null}
@@ -900,6 +1083,33 @@ const styles = StyleSheet.create({
   archivedNotice: { backgroundColor: '#171717', borderColor: '#393939', borderTopWidth: 1, paddingBottom: 16, paddingHorizontal: 16, paddingTop: 12 },
   archivedNoticeText: { color: '#FFB5A3', fontSize: 15, fontWeight: '700', lineHeight: 22 },
   backButtonText: { color: '#FFFFFF', fontSize: 32, lineHeight: 36 },
+  bodyInputFlexible: { flex: 1 },
+  composerIconButton: {
+    alignItems: 'center',
+    borderColor: mobileColors.border,
+    borderRadius: mobileRadius.md,
+    borderWidth: 1,
+    justifyContent: 'center',
+    minHeight: mobileTouchTarget,
+    minWidth: mobileTouchTarget,
+  },
+  composerIconText: { color: mobileColors.ink, fontSize: 24, lineHeight: 28 },
+  composerNotice: { color: mobileColors.inkSubtle, fontSize: 14, lineHeight: 20 },
+  composerPhotoText: { color: mobileColors.ink, fontSize: 13, fontWeight: '600' },
+  composerRow: { alignItems: 'flex-start', flexDirection: 'row', gap: mobileSpacing.xs },
+  labelChip: {
+    alignItems: 'center',
+    borderColor: mobileColors.border,
+    borderRadius: mobileRadius.md,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: mobileSpacing.xxs,
+    justifyContent: 'center',
+    minHeight: mobileTouchTarget,
+    paddingHorizontal: mobileSpacing.sm,
+  },
+  labelChipText: { color: mobileColors.inkSubtle, fontSize: 13 },
+  labelChips: { flexDirection: 'row', flexWrap: 'wrap', gap: mobileSpacing.xs },
   bodyInput: { backgroundColor: '#101010', borderColor: '#393939', borderRadius: 12, borderWidth: 1, color: '#FFFFFF', fontSize: 16, lineHeight: 24, maxHeight: 120, minHeight: 76, padding: 12, textAlignVertical: 'top' },
   composer: { backgroundColor: '#000000', borderColor: '#393939', borderTopWidth: 1, gap: 8, paddingBottom: 12, paddingHorizontal: 16, paddingTop: 12 },
   composerActions: { alignItems: 'center', flexDirection: 'row', gap: 8, justifyContent: 'flex-end' },
@@ -939,7 +1149,6 @@ const styles = StyleSheet.create({
   headerSpacer: { minWidth: 44 },
   keyboardAvoidingView: { flex: 1 },
   label: { backgroundColor: '#2D1712', borderRadius: 8, color: '#FFB5A3', fontSize: 13, lineHeight: 18, overflow: 'hidden', paddingHorizontal: 8, paddingVertical: 4 },
-  labelInput: { backgroundColor: '#101010', borderColor: '#393939', borderRadius: 8, borderWidth: 1, color: '#FFFFFF', fontSize: 16, lineHeight: 24, minHeight: 44, paddingHorizontal: 12 },
   labels: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 8 },
   mentionCandidate: { borderColor: '#393939', borderRadius: 8, borderWidth: 1, minHeight: 44, justifyContent: 'center', paddingHorizontal: 12 },
   mentionCandidateText: { color: '#FFB5A3', fontSize: 14, lineHeight: 20 },
