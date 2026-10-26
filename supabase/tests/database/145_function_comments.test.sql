@@ -9,6 +9,7 @@ with documented_function_names(function_name) as (
     ('private.can_access_book'),
     ('private.can_access_book_chat'),
     ('private.can_access_post'),
+    ('private.can_manage_room_content'),
     ('private.current_room_member_id'),
     ('private.enqueue_deletion_job'),
     ('private.enqueue_book_chat_activity_notifications'),
@@ -73,6 +74,8 @@ with documented_function_names(function_name) as (
     ('public.ban_community_member'),
     ('public.unfollow_profile'),
     ('public.upsert_book_chat_rating'),
+    ('public.get_my_room_role'),
+    ('public.update_room_member_role'),
     ('public.update_room_member_profile')
 ),
 database_functions as (
@@ -87,7 +90,7 @@ database_functions as (
 )
 select is(
   count(distinct function_name),
-  70::bigint,
+  73::bigint,
   '모든 애플리케이션 데이터베이스 함수가 존재한다'
 )
 from database_functions;
@@ -99,6 +102,7 @@ with documented_function_names(function_name) as (
     ('private.can_access_book'),
     ('private.can_access_book_chat'),
     ('private.can_access_post'),
+    ('private.can_manage_room_content'),
     ('private.current_room_member_id'),
     ('private.enqueue_deletion_job'),
     ('private.enqueue_book_chat_activity_notifications'),
@@ -163,6 +167,8 @@ with documented_function_names(function_name) as (
     ('public.ban_community_member'),
     ('public.unfollow_profile'),
     ('public.upsert_book_chat_rating'),
+    ('public.get_my_room_role'),
+    ('public.update_room_member_role'),
     ('public.update_room_member_profile')
 ),
 undocumented_functions as (
