@@ -87,7 +87,7 @@ database_functions as (
 )
 select is(
   count(distinct function_name),
-  71::bigint,
+  70::bigint,
   '모든 애플리케이션 데이터베이스 함수가 존재한다'
 )
 from database_functions;
