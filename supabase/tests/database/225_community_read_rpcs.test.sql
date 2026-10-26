@@ -23,7 +23,7 @@ select throws_ok(
 select lives_ok($$select * from public.join_community_room((select id from public.list_community_rooms() where name = '조회 오픈 책방'), '멤버')$$, '사용자는 공개 오픈 책방에 참여할 수 있어야 한다');
 select is(
   (select array_agg(key order by key) from public.get_community_room((select id from public.list_community_rooms() where name = '조회 오픈 책방')) as room, lateral jsonb_object_keys(to_jsonb(room)) as key(key)),
-  array['access', 'active_member_count', 'capacity', 'created_by', 'current_member_id', 'description', 'id', 'is_owner', 'name']::text[],
+  array['access', 'active_member_count', 'capacity', 'created_by', 'current_member_id', 'current_member_role', 'description', 'id', 'is_owner', 'name']::text[],
   '상세 RPC는 오픈 책방 표시와 본인 권한 필드만 반환해야 한다'
 );
 select lives_ok(
