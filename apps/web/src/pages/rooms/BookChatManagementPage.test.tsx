@@ -143,7 +143,71 @@ describe('BookChatManagementPage', () => {
     expect(screen.getByLabelText('총평 (선택)')).toHaveValue('친구와 이야기하기 좋은 책이에요.')
     expect(screen.getByRole('button', { name: '별점 수정' })).toBeInTheDocument()
   })
+
+  it('shows a loading state without rating actions while my rating is loading', async () => {
+    getBookChatRatings.mockReturnValueOnce(new Promise(() => undefined))
+    renderBookChatManagementPage()
+
+    expect(
+      await screen.findByRole('status', { name: '별점을 불러오고 있어요.' }),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '별점 남기기' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '수정하기' })).not.toBeInTheDocument()
+  })
+
+  it('shows a retry state without rating actions when my rating fails to load', async () => {
+    getBookChatRatings
+      .mockRejectedValueOnce(new Error('ratings unavailable'))
+      .mockResolvedValueOnce([createOwnRating(4)])
+    renderBookChatManagementPage()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '별점을 불러오지 못했어요. 다시 시도해 주세요.',
+    )
+    expect(screen.queryByRole('button', { name: '별점 남기기' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '별점 다시 시도' }))
+
+    expect(await screen.findByRole('img', { name: '별점 4점' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '수정하기' })).toBeInTheDocument()
+    expect(getBookChatRatings).toHaveBeenCalledTimes(2)
+  })
+
+  it('hides rating actions for an archived book chat', async () => {
+    getManagedBookChat.mockResolvedValue({ ...createManagedBookChat(), status: 'archived' })
+    getBookChatRatings.mockResolvedValueOnce([createOwnRating(3)])
+    renderBookChatManagementPage()
+
+    expect(await screen.findByRole('img', { name: '별점 3점' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '수정하기' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '별점 남기기' })).not.toBeInTheDocument()
+  })
+
+  it('asks to try again later when saving my rating fails', async () => {
+    upsertBookChatRating.mockRejectedValueOnce(new Error('save failed'))
+    renderBookChatManagementPage()
+
+    fireEvent.click(await screen.findByRole('button', { name: '별점 남기기' }))
+    fireEvent.click(screen.getByRole('button', { name: '2점' }))
+    fireEvent.click(screen.getByRole('button', { name: '별점 저장' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '별점을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.',
+    )
+  })
 })
+
+/** 관리 화면 테스트에서 쓰는 내 별점 응답을 생성한다. */
+function createOwnRating(rating: number) {
+  return {
+    avatarPath: null,
+    displayName: '민규',
+    isMe: true,
+    profileId,
+    rating,
+    review: null,
+    updatedAt: '2026-07-19T00:00:00.000Z',
+  }
+}
 
 /** 책 대화방 관리 화면을 서버 상태와 라우터를 포함해 렌더링한다. */
 function renderBookChatManagementPage() {

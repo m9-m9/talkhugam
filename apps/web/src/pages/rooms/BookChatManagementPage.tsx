@@ -24,6 +24,7 @@ import { BookCover } from '../../shared/ui/BookCover'
 import { BottomSheet } from '../../shared/ui/BottomSheet'
 import { BookLoadingIndicator } from '../../shared/ui/LoadingSpinner'
 import { RatingStars } from '../../shared/ui/RatingStars'
+import { RetryState } from '../../shared/ui/RetryState'
 
 /** 책 대화방의 개인 별점과 삭제 요청을 관리하는 화면을 렌더링한다. */
 export function BookChatManagementPage() {
@@ -99,6 +100,11 @@ export function BookChatManagementPage() {
     ratingMutation.mutate(input)
   }
 
+  /** 불러오지 못한 내 별점을 다시 조회한다. */
+  function handleRetryRatings() {
+    void ratingsQuery.refetch()
+  }
+
   return (
     <main className="app-page bg-surface px-4 pb-8">
       <AppHeader
@@ -115,8 +121,13 @@ export function BookChatManagementPage() {
         </div>
       </section>
       <OwnRatingCard
+        canEdit={chat.status !== 'archived'}
+        isError={ratingsQuery.isError && ratingsQuery.data === undefined}
+        isLoading={ratingsQuery.isPending}
+        isRetrying={ratingsQuery.isFetching}
         isSaving={ratingMutation.isPending}
         onOpenEditor={handleOpenRatingEditor}
+        onRetry={handleRetryRatings}
         ownRating={ownRating}
       />
       <section className="mt-12" aria-labelledby="book-chat-actions">
@@ -159,7 +170,7 @@ export function BookChatManagementPage() {
           />
           {ratingMutation.isError ? (
             <p className="mt-3 text-sm text-red-600" role="alert">
-              별점을 저장하지 못했어요. 다시 시도해 주세요.
+              별점을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.
             </p>
           ) : null}
         </BottomSheet>
@@ -168,14 +179,27 @@ export function BookChatManagementPage() {
   )
 }
 
-/** 내 별점이 있으면 별점과 수정 버튼을, 없으면 별점 남기기 버튼을 카드로 렌더링한다. */
+/**
+ * 내 별점 카드를 렌더링한다. 조회 중이면 로딩, 실패하면 재시도 상태를 보여 주고,
+ * 그 동안과 보관된 책 대화에서는 빈 입력으로 기존 별점을 덮어쓰지 않도록 작성·수정 버튼을 숨긴다.
+ */
 function OwnRatingCard({
+  canEdit,
+  isError,
+  isLoading,
+  isRetrying,
   isSaving,
   onOpenEditor,
+  onRetry,
   ownRating,
 }: {
+  canEdit: boolean
+  isError: boolean
+  isLoading: boolean
+  isRetrying: boolean
   isSaving: boolean
   onOpenEditor: () => void
+  onRetry: () => void
   ownRating: BookChatRating | undefined
 }) {
   return (
@@ -186,26 +210,69 @@ function OwnRatingCard({
       <h2 className="text-ink text-base font-semibold" id="own-rating-heading">
         내 별점
       </h2>
+      {isLoading ? (
+        <div className="mt-3">
+          <BookLoadingIndicator label="별점을 불러오고 있어요." size="xs" />
+        </div>
+      ) : null}
+      {!isLoading && isError ? (
+        <div className="mt-3">
+          <RetryState
+            isRetrying={isRetrying}
+            message="별점을 불러오지 못했어요. 다시 시도해 주세요."
+            onRetry={onRetry}
+            retryLabel="별점 다시 시도"
+          />
+        </div>
+      ) : null}
+      {!isLoading && !isError ? (
+        <OwnRatingContent
+          canEdit={canEdit}
+          isSaving={isSaving}
+          onOpenEditor={onOpenEditor}
+          ownRating={ownRating}
+        />
+      ) : null}
+    </section>
+  )
+}
+
+/** 불러온 내 별점과 총평, 편집할 수 있을 때만 작성·수정 버튼을 렌더링한다. */
+function OwnRatingContent({
+  canEdit,
+  isSaving,
+  onOpenEditor,
+  ownRating,
+}: {
+  canEdit: boolean
+  isSaving: boolean
+  onOpenEditor: () => void
+  ownRating: BookChatRating | undefined
+}) {
+  return (
+    <>
       <div className="mt-3 flex min-h-11 flex-wrap items-center justify-between gap-3">
         {ownRating ? (
           <RatingStars rating={ownRating.rating} />
         ) : (
           <span className="text-ink-subtle text-sm">아직 별점을 남기지 않았어요.</span>
         )}
-        <ActionButton
-          className="talkhugam-foundation-action--outline"
-          disabled={isSaving}
-          onClick={onOpenEditor}
-          type="button"
-          variant="neutralOutline"
-        >
-          {ownRating ? '수정하기' : '별점 남기기'}
-        </ActionButton>
+        {canEdit ? (
+          <ActionButton
+            className="talkhugam-foundation-action--outline"
+            disabled={isSaving}
+            onClick={onOpenEditor}
+            type="button"
+            variant="neutralOutline"
+          >
+            {ownRating ? '수정하기' : '별점 남기기'}
+          </ActionButton>
+        ) : null}
       </div>
       {ownRating?.review ? (
         <p className="text-ink-subtle mt-2 text-sm">{ownRating.review}</p>
       ) : null}
-    </section>
+    </>
   )
 }
 

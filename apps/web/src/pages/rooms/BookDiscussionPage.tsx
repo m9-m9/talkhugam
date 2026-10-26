@@ -255,6 +255,11 @@ export function BookDiscussionPage() {
     ratingMutation.mutate(input)
   }
 
+  /** 불러오지 못한 책 대화 별점을 다시 조회한다. */
+  function handleRetryRatings() {
+    void ratingsQuery.refetch()
+  }
+
   /** 현재 사용자의 별점을 삭제하고 관련 목록을 최신 상태로 갱신한다. */
   function handleRemoveRating() {
     if (!bookChatId) return
@@ -413,18 +418,21 @@ export function BookDiscussionPage() {
       {isRatingSheetOpen ? (
         <RatingSheet
           bookChatId={bookChatId}
-          errorMessage={
-            ratingMutation.isError || ratingRemovalMutation.isError
-              ? '별점을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.'
-              : null
-          }
+          canEdit={bookChatQuery.data?.status !== 'archived'}
+          errorMessage={getRatingMutationErrorMessage(
+            ratingMutation.isError,
+            ratingRemovalMutation.isError,
+          )}
           isEditorOpen={isRatingEditorOpen}
+          isError={ratingsQuery.isError && ratingsQuery.data === undefined}
           isLoading={ratingsQuery.isPending}
+          isRetrying={ratingsQuery.isFetching}
           isSaving={ratingMutation.isPending || ratingRemovalMutation.isPending}
           onClose={handleCloseRatingSheet}
           onCloseEditor={handleCloseRatingEditor}
           onOpenEditor={handleOpenRatingEditor}
           onRemove={handleRemoveRating}
+          onRetry={handleRetryRatings}
           onSave={handleSaveRating}
           ratings={ratingsQuery.data ?? []}
           returnFocusRef={ratingTriggerRef}
@@ -544,76 +552,112 @@ function getDiscussionTimelineErrorMessage(
   return null
 }
 
-/** 평균 별점과 멤버별 별점·총평, 내 별점 작성·수정·삭제를 하단 시트로 렌더링한다. */
-function RatingSheet({
-  bookChatId,
-  errorMessage,
-  isEditorOpen,
-  isLoading,
-  isSaving,
-  onClose,
-  onCloseEditor,
-  onOpenEditor,
-  onRemove,
-  onSave,
-  ratings,
-  returnFocusRef,
-}: {
+/** 별점 저장·삭제 실패를 구분해 사용자에게 보여 줄 안내 문구를 고른다. */
+function getRatingMutationErrorMessage(hasSaveError: boolean, hasRemoveError: boolean) {
+  if (hasRemoveError) return '별점을 삭제하지 못했어요. 잠시 후 다시 시도해 주세요.'
+  if (hasSaveError) return '별점을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.'
+  return null
+}
+
+type RatingSheetProps = {
   bookChatId: string
+  canEdit: boolean
   errorMessage: string | null
   isEditorOpen: boolean
+  isError: boolean
   isLoading: boolean
+  isRetrying: boolean
   isSaving: boolean
   onClose: () => void
   onCloseEditor: () => void
   onOpenEditor: () => void
   onRemove: () => void
+  onRetry: () => void
   onSave: (input: BookRatingInput) => void
   ratings: BookChatRating[]
   returnFocusRef: RefObject<HTMLElement | null>
-}) {
-  const ownRating = ratings.find((rating) => rating.isMe)
+}
+
+/** 평균 별점과 멤버별 별점·총평, 내 별점 작성·수정·삭제를 하단 시트로 렌더링한다. */
+function RatingSheet({ onClose, returnFocusRef, ...bodyProps }: RatingSheetProps) {
   return (
     <BottomSheet onClose={onClose} returnFocusRef={returnFocusRef} title="별점">
-      {isLoading ? <BookLoadingIndicator label="별점을 불러오고 있어요." size="xs" /> : null}
-      {!isLoading ? (
-        <>
-          {isEditorOpen ? (
-            <RatingForm
-              bookChatId={bookChatId}
-              initialRating={ownRating?.rating ?? null}
-              initialReview={ownRating?.review ?? null}
-              isSaving={isSaving}
-              key={ownRating?.updatedAt ?? 'new-rating'}
-              onCancel={onCloseEditor}
-              onSave={onSave}
-              submitLabel={ownRating ? '별점 수정' : '별점 저장'}
-            />
-          ) : (
-            <RatingSummary
-              averageRating={calculateAverageRating(ratings)}
-              hasOwnRating={Boolean(ownRating)}
-              isSaving={isSaving}
-              onOpenEditor={onOpenEditor}
-              onRemove={onRemove}
-              ratingCount={ratings.length}
-            />
-          )}
-          {errorMessage ? (
-            <p className="mt-3 text-sm text-red-600" role="alert">
-              {errorMessage}
-            </p>
-          ) : null}
-          {!isEditorOpen ? <MemberRatingList ratings={ratings} /> : null}
-        </>
-      ) : null}
+      <RatingSheetBody {...bodyProps} />
     </BottomSheet>
   )
 }
 
-/** 평균 별점과 현재 사용자의 별점 여부에 맞는 작성·수정·삭제 CTA를 렌더링한다. */
+/**
+ * 별점 시트 본문을 조회 상태에 맞게 렌더링한다. 조회 중이거나 실패했을 때는 빈 입력으로
+ * 기존 별점을 덮어쓰지 않도록 작성·수정·삭제를 숨기고, 보관된 책 대화에서는 읽기만 허용한다.
+ */
+function RatingSheetBody({
+  bookChatId,
+  canEdit,
+  errorMessage,
+  isEditorOpen,
+  isError,
+  isLoading,
+  isRetrying,
+  isSaving,
+  onCloseEditor,
+  onOpenEditor,
+  onRemove,
+  onRetry,
+  onSave,
+  ratings,
+}: Omit<RatingSheetProps, 'onClose' | 'returnFocusRef'>) {
+  if (isLoading) return <BookLoadingIndicator label="별점을 불러오고 있어요." size="xs" />
+  if (isError)
+    return (
+      <RetryState
+        isRetrying={isRetrying}
+        message="별점을 불러오지 못했어요. 다시 시도해 주세요."
+        onRetry={onRetry}
+        retryLabel="별점 다시 시도"
+      />
+    )
+
+  const ownRating = ratings.find((rating) => rating.isMe)
+  const isEditing = canEdit && isEditorOpen
+  return (
+    <>
+      {isEditing ? (
+        <RatingForm
+          bookChatId={bookChatId}
+          initialRating={ownRating?.rating ?? null}
+          initialReview={ownRating?.review ?? null}
+          isSaving={isSaving}
+          key={ownRating?.updatedAt ?? 'new-rating'}
+          onCancel={onCloseEditor}
+          onSave={onSave}
+          submitLabel={ownRating ? '별점 수정' : '별점 저장'}
+        />
+      ) : (
+        <RatingSummary
+          averageRating={calculateAverageRating(ratings)}
+          canEdit={canEdit}
+          hasOwnRating={Boolean(ownRating)}
+          isSaving={isSaving}
+          onOpenEditor={onOpenEditor}
+          onRemove={onRemove}
+          ratingCount={ratings.length}
+        />
+      )}
+      {errorMessage ? (
+        <p className="mt-3 text-sm text-red-600" role="alert">
+          {errorMessage}
+        </p>
+      ) : null}
+      {!isEditing ? <MemberRatingList ratings={ratings} /> : null}
+    </>
+  )
+}
+
+/** 평균 별점과, 편집할 수 있을 때 현재 사용자의 별점 여부에 맞는 작성·수정·삭제 CTA를 렌더링한다. */
 function RatingSummary({
   averageRating,
+  canEdit,
   hasOwnRating,
   isSaving,
   onOpenEditor,
@@ -621,6 +665,7 @@ function RatingSummary({
   ratingCount,
 }: {
   averageRating: number | null
+  canEdit: boolean
   hasOwnRating: boolean
   isSaving: boolean
   onOpenEditor: () => void
@@ -633,30 +678,54 @@ function RatingSummary({
         {averageRating === null ? '아직 평균 별점이 없어요' : `평균 ${averageRating}`}
         <span className="text-ink-subtle ml-2 font-normal">{ratingCount}명 참여</span>
       </p>
-      <div className="mt-3 flex flex-wrap items-center gap-2">
+      {canEdit ? (
+        <RatingActions
+          hasOwnRating={hasOwnRating}
+          isSaving={isSaving}
+          onOpenEditor={onOpenEditor}
+          onRemove={onRemove}
+        />
+      ) : null}
+    </div>
+  )
+}
+
+/** 현재 사용자의 별점 여부에 맞는 작성·수정·삭제 버튼을 렌더링한다. */
+function RatingActions({
+  hasOwnRating,
+  isSaving,
+  onOpenEditor,
+  onRemove,
+}: {
+  hasOwnRating: boolean
+  isSaving: boolean
+  onOpenEditor: () => void
+  onRemove: () => void
+}) {
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-2">
+      <SeedActionButton
+        className="talkhugam-foundation-action--outline"
+        disabled={isSaving}
+        onClick={onOpenEditor}
+        size="medium"
+        type="button"
+        variant="neutralOutline"
+      >
+        {hasOwnRating ? '별점 수정' : '별점 남기기'}
+      </SeedActionButton>
+      {hasOwnRating ? (
         <SeedActionButton
           className="talkhugam-foundation-action--outline"
           disabled={isSaving}
-          onClick={onOpenEditor}
+          onClick={onRemove}
           size="medium"
           type="button"
           variant="neutralOutline"
         >
-          {hasOwnRating ? '별점 수정' : '별점 남기기'}
+          별점 삭제
         </SeedActionButton>
-        {hasOwnRating ? (
-          <SeedActionButton
-            className="talkhugam-foundation-action--outline"
-            disabled={isSaving}
-            onClick={onRemove}
-            size="medium"
-            type="button"
-            variant="neutralOutline"
-          >
-            별점 삭제
-          </SeedActionButton>
-        ) : null}
-      </div>
+      ) : null}
     </div>
   )
 }

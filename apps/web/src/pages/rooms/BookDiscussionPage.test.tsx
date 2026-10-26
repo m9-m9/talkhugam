@@ -537,6 +537,73 @@ describe('BookDiscussionPage', () => {
     await vi.waitFor(() => expect(removeBookChatRating).toHaveBeenCalledWith(undefined, 'book-1'))
   })
 
+  it('shows a loading state without rating actions while ratings are loading', async () => {
+    getBookChatRatings.mockReturnValue(new Promise(() => undefined))
+    renderBookDiscussionPage()
+
+    openRatingSheet()
+
+    expect(
+      await screen.findByRole('status', { name: '별점을 불러오고 있어요.' }),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '별점 남기기' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '별점 수정' })).not.toBeInTheDocument()
+  })
+
+  it('shows a retry state without rating actions when ratings fail to load', async () => {
+    getBookChatRatings
+      .mockRejectedValueOnce(new Error('ratings unavailable'))
+      .mockResolvedValue([createRating({ isMe: true, rating: 4, review: null })])
+    renderBookDiscussionPage()
+
+    openRatingSheet()
+
+    const sheet = await screen.findByRole('dialog', { name: '별점' })
+    expect(await within(sheet).findByRole('alert')).toHaveTextContent(
+      '별점을 불러오지 못했어요. 다시 시도해 주세요.',
+    )
+    expect(within(sheet).queryByRole('button', { name: '별점 남기기' })).not.toBeInTheDocument()
+    expect(within(sheet).queryByRole('button', { name: '별점 삭제' })).not.toBeInTheDocument()
+    fireEvent.click(within(sheet).getByRole('button', { name: '별점 다시 시도' }))
+
+    expect(await within(sheet).findByRole('button', { name: '별점 수정' })).toBeInTheDocument()
+    expect(within(sheet).getByRole('button', { name: '별점 삭제' })).toBeInTheDocument()
+  })
+
+  it('tells me when removing my rating fails', async () => {
+    getBookChatRatings.mockResolvedValue([createRating({ isMe: true, rating: 4, review: null })])
+    removeBookChatRating.mockRejectedValueOnce(new Error('remove failed'))
+    renderBookDiscussionPage()
+
+    openRatingSheet()
+    fireEvent.click(await screen.findByRole('button', { name: '별점 삭제' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '별점을 삭제하지 못했어요. 잠시 후 다시 시도해 주세요.',
+    )
+  })
+
+  it('shows ratings without save, edit, or remove actions in an archived book chat', async () => {
+    getManagedBookChat.mockResolvedValueOnce({
+      id: 'book-1',
+      name: '미움받을 용기',
+      roomId: 'room-1',
+      status: 'archived',
+      thumbnailUrl: null,
+      title: '미움받을 용기',
+    })
+    getBookChatRatings.mockResolvedValue([createRating({ isMe: true, rating: 4, review: null })])
+    renderBookDiscussionPage()
+
+    expect(await screen.findByRole('heading', { name: '미움받을 용기' })).toBeInTheDocument()
+    openRatingSheet()
+
+    expect(await screen.findByText('평균 4')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '별점 수정' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '별점 남기기' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '별점 삭제' })).not.toBeInTheDocument()
+  })
+
   it('shows matching members from an at-sign typed in the message input', async () => {
     renderBookDiscussionPage()
     fireEvent.change(screen.getByLabelText('메시지 입력'), { target: { value: '@민' } })
@@ -951,6 +1018,12 @@ describe('BookDiscussionPage', () => {
 })
 
 /** 책 대화 테스트에서 영상 탭을 열어 영상 메시지를 검증할 수 있게 한다. */
+/** 메시지 추가 메뉴에서 별점 시트를 연다. */
+function openRatingSheet() {
+  fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
+  fireEvent.click(screen.getByRole('button', { name: '별점' }))
+}
+
 async function openVideoTab() {
   fireEvent.click(await screen.findByRole('tab', { name: '영상' }))
 }
