@@ -63,6 +63,13 @@ function renderFlow(
   return { onClose, onInsert, onPickAnotherPhoto }
 }
 
+/** 인식이 끝나길 기다려 접힌 줄 목록을 펼치고 이름이 같은 줄 버튼을 찾는다. */
+async function findLineButton(name: string) {
+  const toggle = await screen.findByRole('button', { name: '줄 목록으로 고르기' })
+  if (toggle.getAttribute('aria-expanded') === 'false') fireEvent.click(toggle)
+  return screen.getByRole('button', { name })
+}
+
 beforeEach(() => {
   resizePhotoForOcr.mockResolvedValue('aW1hZ2U=')
   recognizePagePhoto.mockResolvedValue(lines)
@@ -84,13 +91,13 @@ describe('PhotoQuoteFlow', () => {
 
     expect(screen.getByRole('dialog', { name: '문장 고르기' })).toBeInTheDocument()
     expect(screen.getByText('문장을 읽고 있어요')).toBeInTheDocument()
-    expect(await screen.findByRole('button', { name: '우리는 늘 떠나는 쪽이었고' })).toBeVisible()
+    expect(await findLineButton('우리는 늘 떠나는 쪽이었고')).toBeVisible()
     expect(recognizePagePhoto).toHaveBeenCalledWith({}, bookChatId, 'aW1hZ2U=')
   })
 
   it('줄을 탭해 켜고 끄며 줄 수와 글자 수를 보여 준다', async () => {
     renderFlow()
-    const firstLine = await screen.findByRole('button', { name: '우리는 늘 떠나는 쪽이었고' })
+    const firstLine = await findLineButton('우리는 늘 떠나는 쪽이었고')
 
     expect(screen.getByRole('button', { name: '다음' })).toBeDisabled()
     fireEvent.click(firstLine)
@@ -102,7 +109,7 @@ describe('PhotoQuoteFlow', () => {
 
   it('사진 위에서 끌면 시작 줄부터 끝 줄까지 연속으로 고른다', async () => {
     renderFlow()
-    await screen.findByRole('button', { name: '적이 없었다.' })
+    await findLineButton('적이 없었다.')
     const overlay = screen.getByTestId('photo-quote-overlay')
     overlay.getBoundingClientRect = () => DOMRect.fromRect({ height: 100, width: 100, x: 0, y: 0 })
 
@@ -115,7 +122,7 @@ describe('PhotoQuoteFlow', () => {
 
   it('확인 화면에서 문장을 고치고 쪽을 적어 글에 넣는다', async () => {
     const { onInsert } = renderFlow()
-    fireEvent.click(await screen.findByRole('button', { name: '우리는 늘 떠나는 쪽이었고' }))
+    fireEvent.click(await findLineButton('우리는 늘 떠나는 쪽이었고'))
     fireEvent.click(screen.getByRole('button', { name: '남는 쪽의 마음을 헤아린' }))
     fireEvent.click(screen.getByRole('button', { name: '다음' }))
 
@@ -140,7 +147,7 @@ describe('PhotoQuoteFlow', () => {
       { ...lines[1], text: '나'.repeat(200) },
     ])
     renderFlow()
-    fireEvent.click(await screen.findByRole('button', { name: '가'.repeat(200) }))
+    fireEvent.click(await findLineButton('가'.repeat(200)))
     fireEvent.click(screen.getByRole('button', { name: '나'.repeat(200) }))
 
     expect(screen.getByText('300자까지 가져올 수 있어요.')).toBeInTheDocument()
@@ -155,7 +162,7 @@ describe('PhotoQuoteFlow', () => {
       await screen.findByText('오늘 사진 인식 횟수를 모두 썼어요. 내일 다시 시도해 주세요.'),
     ).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: '다시 시도' }))
-    expect(await screen.findByRole('button', { name: '적이 없었다.' })).toBeInTheDocument()
+    expect(await findLineButton('적이 없었다.')).toBeInTheDocument()
   })
 
   it('글자를 찾지 못하면 다른 사진을 권한다', async () => {
@@ -169,7 +176,7 @@ describe('PhotoQuoteFlow', () => {
 
   it('Escape로 닫고 사진 주소를 해제한다', async () => {
     const { onClose } = renderFlow()
-    await screen.findByRole('button', { name: '적이 없었다.' })
+    await findLineButton('적이 없었다.')
 
     fireEvent.keyDown(window, { key: 'Escape' })
     expect(onClose).toHaveBeenCalled()
@@ -229,6 +236,19 @@ describe('PhotoQuoteFlow', () => {
     fireEvent.error(photo)
 
     expect(screen.queryByRole('img', { name: '고른 책 페이지 사진' })).not.toBeInTheDocument()
-    expect(await screen.findByRole('button', { name: '적이 없었다.' })).toBeInTheDocument()
+    expect(await findLineButton('적이 없었다.')).toBeInTheDocument()
+  })
+
+  it('줄 목록은 기본으로 접어 두고 사진 위 끌기·탭을 먼저 안내한다', async () => {
+    renderFlow()
+    const toggle = await screen.findByRole('button', { name: '줄 목록으로 고르기' })
+
+    expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.getByText('사진 위 줄을 누르거나 끌어서 고르세요.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '적이 없었다.' })).not.toBeInTheDocument()
+
+    fireEvent.click(toggle)
+    expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getAllByRole('button', { pressed: false })).toHaveLength(3)
   })
 })

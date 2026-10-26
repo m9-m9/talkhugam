@@ -396,7 +396,10 @@ function PhotoLineOverlay({
   )
 }
 
-/** 사진 박스가 작은 화면과 키보드·스크린리더 사용자를 위해 인식한 줄을 토글 목록으로 보여 준다. */
+/**
+ * 사진 위 탭·끌기를 주 방식으로 안내하고, 박스가 작은 화면·키보드·스크린리더 사용자를 위해
+ * 인식한 줄 전체를 토글 목록으로 고를 수 있게 한다. 목록은 보조 수단이라 기본으로 접어 둔다.
+ */
 function LineToggleList({
   lines,
   onToggle,
@@ -406,28 +409,45 @@ function LineToggleList({
   onToggle: (lineId: string) => void
   selectedIds: string[]
 }) {
+  const [isExpanded, setIsExpanded] = useState(false)
+
   return (
-    <section aria-label="인식한 줄" className="mt-6">
-      <p className="text-ink-subtle mb-2 text-xs">사진 위를 끌거나 아래 줄을 눌러 고르세요.</p>
-      <ul className="border-border border-t">
-        {lines.map((line) => {
-          const isSelected = selectedIds.includes(line.id)
-          return (
-            <li className="border-border border-b" key={line.id}>
-              <button
-                aria-pressed={isSelected}
-                className={`min-h-11 w-full px-2 py-2 text-left text-sm ${
-                  isSelected ? 'bg-ink text-surface' : 'text-ink'
-                }`}
-                onClick={() => onToggle(line.id)}
-                type="button"
-              >
-                {line.text}
-              </button>
-            </li>
-          )
-        })}
-      </ul>
+    <section aria-label="인식한 줄" className="mt-4">
+      <p className="text-ink-subtle talkhugam-balanced-copy text-sm">
+        사진 위 줄을 누르거나 끌어서 고르세요.
+      </p>
+      <SeedActionButton
+        aria-controls="photo-quote-line-list"
+        aria-expanded={isExpanded}
+        className="mt-3 min-h-11"
+        onClick={() => setIsExpanded((value) => !value)}
+        size="medium"
+        type="button"
+        variant="ghost"
+      >
+        줄 목록으로 고르기
+      </SeedActionButton>
+      {isExpanded ? (
+        <ul className="border-border mt-2 border-t" id="photo-quote-line-list">
+          {lines.map((line) => {
+            const isSelected = selectedIds.includes(line.id)
+            return (
+              <li className="border-border border-b" key={line.id}>
+                <button
+                  aria-pressed={isSelected}
+                  className={`min-h-11 w-full px-2 py-2 text-left text-sm ${
+                    isSelected ? 'bg-ink text-surface' : 'text-ink'
+                  }`}
+                  onClick={() => onToggle(line.id)}
+                  type="button"
+                >
+                  {line.text}
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      ) : null}
     </section>
   )
 }
