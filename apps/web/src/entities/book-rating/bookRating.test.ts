@@ -1,6 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { bookRatingKeys, getMyRatedBooks, removeBookChatRating, upsertBookChatRating } from '.'
+import {
+  bookRatingKeys,
+  getBookChatRatings,
+  getMyRatedBooks,
+  removeBookChatRating,
+  upsertBookChatRating,
+} from '.'
 
 const bookChatId = '22222222-2222-4222-8222-222222222222'
 
@@ -40,5 +46,19 @@ describe('book rating queries', () => {
     await expect(getMyRatedBooks({ from } as never, bookChatId)).resolves.toEqual([])
     expect(from).toHaveBeenCalledWith('book_chat_ratings')
     expect(order).toHaveBeenCalledWith('updated_at', { ascending: false })
+  })
+
+  it('reads the rating roster through the room so every member display name is available', async () => {
+    const order = vi.fn().mockResolvedValue({ data: [], error: null })
+    const eq = vi.fn().mockReturnValue({ order })
+    const select = vi.fn().mockReturnValue({ eq })
+    const from = vi.fn().mockReturnValue({ select })
+
+    await expect(getBookChatRatings({ from } as never, bookChatId, bookChatId)).resolves.toEqual([])
+    expect(select.mock.calls[0]?.[0]).toContain(
+      'book_chats!inner(reading_rooms!inner(room_members(',
+    )
+    expect(eq).toHaveBeenCalledWith('book_chat_id', bookChatId)
+    expect(order).toHaveBeenCalledWith('updated_at', { ascending: true })
   })
 })
