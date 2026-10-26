@@ -146,10 +146,11 @@ export {
   type RoomRole,
 } from './roomPermission'
 export {
-  groupVisionWordsIntoLines,
+  groupClovaFieldsIntoLines,
+  type ClovaField,
   type OcrBox,
   type OcrLine,
-  type VisionTextAnnotation,
+  type OcrPageSize,
 } from './ocrLayout'
 export {
   insertQuoteIntoDraft,

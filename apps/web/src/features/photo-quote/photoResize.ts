@@ -1,4 +1,4 @@
-/** Google Vision 인식 품질과 전송 크기의 균형을 위해 사진 긴 변을 이 크기로 줄인다. */
+/** CLOVA OCR 인식 품질과 전송 크기의 균형을 위해 사진 긴 변을 이 크기로 줄인다. */
 export const ocrPhotoMaxSide = 2000
 const ocrPhotoJpegQuality = 0.8
 

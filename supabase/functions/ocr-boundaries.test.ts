@@ -11,7 +11,7 @@ function createDependencies(overrides: Partial<OcrPageDependencies> = {}): OcrPa
   return {
     authenticate: () => Promise.resolve({ userId: 'user-1', isBookChatMember: () => Promise.resolve(true) }),
     consumeDailyLimit: () => Promise.resolve(true),
-    readVisionApiKey: () => 'vision-secret',
+    readOcrConfig: () => ({ invokeUrl: 'https://clova.test/general', secret: 'clova-secret' }),
     recognizeLines: () =>
       Promise.resolve([{ id: 'line-0', text: '책방', box: { x: 0.1, y: 0.1, width: 0.3, height: 0.1 } }]),
     ...overrides,
@@ -70,14 +70,14 @@ Deno.test('ocr-page rejects a user who is not an active member of the book chat 
   assertEquals(wasLimitConsumed, false)
 })
 
-Deno.test('ocr-page explains a missing Vision key without consuming the daily limit', async () => {
+Deno.test('ocr-page explains missing CLOVA settings without consuming the daily limit', async () => {
   let wasLimitConsumed = false
   const handler = createOcrPageHandler(createDependencies({
     consumeDailyLimit: () => {
       wasLimitConsumed = true
       return Promise.resolve(true)
     },
-    readVisionApiKey: () => undefined,
+    readOcrConfig: () => undefined,
   }))
   const response = await handler(createOcrRequest({ bookChatId, image }))
   const body = await response.json()
@@ -104,11 +104,11 @@ Deno.test('ocr-page limits daily calls per user', async () => {
 
 Deno.test('ocr-page returns only recognized lines', async () => {
   let recognizedImage = ''
-  let usedKey = ''
+  let usedSecret = ''
   const handler = createOcrPageHandler(createDependencies({
-    recognizeLines: (content, apiKey) => {
+    recognizeLines: (content, config) => {
       recognizedImage = content
-      usedKey = apiKey
+      usedSecret = config.secret
       return Promise.resolve([{ id: 'line-0', text: '책방', box: { x: 0, y: 0, width: 1, height: 0.1 } }])
     },
   }))
@@ -118,10 +118,10 @@ Deno.test('ocr-page returns only recognized lines', async () => {
   assertEquals(response.status, 200)
   assertEquals(body.data, { lines: [{ id: 'line-0', text: '책방', box: { x: 0, y: 0, width: 1, height: 0.1 } }] })
   assertEquals(recognizedImage, image)
-  assertEquals(usedKey, 'vision-secret')
+  assertEquals(usedSecret, 'clova-secret')
 })
 
-Deno.test('ocr-page hides Vision failures and never logs the image or recognized text', async () => {
+Deno.test('ocr-page hides CLOVA failures and never logs the image or recognized text', async () => {
   const logged: string[] = []
   const originalError = console.error
   console.error = (...values: unknown[]) => logged.push(values.map(String).join(' '))

@@ -6,9 +6,9 @@ import { logOperationalEvent } from '../_shared/logger.ts'
 import { consumeRateLimit } from '../_shared/rate-limit.ts'
 import { getAuthenticatedContext } from '../_shared/supabase.ts'
 import { ocrPageInputSchema } from './schema.ts'
-import { fetchVisionLines, type OcrLine } from './vision.ts'
+import { type ClovaOcrConfig, fetchClovaLines, type OcrLine } from './clova.ts'
 
-/** 사용자별 하루 OCR 호출 상한. Google Vision 비용 보호용이며 운영 결정에 따라 조정한다. */
+/** 사용자별 하루 OCR 호출 상한. CLOVA OCR 비용 보호용이며 운영 결정에 따라 조정한다. */
 export const OCR_DAILY_LIMIT_PER_USER = 20
 const ONE_DAY_SECONDS = 86_400
 
@@ -20,8 +20,8 @@ export type OcrPageUser = {
 export type OcrPageDependencies = {
   authenticate: (request: Request) => Promise<OcrPageUser | null>
   consumeDailyLimit: (userId: string) => Promise<boolean>
-  readVisionApiKey: () => string | undefined
-  recognizeLines: (imageContent: string, apiKey: string) => Promise<OcrLine[]>
+  readOcrConfig: () => ClovaOcrConfig | undefined
+  recognizeLines: (imageContent: string, config: ClovaOcrConfig) => Promise<OcrLine[]>
 }
 
 /** 요청 JWT를 검증하고, 사용자 권한(RLS)으로 책 대화방을 읽어 구성원 여부를 확인하는 함수를 함께 반환한다. */
@@ -54,21 +54,23 @@ function consumeOcrDailyLimit(userId: string): Promise<boolean> {
   })
 }
 
-/** Edge Function 시크릿에서 Google Vision API 키를 읽고, 없으면 undefined를 반환한다. */
-function readVisionApiKeyFromEnv(): string | undefined {
-  return readOptionalEnv('GOOGLE_VISION_API_KEY')
+/** Edge Function 시크릿에서 CLOVA OCR 호출 주소와 Secret을 읽고, 하나라도 없으면 undefined를 반환한다. */
+function readClovaConfigFromEnv(): ClovaOcrConfig | undefined {
+  const invokeUrl = readOptionalEnv('CLOVA_OCR_INVOKE_URL')
+  const secret = readOptionalEnv('CLOVA_OCR_SECRET')
+  return invokeUrl && secret ? { invokeUrl, secret } : undefined
 }
 
-/** base64 이미지와 API 키로 실제 Google Vision을 호출해 줄 목록을 반환한다. */
-function recognizeLinesWithVision(imageContent: string, apiKey: string): Promise<OcrLine[]> {
-  return fetchVisionLines(imageContent, apiKey)
+/** base64 이미지와 CLOVA 설정으로 실제 CLOVA OCR을 호출해 줄 목록을 반환한다. */
+function recognizeLinesWithClova(imageContent: string, config: ClovaOcrConfig): Promise<OcrLine[]> {
+  return fetchClovaLines(imageContent, config)
 }
 
 const defaultDependencies: OcrPageDependencies = {
   authenticate: authenticateWithSupabase,
   consumeDailyLimit: consumeOcrDailyLimit,
-  readVisionApiKey: readVisionApiKeyFromEnv,
-  recognizeLines: recognizeLinesWithVision,
+  readOcrConfig: readClovaConfigFromEnv,
+  recognizeLines: recognizeLinesWithClova,
 }
 
 /** 인증·구성원·키·호출 제한을 통과한 요청의 이미지를 인식해 줄 목록 응답을 만든다. 실패 내용은 코드만 기록한다. */
@@ -88,11 +90,11 @@ async function recognizeAuthorizedPage(
     )
   }
 
-  const apiKey = dependencies.readVisionApiKey()
-  if (!apiKey) {
+  const config = dependencies.readOcrConfig()
+  if (!config) {
     logOperationalEvent('error', 'ocr_page_unconfigured', { requestId, code: 'OCR_UNAVAILABLE' })
     return failureResponse(
-      { code: 'OCR_UNAVAILABLE', message: '문장 인식이 아직 준비되지 않았어요. GOOGLE_VISION_API_KEY 설정이 필요합니다.' },
+      { code: 'OCR_UNAVAILABLE', message: '문장 인식이 아직 준비되지 않았어요. CLOVA_OCR_INVOKE_URL·CLOVA_OCR_SECRET 설정이 필요합니다.' },
       requestId,
       503,
       headers,
@@ -108,13 +110,13 @@ async function recognizeAuthorizedPage(
     )
   }
 
-  const lines = await dependencies.recognizeLines(input.image, apiKey)
+  const lines = await dependencies.recognizeLines(input.image, config)
   return successResponse({ lines }, requestId, headers)
 }
 
 /**
  * 책 페이지 사진(base64 JPEG)과 책 대화방 ID를 받아 JWT·구성원·일일 호출 제한을 확인한 뒤
- * Google Vision으로 읽은 줄 목록만 반환하는 ocr-page handler를 만든다.
+ * CLOVA OCR로 읽은 줄 목록만 반환하는 ocr-page handler를 만든다.
  * 이미지와 인식 결과는 로그·DB·Storage에 남기지 않는다.
  */
 export function createOcrPageHandler(dependencies: OcrPageDependencies) {

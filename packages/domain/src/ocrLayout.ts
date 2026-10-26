@@ -13,36 +13,19 @@ export type OcrLine = {
   text: string
 }
 
-type VisionVertex = { x?: number | undefined; y?: number | undefined }
+type ClovaVertex = { x?: number | undefined; y?: number | undefined }
 
-type VisionSymbol = {
-  property?: { detectedBreak?: { type?: string | undefined } | undefined } | undefined
-  text?: string | undefined
+export type ClovaField = {
+  boundingPoly?: { vertices?: ClovaVertex[] | undefined } | undefined
+  inferText?: string | undefined
+  lineBreak?: boolean | undefined
 }
 
-type VisionWord = {
-  boundingBox?: { vertices?: VisionVertex[] | undefined } | undefined
-  symbols?: VisionSymbol[] | undefined
-}
-
-type VisionPage = {
-  blocks?:
-    | { paragraphs?: { words?: VisionWord[] | undefined }[] | undefined }[]
-    | undefined
-  height?: number | undefined
-  width?: number | undefined
-}
-
-export type VisionTextAnnotation = {
-  pages?: VisionPage[] | undefined
-}
+export type OcrPageSize = { height: number; width: number }
 
 type PixelBounds = { maxX: number; maxY: number; minX: number; minY: number }
 
 type LineDraft = { bounds: PixelBounds | null; text: string }
-
-const lineEndingBreaks = new Set(['EOL_SURE_SPACE', 'LINE_BREAK', 'HYPHEN'])
-const spaceBreaks = new Set(['SPACE', 'SURE_SPACE'])
 
 /** 0~1 범위를 벗어난 비율 값을 경계로 자르고 소수 넷째 자리로 반올림한다. */
 function clampRatio(value: number): number {
@@ -50,9 +33,9 @@ function clampRatio(value: number): number {
   return Math.round(clamped * 10000) / 10000
 }
 
-/** 단어 꼭짓점 목록을 픽셀 경계 사각형으로 바꾼다. 꼭짓점이 없으면 null을 반환한다. */
-function getWordBounds(word: VisionWord): PixelBounds | null {
-  const vertices = word.boundingBox?.vertices ?? []
+/** 필드 꼭짓점 목록을 픽셀 경계 사각형으로 바꾼다. 꼭짓점이 없으면 null을 반환한다. */
+function getFieldBounds(field: ClovaField): PixelBounds | null {
+  const vertices = field.boundingPoly?.vertices ?? []
   if (vertices.length === 0) return null
   const xs = vertices.map((vertex) => vertex.x ?? 0)
   const ys = vertices.map((vertex) => vertex.y ?? 0)
@@ -83,26 +66,15 @@ function normalizeBounds(bounds: PixelBounds, pageWidth: number, pageHeight: num
   }
 }
 
-/** 글자 하나의 텍스트와 detectedBreak를 줄 초안에 덧붙이고 줄이 끝났는지 반환한다. */
-function appendSymbol(draft: LineDraft, symbol: VisionSymbol): boolean {
-  const breakType = symbol.property?.detectedBreak?.type ?? ''
-  draft.text += symbol.text ?? ''
-  if (spaceBreaks.has(breakType)) draft.text += ' '
-  if (breakType === 'HYPHEN') draft.text += '-'
-  return lineEndingBreaks.has(breakType)
-}
-
-/** 페이지 하나의 단어를 순서대로 읽어 줄 초안 목록으로 묶는다. */
-function collectPageLineDrafts(page: VisionPage): LineDraft[] {
+/** 필드 목록을 읽기 순서대로 이어 lineBreak가 true인 필드에서 줄 초안을 닫는다. 마지막 줄은 lineBreak가 없어도 닫는다. */
+function collectLineDrafts(fields: ClovaField[]): LineDraft[] {
   const drafts: LineDraft[] = []
-  const words = (page.blocks ?? []).flatMap((block) =>
-    (block.paragraphs ?? []).flatMap((paragraph) => [...(paragraph.words ?? []), null]),
-  )
   let current: LineDraft = { bounds: null, text: '' }
 
-  for (const word of words) {
-    const isLineEnded = word ? appendWord(current, word) : true
-    if (!isLineEnded) continue
+  for (const [index, field] of fields.entries()) {
+    current.text += `${field.inferText ?? ''} `
+    current.bounds = mergeBounds(current.bounds, getFieldBounds(field))
+    if (!field.lineBreak && index < fields.length - 1) continue
     drafts.push(current)
     current = { bounds: null, text: '' }
   }
@@ -110,24 +82,19 @@ function collectPageLineDrafts(page: VisionPage): LineDraft[] {
   return drafts
 }
 
-/** 단어 하나를 줄 초안에 더하고 마지막 글자에서 줄이 끝났는지 반환한다. */
-function appendWord(draft: LineDraft, word: VisionWord): boolean {
-  draft.bounds = mergeBounds(draft.bounds, getWordBounds(word))
-  return (word.symbols ?? []).map((symbol) => appendSymbol(draft, symbol)).some(Boolean)
-}
-
 /**
- * Google Vision DOCUMENT_TEXT_DETECTION의 fullTextAnnotation을 받아
- * 단어와 detectedBreak로 줄을 묶고, 페이지 비율 박스를 가진 줄 목록을 반환한다.
+ * CLOVA OCR General V2의 `fields`와 인식한 이미지의 픽셀 크기를 받아
+ * `lineBreak`로 줄을 묶고, 페이지 비율 박스를 가진 줄 목록을 반환한다.
  */
-export function groupVisionWordsIntoLines(annotation: VisionTextAnnotation | undefined): OcrLine[] {
-  const page = annotation?.pages?.[0]
-  if (!page?.width || !page.height) return []
-  const pageWidth = page.width
-  const pageHeight = page.height
+export function groupClovaFieldsIntoLines(
+  fields: ClovaField[] | undefined,
+  pageSize: OcrPageSize | null,
+): OcrLine[] {
+  if (!fields?.length || !pageSize?.width || !pageSize.height) return []
+  const { height: pageHeight, width: pageWidth } = pageSize
 
-  return collectPageLineDrafts(page)
-    .map((draft) => ({ bounds: draft.bounds, text: draft.text.trim() }))
+  return collectLineDrafts(fields)
+    .map((draft) => ({ bounds: draft.bounds, text: draft.text.replace(/\s+/g, ' ').trim() }))
     .filter((draft): draft is { bounds: PixelBounds; text: string } =>
       Boolean(draft.text && draft.bounds),
     )

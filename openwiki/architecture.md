@@ -47,7 +47,7 @@ Talk후감은 `apps/web`의 React/Vite 단일 페이지 앱과 저장소 루트 
 클라이언트의 `shared/api/supabaseClient.ts`는 Supabase JavaScript client를 제공한다. entity는 PostgREST 읽기, RPC, Edge Function 호출을 이 클라이언트 경계로 모은다.
 
 - **Supabase Auth/PostgreSQL/Realtime**: 사용자 인증, 관계·콘텐츠 저장, RLS 기반 조회/수정 경계. 로컬 설정은 [`supabase/config.toml`](../supabase/config.toml)에 있다.
-- **Edge Functions**: 책 검색(`book-search`), Naver OAuth 시작, 피드백 제출·관리, 계정 삭제, Mux 업로드·webhook·재생 토큰·삭제 worker, 책 페이지 사진 문자 인식(`ocr-page`, Google Vision 프록시)처럼 외부 API나 특권 작업을 처리한다. `verify_jwt = false`인 함수도 함수 내부의 인증·서명·worker 비밀값 검증에 의존하므로, 그 구현 규칙은 [보안과 운영](./security-operations.md)을 따른다.
+- **Edge Functions**: 책 검색(`book-search`), Naver OAuth 시작, 피드백 제출·관리, 계정 삭제, Mux 업로드·webhook·재생 토큰·삭제 worker, 책 페이지 사진 문자 인식(`ocr-page`, 네이버 CLOVA OCR 프록시)처럼 외부 API나 특권 작업을 처리한다. `verify_jwt = false`인 함수도 함수 내부의 인증·서명·worker 비밀값 검증에 의존하므로, 그 구현 규칙은 [보안과 운영](./security-operations.md)을 따른다.
 - **Mux**: 브라우저는 Edge Function이 발급한 업로드 URL로 파일을 전송하고, 재생·썸네일은 인가된 토큰 경계를 거친다. 앱의 영상은 최대 30초라는 제품 제한이 있다(`README.md`, `features/video-upload`).
 - **분석**: `AnalyticsLayout`과 `shared/analytics`가 선택적으로 GA4와 Clarity를 로드한다. GA4는 경로와 정의된 이벤트만 전송하도록 구현되어 있다.
 
