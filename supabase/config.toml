@@ -124,6 +124,9 @@ verify_jwt = false
 [functions.admin-feedback]
 verify_jwt = false
 
+[functions.ocr-page]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

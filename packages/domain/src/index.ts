@@ -145,3 +145,19 @@ export {
   roomRoleSchema,
   type RoomRole,
 } from './roomPermission'
+export {
+  groupVisionWordsIntoLines,
+  type OcrBox,
+  type OcrLine,
+  type VisionTextAnnotation,
+} from './ocrLayout'
+export {
+  insertQuoteIntoDraft,
+  isQuoteWithinLimit,
+  joinOcrLines,
+  ocrBoxSchema,
+  ocrLineSchema,
+  ocrPageResponseSchema,
+  ocrQuoteMaxLength,
+  parseOcrPageResponse,
+} from './ocrQuote'

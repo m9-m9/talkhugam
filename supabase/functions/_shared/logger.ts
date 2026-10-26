@@ -14,6 +14,8 @@ export type OperationalEvent =
   | 'notification_push_worker_completed'
   | 'naver_oauth_failed'
   | 'naver_oauth_succeeded'
+  | 'ocr_page_failed'
+  | 'ocr_page_unconfigured'
 
 const ALLOWED_METADATA_KEYS = new Set([
   'requestId',

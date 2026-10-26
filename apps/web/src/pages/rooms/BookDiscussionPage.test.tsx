@@ -135,6 +135,30 @@ vi.mock('../../entities/video', () => ({
   },
 }))
 
+vi.mock('../../features/photo-quote', async () => {
+  const { insertQuoteIntoDraft } = await import('@talkhugam/domain')
+  return {
+    insertQuoteIntoDraft,
+    PhotoQuoteFlow: ({
+      file,
+      onInsert,
+    }: {
+      file: File
+      onInsert: (value: { page: string | null; quote: string }) => void
+    }) => (
+      <div aria-label="문장 고르기" role="dialog">
+        <p>{file.name}</p>
+        <button
+          onClick={() => onInsert({ page: '87', quote: '우리는 늘 떠나는 쪽이었다' })}
+          type="button"
+        >
+          가짜 글에 넣기
+        </button>
+      </div>
+    ),
+  }
+})
+
 vi.mock('../../shared/ui/LazyMuxVideoPlayer', () => ({
   LazyMuxVideoPlayer: ({ playbackId }: { playbackId: string }) => (
     <div data-playback-id={playbackId} data-testid="inline-mux-player" />
@@ -442,6 +466,27 @@ describe('BookDiscussionPage', () => {
     expect(screen.getByRole('button', { name: '페이지 라벨' })).toHaveClass(
       'talkhugam-action-sheet-choice',
     )
+  })
+
+  it('inserts a quote picked from a page photo with its page label', async () => {
+    renderBookDiscussionPage()
+
+    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
+    fireEvent.click(screen.getByRole('button', { name: '사진에서 문장 가져오기' }))
+    fireEvent.change(screen.getByLabelText('문장을 가져올 사진 선택'), {
+      target: { files: [new File(['jpeg'], 'page-87.jpg', { type: 'image/jpeg' })] },
+    })
+
+    expect(await screen.findByRole('dialog', { name: '문장 고르기' })).toHaveTextContent(
+      'page-87.jpg',
+    )
+    fireEvent.click(screen.getByRole('button', { name: '가짜 글에 넣기' }))
+
+    expect(screen.queryByRole('dialog', { name: '문장 고르기' })).not.toBeInTheDocument()
+    expect(screen.getByLabelText('메시지 입력')).toHaveValue('「우리는 늘 떠나는 쪽이었다」\n')
+    expect(
+      within(screen.getByRole('list', { name: '선택한 라벨' })).getByText('페이지 87'),
+    ).toBeInTheDocument()
   })
 
   it('keeps every chat action in the same two-column grid', () => {

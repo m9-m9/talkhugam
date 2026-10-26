@@ -38,6 +38,11 @@ import {
 } from '../../entities/video'
 import { useVideoUpload } from '../../features/video-upload'
 import {
+  insertQuoteIntoDraft,
+  PhotoQuoteFlow,
+  type PhotoQuoteInsert,
+} from '../../features/photo-quote'
+import {
   invalidateRatingQueries,
   RatingForm,
   removeBookRatingFromCache,
@@ -381,6 +386,7 @@ export function BookDiscussionPage() {
         )}
       </section>
       <ChatComposer
+        bookChatId={bookChatId}
         canCreateRoomInvite={roomManagementQuery.data?.canCurrentUserManageContent ?? false}
         inviteTriggerRef={inviteShareTriggerRef}
         errorMessage={errorMessage ?? videoErrorMessage}
@@ -757,6 +763,7 @@ function MemberRatingList({ ratings }: { ratings: BookChatRating[] }) {
 
 /** 대화 입력창 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function ChatComposer({
+  bookChatId,
   canCreateRoomInvite,
   errorMessage,
   hasMentionMemberError,
@@ -780,6 +787,7 @@ function ChatComposer({
   value,
   inviteTriggerRef,
 }: {
+  bookChatId: string | undefined
   canCreateRoomInvite: boolean
   errorMessage: string | null
   hasMentionMemberError: boolean
@@ -804,6 +812,8 @@ function ChatComposer({
   inviteTriggerRef: RefObject<HTMLButtonElement | null>
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const photoInputRef = useRef<HTMLInputElement>(null)
+  const [photoQuoteFile, setPhotoQuoteFile] = useState<File | null>(null)
   const messageInputRef = useRef<HTMLTextAreaElement>(null)
   const actionMenuButtonRef = useRef<HTMLButtonElement>(null)
   const firstActionButtonRef = useRef<HTMLButtonElement>(null)
@@ -852,6 +862,20 @@ function ChatComposer({
   /** 선택한 멤버를 현재 @ 입력 위치에 삽입하고 메시지 입력을 유지한다. */
   function handleSelectMention(member: VideoFilterMember) {
     handleChangeMessage(insertMention(value, member.displayName))
+    window.requestAnimationFrame(() => messageInputRef.current?.focus())
+  }
+
+  /** 사진에서 확인한 인용 문장을 입력창 끝에 넣고, 쪽이 있으면 페이지 라벨을 그 쪽으로 바꾼다. */
+  function handleInsertPhotoQuote({ page, quote }: PhotoQuoteInsert) {
+    handleChangeMessage(insertQuoteIntoDraft(value, quote))
+    const pageLabel = page && !isReplying ? createDraftLabel('page', page) : null
+    if (pageLabel) onChangeLabels([...labels.filter((label) => label.kind !== 'page'), pageLabel])
+    handleClosePhotoQuote()
+  }
+
+  /** 사진 인식 화면을 닫고 사진 파일 참조를 버린 뒤 메시지 입력으로 포커스를 돌려준다. */
+  function handleClosePhotoQuote() {
+    setPhotoQuoteFile(null)
     window.requestAnimationFrame(() => messageInputRef.current?.focus())
   }
 
@@ -1025,6 +1049,17 @@ function ChatComposer({
               </SeedActionButton>
               <SeedActionButton
                 className="talkhugam-action-sheet-choice"
+                disabled={!bookChatId}
+                onClick={() => {
+                  handleCloseActionTray(false)
+                  photoInputRef.current?.click()
+                }}
+                variant="neutralWeak"
+              >
+                사진에서 문장 가져오기
+              </SeedActionButton>
+              <SeedActionButton
+                className="talkhugam-action-sheet-choice"
                 onClick={() => {
                   handleCloseActionTray(false)
                   onOpenVideoArchive()
@@ -1083,6 +1118,17 @@ function ChatComposer({
             event.target.value = ''
           }}
           ref={fileInputRef}
+          type="file"
+        />
+        <input
+          accept="image/*"
+          aria-label="문장을 가져올 사진 선택"
+          className="sr-only"
+          onChange={(event) => {
+            setPhotoQuoteFile(event.target.files?.[0] ?? null)
+            event.target.value = ''
+          }}
+          ref={photoInputRef}
           type="file"
         />
         <SeedActionButton
@@ -1185,6 +1231,14 @@ function ChatComposer({
         <p className="mt-2 text-sm text-red-600" role="alert">
           {errorMessage}
         </p>
+      ) : null}
+      {photoQuoteFile && bookChatId ? (
+        <PhotoQuoteFlow
+          bookChatId={bookChatId}
+          file={photoQuoteFile}
+          onClose={handleClosePhotoQuote}
+          onInsert={handleInsertPhotoQuote}
+        />
       ) : null}
       {isUploadingVideo ? (
         <div className="mt-3">
