@@ -85,7 +85,7 @@ describe('MobileBookDiscussionScreen', () => {
     mockRemoveMobileBookChatRating.mockResolvedValue()
     mockUpsertMobileBookChatRating.mockResolvedValue()
     mockUseMobileSessionProfileId.mockReturnValue(firstMemberId)
-    Object.defineProperty(global, 'crypto', {
+    Object.defineProperty(globalThis, 'crypto', {
       configurable: true,
       value: { randomUUID: jest.fn(() => submissionClientId) },
     })
