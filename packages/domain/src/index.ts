@@ -71,6 +71,19 @@ export {
   type CompletedBook,
 } from './bookCompletion'
 export {
+  bookChatRatingRowSchema,
+  bookRatingInputSchema,
+  bookRatingKeys,
+  calculateAverageRating,
+  parseBookChatRatings,
+  parseBookRatingInput,
+  parseRatedBooks,
+  ratedBookRowSchema,
+  type BookChatRating,
+  type BookRatingInput,
+  type RatedBook,
+} from './bookRating'
+export {
   archivedBookChatRowSchema,
   bookBestsellerKeys,
   bookChatKeys,
