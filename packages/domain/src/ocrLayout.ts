@@ -39,7 +39,12 @@ function getFieldBounds(field: ClovaField): PixelBounds | null {
   if (vertices.length === 0) return null
   const xs = vertices.map((vertex) => vertex.x ?? 0)
   const ys = vertices.map((vertex) => vertex.y ?? 0)
-  return { maxX: Math.max(...xs), maxY: Math.max(...ys), minX: Math.min(...xs), minY: Math.min(...ys) }
+  return {
+    maxX: Math.max(...xs),
+    maxY: Math.max(...ys),
+    minX: Math.min(...xs),
+    minY: Math.min(...ys),
+  }
 }
 
 /** 두 픽셀 경계 사각형을 모두 덮는 사각형을 반환한다. */

@@ -40,8 +40,24 @@ describe('bookRating', () => {
     )
 
     expect(ratings).toEqual([
-      { avatarPath: null, displayName: '책방 이름', isMe: true, profileId: me, rating: 4, review: null, updatedAt: '2026-10-26T10:00:00+09:00' },
-      { avatarPath: 'other/avatar', displayName: '다른 멤버', isMe: false, profileId: other, rating: 5, review: '좋았어요', updatedAt: '2026-10-26T11:00:00+09:00' },
+      {
+        avatarPath: null,
+        displayName: '책방 이름',
+        isMe: true,
+        profileId: me,
+        rating: 4,
+        review: null,
+        updatedAt: '2026-10-26T10:00:00+09:00',
+      },
+      {
+        avatarPath: 'other/avatar',
+        displayName: '다른 멤버',
+        isMe: false,
+        profileId: other,
+        rating: 5,
+        review: '좋았어요',
+        updatedAt: '2026-10-26T11:00:00+09:00',
+      },
     ])
   })
 
@@ -50,7 +66,13 @@ describe('bookRating', () => {
       parseBookChatRatings(
         [
           {
-            book_chats: { room_members: { profile_id: me, room_avatar_path: null, room_display_name: '책방 이름' } },
+            book_chats: {
+              room_members: {
+                profile_id: me,
+                room_avatar_path: null,
+                room_display_name: '책방 이름',
+              },
+            },
             profile_id: me,
             profiles: { avatar_path: null, display_name: '기본 이름' },
             rating: 4,

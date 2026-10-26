@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { getPhotoQuoteErrorMessage, recognizePagePhoto } from './ocrPageApi'
+import { getPhotoQuoteErrorMessage, recognizePagePhoto } from './ocrPageClient'
 
 const bookChatId = '11111111-1111-4111-8111-111111111111'
 
@@ -43,6 +43,12 @@ describe('getPhotoQuoteErrorMessage', () => {
     [502, '문장을 읽지 못했어요. 다시 시도해 주세요.'],
   ])('status %i를 안내 문구로 바꾼다', (status, expected) => {
     expect(getPhotoQuoteErrorMessage({ context: new Response(null, { status }) })).toBe(expected)
+  })
+
+  it('Response가 아닌 context의 status도 읽는다', () => {
+    expect(getPhotoQuoteErrorMessage({ context: { status: 429 } })).toBe(
+      '오늘 사진 인식 횟수를 모두 썼어요. 내일 다시 시도해 주세요.',
+    )
   })
 
   it('알 수 없는 오류는 일반 문구로 둔다', () => {

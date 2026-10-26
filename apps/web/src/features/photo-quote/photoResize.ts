@@ -1,14 +1,6 @@
-/** CLOVA OCR 인식 품질과 전송 크기의 균형을 위해 사진 긴 변을 이 크기로 줄인다. */
-export const ocrPhotoMaxSide = 2000
-const ocrPhotoJpegQuality = 0.8
+import { getScaledImageSize, ocrPhotoJpegQuality } from '@talkhugam/domain'
 
-type ImageSize = { height: number; width: number }
-
-/** 원본 사진 크기를 받아 긴 변이 최대값을 넘지 않도록 비율을 유지한 크기를 반환한다. */
-export function getScaledImageSize(size: ImageSize, maxSide = ocrPhotoMaxSide): ImageSize {
-  const scale = Math.min(1, maxSide / Math.max(size.width, size.height))
-  return { height: Math.round(size.height * scale), width: Math.round(size.width * scale) }
-}
+import { PhotoDecodeError } from './photoDecodeError'
 
 /** canvas 내용을 JPEG Blob으로 인코딩한다. */
 function encodeCanvasAsJpeg(canvas: HTMLCanvasElement): Promise<Blob> {
@@ -31,19 +23,29 @@ function readBlobAsBase64(blob: Blob): Promise<string> {
   })
 }
 
+/** 사진 파일을 EXIF 회전을 반영해 비트맵으로 디코드한다. 브라우저가 못 여는 형식이면 PhotoDecodeError를 던진다. */
+async function decodePhotoBitmap(file: File): Promise<ImageBitmap> {
+  try {
+    return await createImageBitmap(file, { imageOrientation: 'from-image' })
+  } catch (error) {
+    throw new PhotoDecodeError(error)
+  }
+}
+
 /**
  * 사용자가 고른 사진 파일을 EXIF 회전을 반영해 긴 변 2000px JPEG로 줄이고
- * 서버 전송용 base64 문자열을 반환한다. 결과는 메모리에서만 쓰고 저장하지 않는다.
+ * 서버 전송용 base64 문자열을 반환한다. 디코드에 실패하면(HEIC 등) 서버를 부르기 전에 PhotoDecodeError로 멈춘다.
+ * 결과는 메모리에서만 쓰고 저장하지 않는다.
  */
 export async function resizePhotoForOcr(file: File): Promise<string> {
-  const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' })
+  const bitmap = await decodePhotoBitmap(file)
   try {
     const size = getScaledImageSize({ height: bitmap.height, width: bitmap.width })
     const canvas = document.createElement('canvas')
     canvas.width = size.width
     canvas.height = size.height
     const context = canvas.getContext('2d')
-    if (!context) throw new Error('canvas unavailable')
+    if (!context) throw new PhotoDecodeError()
     context.drawImage(bitmap, 0, 0, size.width, size.height)
     return await readBlobAsBase64(await encodeCanvasAsJpeg(canvas))
   } finally {

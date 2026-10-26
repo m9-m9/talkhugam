@@ -1,4 +1,5 @@
-import type { OcrLine } from '@talkhugam/domain'
+import type { OcrLine } from './ocrLayout'
+import { joinOcrLines, ocrQuoteMaxLength } from './ocrQuote'
 
 export type LineRangeMode = 'add' | 'remove'
 
@@ -54,4 +55,26 @@ export function findLineAtPoint(
         yRatio <= box.y + box.height,
     ) ?? null
   )
+}
+
+export type LineSelectionSummary = {
+  isOverLimit: boolean
+  lineCount: number
+  quoteLength: number
+  texts: string[]
+}
+
+/** 인식한 줄과 선택한 줄 ID를 받아 선택 요약(줄 수, 정리한 문장 길이, 300자 초과 여부, 텍스트)을 반환한다. */
+export function getLineSelectionSummary(
+  lines: readonly OcrLine[],
+  selectedIds: readonly string[],
+): LineSelectionSummary {
+  const texts = getSelectedLineTexts(lines, selectedIds)
+  const quoteLength = joinOcrLines(texts).length
+  return {
+    isOverLimit: quoteLength > ocrQuoteMaxLength,
+    lineCount: texts.length,
+    quoteLength,
+    texts,
+  }
 }

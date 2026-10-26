@@ -4,9 +4,10 @@ import {
   applyLineRange,
   findLineAtPoint,
   getLineRangeIds,
+  getLineSelectionSummary,
   getSelectedLineTexts,
   toggleLineId,
-} from './lineSelection'
+} from './ocrLineSelection'
 
 const lines = [
   { box: { height: 0.05, width: 0.8, x: 0.1, y: 0.1 }, id: 'line-0', text: '첫째 줄' },
@@ -46,5 +47,19 @@ describe('lineSelection', () => {
     expect(findLineAtPoint(lines, 0.5, 0.22)?.id).toBe('line-1')
     expect(findLineAtPoint(lines, 0.5, 0.27)).toBeNull()
     expect(findLineAtPoint(lines, 0.95, 0.22)).toBeNull()
+  })
+
+  it('고른 줄 수와 정리한 문장 길이, 300자 초과 여부를 함께 돌려준다', () => {
+    expect(getLineSelectionSummary(lines, ['line-0', 'line-1'])).toEqual({
+      isOverLimit: false,
+      lineCount: 2,
+      quoteLength: 9,
+      texts: ['첫째 줄', '둘째 줄'],
+    })
+    const longLines = [
+      { ...lines[0], text: '가'.repeat(200) },
+      { ...lines[1], text: '나'.repeat(200) },
+    ]
+    expect(getLineSelectionSummary(longLines, ['line-0', 'line-1']).isOverLimit).toBe(true)
   })
 })

@@ -162,3 +162,25 @@ export {
   ocrQuoteMaxLength,
   parseOcrPageResponse,
 } from './ocrQuote'
+export {
+  applyLineRange,
+  findLineAtPoint,
+  getLineRangeIds,
+  getLineSelectionSummary,
+  getSelectedLineTexts,
+  toggleLineId,
+  type LineRangeMode,
+  type LineSelectionSummary,
+} from './ocrLineSelection'
+export {
+  getPhotoQuoteErrorMessage,
+  ocrEmptyResultMessage,
+  recognizePagePhoto,
+  type OcrFunctionsInvoker,
+} from './ocrPageClient'
+export {
+  getScaledImageSize,
+  ocrPhotoJpegQuality,
+  ocrPhotoMaxSide,
+  type OcrImageSize,
+} from './ocrPhoto'

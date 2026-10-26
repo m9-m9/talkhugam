@@ -3,9 +3,18 @@ import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } f
 
 import { ActionButton as SeedActionButton, TextField } from '@seed-design/react'
 import {
+  applyLineRange,
+  findLineAtPoint,
+  getLineRangeIds,
+  getLineSelectionSummary,
+  getPhotoQuoteErrorMessage,
   isQuoteWithinLimit,
   joinOcrLines,
+  ocrEmptyResultMessage,
   ocrQuoteMaxLength,
+  recognizePagePhoto,
+  toggleLineId,
+  type LineRangeMode,
   type OcrLine,
 } from '@talkhugam/domain'
 
@@ -14,24 +23,19 @@ import { AppHeader } from '../../shared/ui/AppHeader'
 import { trapDialogFocus } from '../../shared/ui/dialogFocus'
 import { BookLoadingIndicator } from '../../shared/ui/LoadingSpinner'
 import { RetryState } from '../../shared/ui/RetryState'
-import {
-  applyLineRange,
-  findLineAtPoint,
-  getLineRangeIds,
-  getSelectedLineTexts,
-  toggleLineId,
-  type LineRangeMode,
-} from './lineSelection'
-import { getPhotoQuoteErrorMessage, recognizePagePhoto } from './ocrPageApi'
+import { isPhotoDecodeError, unsupportedPhotoFormatMessage } from './photoDecodeError'
 import { resizePhotoForOcr } from './photoResize'
 
 export type PhotoQuoteInsert = { page: string | null; quote: string }
 
 type PhotoQuoteFlowProps = {
   bookChatId: string
-  file: File
+  /** 문장을 읽을 책 페이지 사진. null이면 사진 없이 문장을 직접 입력하는 확인 화면만 연다. */
+  file: File | null
   onClose: () => void
   onInsert: (value: PhotoQuoteInsert) => void
+  /** 브라우저가 열 수 없는 사진일 때 흐름을 닫고 다른 사진을 다시 고르게 한다. */
+  onPickAnotherPhoto?: () => void
 }
 
 type DragState = { anchorId: string; baseIds: string[]; mode: LineRangeMode }
@@ -44,11 +48,12 @@ async function recognizePhotoFile(bookChatId: string, file: File): Promise<OcrLi
   return recognizePagePhoto(createSupabaseClient(), bookChatId, image)
 }
 
-/** 사진 파일의 화면 표시용 object URL을 만들고 화면을 벗어나면 해제한다. */
-function usePhotoObjectUrl(file: File): string | null {
+/** 사진 파일의 화면 표시용 object URL을 만들고 화면을 벗어나면 해제한다. 파일이 없으면 null을 반환한다. */
+function usePhotoObjectUrl(file: File | null): string | null {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!file) return
     const url = URL.createObjectURL(file)
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 브라우저 자원 생성과 해제를 같은 effect에 묶는다.
     setPhotoUrl(url)
@@ -60,20 +65,29 @@ function usePhotoObjectUrl(file: File): string | null {
 
 /**
  * 책 페이지 사진을 받아 인식 → 줄 선택 → 문장 확인 단계를 전체 화면으로 보여 주고,
- * 사용자가 확인한 인용 문장과 쪽을 onInsert로 넘긴다. 사진과 인식 결과는 저장하지 않는다.
+ * 사용자가 확인한 인용 문장과 쪽을 onInsert로 넘긴다. 사진이 없으면(직접 입력) 빈 확인 화면만 연다.
+ * 사진과 인식 결과는 저장하지 않는다.
  */
-export function PhotoQuoteFlow({ bookChatId, file, onClose, onInsert }: PhotoQuoteFlowProps) {
+export function PhotoQuoteFlow({
+  bookChatId,
+  file,
+  onClose,
+  onInsert,
+  onPickAnotherPhoto,
+}: PhotoQuoteFlowProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
   const [requestKey] = useState(() => crypto.randomUUID())
   const [selectedIds, setSelectedIds] = useState<string[]>([])
-  const [step, setStep] = useState<'select' | 'confirm'>('select')
+  const isManual = file === null
+  const [step, setStep] = useState<'select' | 'confirm'>(isManual ? 'confirm' : 'select')
   const [isKeepingLineBreaks, setIsKeepingLineBreaks] = useState(false)
   const [quoteDraft, setQuoteDraft] = useState('')
   const [pageDraft, setPageDraft] = useState('')
   const photoUrl = usePhotoObjectUrl(file)
   const recognitionQuery = useQuery({
+    enabled: file !== null,
     gcTime: 0,
-    queryFn: () => recognizePhotoFile(bookChatId, file),
+    queryFn: () => (file ? recognizePhotoFile(bookChatId, file) : Promise.resolve([])),
     queryKey: ['photo-quote', 'ocr-page', bookChatId, requestKey],
     refetchOnReconnect: false,
     refetchOnWindowFocus: false,
@@ -81,7 +95,7 @@ export function PhotoQuoteFlow({ bookChatId, file, onClose, onInsert }: PhotoQuo
     staleTime: Infinity,
   })
   const lines = recognitionQuery.data ?? []
-  const selectedTexts = getSelectedLineTexts(lines, selectedIds)
+  const selectedTexts = getLineSelectionSummary(lines, selectedIds).texts
 
   useEffect(() => {
     /** Escape로 흐름을 닫고 Tab 포커스를 화면 안에 가둔다. */
@@ -117,16 +131,16 @@ export function PhotoQuoteFlow({ bookChatId, file, onClose, onInsert }: PhotoQuo
     onInsert({ page: pageDraft.trim() || null, quote: quoteDraft.trim() })
   }
 
-  /** 단계에 맞춰 이전 화면으로 돌아가거나 흐름을 닫는다. */
+  /** 단계에 맞춰 이전 화면으로 돌아가거나 흐름을 닫는다. 직접 입력은 이전 단계가 없어 바로 닫는다. */
   function handleBack() {
-    if (step === 'confirm') {
+    if (step === 'confirm' && !isManual) {
       setStep('select')
       return
     }
     onClose()
   }
 
-  const title = step === 'select' ? '문장 고르기' : '가져올 문장 확인'
+  const title = getFlowTitle(step, isManual)
 
   return (
     <div
@@ -144,13 +158,17 @@ export function PhotoQuoteFlow({ bookChatId, file, onClose, onInsert }: PhotoQuo
         {step === 'select' ? (
           <SelectStep
             errorMessage={
-              recognitionQuery.isError ? getPhotoQuoteErrorMessage(recognitionQuery.error) : null
+              recognitionQuery.isError ? getRecognitionErrorMessage(recognitionQuery.error) : null
+            }
+            isPhotoUnreadable={
+              recognitionQuery.isError && isPhotoDecodeError(recognitionQuery.error)
             }
             isRecognizing={recognitionQuery.isPending}
             isRetrying={recognitionQuery.isFetching}
             lines={lines}
             onChangeSelection={setSelectedIds}
             onNext={handleOpenConfirm}
+            onPickAnotherPhoto={onPickAnotherPhoto ?? onClose}
             onRetry={() => void recognitionQuery.refetch()}
             photoUrl={photoUrl}
             selectedIds={selectedIds}
@@ -159,6 +177,7 @@ export function PhotoQuoteFlow({ bookChatId, file, onClose, onInsert }: PhotoQuo
         ) : (
           <ConfirmStep
             isKeepingLineBreaks={isKeepingLineBreaks}
+            isManual={isManual}
             onChangePage={setPageDraft}
             onChangeQuote={setQuoteDraft}
             onInsert={handleInsert}
@@ -172,13 +191,27 @@ export function PhotoQuoteFlow({ bookChatId, file, onClose, onInsert }: PhotoQuo
   )
 }
 
+/** 인식 실패 오류를 받아, 브라우저 사진 디코드 실패와 서버 인식 실패를 구분한 안내 문구를 반환한다. */
+function getRecognitionErrorMessage(error: unknown): string {
+  if (isPhotoDecodeError(error)) return unsupportedPhotoFormatMessage
+  return getPhotoQuoteErrorMessage(error)
+}
+
+/** 현재 단계와 직접 입력 여부로 화면 제목을 고른다. */
+function getFlowTitle(step: 'select' | 'confirm', isManual: boolean): string {
+  if (isManual) return '문장 직접 입력'
+  return step === 'select' ? '문장 고르기' : '가져올 문장 확인'
+}
+
 type SelectStepProps = {
   errorMessage: string | null
+  isPhotoUnreadable: boolean
   isRecognizing: boolean
   isRetrying: boolean
   lines: OcrLine[]
   onChangeSelection: (ids: string[]) => void
   onNext: () => void
+  onPickAnotherPhoto: () => void
   onRetry: () => void
   photoUrl: string | null
   selectedIds: string[]
@@ -188,11 +221,13 @@ type SelectStepProps = {
 /** 인식 상태에 맞춰 사진, 줄 박스, 줄 목록과 하단 선택 요약을 렌더링한다. */
 function SelectStep({
   errorMessage,
+  isPhotoUnreadable,
   isRecognizing,
   isRetrying,
   lines,
   onChangeSelection,
   onNext,
+  onPickAnotherPhoto,
   onRetry,
   photoUrl,
   selectedIds,
@@ -209,7 +244,7 @@ function SelectStep({
           isDimmed={isRecognizing}
           lines={lines}
           onChangeSelection={onChangeSelection}
-          photoUrl={photoUrl}
+          photoUrl={isPhotoUnreadable ? null : photoUrl}
           selectedIds={selectedIds}
         />
         {isRecognizing ? (
@@ -219,12 +254,17 @@ function SelectStep({
         ) : null}
         {errorMessage ? (
           <div className="mt-6">
-            <RetryState isRetrying={isRetrying} message={errorMessage} onRetry={onRetry} />
+            <RetryState
+              isRetrying={isRetrying}
+              message={errorMessage}
+              onRetry={isPhotoUnreadable ? onPickAnotherPhoto : onRetry}
+              retryLabel={isPhotoUnreadable ? '다른 사진 고르기' : '다시 시도'}
+            />
           </div>
         ) : null}
         {isEmptyResult ? (
           <p className="text-ink-subtle talkhugam-balanced-copy mt-6 text-center text-sm">
-            사진에서 글자를 찾지 못했어요. 글자가 잘 보이게 다시 찍어 주세요.
+            {ocrEmptyResultMessage}
           </p>
         ) : null}
         {lines.length > 0 ? (
@@ -278,6 +318,7 @@ function PhotoLineOverlay({
   selectedIds,
 }: PhotoLineOverlayProps) {
   const dragRef = useRef<DragState | null>(null)
+  const [brokenPhotoUrl, setBrokenPhotoUrl] = useState<string | null>(null)
 
   /** 포인터 위치를 사진 비율 좌표로 바꿔 그 아래 줄을 찾는다. */
   function getLineAtPointer(event: ReactPointerEvent<HTMLDivElement>): OcrLine | null {
@@ -314,7 +355,7 @@ function PhotoLineOverlay({
     dragRef.current = null
   }
 
-  if (!photoUrl) return null
+  if (!photoUrl || brokenPhotoUrl === photoUrl) return null
 
   return (
     <div className="relative mx-auto w-fit">
@@ -322,6 +363,7 @@ function PhotoLineOverlay({
         alt="고른 책 페이지 사진"
         className={`block max-h-[70dvh] w-auto max-w-full select-none ${isDimmed ? 'opacity-40 blur-sm' : ''}`}
         draggable={false}
+        onError={() => setBrokenPhotoUrl(photoUrl)}
         src={photoUrl}
       />
       <div
@@ -392,6 +434,7 @@ function LineToggleList({
 
 type ConfirmStepProps = {
   isKeepingLineBreaks: boolean
+  isManual: boolean
   onChangePage: (value: string) => void
   onChangeQuote: (value: string) => void
   onInsert: () => void
@@ -400,9 +443,10 @@ type ConfirmStepProps = {
   quoteDraft: string
 }
 
-/** 정리한 인용 문장을 고치고 쪽을 적은 뒤 입력창에 넣는 확인 화면을 렌더링한다. */
+/** 인용 문장을 고치거나 직접 적고 쪽을 적은 뒤 입력창에 넣는 확인 화면을 렌더링한다. 사진 전용 안내는 사진 흐름에서만 보인다. */
 function ConfirmStep({
   isKeepingLineBreaks,
+  isManual,
   onChangePage,
   onChangeQuote,
   onInsert,
@@ -418,7 +462,8 @@ function ConfirmStep({
         <div>
           <TextField.Root className="talkhugam-information-field">
             <TextField.Textarea
-              aria-label="가져올 문장"
+              aria-label="인용할 문장"
+              autoFocus={isManual}
               className="min-h-40 text-base"
               onChange={(event) => onChangeQuote(event.target.value)}
               value={quoteDraft}
@@ -446,17 +491,23 @@ function ConfirmStep({
             />
           </TextField.Root>
         </div>
-        <SeedActionButton
-          aria-pressed={isKeepingLineBreaks}
-          className="talkhugam-foundation-toggle min-h-11"
-          onClick={onToggleLineBreaks}
-          size="medium"
-          type="button"
-          variant="neutralOutline"
-        >
-          원문 줄바꿈 유지
-        </SeedActionButton>
-        <p className="text-ink-subtle talkhugam-balanced-copy text-sm">사진은 저장되지 않아요.</p>
+        {isManual ? null : (
+          <>
+            <SeedActionButton
+              aria-pressed={isKeepingLineBreaks}
+              className="talkhugam-foundation-toggle min-h-11"
+              onClick={onToggleLineBreaks}
+              size="medium"
+              type="button"
+              variant="neutralOutline"
+            >
+              원문 줄바꿈 유지
+            </SeedActionButton>
+            <p className="text-ink-subtle talkhugam-balanced-copy text-sm">
+              사진은 저장되지 않아요.
+            </p>
+          </>
+        )}
         <p className="text-ink-subtle talkhugam-balanced-copy text-xs">
           책 속 문장은 짧게 인용하고 내 생각을 함께 남겨 주세요.
         </p>

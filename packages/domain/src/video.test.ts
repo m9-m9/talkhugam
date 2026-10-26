@@ -40,8 +40,9 @@ describe('video domain', () => {
       },
     ])
 
-    expect(filterVideoPosts(posts, { kind: 'mine', memberId: posts[0]?.authorMemberId ?? null }))
-      .toEqual(posts)
+    expect(
+      filterVideoPosts(posts, { kind: 'mine', memberId: posts[0]?.authorMemberId ?? null }),
+    ).toEqual(posts)
     expect(videoKeys.byBookChat('book-chat-id')).toEqual(['video-posts', 'book-chat-id'])
   })
 
@@ -55,7 +56,9 @@ describe('video domain', () => {
       },
     ])
 
-    expect(authorizations.get('4b7227b2-5350-4a61-9114-b2d0c915fd1b')?.playbackId).toBe('playback-id')
+    expect(authorizations.get('4b7227b2-5350-4a61-9114-b2d0c915fd1b')?.playbackId).toBe(
+      'playback-id',
+    )
     expect(validateVideoDuration(30)).toBe(true)
     expect(validateVideoDuration(30.1)).toBe(false)
   })

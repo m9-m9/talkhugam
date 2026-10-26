@@ -33,10 +33,18 @@ export const createCommunityRoomFormSchema = z
   })
   .superRefine((value, context) => {
     if (value.access === 'password' && (value.password.length < 8 || value.password.length > 72)) {
-      context.addIssue({ code: 'custom', message: '비밀번호는 8~72자로 입력해 주세요.', path: ['password'] })
+      context.addIssue({
+        code: 'custom',
+        message: '비밀번호는 8~72자로 입력해 주세요.',
+        path: ['password'],
+      })
     }
     if (value.access === 'public' && value.password.length > 0) {
-      context.addIssue({ code: 'custom', message: '공개 책방에는 비밀번호를 입력할 수 없어요.', path: ['password'] })
+      context.addIssue({
+        code: 'custom',
+        message: '공개 책방에는 비밀번호를 입력할 수 없어요.',
+        path: ['password'],
+      })
     }
   })
 

@@ -91,9 +91,7 @@ export type VideoFilterMember = {
 }
 export type VideoDeletePermission = { canDelete: boolean }
 export type VideoPostFilter =
-  | { kind: 'all' }
-  | { kind: 'member'; memberId: string }
-  | { kind: 'mine'; memberId: string | null }
+  { kind: 'all' } | { kind: 'member'; memberId: string } | { kind: 'mine'; memberId: string | null }
 
 type CurrentRoomMemberPermission = {
   currentMemberId: string
@@ -118,7 +116,9 @@ export const videoKeys = {
 }
 
 /** Edge Function의 영상 업로드 시작 응답을 검증해 앱용 모델로 반환한다. */
-export function parseVideoUploadResponse(value: unknown): z.infer<typeof videoUploadResponseSchema>['data'] {
+export function parseVideoUploadResponse(
+  value: unknown,
+): z.infer<typeof videoUploadResponseSchema>['data'] {
   return videoUploadResponseSchema.parse(value).data
 }
 
@@ -139,7 +139,9 @@ export function parseVideoThumbnailAuthorizations(value: unknown): VideoThumbnai
 }
 
 /** 업로드 완료 이동 상태가 유효하면 검증된 모델로, 아니면 null로 반환한다. */
-export function getUploadedVideoNavigationState(value: unknown): UploadedVideoNavigationState | null {
+export function getUploadedVideoNavigationState(
+  value: unknown,
+): UploadedVideoNavigationState | null {
   const parsed = uploadedVideoNavigationStateSchema.safeParse(value)
   return parsed.success ? parsed.data : null
 }
@@ -163,12 +165,18 @@ export function mapVideoPost(row: z.infer<typeof videoPostRowSchema>): VideoPost
 }
 
 /** 외부 멤버 행과 현재 프로필을 검증해 영상 필터 후보로 변환한다. */
-export function parseVideoFilterMembers(value: unknown, currentUserId: string): VideoFilterMember[] {
-  return z.array(videoFilterMemberRowSchema).parse(value).map((member) => ({
-    displayName: member.room_display_name,
-    id: member.id,
-    isCurrentUser: member.profile_id === currentUserId,
-  }))
+export function parseVideoFilterMembers(
+  value: unknown,
+  currentUserId: string,
+): VideoFilterMember[] {
+  return z
+    .array(videoFilterMemberRowSchema)
+    .parse(value)
+    .map((member) => ({
+      displayName: member.room_display_name,
+      id: member.id,
+      isCurrentUser: member.profile_id === currentUserId,
+    }))
 }
 
 /** 현재 멤버 역할과 작성자 정보를 검증해 영상 삭제 권한을 반환한다. */
@@ -197,7 +205,10 @@ export function canDeleteVideoPost(
 }
 
 /** 선택한 필터 조건에 맞는 영상 게시물만 새 배열로 반환한다. */
-export function filterVideoPosts(posts: readonly VideoPost[], filter: VideoPostFilter): VideoPost[] {
+export function filterVideoPosts(
+  posts: readonly VideoPost[],
+  filter: VideoPostFilter,
+): VideoPost[] {
   if (filter.kind === 'all') return [...posts]
   if (filter.memberId === null) return []
   return posts.filter((post) => post.authorMemberId === filter.memberId)

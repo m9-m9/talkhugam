@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { PhotoDecodeError } from './photoDecodeError'
 import { PhotoQuoteFlow } from './PhotoQuoteFlow'
 
 const { recognizePagePhoto, resizePhotoForOcr } = vi.hoisted(() => ({
@@ -9,8 +10,8 @@ const { recognizePagePhoto, resizePhotoForOcr } = vi.hoisted(() => ({
   resizePhotoForOcr: vi.fn(),
 }))
 
-vi.mock('./ocrPageApi', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('./ocrPageApi')>()),
+vi.mock('@talkhugam/domain', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@talkhugam/domain')>()),
   recognizePagePhoto,
 }))
 vi.mock('./photoResize', () => ({ resizePhotoForOcr }))
@@ -32,21 +33,34 @@ const lines = [
 ]
 
 /** 사진 인식 흐름을 새 QueryClient와 함께 렌더링한다. */
-function renderFlow(overrides: { onClose?: () => void; onInsert?: () => void } = {}) {
+function renderFlow(
+  overrides: {
+    file?: File | null
+    onClose?: () => void
+    onInsert?: () => void
+    onPickAnotherPhoto?: () => void
+  } = {},
+) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const onClose = overrides.onClose ?? vi.fn()
   const onInsert = overrides.onInsert ?? vi.fn()
+  const onPickAnotherPhoto = overrides.onPickAnotherPhoto ?? vi.fn()
   render(
     <QueryClientProvider client={queryClient}>
       <PhotoQuoteFlow
         bookChatId={bookChatId}
-        file={new File(['jpeg'], 'page.jpg', { type: 'image/jpeg' })}
+        file={
+          overrides.file === undefined
+            ? new File(['jpeg'], 'page.jpg', { type: 'image/jpeg' })
+            : overrides.file
+        }
         onClose={onClose}
         onInsert={onInsert}
+        onPickAnotherPhoto={onPickAnotherPhoto}
       />
     </QueryClientProvider>,
   )
-  return { onClose, onInsert }
+  return { onClose, onInsert, onPickAnotherPhoto }
 }
 
 beforeEach(() => {
@@ -107,7 +121,7 @@ describe('PhotoQuoteFlow', () => {
 
     expect(screen.getByRole('dialog', { name: '가져올 문장 확인' })).toBeInTheDocument()
     expect(screen.getByText('사진은 저장되지 않아요.')).toBeInTheDocument()
-    const quoteInput = screen.getByRole('textbox', { name: '가져올 문장' })
+    const quoteInput = screen.getByRole('textbox', { name: '인용할 문장' })
     expect(quoteInput).toHaveValue('우리는 늘 떠나는 쪽이었고 남는 쪽의 마음을 헤아린')
 
     fireEvent.click(screen.getByRole('button', { name: '원문 줄바꿈 유지' }))
@@ -161,5 +175,60 @@ describe('PhotoQuoteFlow', () => {
     expect(onClose).toHaveBeenCalled()
     cleanup()
     await waitFor(() => expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:page'))
+  })
+
+  it('직접 입력은 사진 인식 없이 빈 확인 화면을 열고 글에 넣는다', () => {
+    const { onInsert } = renderFlow({ file: null })
+
+    expect(screen.getByRole('dialog', { name: '문장 직접 입력' })).toBeInTheDocument()
+    expect(recognizePagePhoto).not.toHaveBeenCalled()
+    expect(screen.queryByRole('button', { name: '원문 줄바꿈 유지' })).not.toBeInTheDocument()
+    expect(screen.queryByText('사진은 저장되지 않아요.')).not.toBeInTheDocument()
+    const quoteInput = screen.getByRole('textbox', { name: '인용할 문장' })
+    expect(quoteInput).toHaveValue('')
+    expect(screen.getByRole('button', { name: '글에 넣기' })).toBeDisabled()
+
+    fireEvent.change(quoteInput, { target: { value: '남는 쪽의 마음' } })
+    fireEvent.change(screen.getByRole('textbox', { name: '쪽 번호' }), { target: { value: '12' } })
+    fireEvent.click(screen.getByRole('button', { name: '글에 넣기' }))
+
+    expect(onInsert).toHaveBeenCalledWith({ page: '12', quote: '남는 쪽의 마음' })
+  })
+
+  it('직접 입력에서 뒤로 가면 흐름을 닫는다', () => {
+    const { onClose } = renderFlow({ file: null })
+
+    fireEvent.click(screen.getByRole('button', { name: '이전 화면으로' }))
+
+    expect(onClose).toHaveBeenCalled()
+  })
+
+  it('브라우저가 열 수 없는 사진(HEIC 등)은 서버로 보내지 않고 다른 사진을 고르게 한다', async () => {
+    resizePhotoForOcr.mockRejectedValue(new PhotoDecodeError())
+    const { onPickAnotherPhoto } = renderFlow({
+      file: new File(['heic'], 'IMG_0001.HEIC', { type: 'image/heic' }),
+    })
+
+    expect(
+      await screen.findByText(
+        '이 사진 형식은 이 브라우저에서 열 수 없어요. JPG나 PNG로 바꿔 다시 골라 주세요.',
+      ),
+    ).toBeInTheDocument()
+    expect(recognizePagePhoto).not.toHaveBeenCalled()
+    expect(screen.queryByRole('button', { name: '다시 시도' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('img', { name: '고른 책 페이지 사진' })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '다른 사진 고르기' }))
+    expect(onPickAnotherPhoto).toHaveBeenCalled()
+  })
+
+  it('미리보기 이미지를 그리지 못하면 깨진 사진 대신 자리를 비운다', async () => {
+    renderFlow()
+    const photo = screen.getByRole('img', { name: '고른 책 페이지 사진' })
+
+    fireEvent.error(photo)
+
+    expect(screen.queryByRole('img', { name: '고른 책 페이지 사진' })).not.toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: '적이 없었다.' })).toBeInTheDocument()
   })
 })
