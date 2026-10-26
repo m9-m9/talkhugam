@@ -4,6 +4,18 @@ select * from public.book_chat_completions;
 create table private.book_chat_reading_progresses_backup_20261026 as
 select * from public.book_chat_reading_progresses;
 
+alter table private.book_chat_completions_backup_20261026
+  add constraint book_chat_completions_backup_20261026_book_chat_id_fkey
+    foreign key (book_chat_id) references public.book_chats (id) on delete cascade,
+  add constraint book_chat_completions_backup_20261026_profile_id_fkey
+    foreign key (profile_id) references public.profiles (id) on delete cascade;
+
+alter table private.book_chat_reading_progresses_backup_20261026
+  add constraint book_chat_reading_progresses_backup_20261026_book_chat_id_fkey
+    foreign key (book_chat_id) references public.book_chats (id) on delete cascade,
+  add constraint book_chat_reading_progresses_backup_20261026_profile_id_fkey
+    foreign key (profile_id) references public.profiles (id) on delete cascade;
+
 revoke all on table private.book_chat_completions_backup_20261026 from public, anon, authenticated;
 revoke all on table private.book_chat_reading_progresses_backup_20261026 from public, anon, authenticated;
 
@@ -21,13 +33,23 @@ alter table public.book_chat_ratings alter column rating set not null;
 alter table public.book_chat_ratings
   rename constraint book_chat_completions_book_chat_profile_unique to book_chat_ratings_book_chat_profile_unique;
 alter table public.book_chat_ratings
-  rename constraint book_chat_completions_rating_range to book_chat_ratings_rating_range;
+  rename constraint book_chat_completions_pkey to book_chat_ratings_pkey;
+alter table public.book_chat_ratings
+  rename constraint book_chat_completions_book_chat_id_fkey to book_chat_ratings_book_chat_id_fkey;
+alter table public.book_chat_ratings
+  rename constraint book_chat_completions_profile_id_fkey to book_chat_ratings_profile_id_fkey;
+alter table public.book_chat_ratings
+  drop constraint book_chat_completions_rating_range;
+alter table public.book_chat_ratings
+  add constraint book_chat_ratings_rating_range check (rating between 1 and 5);
 alter table public.book_chat_ratings
   rename constraint book_chat_completions_review_length to book_chat_ratings_review_length;
 alter trigger book_chat_completions_set_updated_at on public.book_chat_ratings
   rename to book_chat_ratings_set_updated_at;
 alter policy book_chat_completions_select_own_or_room_member on public.book_chat_ratings
   rename to book_chat_ratings_select_own_or_room_member;
+
+comment on table public.book_chat_ratings is '책 대화별 개인 별점과 선택 총평을 저장한다.';
 
 create index book_chat_ratings_profile_updated_at_idx
 on public.book_chat_ratings (profile_id, updated_at desc);
