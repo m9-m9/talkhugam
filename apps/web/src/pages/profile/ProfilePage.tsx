@@ -108,8 +108,8 @@ export function ProfilePage() {
             onClick={() => void navigate('/rooms')}
           />
           <ProfileNavigationRow
-            description="참여한 모든 책방의 읽는 책과 완독 기록을 봐요."
-            label="읽고 있는 책"
+            description="참여한 책방의 책과 내가 남긴 별점을 봐요."
+            label="내 책"
             onClick={() => void navigate('/profile/books')}
           />
           <ProfileNavigationRow

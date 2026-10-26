@@ -5,29 +5,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ProfilePage } from './ProfilePage'
 
-const { getMyCompletedBooks, getProfile, getProfileAvatarUrl } = vi.hoisted(() => ({
-  getMyCompletedBooks: vi.fn().mockResolvedValue([
-    {
-      authors: ['기시미 이치로'],
-      bookChatId: '00000000-0000-0000-0000-000000000201',
-      completedAt: '2026-07-18T01:00:00+00:00',
-      rating: 5,
-      review: '다시 읽고 싶은 책이에요.',
-      roomId: '00000000-0000-0000-0000-000000000202',
-      thumbnailUrl: null,
-      title: '미움받을 용기',
-    },
-  ]),
+const { getProfile, getProfileAvatarUrl } = vi.hoisted(() => ({
   getProfile: vi.fn().mockResolvedValue({
     bio: '천천히 읽고 오래 남겨요.',
     displayName: '민규',
   }),
   getProfileAvatarUrl: vi.fn(),
-}))
-
-vi.mock('../../entities/book-completion', () => ({
-  bookCompletionKeys: { myBooks: (profileId: string) => ['my-completed-books', profileId] },
-  getMyCompletedBooks,
 }))
 
 vi.mock('../../entities/book-chat', () => ({}))
@@ -44,18 +27,6 @@ vi.mock('../../shared/api/supabaseClient', () => ({
 
 describe('ProfilePage', () => {
   beforeEach(() => {
-    getMyCompletedBooks.mockResolvedValue([
-      {
-        authors: ['기시미 이치로'],
-        bookChatId: '00000000-0000-0000-0000-000000000201',
-        completedAt: '2026-07-18T01:00:00+00:00',
-        rating: 5,
-        review: '다시 읽고 싶은 책이에요.',
-        roomId: '00000000-0000-0000-0000-000000000202',
-        thumbnailUrl: null,
-        title: '미움받을 용기',
-      },
-    ])
     getProfile.mockResolvedValue({
       bio: '천천히 읽고 오래 남겨요.',
       displayName: '민규',
@@ -77,12 +48,12 @@ describe('ProfilePage', () => {
     expect(profileEditButton).toHaveClass(/seed-action-button/)
     expect(profileEditButton).toHaveClass('!justify-between')
     expect(screen.getByRole('button', { name: '책방 보기' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '읽고 있는 책' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '내 책' })).toBeInTheDocument()
+    expect(screen.getByText('참여한 책방의 책과 내가 남긴 별점을 봐요.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '계정 설정' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '서비스 정보' })).toBeInTheDocument()
     expect(screen.queryByText(/MBTI/)).not.toBeInTheDocument()
     expect(screen.queryByText('프로필 정보')).not.toBeInTheDocument()
-    expect(screen.queryByText('내가 완독한 책')).not.toBeInTheDocument()
     expect(screen.queryByText('미움받을 용기')).not.toBeInTheDocument()
   })
 

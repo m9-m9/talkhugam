@@ -7,7 +7,7 @@ export const analyticsEventNames = [
   'post_created',
   'video_upload_started',
   'video_upload_ready',
-  'book_completed',
+  'book_rated',
   'feedback_submitted',
 ] as const
 

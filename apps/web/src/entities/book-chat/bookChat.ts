@@ -98,11 +98,10 @@ export async function getMyArchivedBookChats(
   return parseArchivedBookChats(response.data)
 }
 
-/** 참여 중인 모든 책방의 읽는 책을 개인 완독 표시와 함께 조회한다. */
+/** 참여 중인 모든 책방에서 함께 읽는 책 목록을 조회한다. */
 export async function getMyReadingBooks(
   client: SupabaseClient,
   profileId: string,
-  completedBookChatIds: readonly string[],
 ): Promise<ReadingBook[]> {
   z.string().uuid().parse(profileId)
   const response = await client
@@ -112,10 +111,10 @@ export async function getMyReadingBooks(
     .order('created_at', { ascending: false })
 
   if (response.error) throw response.error
-  return parseReadingBooks(response.data, completedBookChatIds)
+  return parseReadingBooks(response.data, [])
 }
 
-/** 대화방의 읽기 상태를 완독 또는 아카이브 상태로 바꾼다. */
+/** 책 대화방의 공용 읽기 상태(읽는 중·종료·아카이브)를 바꾼다. */
 export async function updateBookChatStatus(
   client: SupabaseClient,
   bookChatId: string,

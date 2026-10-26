@@ -23,7 +23,8 @@ describe('RatingForm', () => {
     )
 
     expect(screen.getByRole('button', { name: '별점 저장' })).toBeDisabled()
-    expect(screen.queryByText(/완독일/)).not.toBeInTheDocument()
+    expect(screen.getAllByRole('group')).toHaveLength(1)
+    expect(screen.getByRole('group', { name: '별점' })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: '4점' }))
     fireEvent.change(screen.getByRole('textbox'), { target: { value: '  좋아요  ' } })

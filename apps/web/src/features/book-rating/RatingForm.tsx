@@ -52,7 +52,7 @@ export function RatingForm({
       <p className="text-ink-subtle text-sm">별점은 꼭 골라 주세요. 총평은 선택이에요.</p>
       <fieldset className="mt-4">
         <legend className="text-ink text-sm font-medium">별점</legend>
-        <div className="mt-2 flex gap-2" role="group" aria-label="별점 선택">
+        <div className="mt-2 flex gap-2">
           {STAR_VALUES.map((value) => (
             <button
               aria-label={`${value}점`}

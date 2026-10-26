@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -11,7 +11,7 @@ const {
   createManagedRoomInvite,
   getRoomManagement,
   getManagedBookChat,
-  getBookChatCompletions,
+  getBookChatRatings,
   getReadingRoom,
   getPosts,
   getVideoFilterMembers,
@@ -20,7 +20,8 @@ const {
   getVideoThumbnailAuthorizations,
   parsePostForm,
   requestManagedRoomInvite,
-  upsertBookChatCompletion,
+  removeBookChatRating,
+  upsertBookChatRating,
   videoUploadState,
 } = vi.hoisted(() => ({
   createPost: vi.fn().mockResolvedValue('post-1'),
@@ -48,7 +49,7 @@ const {
     name: '금요일 아침 책방',
     status: 'active',
   }),
-  getBookChatCompletions: vi.fn().mockResolvedValue([]),
+  getBookChatRatings: vi.fn().mockResolvedValue([]),
   getPosts: vi.fn().mockResolvedValue([]),
   getReadingRoom: vi.fn().mockResolvedValue({
     description: null,
@@ -93,7 +94,8 @@ const {
     },
   ),
   requestManagedRoomInvite: vi.fn().mockResolvedValue(true),
-  upsertBookChatCompletion: vi.fn().mockResolvedValue(undefined),
+  removeBookChatRating: vi.fn().mockResolvedValue(undefined),
+  upsertBookChatRating: vi.fn().mockResolvedValue(undefined),
   videoUploadState: { isUploadingVideo: false },
 }))
 
@@ -109,7 +111,6 @@ vi.mock('../../entities/post', () => ({
 vi.mock('../../entities/book-chat', () => ({
   bookChatKeys: {
     detail: (bookChatId: string) => ['book-chat', bookChatId],
-    myReading: (profileId: string) => ['my-reading-books', profileId],
     room: (roomId: string) => ['reading-room', roomId],
   },
   getManagedBookChat,
@@ -149,19 +150,19 @@ vi.mock('../../entities/room-management', () => ({
   roomManagementKeys: { detail: (roomId: string) => ['room-management', roomId] },
 }))
 
-vi.mock('../../entities/reading-progress', () => ({
-  readingProgressKeys: { byProfile: (profileId: string) => ['reading-progresses', profileId] },
-}))
-
-vi.mock('../../entities/book-completion', () => ({
-  bookCompletionKeys: {
-    byChat: (bookChatId: string) => ['book-completions', bookChatId],
-    myBookChatIds: (profileId: string) => ['my-completion-book-chat-ids', profileId],
-    myBooks: (profileId: string) => ['my-completed-books', profileId],
+vi.mock('../../entities/book-rating', () => ({
+  bookRatingKeys: {
+    byChat: (bookChatId: string) => ['book-ratings', bookChatId],
+    myBooks: (profileId: string) => ['my-rated-books', profileId],
   },
-  getBookChatCompletions,
-  removeBookChatCompletion: vi.fn(),
-  upsertBookChatCompletion,
+  calculateAverageRating: (ratings: Array<{ rating: number }>) =>
+    ratings.length === 0
+      ? null
+      : Math.round((ratings.reduce((sum, item) => sum + item.rating, 0) / ratings.length) * 10) /
+        10,
+  getBookChatRatings,
+  removeBookChatRating,
+  upsertBookChatRating,
 }))
 
 vi.mock('../../features/auth', () => ({
@@ -201,10 +202,12 @@ describe('BookDiscussionPage', () => {
     getVideoPosts.mockResolvedValue([])
     requestManagedRoomInvite.mockClear()
     requestManagedRoomInvite.mockResolvedValue(true)
-    getBookChatCompletions.mockReset()
-    getBookChatCompletions.mockResolvedValue([])
-    upsertBookChatCompletion.mockClear()
-    upsertBookChatCompletion.mockResolvedValue(undefined)
+    getBookChatRatings.mockReset()
+    getBookChatRatings.mockResolvedValue([])
+    removeBookChatRating.mockClear()
+    removeBookChatRating.mockResolvedValue(undefined)
+    upsertBookChatRating.mockClear()
+    upsertBookChatRating.mockResolvedValue(undefined)
     videoUploadState.isUploadingVideo = false
   })
 
@@ -422,7 +425,7 @@ describe('BookDiscussionPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
 
-    expect(screen.getByRole('button', { name: '완독 기록' })).not.toHaveClass('col-span-2')
+    expect(screen.getByRole('button', { name: '별점' })).not.toHaveClass('col-span-2')
   })
 
   it('aligns the add button, message input, and send button in one composer grid', () => {
@@ -433,25 +436,25 @@ describe('BookDiscussionPage', () => {
     expect(input.closest('.talkhugam-chat-composer-row')).toBeInTheDocument()
   })
 
-  it('opens the completion review form from the plus menu before it saves a personal completion record', async () => {
+  it('opens the rating form from the plus menu before it saves my rating', async () => {
     renderBookDiscussionPage()
 
-    expect(screen.queryByRole('button', { name: '완독하기' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '별점 남기기' })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
-    fireEvent.click(screen.getByRole('button', { name: '완독 기록' }))
+    fireEvent.click(screen.getByRole('button', { name: '별점' }))
 
-    expect(await screen.findByRole('dialog', { name: '완독 기록' })).toBeInTheDocument()
+    expect(await screen.findByRole('dialog', { name: '별점' })).toBeInTheDocument()
 
-    expect(upsertBookChatCompletion).not.toHaveBeenCalled()
-    fireEvent.click(await screen.findByRole('button', { name: '완독하기' }))
+    expect(upsertBookChatRating).not.toHaveBeenCalled()
+    fireEvent.click(await screen.findByRole('button', { name: '별점 남기기' }))
     fireEvent.click(screen.getByRole('button', { name: '5점' }))
     fireEvent.change(screen.getByLabelText('총평 (선택)'), {
       target: { value: '대화가 오래 남는 책이에요.' },
     })
-    fireEvent.click(screen.getByRole('button', { name: '완독 기록 저장' }))
+    fireEvent.click(screen.getByRole('button', { name: '별점 저장' }))
 
     await vi.waitFor(() =>
-      expect(upsertBookChatCompletion).toHaveBeenCalledWith(undefined, {
+      expect(upsertBookChatRating).toHaveBeenCalledWith(undefined, {
         bookChatId: 'book-1',
         rating: 5,
         review: '대화가 오래 남는 책이에요.',
@@ -459,107 +462,79 @@ describe('BookDiscussionPage', () => {
     )
   })
 
-  it('updates the completion count immediately after saving a personal completion', async () => {
-    const savedCompletion = {
-      completedAt: '2026-07-19T00:00:00.000Z',
-      displayName: '민규',
-      isMe: true,
-      profileId: '00000000-0000-0000-0000-000000000001',
-      rating: null,
-      review: null,
-    }
-    getBookChatCompletions
-      .mockResolvedValueOnce([])
-      .mockImplementation(() => Promise.resolve([savedCompletion]))
+  it('shows the average rating and each member rating in the rating sheet', async () => {
+    getBookChatRatings.mockResolvedValue([
+      createRating({ displayName: '민수', isMe: false, rating: 4, review: '천천히 읽었어요.' }),
+      createRating({ displayName: '민규', isMe: true, rating: 5, review: null }),
+    ])
     renderBookDiscussionPage()
 
     fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
-    fireEvent.click(screen.getByRole('button', { name: '완독 기록' }))
-    fireEvent.click(await screen.findByRole('button', { name: '완독하기' }))
-    fireEvent.click(screen.getByRole('button', { name: '완독 기록 저장' }))
+    fireEvent.click(screen.getByRole('button', { name: '별점' }))
 
-    expect(await screen.findByText('함께 읽은 기록 · 1명 완독')).toBeInTheDocument()
-    expect(screen.getByText('내 완독')).toBeInTheDocument()
+    expect(await screen.findByText('평균 4.5')).toBeInTheDocument()
+    const memberList = screen.getByRole('list', { name: '멤버 별점' })
+    expect(within(memberList).getByText('민수')).toBeInTheDocument()
+    expect(within(memberList).getByRole('img', { name: '별점 4점' })).toBeInTheDocument()
+    expect(within(memberList).getByText('천천히 읽었어요.')).toBeInTheDocument()
+    expect(within(memberList).getByText('나')).toBeInTheDocument()
+    expect(within(memberList).getByRole('img', { name: '별점 5점' })).toBeInTheDocument()
   })
 
-  it('keeps the saved completion visible while the background refresh is pending', async () => {
-    const refresh = createDeferredValue<
-      Array<{
-        completedAt: string
-        displayName: string
-        isMe: boolean
-        profileId: string
-        rating: number | null
-        review: string | null
-      }>
-    >()
-    getBookChatCompletions.mockResolvedValueOnce([]).mockReturnValueOnce(refresh.promise)
+  it('updates the rating sheet immediately after saving my rating', async () => {
+    const refresh = createDeferredValue<ReturnType<typeof createRating>[]>()
+    getBookChatRatings.mockResolvedValueOnce([]).mockReturnValueOnce(refresh.promise)
     renderBookDiscussionPage()
 
     fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
-    fireEvent.click(screen.getByRole('button', { name: '완독 기록' }))
-    fireEvent.click(await screen.findByRole('button', { name: '완독하기' }))
-    fireEvent.click(screen.getByRole('button', { name: '완독 기록 저장' }))
+    fireEvent.click(screen.getByRole('button', { name: '별점' }))
+    fireEvent.click(await screen.findByRole('button', { name: '별점 남기기' }))
+    fireEvent.click(screen.getByRole('button', { name: '3점' }))
+    fireEvent.click(screen.getByRole('button', { name: '별점 저장' }))
 
-    expect(await screen.findByText('함께 읽은 기록 · 1명 완독')).toBeInTheDocument()
-    expect(screen.getByText('내 완독')).toBeInTheDocument()
+    expect(await screen.findByText('평균 3')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '별점 수정' })).toBeInTheDocument()
 
     refresh.resolve([])
   })
 
-  it('refreshes every personal reading view after saving a completion', async () => {
+  it('refreshes rating views after saving my rating', async () => {
     const { queryClient } = renderBookDiscussionPage()
     const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries')
-    getBookChatCompletions.mockResolvedValueOnce([]).mockResolvedValueOnce([
-      {
-        completedAt: '2026-07-19T00:00:00.000Z',
-        displayName: '민규',
-        isMe: true,
-        profileId: '00000000-0000-0000-0000-000000000001',
-        rating: null,
-        review: null,
-      },
-    ])
 
     fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
-    fireEvent.click(screen.getByRole('button', { name: '완독 기록' }))
-    fireEvent.click(await screen.findByRole('button', { name: '완독하기' }))
-    fireEvent.click(screen.getByRole('button', { name: '완독 기록 저장' }))
+    fireEvent.click(screen.getByRole('button', { name: '별점' }))
+    fireEvent.click(await screen.findByRole('button', { name: '별점 남기기' }))
+    fireEvent.click(screen.getByRole('button', { name: '4점' }))
+    fireEvent.click(screen.getByRole('button', { name: '별점 저장' }))
 
     await vi.waitFor(() =>
       expect(invalidateQueries).toHaveBeenCalledWith({
-        queryKey: ['my-reading-books', '00000000-0000-0000-0000-000000000001'],
+        queryKey: ['book-ratings', 'book-1'],
         refetchType: 'inactive',
       }),
     )
     expect(invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ['reading-progresses', '00000000-0000-0000-0000-000000000001'],
-      refetchType: 'inactive',
+      queryKey: ['my-rated-books', '00000000-0000-0000-0000-000000000001'],
     })
   })
 
-  it('shows the personal completion marker and reopens saved values for editing', async () => {
-    getBookChatCompletions.mockResolvedValue([
-      {
-        completedAt: '2026-07-19T00:00:00.000Z',
-        displayName: '민규',
-        isMe: true,
-        profileId: '00000000-0000-0000-0000-000000000001',
-        rating: 4,
-        review: '다시 펼쳐 보고 싶은 책이에요.',
-      },
+  it('reopens my saved rating for editing and removes it', async () => {
+    getBookChatRatings.mockResolvedValue([
+      createRating({ isMe: true, rating: 4, review: '다시 펼쳐 보고 싶은 책이에요.' }),
     ])
     renderBookDiscussionPage()
 
     fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
-    fireEvent.click(screen.getByRole('button', { name: '완독 기록' }))
-
-    expect(await screen.findByText('내 완독')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: '완독 기록 수정' }))
+    fireEvent.click(screen.getByRole('button', { name: '별점' }))
+    fireEvent.click(await screen.findByRole('button', { name: '별점 수정' }))
 
     expect(screen.getByRole('button', { name: '4점' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByLabelText('총평 (선택)')).toHaveValue('다시 펼쳐 보고 싶은 책이에요.')
-    expect(screen.getByRole('button', { name: '완독 기록 수정' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '취소' }))
+    fireEvent.click(screen.getByRole('button', { name: '별점 삭제' }))
+
+    await vi.waitFor(() => expect(removeBookChatRating).toHaveBeenCalledWith(undefined, 'book-1'))
   })
 
   it('shows matching members from an at-sign typed in the message input', async () => {
@@ -1036,4 +1011,29 @@ function createDeferredValue<T>() {
   })
 
   return { promise, resolve }
+}
+
+/** 별점 시트 테스트에서 쓰는 멤버 별점 응답을 생성한다. */
+function createRating({
+  displayName = '민규',
+  isMe,
+  rating,
+  review,
+}: {
+  displayName?: string
+  isMe: boolean
+  rating: number
+  review: string | null
+}) {
+  return {
+    avatarPath: null,
+    displayName,
+    isMe,
+    profileId: isMe
+      ? '0ce71cea-b4ea-4e18-a605-bf2088d4ba15'
+      : 'b3c8b282-6092-45f8-b15f-523a9dcd0eab',
+    rating,
+    review,
+    updatedAt: '2026-07-19T00:00:00.000Z',
+  }
 }

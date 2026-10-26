@@ -5,26 +5,27 @@ import { ActionButton, Dialog, TextField } from '@seed-design/react'
 
 import { bookChatKeys, deleteManagedBookChat, getManagedBookChat } from '../../entities/book-chat'
 import {
-  bookCompletionKeys,
-  getBookChatCompletions,
-  upsertBookChatCompletion,
-  type BookCompletionInput,
-} from '../../entities/book-completion'
+  bookRatingKeys,
+  getBookChatRatings,
+  upsertBookChatRating,
+  type BookChatRating,
+  type BookRatingInput,
+} from '../../entities/book-rating'
 import {
-  CompletionReviewForm,
-  invalidateCompletionQueries,
-  storeBookCompletionInCache,
-} from '../../features/book-completion'
+  invalidateRatingQueries,
+  RatingForm,
+  storeBookRatingInCache,
+} from '../../features/book-rating'
 import { useAuthenticatedUser } from '../../features/auth'
 import { trackAnalyticsEvent } from '../../shared/analytics'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { BookCover } from '../../shared/ui/BookCover'
 import { BottomSheet } from '../../shared/ui/BottomSheet'
-import { CompletionMark } from '../../shared/ui/CompletionMark'
 import { BookLoadingIndicator } from '../../shared/ui/LoadingSpinner'
+import { RatingStars } from '../../shared/ui/RatingStars'
 
-/** 책 대화방의 개인 완독 기록과 삭제 요청을 관리하는 화면을 렌더링한다. */
+/** 책 대화방의 개인 별점과 삭제 요청을 관리하는 화면을 렌더링한다. */
 export function BookChatManagementPage() {
   const client = createSupabaseClient()
   const navigate = useNavigate()
@@ -32,24 +33,24 @@ export function BookChatManagementPage() {
   const profileId = useAuthenticatedUser().id
   const { bookChatId, roomId } = useParams()
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [isCompletionEditorOpen, setIsCompletionEditorOpen] = useState(false)
+  const [isRatingEditorOpen, setIsRatingEditorOpen] = useState(false)
   const bookChatQuery = useQuery({
     enabled: Boolean(roomId && bookChatId),
     queryFn: () => getManagedBookChat(client, roomId ?? '', bookChatId ?? ''),
     queryKey: ['managed-book-chat', bookChatId],
   })
-  const completionsQuery = useQuery({
+  const ratingsQuery = useQuery({
     enabled: Boolean(bookChatId),
-    queryFn: () => getBookChatCompletions(client, bookChatId ?? '', profileId),
-    queryKey: bookCompletionKeys.byChat(bookChatId ?? ''),
+    queryFn: () => getBookChatRatings(client, bookChatId ?? '', profileId),
+    queryKey: bookRatingKeys.byChat(bookChatId ?? ''),
   })
-  const completionMutation = useMutation({
-    mutationFn: (input: BookCompletionInput) => upsertBookChatCompletion(client, input),
+  const ratingMutation = useMutation({
+    mutationFn: (input: BookRatingInput) => upsertBookChatRating(client, input),
     onSuccess: (_result, input) => {
-      storeBookCompletionInCache(queryClient, { ...input, profileId })
-      setIsCompletionEditorOpen(false)
-      trackAnalyticsEvent('book_completed')
-      invalidateCompletionQueries(queryClient, bookChatId ?? '', profileId)
+      storeBookRatingInCache(queryClient, { ...input, profileId })
+      setIsRatingEditorOpen(false)
+      trackAnalyticsEvent('book_rated')
+      invalidateRatingQueries(queryClient, input.bookChatId, profileId)
     },
   })
   const deletionMutation = useMutation({
@@ -65,11 +66,12 @@ export function BookChatManagementPage() {
   if (bookChatQuery.isError || bookChatQuery.data === null)
     return <BookChatManagementUnavailablePage onBack={() => void navigate(`/rooms/${roomId}`)} />
   const chat = bookChatQuery.data
-  const ownCompletion = completionsQuery.data?.find((completion) => completion.isMe)
+  const ownRating = ratingsQuery.data?.find((rating) => rating.isMe)
 
-  /** 완독 기록 작성 팝업을 열어 별점과 총평을 먼저 입력받는다. */
-  function handleOpenCompletionEditor() {
-    setIsCompletionEditorOpen(true)
+  /** 별점 작성 시트를 열어 별점과 총평을 입력받는다. */
+  function handleOpenRatingEditor() {
+    ratingMutation.reset()
+    setIsRatingEditorOpen(true)
   }
 
   /** 삭제 확인 다이얼로그를 열어 책 이름 재입력을 요구한다. */
@@ -87,14 +89,14 @@ export function BookChatManagementPage() {
     deletionMutation.mutate(confirmationName)
   }
 
-  /** 완독 기록 작성 팝업을 닫고 기존 완독 상태를 유지한다. */
-  function handleCloseCompletionEditor() {
-    setIsCompletionEditorOpen(false)
+  /** 별점 작성 시트를 닫고 기존 별점을 유지한다. */
+  function handleCloseRatingEditor() {
+    setIsRatingEditorOpen(false)
   }
 
-  /** 작성한 완독 정보만 서버에 저장해 빈 완독 기록 생성을 막는다. */
-  function handleSaveCompletion(input: BookCompletionInput) {
-    completionMutation.mutate(input)
+  /** 작성한 별점과 총평을 현재 책 대화의 개인 별점으로 저장한다. */
+  function handleSaveRating(input: BookRatingInput) {
+    ratingMutation.mutate(input)
   }
 
   return (
@@ -110,25 +112,18 @@ export function BookChatManagementPage() {
         <BookCover alt={`${chat.title} 표지`} thumbnailUrl={chat.thumbnailUrl} />
         <div className="min-w-0 flex-1">
           <span className="text-ink block text-sm font-semibold">{chat.name}</span>
-          <span className="text-ink-subtle mt-1 block text-xs">내 완독 기록을 남길 수 있어요.</span>
         </div>
-        {ownCompletion ? <CompletionMark label="내 완독" /> : null}
       </section>
+      <OwnRatingCard
+        isSaving={ratingMutation.isPending}
+        onOpenEditor={handleOpenRatingEditor}
+        ownRating={ownRating}
+      />
       <section className="mt-12" aria-labelledby="book-chat-actions">
         <h2 className="text-ink text-base font-semibold" id="book-chat-actions">
           채팅방 관리
         </h2>
         <div className="mt-4 space-y-3">
-          <ActionButton
-            className="w-full justify-start"
-            disabled={completionMutation.isPending}
-            onClick={handleOpenCompletionEditor}
-            size="large"
-            type="button"
-            variant="neutralOutline"
-          >
-            {ownCompletion ? '수정하기' : '완독하기'}
-          </ActionButton>
           <ActionButton
             className="text-danger w-full justify-start"
             disabled={deletionMutation.isPending}
@@ -150,25 +145,67 @@ export function BookChatManagementPage() {
           onConfirm={handleConfirmDeletion}
         />
       ) : null}
-      {isCompletionEditorOpen ? (
-        <BottomSheet onClose={handleCloseCompletionEditor} title="완독 기록">
-          <CompletionReviewForm
+      {isRatingEditorOpen ? (
+        <BottomSheet onClose={handleCloseRatingEditor} title="별점 남기기">
+          <RatingForm
             bookChatId={bookChatId}
-            initialRating={ownCompletion?.rating ?? null}
-            initialReview={ownCompletion?.review ?? null}
-            isSaving={completionMutation.isPending}
-            onCancel={handleCloseCompletionEditor}
-            onSave={handleSaveCompletion}
-            submitLabel={ownCompletion ? '완독 기록 수정' : '완독 기록 저장'}
+            initialRating={ownRating?.rating ?? null}
+            initialReview={ownRating?.review ?? null}
+            isSaving={ratingMutation.isPending}
+            key={ownRating?.updatedAt ?? 'new-rating'}
+            onCancel={handleCloseRatingEditor}
+            onSave={handleSaveRating}
+            submitLabel={ownRating ? '별점 수정' : '별점 저장'}
           />
-          {completionMutation.isError ? (
+          {ratingMutation.isError ? (
             <p className="mt-3 text-sm text-red-600" role="alert">
-              완독 기록을 저장하지 못했어요. 다시 시도해 주세요.
+              별점을 저장하지 못했어요. 다시 시도해 주세요.
             </p>
           ) : null}
         </BottomSheet>
       ) : null}
     </main>
+  )
+}
+
+/** 내 별점이 있으면 별점과 수정 버튼을, 없으면 별점 남기기 버튼을 카드로 렌더링한다. */
+function OwnRatingCard({
+  isSaving,
+  onOpenEditor,
+  ownRating,
+}: {
+  isSaving: boolean
+  onOpenEditor: () => void
+  ownRating: BookChatRating | undefined
+}) {
+  return (
+    <section
+      aria-labelledby="own-rating-heading"
+      className="talkhugam-information-surface border-border mt-4 rounded-lg border p-4"
+    >
+      <h2 className="text-ink text-base font-semibold" id="own-rating-heading">
+        내 별점
+      </h2>
+      <div className="mt-3 flex min-h-11 flex-wrap items-center justify-between gap-3">
+        {ownRating ? (
+          <RatingStars rating={ownRating.rating} />
+        ) : (
+          <span className="text-ink-subtle text-sm">아직 별점을 남기지 않았어요.</span>
+        )}
+        <ActionButton
+          className="talkhugam-foundation-action--outline"
+          disabled={isSaving}
+          onClick={onOpenEditor}
+          type="button"
+          variant="neutralOutline"
+        >
+          {ownRating ? '수정하기' : '별점 남기기'}
+        </ActionButton>
+      </div>
+      {ownRating?.review ? (
+        <p className="text-ink-subtle mt-2 text-sm">{ownRating.review}</p>
+      ) : null}
+    </section>
   )
 }
 
