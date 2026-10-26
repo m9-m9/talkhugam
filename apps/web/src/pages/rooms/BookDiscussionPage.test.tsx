@@ -458,6 +458,38 @@ describe('BookDiscussionPage', () => {
     expect(screen.queryByText('몰입형 영상 화면')).not.toBeInTheDocument()
   })
 
+  it('replaces the loading title when the book chat cannot be loaded', async () => {
+    getManagedBookChat.mockRejectedValueOnce(new Error('network'))
+    renderBookDiscussionPage()
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: '책 정보를 불러오지 못했어요.' }),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('책을 불러오고 있어요.')).not.toBeInTheDocument()
+  })
+
+  it('shows the invite request result as neutral status text', async () => {
+    getRoomManagement.mockResolvedValueOnce({
+      canCurrentUserManageContent: false,
+      createdBy: '00000000-0000-0000-0000-000000000002',
+      currentUserRole: 'member',
+      description: null,
+      id: 'room-1',
+      isCurrentUserOwner: false,
+      members: [],
+      name: '금요일 아침 책방',
+      status: 'active',
+    })
+    renderBookDiscussionPage()
+    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
+    fireEvent.click(await screen.findByRole('button', { name: '초대 요청' }))
+
+    const status = await screen.findByText('방장에게 책방 초대를 요청했어요.')
+    expect(status).toHaveAttribute('role', 'status')
+    expect(status).toHaveClass('text-ink-subtle')
+    expect(status).not.toHaveClass('text-primary')
+  })
+
   it('opens the message actions in a SEED action sheet', async () => {
     renderBookDiscussionPage()
 

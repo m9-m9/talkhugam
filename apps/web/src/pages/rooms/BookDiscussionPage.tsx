@@ -367,7 +367,7 @@ export function BookDiscussionPage() {
       />
       <header className="mt-8">
         <h1 className="text-ink text-xl font-bold">
-          {bookChatQuery.data?.title ?? '책을 불러오고 있어요.'}
+          {getDiscussionTitle(bookChatQuery.data?.title, bookChatQuery.isError)}
         </h1>
       </header>
       <section className="mt-8 flex-1">
@@ -418,7 +418,7 @@ export function BookDiscussionPage() {
         value={draft}
       />
       {inviteRequestMessage ? (
-        <p className="text-primary mt-2 text-sm" role="status">
+        <p className="text-ink-subtle mt-2 text-sm" role="status">
           {inviteRequestMessage}
         </p>
       ) : null}
@@ -465,6 +465,12 @@ export function BookDiscussionPage() {
       ) : null}
     </main>
   )
+}
+
+/** 책 제목을 고르고, 아직 불러오는 중이면 로딩 문구, 조회에 실패하면 실패 문구를 반환한다. */
+function getDiscussionTitle(title: string | undefined, isError: boolean): string {
+  if (title) return title
+  return isError ? '책 정보를 불러오지 못했어요.' : '책을 불러오고 있어요.'
 }
 
 /** 독후감과 영상 조회 상태에 따라 대화 또는 재시도 안내를 렌더링한다. */
