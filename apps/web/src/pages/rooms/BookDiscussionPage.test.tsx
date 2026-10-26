@@ -41,7 +41,9 @@ const {
     title: '미움받을 용기',
   }),
   getRoomManagement: vi.fn().mockResolvedValue({
+    canCurrentUserManageContent: true,
     createdBy: '00000000-0000-0000-0000-000000000001',
+    currentUserRole: 'owner',
     description: null,
     id: 'room-1',
     isCurrentUserOwner: true,
@@ -339,9 +341,31 @@ describe('BookDiscussionPage', () => {
     expect(messageInput).toHaveValue('이 문장을 나누고 싶어요.')
   })
 
+  it('lets a manager create an invite instead of requesting one', async () => {
+    getRoomManagement.mockResolvedValueOnce({
+      canCurrentUserManageContent: true,
+      createdBy: '00000000-0000-0000-0000-000000000001',
+      currentUserRole: 'manager',
+      description: null,
+      id: 'room-1',
+      isCurrentUserOwner: false,
+      members: [],
+      name: '금요일 아침 책방',
+      status: 'active',
+    })
+    renderBookDiscussionPage()
+
+    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
+
+    expect(await screen.findByRole('button', { name: '책방 초대하기' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '초대 요청' })).not.toBeInTheDocument()
+  })
+
   it('lets a non-owner request an invite from the room owner', async () => {
     getRoomManagement.mockResolvedValueOnce({
+      canCurrentUserManageContent: false,
       createdBy: '00000000-0000-0000-0000-000000000001',
+      currentUserRole: 'member',
       description: null,
       id: 'room-1',
       isCurrentUserOwner: false,

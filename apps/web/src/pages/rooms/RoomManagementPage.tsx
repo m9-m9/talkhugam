@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ActionButton, Dialog } from '@seed-design/react'
+import { formatRoomRoleLabel } from '@talkhugam/domain'
 
 import {
   createManagedRoomInvite,
@@ -34,7 +35,7 @@ type PendingAction =
   | { type: 'archive' | 'leave' }
   | null
 
-/** 방장과 멤버가 방 정보, 초대, 멤버 구성을 관리하는 화면을 렌더링한다. */
+/** 방장·운영자·멤버가 역할에 맞춰 방 정보, 초대, 멤버 구성을 관리하는 화면을 렌더링한다. */
 export function RoomManagementPage() {
   const client = createSupabaseClient()
   const navigate = useNavigate()
@@ -159,12 +160,14 @@ export function RoomManagementPage() {
         <p className="text-ink-subtle mt-2 text-sm">{room.description ?? '아직 소개가 없어요.'}</p>
       </header>
 
-      {room.isCurrentUserOwner ? (
+      {room.canCurrentUserManageContent ? (
         <section className="mt-8" aria-labelledby="room-management-actions">
           <h2 className="text-ink text-base font-semibold" id="room-management-actions">
             방 관리
           </h2>
-          <div className="mt-4 grid grid-cols-2 gap-3">
+          <div
+            className={room.isCurrentUserOwner ? 'mt-4 grid grid-cols-2 gap-3' : 'mt-4 grid gap-3'}
+          >
             <ActionButton
               className="talkhugam-foundation-action--outline w-full"
               onClick={() => inviteMutation.mutate()}
@@ -174,15 +177,17 @@ export function RoomManagementPage() {
             >
               초대 코드 만들기
             </ActionButton>
-            <ActionButton
-              className="w-full"
-              onClick={() => void navigate(`/rooms/${roomId}/manage/settings`)}
-              size="large"
-              type="button"
-              variant="neutralOutline"
-            >
-              방 설정
-            </ActionButton>
+            {room.isCurrentUserOwner ? (
+              <ActionButton
+                className="w-full"
+                onClick={() => void navigate(`/rooms/${roomId}/manage/settings`)}
+                size="large"
+                type="button"
+                variant="neutralOutline"
+              >
+                방 설정
+              </ActionButton>
+            ) : null}
           </div>
           {inviteMutation.isPending ? (
             <div className="mt-4">
@@ -360,9 +365,7 @@ function MemberProfileLink({ member, roomId }: { member: RoomManagementMember; r
         {member.displayName}
         {member.isCurrentUser ? ' (나)' : ''}
       </span>
-      <span className="text-ink-subtle mt-1 block text-xs">
-        {member.role === 'owner' ? '방장' : '멤버'}
-      </span>
+      <span className="text-ink-subtle mt-1 block text-xs">{formatRoomRoleLabel(member.role)}</span>
     </>
   )
 

@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ActionButton, TextField } from '@seed-design/react'
+import { canBanCommunityMember } from '@talkhugam/domain'
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
@@ -15,7 +16,7 @@ import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { BookLoadingIndicator } from '../../shared/ui/LoadingSpinner'
 
-/** 활성 오픈 책방 멤버의 자유 채팅, 방장 제재, 신고 동작을 렌더링한다. */
+/** 활성 오픈 책방 멤버의 자유 채팅, 방장·운영자 제재, 신고 동작을 렌더링한다. */
 export function CommunityRoomDetailPage() {
   const { roomId } = useParams()
   const navigate = useNavigate()
@@ -44,7 +45,7 @@ export function CommunityRoomDetailPage() {
       setErrorMessage('메시지를 보내지 못했어요.')
     }
   }
-  /** 방장 권한으로 메시지를 남긴 멤버를 제재하고 방 데이터를 새로고침한다. */
+  /** 방장·운영자 권한으로 메시지를 남긴 멤버를 제재하고 방 데이터를 새로고침한다. */
   async function handleBan(memberId: string) {
     if (!roomId) return
     try {
@@ -110,7 +111,7 @@ export function CommunityRoomDetailPage() {
               <li className="border-border rounded-lg border p-3" key={message.id}>
                 <p className="text-ink text-sm font-semibold">{message.senderDisplayName}</p>
                 <p className="text-ink mt-1 text-sm">{message.body}</p>
-                {roomQuery.data.isOwner &&
+                {canBanCommunityMember(roomQuery.data.currentMemberRole, message.senderRole) &&
                 message.senderMemberId !== roomQuery.data.currentMemberId ? (
                   <ActionButton
                     className="mt-2 min-h-11 text-red-600"
