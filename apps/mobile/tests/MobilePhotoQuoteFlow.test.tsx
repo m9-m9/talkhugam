@@ -20,11 +20,18 @@ import { createMobileSupabaseClient } from '../src/shared/api/mobileSupabaseClie
 const bookChatId = '3f1c2a4e-7b5d-4e6a-9c8b-1a2b3c4d5e02'
 const photo = { height: 4000, uri: 'file:///original.jpg', width: 3000 }
 const preparedPhoto = { base64: 'aW1hZ2U=', height: 2000, uri: 'file:///small.jpg', width: 1500 }
+const firstSentence = '앞에서 이어진 말이다.'
+const secondSentence = '우리는 늘 떠나는 쪽이었고 남는 쪽의 마음을 헤아린 적도 없었다.'
 const lines = [
-  { box: { height: 0.05, width: 0.8, x: 0.1, y: 0.1 }, id: 'line-0', text: '우리는 늘 떠나는 쪽이었고' },
-  { box: { height: 0.05, width: 0.8, x: 0.1, y: 0.2 }, id: 'line-1', text: '남는 쪽의 마음을 헤아린' },
-  { box: { height: 0.05, width: 0.8, x: 0.1, y: 0.3 }, id: 'line-2', text: '적이 없었다.' },
-]
+  '앞에서 이어진 말이다. 우리는',
+  '늘 떠나는 쪽이었고 남는 쪽의 마음을',
+  '헤아린 적도 없었다. 그래서 오늘은',
+  '조금 오래 머물기로 했다.',
+].map((text, index) => ({
+  box: { height: 0.05, width: 0.8, x: 0.1, y: 0.1 + index * 0.1 },
+  id: `line-${index}`,
+  text,
+}))
 
 const mockPrepare = jest.mocked(preparePhotoForOcr)
 const mockRecognize = jest.mocked(recognizePagePhoto)
@@ -43,9 +50,19 @@ function renderFlow(selectedPhoto: typeof photo | null = photo) {
   return callbacks
 }
 
-/** 인식이 끝나길 기다려 접힌 줄 목록을 펼친다. */
-async function openLineList(): Promise<void> {
-  fireEvent.press(await screen.findByRole('button', { name: '줄 목록으로 고르기' }))
+/** 인식이 끝나길 기다려 접힌 문장 목록을 펼친다. */
+async function openSentenceList(): Promise<void> {
+  fireEvent.press(await screen.findByRole('button', { name: '문장으로 고르기' }))
+}
+
+/** 사진 줄 박스 위를 위에서 아래로 끌어 비율 y 구간(0~100)의 줄을 고른다. */
+async function dragOverPhoto(fromY: number, toY: number): Promise<void> {
+  await screen.findByLabelText('고른 책 페이지 사진')
+  const overlay = screen.getByTestId('photo-quote-overlay')
+  fireEvent(overlay, 'layout', { nativeEvent: { layout: { height: 100, width: 100, x: 0, y: 0 } } })
+  fireEvent(overlay, 'responderGrant', { nativeEvent: { locationX: 50, locationY: fromY } })
+  fireEvent(overlay, 'responderMove', { nativeEvent: { locationX: 50, locationY: toY } })
+  fireEvent(overlay, 'responderRelease', { nativeEvent: { locationX: 50, locationY: toY } })
 }
 
 describe('MobilePhotoQuoteFlow', () => {
@@ -63,35 +80,39 @@ describe('MobilePhotoQuoteFlow', () => {
     expect(await screen.findByLabelText('고른 책 페이지 사진')).toBeVisible()
     expect(mockPrepare).toHaveBeenCalledWith(photo)
     expect(mockRecognize).toHaveBeenCalledWith(supabaseClient, bookChatId, 'aW1hZ2U=')
-    expect(screen.queryByRole('button', { name: '적이 없었다.' })).toBeNull()
+    expect(screen.queryByRole('button', { name: firstSentence })).toBeNull()
   })
 
-  it('selects a continuous range by dragging over the photo', async () => {
+  it('aligns a dragged line selection to sentence boundaries and can switch to the raw lines', async () => {
     renderFlow()
-    await screen.findByLabelText('고른 책 페이지 사진')
-    const overlay = screen.getByTestId('photo-quote-overlay')
-    fireEvent(overlay, 'layout', { nativeEvent: { layout: { height: 100, width: 100, x: 0, y: 0 } } })
+    await dragOverPhoto(12, 32)
 
-    fireEvent(overlay, 'responderGrant', { nativeEvent: { locationX: 50, locationY: 12 } })
-    fireEvent(overlay, 'responderMove', { nativeEvent: { locationX: 50, locationY: 32 } })
-    fireEvent(overlay, 'responderRelease', { nativeEvent: { locationX: 50, locationY: 32 } })
+    const aligned = `${firstSentence} ${secondSentence}`
+    expect(screen.getByText(`3줄 · ${aligned.length}자`)).toBeVisible()
+    fireEvent.press(screen.getByRole('button', { name: '다음' }))
+    expect(screen.getByLabelText('인용할 문장').props.value).toBe(aligned)
+    expect(screen.getByText('앞뒤 잘린 문장 조각은 뺐어요.')).toBeVisible()
 
-    expect(screen.getByText('3줄 · 36자')).toBeVisible()
+    fireEvent.press(screen.getByRole('switch', { name: '고른 줄 그대로' }))
+    expect(screen.getByLabelText('인용할 문장').props.value).toBe(`${aligned} 그래서 오늘은`)
+    fireEvent.press(screen.getByRole('switch', { name: '고른 줄 그대로' }))
+    expect(screen.getByLabelText('인용할 문장').props.value).toBe(aligned)
   })
 
-  it('confirms the picked lines with a page and inserts the quote', async () => {
+  it('selects one sentence from the sentence list and inserts exactly that sentence', async () => {
     const { onInsert } = renderFlow()
-    await openLineList()
-    fireEvent.press(screen.getByRole('button', { name: '우리는 늘 떠나는 쪽이었고' }))
-    fireEvent.press(screen.getByRole('button', { name: '남는 쪽의 마음을 헤아린' }))
-    fireEvent.press(screen.getByRole('button', { name: '다음' }))
+    await openSentenceList()
+    fireEvent.press(screen.getByRole('button', { name: secondSentence }))
 
-    expect(screen.getByLabelText('인용할 문장').props.value).toBe('우리는 늘 떠나는 쪽이었고 남는 쪽의 마음을 헤아린')
+    expect(screen.getByText(`3줄 · ${secondSentence.length}자`)).toBeVisible()
+    fireEvent.press(screen.getByRole('button', { name: '다음' }))
+    expect(screen.getByLabelText('인용할 문장').props.value).toBe(secondSentence)
+    expect(screen.queryByRole('switch', { name: '고른 줄 그대로' })).toBeNull()
     expect(screen.getByText('사진은 저장되지 않아요.')).toBeVisible()
     fireEvent.changeText(screen.getByLabelText('쪽 번호'), '87')
     fireEvent.press(screen.getByRole('button', { name: '글에 넣기' }))
 
-    expect(onInsert).toHaveBeenCalledWith({ page: '87', quote: '우리는 늘 떠나는 쪽이었고 남는 쪽의 마음을 헤아린' })
+    expect(onInsert).toHaveBeenCalledWith({ page: '87', quote: secondSentence })
   })
 
   it('blocks a selection longer than 300 characters', async () => {
@@ -100,9 +121,8 @@ describe('MobilePhotoQuoteFlow', () => {
       { ...lines[1]!, text: '나'.repeat(200) },
     ])
     renderFlow()
-    await openLineList()
-    fireEvent.press(screen.getByRole('button', { name: '가'.repeat(200) }))
-    fireEvent.press(screen.getByRole('button', { name: '나'.repeat(200) }))
+    await openSentenceList()
+    fireEvent.press(screen.getByRole('button', { name: `${'가'.repeat(200)}${'나'.repeat(200)}` }))
 
     expect(screen.getByText('300자까지 가져올 수 있어요.')).toBeVisible()
     expect(screen.getByRole('button', { name: '다음' })).toBeDisabled()
@@ -114,7 +134,7 @@ describe('MobilePhotoQuoteFlow', () => {
 
     expect(await screen.findByText('오늘 사진 인식 횟수를 모두 썼어요. 내일 다시 시도해 주세요.')).toBeVisible()
     fireEvent.press(screen.getByRole('button', { name: '다시 시도' }))
-    expect(await screen.findByRole('button', { name: '줄 목록으로 고르기' })).toBeVisible()
+    expect(await screen.findByRole('button', { name: '문장으로 고르기' })).toBeVisible()
   })
 
   it.each([
@@ -134,7 +154,7 @@ describe('MobilePhotoQuoteFlow', () => {
 
     expect(await screen.findByText('사진에서 글자를 찾지 못했어요. 글자가 잘 보이게 다시 찍어 주세요.')).toBeVisible()
     fireEvent.press(screen.getByRole('button', { name: '다시 시도' }))
-    expect(await screen.findByRole('button', { name: '줄 목록으로 고르기' })).toBeVisible()
+    expect(await screen.findByRole('button', { name: '문장으로 고르기' })).toBeVisible()
   })
 
   it('stops before ocr-page when the photo cannot be opened and offers another photo', async () => {

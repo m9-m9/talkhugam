@@ -19,6 +19,9 @@ const menuTitles: Record<MobileMenuView, string> = {
   video: '영상',
 }
 
+/** 사진을 고르기 직전에 보여 주는 촬영 안내. 막지 않고 정확도를 높이는 방법만 알린다. */
+export const photoQuoteShootingHint = '한 페이지만, 위에서 평평하게 찍으면 더 정확해요.'
+
 type MobileMessageActionSheetProps = {
   canCreateRoomInvite: boolean
   initialView: MobileMenuView
@@ -85,7 +88,13 @@ type Choice = { isDisabled?: boolean; label: string; onSelect(): void }
 /** 현재 화면에 맞는 선택지 목록 또는 라벨 입력을 고른다. */
 function MenuBody(props: MenuBodyProps): React.JSX.Element {
   if (props.view === 'label') return <LabelEditor onAddLabel={props.onAddLabel} onClose={props.onClose} />
-  return <ChoiceList choices={getChoices(props)} />
+  const isPhotoChoice = props.view === 'quote' || props.view === 'photo-source'
+  return (
+    <View style={styles.list}>
+      {isPhotoChoice ? <Text style={styles.hint}>{photoQuoteShootingHint}</Text> : null}
+      <ChoiceList choices={getChoices(props)} />
+    </View>
+  )
 }
 
 /** 화면별 선택지를 정한다. 하위 화면으로 가는 항목은 시트를 닫지 않고 화면만 바꾼다. */
@@ -218,6 +227,7 @@ const styles = StyleSheet.create({
   choiceDisabled: { opacity: 0.4 },
   choicePressed: { opacity: 0.7 },
   choiceText: { color: mobileColors.ink, fontSize: 16, fontWeight: '500', lineHeight: 22 },
+  hint: { color: mobileColors.inkSubtle, fontSize: 14, lineHeight: 20 },
   header: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
   labelEditor: { gap: mobileSpacing.sm },
   labelInput: {

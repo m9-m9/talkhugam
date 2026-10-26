@@ -3,17 +3,17 @@ import {
   applyLineRange,
   findLineAtPoint,
   getLineRangeIds,
-  getLineSelectionSummary,
   getPhotoQuoteErrorMessage,
+  getQuoteDrafts,
   isPhotoDecodeError,
   isQuoteWithinLimit,
-  joinOcrLines,
   ocrEmptyResultMessage,
   ocrQuoteMaxLength,
   recognizePagePhoto,
-  toggleLineId,
+  splitOcrSentences,
   type LineRangeMode,
   type OcrLine,
+  type OcrSentence,
 } from '@talkhugam/domain'
 import { useRef, useState } from 'react'
 import {
@@ -60,6 +60,16 @@ type DragState = { anchorId: string; baseIds: string[]; mode: LineRangeMode }
 
 type OverlaySize = { height: number; width: number }
 
+/** 확인 화면 문장 출처: 문장 목록·문장 경계 맞춤·고른 줄 그대로·직접 입력. */
+type QuoteSource = 'manual' | 'sentence' | 'aligned' | 'raw'
+
+/** 고른 문장이 있으면 그 문장, 없으면 문장 경계에 맞춘 문장(없으면 고른 줄 그대로)을 확인 화면 기본값으로 고른다. */
+function getDefaultQuote(sentence: OcrSentence | undefined, lines: OcrLine[], selectedIds: string[]): string {
+  if (sentence) return sentence.text
+  const drafts = getQuoteDrafts(lines, selectedIds)
+  return drafts.alignedQuote ?? drafts.rawQuote
+}
+
 /** 사진을 긴 변 2000px JPEG로 줄여 ocr-page로 보내고, 미리보기용 사진과 인식한 줄을 함께 반환한다. */
 async function recognizePickedPhoto(bookChatId: string, photo: PickedPhoto): Promise<Recognition> {
   const prepared = await preparePhotoForOcr(photo)
@@ -80,7 +90,7 @@ function getFlowTitle(step: 'select' | 'confirm', isManual: boolean): string {
 }
 
 /**
- * 책 페이지 사진을 받아 인식 → 줄 선택 → 문장 확인 단계를 전체 화면 모달로 보여 주고,
+ * 책 페이지 사진을 받아 인식 → 줄·문장 선택 → 문장 확인 단계를 전체 화면 모달로 보여 주고,
  * 확인한 인용 문장과 쪽을 onInsert로 넘긴다. 사진이 없으면 빈 확인 화면만 연다.
  * 사진과 인식 결과는 저장·기록하지 않는다.
  */
@@ -95,6 +105,8 @@ export function MobilePhotoQuoteFlow({
   const [requestKey] = useState(() => `${Date.now()}-${Math.random()}`)
   const [step, setStep] = useState<'select' | 'confirm'>(isManual ? 'confirm' : 'select')
   const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [selectedSentenceId, setSelectedSentenceId] = useState<string | null>(null)
+  const [quoteSource, setQuoteSource] = useState<QuoteSource>(isManual ? 'manual' : 'raw')
   const [isKeepingLineBreaks, setIsKeepingLineBreaks] = useState(false)
   const [quoteDraft, setQuoteDraft] = useState('')
   const [pageDraft, setPageDraft] = useState('')
@@ -108,19 +120,45 @@ export function MobilePhotoQuoteFlow({
     staleTime: Infinity,
   })
   const lines = recognitionQuery.data?.lines ?? []
-  const selectedTexts = getLineSelectionSummary(lines, selectedIds).texts
+  const sentences = splitOcrSentences(lines)
+  const selectedSentence = sentences.find((sentence) => sentence.id === selectedSentenceId)
+  const hasAlignedOption = getQuoteDrafts(lines, selectedIds).alignedQuote !== null
 
-  /** 고른 줄을 정리한 문장으로 확인 화면을 연다. */
+  /** 사진 위에서 줄을 고치면 문장 목록 선택을 풀고 줄 선택만 남긴다. */
+  function handleChangeLineSelection(ids: string[]): void {
+    setSelectedIds(ids)
+    setSelectedSentenceId(null)
+  }
+
+  /** 문장을 고르면 걸친 줄도 사진 위에 표시하고, 같은 문장을 다시 누르면 선택을 푼다. */
+  function handleSelectSentence(sentence: OcrSentence): void {
+    const isSame = sentence.id === selectedSentenceId
+    setSelectedSentenceId(isSame ? null : sentence.id)
+    setSelectedIds(isSame ? [] : sentence.lineIds)
+  }
+
+  /** 고른 문장 또는 문장 경계에 맞춘 문장(없으면 고른 줄 그대로)으로 확인 화면을 연다. */
   function handleOpenConfirm(): void {
-    setQuoteDraft(joinOcrLines(selectedTexts, { shouldKeepLineBreaks: isKeepingLineBreaks }))
+    const drafts = getQuoteDrafts(lines, selectedIds, { shouldKeepLineBreaks: isKeepingLineBreaks })
+    if (selectedSentence) setQuoteSource('sentence')
+    else setQuoteSource(drafts.alignedQuote ? 'aligned' : 'raw')
+    setQuoteDraft(selectedSentence?.text ?? drafts.alignedQuote ?? drafts.rawQuote)
     setStep('confirm')
   }
 
-  /** 원문 줄바꿈 유지 여부를 바꾸고 고른 줄로 문장을 다시 만든다. */
+  /** 문장 경계에 맞춘 문장과 고른 줄 그대로를 오가며 확인 화면 문장을 다시 만든다. */
+  function handleToggleRawLines(): void {
+    const drafts = getQuoteDrafts(lines, selectedIds, { shouldKeepLineBreaks: isKeepingLineBreaks })
+    const nextSource: QuoteSource = quoteSource === 'raw' ? 'aligned' : 'raw'
+    setQuoteSource(nextSource)
+    setQuoteDraft(nextSource === 'raw' ? drafts.rawQuote : (drafts.alignedQuote ?? drafts.rawQuote))
+  }
+
+  /** 고른 줄 그대로일 때 원문 줄바꿈 유지 여부를 바꾸고 문장을 다시 만든다. */
   function handleToggleLineBreaks(): void {
     const nextValue = !isKeepingLineBreaks
     setIsKeepingLineBreaks(nextValue)
-    setQuoteDraft(joinOcrLines(selectedTexts, { shouldKeepLineBreaks: nextValue }))
+    setQuoteDraft(getQuoteDrafts(lines, selectedIds, { shouldKeepLineBreaks: nextValue }).rawQuote)
   }
 
   /** 확인한 문장과 쪽을 입력창에 넣도록 부모에 전달한다. */
@@ -152,28 +190,34 @@ export function MobilePhotoQuoteFlow({
         </View>
         {step === 'select' ? (
           <SelectStep
+            defaultQuote={getDefaultQuote(selectedSentence, lines, selectedIds)}
             errorMessage={recognitionQuery.isError ? getRecognitionErrorMessage(recognitionQuery.error) : null}
             isPhotoUnreadable={recognitionQuery.isError && isPhotoDecodeError(recognitionQuery.error)}
             isRecognizing={recognitionQuery.isPending}
             isRetrying={recognitionQuery.isFetching}
             lines={lines}
-            onChangeSelection={setSelectedIds}
+            onChangeSelection={handleChangeLineSelection}
             onNext={handleOpenConfirm}
             onPickAnotherPhoto={onPickAnotherPhoto}
             onRetry={() => void recognitionQuery.refetch()}
+            onSelectSentence={handleSelectSentence}
             preparedPhoto={recognitionQuery.data?.photo ?? null}
             selectedIds={selectedIds}
+            selectedSentenceId={selectedSentenceId}
+            sentences={sentences}
           />
         ) : (
           <ConfirmStep
+            hasAlignedOption={quoteSource !== 'sentence' && hasAlignedOption}
             isKeepingLineBreaks={isKeepingLineBreaks}
-            isManual={isManual}
             onChangePage={setPageDraft}
             onChangeQuote={setQuoteDraft}
             onInsert={handleInsert}
             onToggleLineBreaks={handleToggleLineBreaks}
+            onToggleRawLines={handleToggleRawLines}
             pageDraft={pageDraft}
             quoteDraft={quoteDraft}
+            quoteSource={quoteSource}
           />
         )}
       </SafeAreaView>
@@ -182,6 +226,7 @@ export function MobilePhotoQuoteFlow({
 }
 
 type SelectStepProps = {
+  defaultQuote: string
   errorMessage: string | null
   isPhotoUnreadable: boolean
   isRecognizing: boolean
@@ -191,12 +236,16 @@ type SelectStepProps = {
   onNext(): void
   onPickAnotherPhoto(): void
   onRetry(): void
+  onSelectSentence(sentence: OcrSentence): void
   preparedPhoto: PreparedOcrPhoto | null
   selectedIds: string[]
+  selectedSentenceId: string | null
+  sentences: OcrSentence[]
 }
 
-/** 인식 상태에 맞춰 사진·줄 박스·줄 목록과 하단 선택 요약을 표시한다. */
+/** 인식 상태에 맞춰 사진·줄 박스·문장 목록과 하단 선택 요약을 표시한다. 글자 수는 확인 화면에 넣을 문장 기준이다. */
 function SelectStep({
+  defaultQuote,
   errorMessage,
   isPhotoUnreadable,
   isRecognizing,
@@ -206,10 +255,14 @@ function SelectStep({
   onNext,
   onPickAnotherPhoto,
   onRetry,
+  onSelectSentence,
   preparedPhoto,
   selectedIds,
+  selectedSentenceId,
+  sentences,
 }: SelectStepProps): React.JSX.Element {
-  const summary = getLineSelectionSummary(lines, selectedIds)
+  const quoteLength = defaultQuote.length
+  const isOverLimit = quoteLength > ocrQuoteMaxLength
   const isEmptyResult = !isRecognizing && !errorMessage && lines.length === 0
 
   return (
@@ -240,26 +293,22 @@ function SelectStep({
         {isEmptyResult ? (
           <RecoveryState actionLabel="다시 시도" isBusy={isRetrying} message={ocrEmptyResultMessage} onPress={onRetry} />
         ) : null}
-        {lines.length > 0 ? (
-          <LineToggleList
-            lines={lines}
-            onToggle={(lineId) => onChangeSelection(toggleLineId(selectedIds, lineId))}
-            selectedIds={selectedIds}
-          />
+        {sentences.length > 0 ? (
+          <SentencePicker onSelect={onSelectSentence} selectedSentenceId={selectedSentenceId} sentences={sentences} />
         ) : null}
       </ScrollView>
       <View style={styles.footer}>
-        {summary.isOverLimit ? (
+        {isOverLimit ? (
           <Text accessibilityRole="alert" style={styles.dangerText}>
             {ocrQuoteMaxLength}자까지 가져올 수 있어요.
           </Text>
         ) : null}
         <View style={styles.footerRow}>
           <Text accessibilityLiveRegion="polite" style={styles.summaryText}>
-            {summary.lineCount}줄 · {summary.quoteLength}자
+            {selectedIds.length}줄 · {quoteLength}자
           </Text>
           <MobileButton
-            isDisabled={summary.lineCount === 0 || summary.isOverLimit}
+            isDisabled={selectedIds.length === 0 || isOverLimit}
             label="다음"
             onPress={onNext}
             variant="neutral"
@@ -375,43 +424,43 @@ function PhotoLineOverlay({ lines, onChangeSelection, photo, selectedIds }: Phot
   )
 }
 
-/** 사진 위 고르기를 먼저 안내하고, 인식한 줄 전체를 고를 수 있는 접힌 보조 목록을 표시한다. */
-function LineToggleList({
-  lines,
-  onToggle,
-  selectedIds,
+/** 사진 위 고르기를 먼저 안내하고, 본문 줄을 이어 나눈 문장 목록을 접힌 보조 목록으로 표시한다. */
+function SentencePicker({
+  onSelect,
+  selectedSentenceId,
+  sentences,
 }: {
-  lines: OcrLine[]
-  onToggle(lineId: string): void
-  selectedIds: string[]
+  onSelect(sentence: OcrSentence): void
+  selectedSentenceId: string | null
+  sentences: OcrSentence[]
 }): React.JSX.Element {
   const [isExpanded, setIsExpanded] = useState(false)
 
   return (
-    <View accessibilityLabel="인식한 줄" style={styles.lineSection}>
+    <View accessibilityLabel="문장 목록" style={styles.lineSection}>
       <Text style={styles.stateText}>사진 위 줄을 누르거나 끌어서 고르세요.</Text>
       <Pressable
-        accessibilityLabel="줄 목록으로 고르기"
+        accessibilityLabel="문장으로 고르기"
         accessibilityRole="button"
         accessibilityState={{ expanded: isExpanded }}
         onPress={() => setIsExpanded((value) => !value)}
         style={styles.listToggle}
       >
-        <Text style={styles.listToggleText}>줄 목록으로 고르기</Text>
+        <Text style={styles.listToggleText}>문장으로 고르기</Text>
       </Pressable>
       {isExpanded
-        ? lines.map((line) => {
-            const isSelected = selectedIds.includes(line.id)
+        ? sentences.map((sentence) => {
+            const isSelected = sentence.id === selectedSentenceId
             return (
               <Pressable
-                accessibilityLabel={line.text}
+                accessibilityLabel={sentence.text}
                 accessibilityRole="button"
                 accessibilityState={{ selected: isSelected }}
-                key={line.id}
-                onPress={() => onToggle(line.id)}
+                key={sentence.id}
+                onPress={() => onSelect(sentence)}
                 style={[styles.lineRow, isSelected && styles.lineRowSelected]}
               >
-                <Text style={[styles.lineRowText, isSelected && styles.lineRowTextSelected]}>{line.text}</Text>
+                <Text style={[styles.lineRowText, isSelected && styles.lineRowTextSelected]}>{sentence.text}</Text>
               </Pressable>
             )
           })
@@ -421,28 +470,36 @@ function LineToggleList({
 }
 
 type ConfirmStepProps = {
+  hasAlignedOption: boolean
   isKeepingLineBreaks: boolean
-  isManual: boolean
   onChangePage(value: string): void
   onChangeQuote(value: string): void
   onInsert(): void
   onToggleLineBreaks(): void
+  onToggleRawLines(): void
   pageDraft: string
   quoteDraft: string
+  quoteSource: QuoteSource
 }
 
-/** 인용 문장을 고치거나 직접 적고 쪽을 적은 뒤 입력창에 넣는 확인 화면을 표시한다. */
+/**
+ * 인용 문장을 고치거나 직접 적고 쪽을 적은 뒤 입력창에 넣는 확인 화면을 표시한다. 사진 위에서 줄로 고른 경우
+ * 문장 경계에 맞춘 문장을 기본으로 보여 주고 "고른 줄 그대로"로 바꿀 수 있다.
+ */
 function ConfirmStep({
+  hasAlignedOption,
   isKeepingLineBreaks,
-  isManual,
   onChangePage,
   onChangeQuote,
   onInsert,
   onToggleLineBreaks,
+  onToggleRawLines,
   pageDraft,
   quoteDraft,
+  quoteSource,
 }: ConfirmStepProps): React.JSX.Element {
   const quoteLength = quoteDraft.trim().length
+  const isManual = quoteSource === 'manual'
 
   return (
     <>
@@ -473,20 +530,30 @@ function ConfirmStep({
             value={pageDraft}
           />
         </View>
-        {isManual ? null : (
-          <>
-            <Pressable
-              accessibilityLabel="원문 줄바꿈 유지"
-              accessibilityRole="switch"
-              accessibilityState={{ checked: isKeepingLineBreaks }}
-              onPress={onToggleLineBreaks}
-              style={styles.listToggle}
-            >
-              <Text style={styles.listToggleText}>원문 줄바꿈 유지 {isKeepingLineBreaks ? '켬' : '끔'}</Text>
-            </Pressable>
-            <Text style={styles.stateText}>사진은 저장되지 않아요.</Text>
-          </>
-        )}
+        {quoteSource === 'aligned' ? <Text style={styles.stateText}>앞뒤 잘린 문장 조각은 뺐어요.</Text> : null}
+        {hasAlignedOption ? (
+          <Pressable
+            accessibilityLabel="고른 줄 그대로"
+            accessibilityRole="switch"
+            accessibilityState={{ checked: quoteSource === 'raw' }}
+            onPress={onToggleRawLines}
+            style={styles.listToggle}
+          >
+            <Text style={styles.listToggleText}>고른 줄 그대로 {quoteSource === 'raw' ? '켬' : '끔'}</Text>
+          </Pressable>
+        ) : null}
+        {quoteSource === 'raw' ? (
+          <Pressable
+            accessibilityLabel="원문 줄바꿈 유지"
+            accessibilityRole="switch"
+            accessibilityState={{ checked: isKeepingLineBreaks }}
+            onPress={onToggleLineBreaks}
+            style={styles.listToggle}
+          >
+            <Text style={styles.listToggleText}>원문 줄바꿈 유지 {isKeepingLineBreaks ? '켬' : '끔'}</Text>
+          </Pressable>
+        ) : null}
+        {isManual ? null : <Text style={styles.stateText}>사진은 저장되지 않아요.</Text>}
         <Text style={styles.noteText}>책 속 문장은 짧게 인용하고 내 생각을 함께 남겨 주세요.</Text>
       </ScrollView>
       <View style={styles.footer}>

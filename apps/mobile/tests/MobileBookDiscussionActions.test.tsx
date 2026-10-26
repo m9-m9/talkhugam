@@ -147,6 +147,7 @@ describe('MobileBookDiscussionScreen message actions', () => {
     renderScreen()
 
     fireEvent.press(await screen.findByRole('button', { name: '사진에서 문장 가져오기' }))
+    expect(screen.getByText('한 페이지만, 위에서 평평하게 찍으면 더 정확해요.')).toBeVisible()
     fireEvent.press(screen.getByRole('button', { name: '카메라로 찍기' }))
 
     expect(await screen.findByText('사진 흐름 file:///page.jpg')).toBeVisible()
