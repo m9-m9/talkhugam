@@ -90,7 +90,7 @@ export function RoomDetailPage() {
       </header>
 
       <section className="mt-12" aria-labelledby="reading-books-heading">
-        <h2 className="text-ink text-base font-bold" id="reading-books-heading">
+        <h2 className="text-ink text-base font-semibold" id="reading-books-heading">
           지금 함께 읽는 책
         </h2>
         <BookChatsContent
@@ -225,7 +225,7 @@ function EmptyBookChats() {
 /** 책방을 불러오는 동안 브랜드 로딩 상태를 렌더링한다. */
 function RoomLoadingPage() {
   return (
-    <main className="bg-surface flex min-h-screen items-center justify-center px-4">
+    <main className="bg-surface flex min-h-dvh items-center justify-center px-4">
       <BookLoadingIndicator label="책방을 불러오고 있어요." />
     </main>
   )
@@ -234,7 +234,7 @@ function RoomLoadingPage() {
 /** 접근할 수 없는 책방의 안내를 렌더링한다. */
 function RoomUnavailablePage({ onBack }: { onBack: () => void }) {
   return (
-    <main className="bg-surface flex min-h-screen flex-col items-center justify-center px-4 text-center">
+    <main className="bg-surface flex min-h-dvh flex-col items-center justify-center px-4 text-center">
       <p className="text-ink text-lg font-medium">이 책방을 찾을 수 없어요</p>
       <p className="text-ink-subtle mt-2 text-sm">참여 중인 책방인지 확인해 주세요.</p>
       <ActionButton

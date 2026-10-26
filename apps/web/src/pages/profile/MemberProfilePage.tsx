@@ -89,7 +89,7 @@ export function MemberProfilePage() {
       </section>
 
       <section className="mt-12" aria-labelledby="member-introduction-heading">
-        <h2 className="text-ink text-base font-bold" id="member-introduction-heading">
+        <h2 className="text-ink text-base font-semibold" id="member-introduction-heading">
           소개
         </h2>
         <dl className="border-ink/10 mt-4 overflow-hidden rounded-lg border bg-white">
@@ -128,7 +128,7 @@ function MemberProfileDetail({ label, value }: { label: string; value: string })
 /** 멤버 프로필 조회 중 브랜드 스피너를 제공한다. */
 function MemberProfileLoadingPage({ message }: { message: string }) {
   return (
-    <main className="app-page bg-surface flex min-h-screen items-center justify-center px-4">
+    <main className="app-page bg-surface flex min-h-dvh items-center justify-center px-4">
       <BrandLoadingSpinner label={message} />
     </main>
   )
@@ -137,7 +137,7 @@ function MemberProfileLoadingPage({ message }: { message: string }) {
 /** 같은 방에서 확인할 수 없는 멤버를 안전하게 안내한다. */
 function MemberProfileUnavailablePage({ onBack }: { onBack: () => void }) {
   return (
-    <main className="app-page bg-surface flex min-h-screen flex-col items-center justify-center gap-4 px-4 text-center">
+    <main className="app-page bg-surface flex min-h-dvh flex-col items-center justify-center gap-4 px-4 text-center">
       <p className="text-ink text-lg font-bold">이 멤버 정보를 찾을 수 없어요.</p>
       <ActionButton
         className="talkhugam-primary-action"
@@ -155,7 +155,7 @@ function MemberProfileUnavailablePage({ onBack }: { onBack: () => void }) {
 /** 멤버 프로필 조회 실패를 재시도 행동과 함께 안내한다. */
 function MemberProfileErrorPage({ onBack, onRetry }: { onBack: () => void; onRetry: () => void }) {
   return (
-    <main className="app-page bg-surface flex min-h-screen flex-col items-center justify-center gap-4 px-4">
+    <main className="app-page bg-surface flex min-h-dvh flex-col items-center justify-center gap-4 px-4">
       <RetryState
         message="멤버 프로필을 불러오지 못했어요. 잠시 후 다시 시도해 주세요."
         onRetry={onRetry}

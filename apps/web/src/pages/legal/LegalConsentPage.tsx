@@ -79,7 +79,7 @@ export function LegalConsentPage() {
                         stroke="currentColor"
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        strokeWidth="1.75"
+                        strokeWidth="1.8"
                       />
                     </svg>
                   }

@@ -93,7 +93,7 @@ export function ProfilePage() {
       </section>
 
       <section aria-labelledby="profile-menu-heading" className="mt-12">
-        <h2 className="text-ink text-base font-bold" id="profile-menu-heading">
+        <h2 className="text-ink text-base font-semibold" id="profile-menu-heading">
           내 정보 메뉴
         </h2>
         <div className="border-ink/10 bg-surface mt-4 border-y">

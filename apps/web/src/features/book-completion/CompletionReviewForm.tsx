@@ -4,6 +4,7 @@ import { ActionButton, TextField } from '@seed-design/react'
 
 import type { BookCompletionInput } from '../../entities/book-completion'
 import { FormField } from '../../shared/ui/FormField'
+import { StarIcon } from '../../shared/ui/StarIcon'
 
 type CompletionReviewFormProps = {
   bookChatId: string
@@ -57,7 +58,7 @@ export function CompletionReviewForm({
             <button
               aria-label={`${value}점`}
               aria-pressed={rating === value}
-              className={`min-h-11 min-w-11 cursor-pointer rounded-md text-lg font-bold ${
+              className={`flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-md ${
                 rating !== null && value <= rating
                   ? 'border-primary text-primary border bg-white'
                   : 'border-border text-ink-subtle border bg-white'
@@ -66,7 +67,7 @@ export function CompletionReviewForm({
               onClick={() => handleSelectRating(value)}
               type="button"
             >
-              ★
+              <StarIcon filled={rating !== null && value <= rating} />
             </button>
           ))}
         </div>

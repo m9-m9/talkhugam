@@ -3,8 +3,8 @@
   "short_name": "Talk후감",
   "lang": "ko",
   "display": "standalone",
-  "background_color": "#FAF8F5",
-  "theme_color": "#FF835F",
+  "background_color": "#000000",
+  "theme_color": "#000000",
   "icons": [
     {
       "src": "/favicon.svg",

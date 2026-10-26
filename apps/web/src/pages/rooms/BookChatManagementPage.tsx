@@ -109,13 +109,13 @@ export function BookChatManagementPage() {
       <section className="border-border mt-8 flex items-center gap-4 rounded-lg border bg-white p-4">
         <BookCover alt={`${chat.title} 표지`} thumbnailUrl={chat.thumbnailUrl} />
         <div className="min-w-0 flex-1">
-          <span className="text-ink block text-sm font-bold">{chat.name}</span>
+          <span className="text-ink block text-sm font-semibold">{chat.name}</span>
           <span className="text-ink-subtle mt-1 block text-xs">내 완독 기록을 남길 수 있어요.</span>
         </div>
         {ownCompletion ? <CompletionMark label="내 완독" /> : null}
       </section>
       <section className="mt-12" aria-labelledby="book-chat-actions">
-        <h2 className="text-ink text-base font-bold" id="book-chat-actions">
+        <h2 className="text-ink text-base font-semibold" id="book-chat-actions">
           채팅방 관리
         </h2>
         <div className="mt-4 space-y-3">
@@ -259,7 +259,7 @@ function BookChatDeletionDialog({
 /** 책 대화방 관리 정보를 기다리는 동안 책 로더를 렌더링한다. */
 function BookChatManagementLoadingPage() {
   return (
-    <main className="app-page bg-surface flex min-h-screen items-center justify-center">
+    <main className="app-page bg-surface flex min-h-dvh items-center justify-center">
       <BookLoadingIndicator label="책 대화방을 불러오고 있어요." />
     </main>
   )
@@ -268,7 +268,7 @@ function BookChatManagementLoadingPage() {
 /** 접근할 수 없는 책 대화방일 때 이전 화면으로 복귀할 선택지를 제공한다. */
 function BookChatManagementUnavailablePage({ onBack }: { onBack: () => void }) {
   return (
-    <main className="app-page bg-surface flex min-h-screen flex-col items-center justify-center px-4 text-center">
+    <main className="app-page bg-surface flex min-h-dvh flex-col items-center justify-center px-4 text-center">
       <p className="text-ink text-lg font-bold">책 대화방을 찾을 수 없어요</p>
       <ActionButton
         className="talkhugam-primary-action mt-6"

@@ -39,7 +39,13 @@ export function RoomsPage() {
   return (
     <main className="app-page bg-surface flex flex-col px-4">
       <header className="border-border -mx-4 flex min-h-16 items-center justify-between border-b px-4">
-        <img alt="Talk후감" className="h-10 w-auto" src="/brand/talkhugam-wordmark-inverse.svg" />
+        <img
+          alt="Talk후감"
+          className="h-10 w-auto"
+          height={40}
+          src="/brand/talkhugam-wordmark-inverse.svg"
+          width={195}
+        />
         <NotificationInboxButton />
       </header>
 
@@ -54,7 +60,7 @@ export function RoomsPage() {
         <section aria-labelledby="recent-rooms-heading" className="flex flex-1 flex-col gap-6 py-8">
           <BestsellerSection result={bestsellersQuery.data} />
           <div className="flex flex-col gap-4">
-            <h2 className="text-ink text-base font-bold" id="recent-rooms-heading">
+            <h2 className="text-ink text-base font-semibold" id="recent-rooms-heading">
               함께 읽는 책방
             </h2>
             <RoomsContent
@@ -82,7 +88,7 @@ function BestsellerSection({ result }: { result: BookBestsellerResult | undefine
   return (
     <section aria-labelledby="bestseller-heading" className="flex flex-col gap-3">
       <div>
-        <h2 className="text-ink text-base font-bold" id="bestseller-heading">
+        <h2 className="text-ink text-base font-semibold" id="bestseller-heading">
           이번 주 베스트셀러
         </h2>
         <p className="text-ink-subtle mt-1 text-xs">지금 많이 읽히는 책이에요.</p>
@@ -130,7 +136,11 @@ function BestsellerCarousel({ books }: { books: BookBestseller[] }) {
         </div>
       </div>
       {previewBooks.length > 0 ? (
-        <ul aria-label="다른 추천 도서" className="grid grid-cols-3 gap-2">
+        <ul
+          aria-label="다른 추천 도서"
+          className="grid gap-2"
+          style={{ gridTemplateColumns: `repeat(${previewBooks.length}, minmax(0, 1fr))` }}
+        >
           {previewBooks.map(({ book, index }) => (
             <li className="min-w-0" key={book.id}>
               <ActionButton
@@ -167,7 +177,7 @@ function BestsellerCarousel({ books }: { books: BookBestseller[] }) {
           >
             ‹
           </ActionButton>
-          <span aria-live="polite" className="text-ink-subtle text-xs">
+          <span aria-live="polite" className="text-ink-subtle text-xs tabular-nums">
             {activeIndex + 1} / {books.length}
           </span>
           <ActionButton
@@ -211,7 +221,7 @@ function BestsellerFeature({ book, isActive }: { book: BookBestseller; isActive:
         thumbnailUrl={book.thumbnailUrl}
       />
       <span className="min-w-0 flex-1">
-        <h3 className="text-ink line-clamp-2 text-sm font-bold">{book.title}</h3>
+        <h3 className="text-ink line-clamp-2 text-sm font-semibold">{book.title}</h3>
         <span className="text-ink-subtle mt-1 line-clamp-2 block text-xs">
           {book.authors.join(', ') || book.publisher || '저자 정보 없음'}
         </span>
@@ -266,7 +276,7 @@ function NotificationInboxButton() {
       {unreadCount > 0 ? (
         <span
           aria-hidden="true"
-          className="bg-primary absolute top-1 right-1 flex min-w-4 items-center justify-center rounded-full px-1 text-xs font-bold text-white"
+          className="bg-action text-action-text absolute top-1 right-1 flex min-w-4 items-center justify-center rounded-full px-1 text-xs font-bold tabular-nums"
         >
           {unreadCount > 99 ? '99+' : unreadCount}
         </span>
@@ -397,7 +407,7 @@ function RoomsList({ rooms }: { rooms: ReadingRoom[] }) {
                       stroke="currentColor"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      strokeWidth="2"
+                      strokeWidth="1.8"
                     />
                   </svg>
                 }

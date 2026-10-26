@@ -226,7 +226,7 @@ function RoomCreatedContent({
         <p className="text-ink-subtle mt-1 text-sm">새 책방을 만들었어요.</p>
       </header>
       <div className="flex flex-1 flex-col items-center justify-center text-center">
-        <p className="text-ink text-2xl font-bold">책방이 만들어졌어요!</p>
+        <p className="text-ink text-2xl font-semibold">책방이 만들어졌어요!</p>
         <p className="text-ink-subtle mt-3 text-sm">
           초대 코드를 보내고 함께 읽을 친구를 불러보세요.
         </p>

@@ -467,6 +467,7 @@ test('slides the highlighted bestseller card instead of replacing the page conte
     'white-space',
     'normal',
   )
+  await expect(page.getByAltText('Talk후감')).toHaveJSProperty('complete', true)
   await page.screenshot({
     path: `artifacts/seed-comparison/main-bestseller-after-${testInfo.project.name}.png`,
   })
@@ -663,8 +664,16 @@ test('closes the action book by Escape and outside click while returning focus t
   expect(actionButtonBox).not.toBeNull()
   expect(roomsNavigationButtonBox).not.toBeNull()
   expect(profileNavigationButtonBox).not.toBeNull()
+  expect(actionButtonBox!.y).toBeGreaterThanOrEqual(navigationBox!.y)
+  expect(actionButtonBox!.y + actionButtonBox!.height).toBeLessThanOrEqual(
+    navigationBox!.y + navigationBox!.height,
+  )
   expect(
-    Math.abs(actionButtonBox!.y + actionButtonBox!.height / 2 - navigationBox!.y),
+    Math.abs(
+      actionButtonBox!.y +
+        actionButtonBox!.height / 2 -
+        (navigationBox!.y + navigationBox!.height / 2),
+    ),
   ).toBeLessThanOrEqual(1)
   expect(
     Math.abs(
@@ -785,7 +794,7 @@ test('keeps the chat input readable and aligns my discussion records to the righ
   await page.getByRole('tab', { name: '영상' }).click()
   await expect(
     page
-      .getByText('영상 처리를 완료하지 못했어요. 잠시 후 다시 시도해 주세요.')
+      .getByText('영상을 처리하지 못했어요. 지우고 다시 올려 주세요.')
       .locator('xpath=ancestor::li[1]'),
   ).toHaveClass(/justify-end/)
   await expectPageToFitViewport(page, testInfo.project.use.viewport?.width ?? 640)
@@ -858,7 +867,11 @@ test('resets a dismissed book-chat label editor while keeping the message draft'
   await expectBottomSheetToHideInternalScrollbar(page)
   await expect(page.getByRole('button', { name: '페이지 라벨' })).toHaveCSS(
     'background-color',
-    'rgb(16, 16, 16)',
+    'rgba(0, 0, 0, 0)',
+  )
+  await expect(page.getByRole('button', { name: '페이지 라벨' })).toHaveCSS(
+    'border-bottom-color',
+    'rgb(42, 42, 42)',
   )
   await page.screenshot({
     path: `artifacts/seed-comparison/8-book-discussion-action-menu-after-${testInfo.project.name}.png`,
@@ -936,12 +949,9 @@ test('opens the bookshop invite sheet from the plus menu without losing a draft'
   const composer = page.getByRole('textbox', { name: '메시지 입력' })
   await composer.fill('이 문장을 함께 나누고 싶어요.')
   await page.getByRole('button', { name: '메시지 추가 메뉴 열기' }).click()
-  const actionGrid = page.getByRole('dialog', { name: '메시지 추가' }).locator('.grid')
-  expect(
-    await actionGrid.evaluate((element) =>
-      window.getComputedStyle(element).gridTemplateColumns.split(' ').filter(Boolean),
-    ),
-  ).toHaveLength(2)
+  await expect(
+    page.getByRole('dialog', { name: '메시지 추가' }).locator('.talkhugam-action-sheet-list'),
+  ).toHaveCSS('flex-direction', 'column')
 
   await page.getByRole('button', { name: '책방 초대하기' }).click()
   await expect(page.getByRole('dialog', { name: '책방 초대하기' })).toBeVisible()

@@ -39,7 +39,7 @@ export function ContactPage() {
         className="border-border mt-8 rounded-lg border bg-white p-4"
         aria-labelledby="contact-channel-heading"
       >
-        <h2 className="text-ink text-base font-bold" id="contact-channel-heading">
+        <h2 className="text-ink text-base font-semibold" id="contact-channel-heading">
           문의하기
         </h2>
         {supportEmail ? (

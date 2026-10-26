@@ -46,7 +46,7 @@ export function AuthenticatedRoute() {
 
   if (user === undefined)
     return (
-      <main className="bg-surface flex min-h-screen items-center justify-center px-4">
+      <main className="bg-surface flex min-h-dvh items-center justify-center px-4">
         <BookLoadingIndicator label="로그인 정보를 확인하고 있어요." size="sm" />
       </main>
     )

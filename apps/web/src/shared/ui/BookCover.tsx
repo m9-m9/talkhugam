@@ -16,6 +16,8 @@ export function BookCover({ alt, className, thumbnailUrl }: BookCoverProps) {
       <img
         alt={alt}
         className={`border-ink/10 h-16 w-12 shrink-0 rounded-sm border bg-white object-contain ${className ?? ''}`}
+        decoding="async"
+        loading="lazy"
         onError={() => setHasImageError(true)}
         src={thumbnailUrl}
       />

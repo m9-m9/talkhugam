@@ -129,7 +129,7 @@ export function AccountSettingsPage() {
       />
 
       <section className="mt-12" aria-labelledby="service-information-heading">
-        <h2 className="text-ink text-base font-bold" id="service-information-heading">
+        <h2 className="text-ink text-base font-semibold" id="service-information-heading">
           서비스 정보
         </h2>
         <p className="text-ink-subtle mt-2 text-sm">
@@ -147,7 +147,7 @@ export function AccountSettingsPage() {
       </section>
 
       <section className="mt-12" aria-labelledby="danger-zone-heading">
-        <h2 className="text-ink text-base font-bold" id="danger-zone-heading">
+        <h2 className="text-ink text-base font-semibold" id="danger-zone-heading">
           계정 삭제
         </h2>
         <p className="text-ink-subtle mt-2 text-sm">삭제한 계정은 되돌릴 수 없어요.</p>
@@ -260,7 +260,7 @@ function NotificationPreferencesSection({
 }) {
   return (
     <section className="mt-12" aria-labelledby="notification-settings-heading">
-      <h2 className="text-ink text-base font-bold" id="notification-settings-heading">
+      <h2 className="text-ink text-base font-semibold" id="notification-settings-heading">
         알림 설정
       </h2>
       <p className="text-ink-subtle mt-2 text-sm">원하지 않는 알림은 언제든 끌 수 있어요.</p>
@@ -316,7 +316,7 @@ function NotificationPreferenceToggle({
   return (
     <Switch.Root
       checked={checked}
-      className="flex min-h-12 items-center justify-between gap-4 px-4 py-2"
+      className="!flex min-h-12 !w-full items-center !justify-between gap-4 px-4 py-2"
       disabled={disabled}
       onCheckedChange={onChange}
     >
@@ -408,7 +408,7 @@ function AccountDeletionDialog({
                       stroke="currentColor"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      strokeWidth="1.75"
+                      strokeWidth="1.8"
                     />
                   </svg>
                 }
