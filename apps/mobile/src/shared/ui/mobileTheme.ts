@@ -1,33 +1,56 @@
+import { StyleSheet } from 'react-native'
+
 /**
- * design.md 기본 팔레트를 모바일 화면에서 쓰는 색 토큰. 값의 정본은 웹 `globals.css`의 `@theme`이며,
- * 새 모바일 화면은 색을 직접 적지 않고 이 토큰만 쓴다.
+ * 웹 `globals.css`의 다크 토큰과 같은 값을 모바일 화면에 제공한다.
+ * 코랄(`accent`·`accentSoft`·`accentText`·`action`)은 `design.md`「코랄 규칙」대로
+ * 화면의 주요 행동 하나, 선택 상태, 브랜드, 별점 같은 핵심 콘텐츠에만 쓴다.
+ * 시트·모달 안의 확인 버튼은 `neutralAction`(흰 면)을 쓴다.
  */
 export const mobileColors = {
   accent: '#FF835F',
+  accentSoft: '#3A231C',
   accentText: '#FFB59C',
   action: '#AD3D22',
-  border: '#2A2A2A',
+  border: '#3A3633',
+  borderStrong: '#4A4542',
   danger: '#FF6B6B',
   dangerAction: '#C4302B',
   ink: '#FFFFFF',
-  inkSubtle: '#C7C7C7',
-  /**
-   * 사진 위 줄 박스. 밝은 책 종이에서도 보이도록 고르지 않은 줄은 Surface 5% 면·50% 테두리,
-   * 고른 줄은 Accent 35% 면·Accent 테두리로 겹친다(웹 `bg-surface/5`·`bg-accent/35`와 같다).
-   */
-  lineOverlay: 'rgba(0, 0, 0, 0.05)',
-  lineOverlayBorder: 'rgba(0, 0, 0, 0.5)',
-  lineOverlaySelected: 'rgba(255, 131, 95, 0.35)',
-  scrim: 'rgba(0, 0, 0, 0.72)',
-  surface: '#000000',
-  surfaceRaised: '#101010',
+  inkSubtle: '#C9C5C2',
+  neutralAction: '#FFFFFF',
+  neutralActionPressed: '#DBDBDB',
+  neutralActionText: '#141312',
+  placeholder: '#9A9591',
+  primaryAction: '#AD3D22',
+  primaryActionPressed: '#B95A43',
+  primaryActionText: '#FFFFFF',
+  surface: '#141312',
+  surfacePressed: '#292624',
+  surfaceRaised: '#1F1D1C',
+  switchTrackOff: '#4A4542',
 } as const
 
-/** Foundation spacing scale(0/4/8/12/16/24/32/40/48/64) 중 모바일에서 자주 쓰는 값. */
-export const mobileSpacing = { lg: 24, md: 16, sm: 12, xs: 8, xxs: 4 } as const
-
-/** 기본 radius(8px)와 시트용 큰 radius. */
-export const mobileRadius = { md: 8, sheet: 16 } as const
-
-/** 터치 대상 최소 크기(44px). */
-export const mobileTouchTarget = 44
+/** 주요(코랄)·흰 면·보조·위험 버튼의 공용 모양. 화면은 여기에 크기·여백만 더한다. */
+export const mobileButtonStyles = StyleSheet.create({
+  danger: { backgroundColor: mobileColors.dangerAction, borderColor: mobileColors.dangerAction },
+  dangerText: { color: mobileColors.ink },
+  disabled: {
+    backgroundColor: mobileColors.surfaceRaised,
+    borderColor: mobileColors.border,
+    borderWidth: 1,
+  },
+  disabledText: { color: mobileColors.inkSubtle },
+  neutral: { backgroundColor: mobileColors.neutralAction },
+  neutralPressed: { backgroundColor: mobileColors.neutralActionPressed },
+  neutralText: { color: mobileColors.neutralActionText },
+  primary: { backgroundColor: mobileColors.primaryAction },
+  primaryPressed: { backgroundColor: mobileColors.primaryActionPressed },
+  primaryText: { color: mobileColors.primaryActionText },
+  secondary: {
+    backgroundColor: mobileColors.surfaceRaised,
+    borderColor: mobileColors.borderStrong,
+    borderWidth: 1,
+  },
+  secondaryPressed: { backgroundColor: mobileColors.surfacePressed },
+  secondaryText: { color: mobileColors.ink },
+})

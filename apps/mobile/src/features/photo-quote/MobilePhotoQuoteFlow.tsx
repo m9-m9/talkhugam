@@ -32,8 +32,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { createMobileSupabaseClient } from '../../shared/api/mobileSupabaseClient'
+import { MobileBackButton } from '../../shared/ui/MobileBackButton'
 import { MobileButton } from '../../shared/ui/MobileButton'
-import { mobileColors, mobileRadius, mobileSpacing, mobileTouchTarget } from '../../shared/ui/mobileTheme'
+import { mobileRadius, mobileSpacing, mobileTouchTarget, withAlpha } from '../../shared/ui/mobileLayout'
+import { mobileColors } from '../../shared/ui/mobileTheme'
 import { preparePhotoForOcr, type PreparedOcrPhoto } from './mobilePhotoSource'
 import type { PickedPhoto } from './pickedPhoto'
 
@@ -142,9 +144,7 @@ export function MobilePhotoQuoteFlow({
     <Modal animationType="slide" onRequestClose={handleBack} presentationStyle="fullScreen" visible>
       <SafeAreaView accessibilityLabel={title} accessibilityViewIsModal style={styles.container}>
         <View style={styles.header}>
-          <Pressable accessibilityLabel="이전 화면으로" accessibilityRole="button" onPress={handleBack} style={styles.backButton}>
-            <Text style={styles.backButtonText}>‹</Text>
-          </Pressable>
+          <MobileBackButton accessibilityLabel="이전 화면으로" onPress={handleBack} />
           <Text accessibilityRole="header" numberOfLines={1} style={styles.title}>
             {title}
           </Text>
@@ -262,7 +262,7 @@ function SelectStep({
             isDisabled={summary.lineCount === 0 || summary.isOverLimit}
             label="다음"
             onPress={onNext}
-            variant="primary"
+            variant="neutral"
           />
         </View>
       </View>
@@ -453,7 +453,7 @@ function ConfirmStep({
           multiline
           onChangeText={onChangeQuote}
           placeholder="책 속 문장을 적어 주세요"
-          placeholderTextColor={mobileColors.inkSubtle}
+          placeholderTextColor={mobileColors.placeholder}
           style={styles.quoteInput}
           value={quoteDraft}
         />
@@ -468,7 +468,7 @@ function ConfirmStep({
             maxLength={10}
             onChangeText={onChangePage}
             placeholder="예: 87"
-            placeholderTextColor={mobileColors.inkSubtle}
+            placeholderTextColor={mobileColors.placeholder}
             style={styles.pageInput}
             value={pageDraft}
           />
@@ -490,15 +490,13 @@ function ConfirmStep({
         <Text style={styles.noteText}>책 속 문장은 짧게 인용하고 내 생각을 함께 남겨 주세요.</Text>
       </ScrollView>
       <View style={styles.footer}>
-        <MobileButton isDisabled={!isQuoteWithinLimit(quoteDraft)} label="글에 넣기" onPress={onInsert} variant="primary" />
+        <MobileButton isDisabled={!isQuoteWithinLimit(quoteDraft)} label="글에 넣기" onPress={onInsert} variant="neutral" />
       </View>
     </>
   )
 }
 
 const styles = StyleSheet.create({
-  backButton: { alignItems: 'center', justifyContent: 'center', minHeight: mobileTouchTarget, minWidth: mobileTouchTarget },
-  backButtonText: { color: mobileColors.ink, fontSize: 32, lineHeight: 36 },
   container: { backgroundColor: mobileColors.surface, flex: 1 },
   content: { gap: mobileSpacing.sm, padding: mobileSpacing.md },
   counterText: { alignSelf: 'flex-end', color: mobileColors.inkSubtle, fontSize: 12, lineHeight: 18 },
@@ -522,13 +520,13 @@ const styles = StyleSheet.create({
   },
   headerSpacer: { minWidth: mobileTouchTarget },
   lineBox: {
-    backgroundColor: mobileColors.lineOverlay,
-    borderColor: mobileColors.lineOverlayBorder,
+    backgroundColor: withAlpha(mobileColors.neutralActionText, 0.05),
+    borderColor: withAlpha(mobileColors.neutralActionText, 0.5),
     borderRadius: 2,
     borderWidth: 1,
     position: 'absolute',
   },
-  lineBoxSelected: { backgroundColor: mobileColors.lineOverlaySelected, borderColor: mobileColors.accent, borderWidth: 2 },
+  lineBoxSelected: { backgroundColor: withAlpha(mobileColors.accent, 0.35), borderColor: mobileColors.accent, borderWidth: 2 },
   lineRow: {
     borderBottomWidth: 1,
     borderColor: mobileColors.border,

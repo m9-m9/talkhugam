@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 
 import { MobileButton } from '../../shared/ui/MobileButton'
-import { mobileColors, mobileRadius, mobileSpacing, mobileTouchTarget } from '../../shared/ui/mobileTheme'
+import { mobileRadius, mobileSpacing, mobileTouchTarget, withAlpha } from '../../shared/ui/mobileLayout'
+import { mobileColors } from '../../shared/ui/mobileTheme'
 import type { PhotoSource } from '../photo-quote'
 
 export type MobileLabelKind = 'page' | 'chapter'
@@ -191,12 +192,12 @@ function LabelEditor({ onAddLabel, onClose }: Pick<MenuBodyProps, 'onAddLabel' |
           onChangeText={(value) => setDrafts((current) => ({ ...current, [labelKind]: value }))}
           onSubmitEditing={handleAddLabel}
           placeholder={labelKind === 'page' ? '예: 87' : '예: 3장 또는 고독'}
-          placeholderTextColor={mobileColors.inkSubtle}
+          placeholderTextColor={mobileColors.placeholder}
           returnKeyType="done"
           style={styles.labelInput}
           value={drafts[labelKind]}
         />
-        <MobileButton accessibilityLabel="라벨 추가" label="추가" onPress={handleAddLabel} variant="primary" />
+        <MobileButton accessibilityLabel="라벨 추가" label="추가" onPress={handleAddLabel} variant="neutral" />
       </View>
     </View>
   )
@@ -232,7 +233,7 @@ const styles = StyleSheet.create({
   },
   labelRow: { alignItems: 'center', flexDirection: 'row', gap: mobileSpacing.xs },
   list: { gap: mobileSpacing.xs },
-  scrim: { backgroundColor: mobileColors.scrim, bottom: 0, left: 0, position: 'absolute', right: 0, top: 0 },
+  scrim: { backgroundColor: withAlpha(mobileColors.surface, 0.72), bottom: 0, left: 0, position: 'absolute', right: 0, top: 0 },
   sheet: {
     backgroundColor: mobileColors.surface,
     borderColor: mobileColors.border,
