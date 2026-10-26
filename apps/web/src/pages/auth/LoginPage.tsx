@@ -188,7 +188,7 @@ export function LoginPage() {
             같은 책을 읽고 느낀 점을 편하게 나누는 책방이에요.
           </p>
           {wasAccountDeleted ? (
-            <p className="text-primary text-sm" role="status">
+            <p className="text-ink-subtle text-sm" role="status">
               계정 삭제 요청이 완료됐어요. Talk후감에 다시 오고 싶을 때 언제든 로그인해 주세요.
             </p>
           ) : null}
@@ -205,14 +205,11 @@ export function LoginPage() {
         </div>
         <p className="text-ink-subtle text-center text-xs leading-5">
           계속하면{' '}
-          <Link className="text-primary font-medium underline underline-offset-2" to="/legal/terms">
+          <Link className="text-ink font-medium underline underline-offset-2" to="/legal/terms">
             이용약관
           </Link>{' '}
           및{' '}
-          <Link
-            className="text-primary font-medium underline underline-offset-2"
-            to="/legal/privacy"
-          >
+          <Link className="text-ink font-medium underline underline-offset-2" to="/legal/privacy">
             개인정보처리방침
           </Link>
           에 동의하게 됩니다.

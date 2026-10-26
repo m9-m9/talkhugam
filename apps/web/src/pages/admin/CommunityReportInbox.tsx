@@ -71,7 +71,7 @@ export function CommunityReportInbox() {
       className="border-border mt-12 border-t pt-8"
       aria-labelledby="content-report-inbox-title"
     >
-      <p className="text-primary text-sm font-semibold">Safety inbox</p>
+      <p className="text-ink-subtle text-sm font-medium">Safety inbox</p>
       <h2 className="text-ink mt-1 text-xl font-bold" id="content-report-inbox-title">
         신고 관리
       </h2>
@@ -111,7 +111,7 @@ export function CommunityReportInbox() {
                 variant="neutralWeak"
               >
                 <div className="flex w-full items-center justify-between gap-3">
-                  <span className="text-primary text-xs font-semibold">
+                  <span className="text-ink-subtle text-xs font-medium">
                     {formatTargetType(report.targetType)}
                   </span>
                   <span className="text-ink-subtle text-xs">
@@ -161,7 +161,7 @@ function CommunityReportDetail({
   return (
     <BottomSheet onClose={onClose} title="신고 상세">
       <section className="pt-5">
-        <p className="text-primary text-sm font-semibold">
+        <p className="text-ink-subtle text-sm font-medium">
           {formatTargetType(report.targetType)} · {formatReportStatus(report.status)}
         </p>
         <p className="text-ink mt-3 text-sm leading-6 whitespace-pre-wrap">{report.reason}</p>

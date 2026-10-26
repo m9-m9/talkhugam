@@ -68,7 +68,7 @@ export function CommunityRoomDetailPage() {
 
   if (roomQuery.isPending)
     return (
-      <main className="bg-surface flex min-h-screen items-center justify-center">
+      <main className="bg-surface flex min-h-dvh items-center justify-center">
         <BookLoadingIndicator label="오픈 책방을 불러오고 있어요." />
       </main>
     )
@@ -80,7 +80,7 @@ export function CommunityRoomDetailPage() {
       </main>
     )
   return (
-    <main className="app-page bg-surface flex min-h-screen flex-col px-4 pb-4">
+    <main className="app-page bg-surface flex min-h-dvh flex-col px-4 pb-4">
       <AppHeader
         action={
           <ActionButton

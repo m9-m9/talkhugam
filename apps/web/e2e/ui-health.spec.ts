@@ -71,7 +71,7 @@ test('loads Clarity once while masking all app text and user content', async ({ 
   await expect(page.locator('#talkhugam-clarity')).toHaveCount(1)
 })
 
-test('keeps brand, accent, and action colors independently swappable', async ({ page }) => {
+test('keeps primary actions neutral and coral only on the send action', async ({ page }) => {
   await page.goto('/')
   await page.evaluate(() => {
     const action = document.createElement('button')
@@ -81,6 +81,11 @@ test('keeps brand, accent, and action colors independently swappable', async ({ 
     actionIcon.classList.add('text-ink')
     action.append(actionIcon)
     document.body.append(action)
+
+    const send = document.createElement('button')
+    send.className = 'talkhugam-send-action'
+    send.textContent = 'send'
+    document.body.append(send)
 
     const loaderCover = document.createElement('div')
     loaderCover.className = 'talkhugam-book-loader__cover'
@@ -110,6 +115,8 @@ test('keeps brand, accent, and action colors independently swappable', async ({ 
       ).color,
       actionText: rootStyle.getPropertyValue('--color-action-text').trim(),
       brand: rootStyle.getPropertyValue('--color-brand').trim(),
+      sendBackground: window.getComputedStyle(document.querySelector('.talkhugam-send-action')!)
+        .backgroundColor,
       brandSoft: rootStyle.getPropertyValue('--color-brand-soft').trim(),
       loaderBorder: loaderStyle.borderTopColor,
       surface: rootStyle.getPropertyValue('--color-surface').trim(),
@@ -121,12 +128,13 @@ test('keeps brand, accent, and action colors independently swappable', async ({ 
   expect(colors).toEqual({
     accent: '#ff835f',
     action: '#ad3d22',
-    actionBackground: 'rgb(173, 61, 34)',
-    actionIconColor: 'rgb(255, 255, 255)',
+    actionBackground: 'rgb(255, 255, 255)',
+    actionIconColor: 'rgb(0, 0, 0)',
     actionText: '#ffffff',
     brand: '#ff835f',
     brandSoft: '#ffb59c',
     loaderBorder: 'rgb(255, 131, 95)',
+    sendBackground: 'rgb(173, 61, 34)',
     surface: '#000000',
     textOnSurface: 'rgb(255, 255, 255)',
     whiteCardBackground: 'rgb(16, 16, 16)',
@@ -431,11 +439,11 @@ test('uses the bottom-navigation token as the global page bottom spacing', async
   await expect(page.locator('.app-with-bottom-navigation')).toHaveCSS('padding-bottom', '72px')
   await expect(page.getByRole('button', { name: '책방 시작 메뉴 열기' })).toHaveCSS(
     'background-color',
-    'rgb(173, 61, 34)',
+    'rgb(255, 255, 255)',
   )
   await expect(page.getByRole('button', { name: '책방 시작 메뉴 열기' })).toHaveCSS(
     'color',
-    'rgb(255, 255, 255)',
+    'rgb(0, 0, 0)',
   )
   await expect(page.getByRole('button', { name: '의견 보내기' })).toHaveCount(0)
 })

@@ -27,7 +27,7 @@ export function CommunityRoomsPage() {
       <AppHeader
         action={
           <ActionButton
-            className="text-primary min-h-11"
+            className="min-h-11"
             onClick={() => void navigate('/community/create')}
             size="small"
             type="button"
@@ -83,7 +83,7 @@ function CommunityRoomList({ rooms }: { rooms: CommunityRoom[] }) {
           >
             <span className="min-w-0">
               {room.isFollowingCreator ? (
-                <span className="text-primary block text-xs font-semibold">
+                <span className="text-ink-subtle block text-xs font-medium">
                   팔로우한 사람이 열었어요
                 </span>
               ) : null}

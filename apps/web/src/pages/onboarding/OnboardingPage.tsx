@@ -100,6 +100,7 @@ export function OnboardingPage() {
           </TextField.Root>
         </FormField>
         <FormField
+          description="80자까지 적을 수 있어요."
           errorMessage={form.formState.errors.bio?.message}
           label="한 줄 소개"
           name="bio"

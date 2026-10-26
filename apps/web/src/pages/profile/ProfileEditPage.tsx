@@ -171,7 +171,12 @@ export function ProfileEditPage() {
             <TextField.Input {...form.register('displayName')} />
           </TextField.Root>
         </FormField>
-        <FormField errorMessage={form.formState.errors.bio?.message} label="한 줄 소개" name="bio">
+        <FormField
+          description="80자까지 적을 수 있어요."
+          errorMessage={form.formState.errors.bio?.message}
+          label="한 줄 소개"
+          name="bio"
+        >
           <TextField.Root className="talkhugam-information-field">
             <TextField.Textarea autoresize={false} maxLength={80} {...form.register('bio')} />
           </TextField.Root>

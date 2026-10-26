@@ -41,7 +41,7 @@ export function RoomDetailPage() {
         action={
           <div className="flex items-center gap-1">
             <ActionButton
-              className="text-primary min-h-11 px-3"
+              className="min-h-11 px-3"
               onClick={() => void navigate(`/rooms/${roomId}/books/new`)}
               size="small"
               type="button"

@@ -44,7 +44,7 @@ export function ContactPage() {
         </h2>
         {supportEmail ? (
           <a
-            className="text-primary mt-3 block min-h-11 content-center text-sm font-semibold"
+            className="text-ink mt-3 block min-h-11 content-center text-sm font-semibold underline underline-offset-2"
             href={`mailto:${supportEmail}`}
           >
             {supportEmail}

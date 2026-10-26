@@ -118,6 +118,7 @@ export function FeedbackLauncher({ renderTrigger }: FeedbackLauncherProps) {
               </label>
               <TextField.Root className="mt-3">
                 <TextField.Textarea
+                  aria-describedby="feedback-body-limit"
                   aria-label="의견 내용"
                   id="feedback-body"
                   maxLength={2000}
@@ -126,9 +127,9 @@ export function FeedbackLauncher({ renderTrigger }: FeedbackLauncherProps) {
                   value={body}
                 />
               </TextField.Root>
-              <p className="text-ink-subtle mt-2 text-xs leading-5">
-                답변이 필요하면 로그인에 사용한 이메일로 연락드려요. 비밀번호·인증 코드는 적지
-                마세요.
+              <p className="text-ink-subtle mt-2 text-xs leading-5" id="feedback-body-limit">
+                2,000자까지 적을 수 있어요. 답변이 필요하면 로그인에 사용한 이메일로 연락드려요.
+                비밀번호·인증 코드는 적지 마세요.
               </p>
               {errorMessage ? (
                 <p className="text-danger mt-3 text-sm" role="alert">

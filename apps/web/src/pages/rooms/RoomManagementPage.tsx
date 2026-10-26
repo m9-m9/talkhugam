@@ -219,7 +219,7 @@ export function RoomManagementPage() {
                 카카오톡, 문자, 인스타그램, 페이스북으로 초대할 수 있어요.
               </p>
               {inviteShareMessage ? (
-                <p className="text-primary mt-2 text-xs" role="status">
+                <p className="text-ink-subtle mt-2 text-xs" role="status">
                   {inviteShareMessage}
                 </p>
               ) : null}
@@ -374,7 +374,7 @@ function MemberProfileLink({ member, roomId }: { member: RoomManagementMember; r
   return (
     <Link
       aria-label={`${member.displayName} 프로필 보기`}
-      className="focus-visible:outline-primary min-w-0 flex-1 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2"
+      className="focus-visible:outline-ink min-w-0 flex-1 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2"
       to={`/rooms/${roomId}/members/${member.profileId}`}
     >
       {memberContent}

@@ -89,7 +89,7 @@ export function PublicProfilePage() {
       <section className="mt-8 text-center" aria-labelledby="public-profile-name">
         <div
           aria-hidden
-          className="bg-brand text-ink mx-auto flex size-20 items-center justify-center rounded-full text-3xl font-bold"
+          className="bg-surface-raised border-border text-ink mx-auto flex size-20 items-center justify-center rounded-full border text-3xl font-bold"
         >
           {profile.displayName.slice(0, 1)}
         </div>
@@ -177,7 +177,7 @@ export function PublicProfilePage() {
           {reportMutation.isPending ? '신고 중…' : '신고하기'}
         </ActionButton>
         {reportMutation.isSuccess ? (
-          <p className="text-primary mt-3 text-sm" role="status">
+          <p className="text-ink-subtle mt-3 text-sm" role="status">
             신고가 접수되었어요.
           </p>
         ) : null}
@@ -194,7 +194,7 @@ export function PublicProfilePage() {
 /** 공개 프로필을 불러오는 동안 공통 브랜드 진행 상태를 렌더링한다. */
 function PublicProfileLoading() {
   return (
-    <main className="app-page bg-surface flex min-h-screen items-center justify-center px-4">
+    <main className="app-page bg-surface flex min-h-dvh items-center justify-center px-4">
       <BrandLoadingSpinner label="프로필을 불러오고 있어요." />
     </main>
   )
@@ -203,7 +203,7 @@ function PublicProfileLoading() {
 /** 잘못된 프로필 또는 실패한 공개 프로필 조회를 재시도·뒤로가기와 함께 렌더링한다. */
 function PublicProfileFailure({ onBack, onRetry }: { onBack(): void; onRetry(): void }) {
   return (
-    <main className="app-page bg-surface flex min-h-screen flex-col items-center justify-center gap-4 px-4">
+    <main className="app-page bg-surface flex min-h-dvh flex-col items-center justify-center gap-4 px-4">
       <RetryState message="프로필을 불러오지 못했어요." onRetry={onRetry} />
       <ActionButton
         className="talkhugam-foundation-action--outline"

@@ -175,7 +175,15 @@ function BestsellerCarousel({ books }: { books: BookBestseller[] }) {
             type="button"
             variant="neutralOutline"
           >
-            ‹
+            <svg aria-hidden="true" className="size-5" fill="none" viewBox="0 0 24 24">
+              <path
+                d="m15 18-6-6 6-6"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="1.8"
+              />
+            </svg>
           </ActionButton>
           <span aria-live="polite" className="text-ink-subtle text-xs tabular-nums">
             {activeIndex + 1} / {books.length}
@@ -189,7 +197,15 @@ function BestsellerCarousel({ books }: { books: BookBestseller[] }) {
             type="button"
             variant="neutralOutline"
           >
-            ›
+            <svg aria-hidden="true" className="size-5" fill="none" viewBox="0 0 24 24">
+              <path
+                d="m9 18 6-6-6-6"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="1.8"
+              />
+            </svg>
           </ActionButton>
         </div>
       ) : null}
@@ -230,7 +246,7 @@ function BestsellerFeature({ book, isActive }: { book: BookBestseller; isActive:
   )
 
   const className =
-    'border-border bg-surface hover:border-ink focus-visible:outline-primary flex min-h-32 items-center gap-3 rounded-lg border p-3 text-left'
+    'border-border bg-surface hover:border-ink focus-visible:outline-ink flex min-h-32 items-center gap-3 rounded-lg border p-3 text-left'
 
   if (!book.externalUrl)
     return (
