@@ -11,6 +11,7 @@ import {
 } from '../../entities/profile'
 import { reportMobileCommunityTarget } from '../../entities/community'
 import { createMobileSupabaseClient } from '../../shared/api/mobileSupabaseClient'
+import { mobileColors } from '../../shared/ui/theme'
 
 type MobilePublicProfileScreenProps = { onBack(): void; profileId: string }
 
@@ -78,7 +79,7 @@ export function MobilePublicProfileScreen({ onBack, profileId }: MobilePublicPro
         </View>
         <View style={styles.followerSection}>
           <Text accessibilityRole="header" style={styles.sectionTitle}>팔로워</Text>
-          {followersQuery.isPending ? <ActivityIndicator accessibilityLabel="팔로워를 불러오고 있어요." color="#FF835F" /> : null}
+          {followersQuery.isPending ? <ActivityIndicator accessibilityLabel="팔로워를 불러오고 있어요." color={mobileColors.accent} /> : null}
           {followersQuery.isError ? <Pressable accessibilityLabel="팔로워 다시 불러오기" accessibilityRole="button" onPress={() => void followersQuery.refetch()} style={styles.retry}><Text style={styles.retryText}>다시 시도</Text></Pressable> : null}
           {followersQuery.data?.length === 0 ? <Text style={styles.muted}>아직 팔로워가 없어요.</Text> : null}
           {followersQuery.data?.map((follower) => <Text key={follower.id} style={styles.follower}>{follower.displayName}</Text>)}
@@ -90,7 +91,7 @@ export function MobilePublicProfileScreen({ onBack, profileId }: MobilePublicPro
 
 /** 공개 프로필 데이터를 불러오는 동안 전체 화면 진행 상태를 표시한다. */
 function PublicProfileStatus({ label }: { label: string }): React.JSX.Element {
-  return <SafeAreaView style={styles.container}><View accessibilityLabel={label} accessibilityRole="progressbar" style={styles.center}><ActivityIndicator color="#FF835F" /><Text style={styles.muted}>{label}</Text></View></SafeAreaView>
+  return <SafeAreaView style={styles.container}><View accessibilityLabel={label} accessibilityRole="progressbar" style={styles.center}><ActivityIndicator color={mobileColors.accent} /><Text style={styles.muted}>{label}</Text></View></SafeAreaView>
 }
 
 /** 공개 프로필을 찾지 못하거나 조회 실패했을 때 재시도와 뒤로가기를 제공한다. */
@@ -99,6 +100,6 @@ function PublicProfileError({ onBack, onRetry }: { onBack(): void; onRetry(): vo
 }
 
 const styles = StyleSheet.create({
-  avatar: { alignItems: 'center', backgroundColor: '#AD3D22', borderRadius: 40, height: 80, justifyContent: 'center', width: 80 },
-  avatarText: { color: '#FFFFFF', fontSize: 30, fontWeight: '700' }, back: { alignSelf: 'flex-start', justifyContent: 'center', minHeight: 44, minWidth: 72 }, backText: { color: '#FF835F', fontWeight: '700' }, bio: { color: '#C7C7C7', lineHeight: 22, textAlign: 'center' }, center: { alignItems: 'center', flex: 1, gap: 16, justifyContent: 'center', padding: 16 }, container: { backgroundColor: '#000000', flex: 1, paddingHorizontal: 16 }, content: { paddingBottom: 32 }, count: { color: '#FFFFFF', fontWeight: '700', marginTop: 16 }, error: { color: '#FF8A8A', textAlign: 'center' }, followButton: { alignItems: 'center', backgroundColor: '#FF835F', borderRadius: 12, justifyContent: 'center', marginTop: 20, minHeight: 48, width: '100%' }, followButtonText: { color: '#000000', fontWeight: '700' }, follower: { color: '#FFFFFF', minHeight: 44, paddingVertical: 12 }, followerSection: { borderTopColor: '#333333', borderTopWidth: 1, marginTop: 32, paddingTop: 24 }, followingButton: { backgroundColor: '#191919', borderColor: '#FF835F', borderWidth: 1 }, followingButtonText: { color: '#FF835F' }, muted: { color: '#C7C7C7' }, name: { color: '#FFFFFF', fontSize: 24, fontWeight: '700', marginTop: 16 }, notice: { color: '#BDEACB', textAlign: 'center' }, profileCard: { alignItems: 'center', marginTop: 20 }, reportButton: { alignItems: 'center', justifyContent: 'center', marginTop: 12, minHeight: 44, paddingHorizontal: 16 }, reportButtonText: { color: '#FFB5A3', fontWeight: '700' }, retry: { alignItems: 'center', borderColor: '#FF835F', borderRadius: 12, borderWidth: 1, justifyContent: 'center', marginTop: 12, minHeight: 44, paddingHorizontal: 16 }, retryText: { color: '#FF835F', fontWeight: '700' }, sectionTitle: { color: '#FFFFFF', fontSize: 18, fontWeight: '700', marginBottom: 12 },
+  avatar: { alignItems: 'center', backgroundColor: mobileColors.surfaceRaised, borderRadius: 40, height: 80, justifyContent: 'center', width: 80 },
+  avatarText: { color: mobileColors.ink, fontSize: 30, fontWeight: '700' }, back: { alignSelf: 'flex-start', justifyContent: 'center', minHeight: 44, minWidth: 72 }, backText: { color: mobileColors.ink, fontWeight: '700' }, bio: { color: mobileColors.inkSubtle, lineHeight: 22, textAlign: 'center' }, center: { alignItems: 'center', flex: 1, gap: 16, justifyContent: 'center', padding: 16 }, container: { backgroundColor: mobileColors.surface, flex: 1, paddingHorizontal: 16 }, content: { paddingBottom: 32 }, count: { color: mobileColors.ink, fontWeight: '700', marginTop: 16 }, error: { color: mobileColors.danger, textAlign: 'center' }, followButton: { alignItems: 'center', backgroundColor: mobileColors.primaryAction, borderRadius: 12, justifyContent: 'center', marginTop: 20, minHeight: 48, width: '100%' }, followButtonText: { color: mobileColors.primaryActionText, fontWeight: '700' }, follower: { color: mobileColors.ink, minHeight: 44, paddingVertical: 12 }, followerSection: { borderTopColor: '#333333', borderTopWidth: 1, marginTop: 32, paddingTop: 24 }, followingButton: { backgroundColor: '#191919', borderColor: mobileColors.borderStrong, borderWidth: 1 }, followingButtonText: { color: mobileColors.ink }, muted: { color: mobileColors.inkSubtle }, name: { color: mobileColors.ink, fontSize: 24, fontWeight: '700', marginTop: 16 }, notice: { color: '#BDEACB', textAlign: 'center' }, profileCard: { alignItems: 'center', marginTop: 20 }, reportButton: { alignItems: 'center', justifyContent: 'center', marginTop: 12, minHeight: 44, paddingHorizontal: 16 }, reportButtonText: { color: mobileColors.inkSubtle, fontWeight: '700' }, retry: { alignItems: 'center', borderColor: mobileColors.borderStrong, borderRadius: 12, borderWidth: 1, justifyContent: 'center', marginTop: 12, minHeight: 44, paddingHorizontal: 16 }, retryText: { color: mobileColors.ink, fontWeight: '700' }, sectionTitle: { color: mobileColors.ink, fontSize: 18, fontWeight: '700', marginBottom: 12 },
 })

@@ -49,4 +49,13 @@ describe('MobileNotificationsScreen', () => {
     fireEvent.press(screen.getByRole('button', { name: '위험' }))
     expect(onOpen).toHaveBeenCalledTimes(1)
   })
+  it('keeps the user on the list with a message when marking read fails', async () => {
+    const onOpen = jest.fn()
+    getNotifications.mockResolvedValue([{ id, isRead: false, message: '실패', targetPath: '/rooms/' + roomId }])
+    markRead.mockRejectedValueOnce(new Error('offline'))
+    renderScreen(onOpen)
+    fireEvent.press(await screen.findByRole('button', { name: '실패' }))
+    expect(await screen.findByText('알림을 읽음으로 바꾸지 못했어요. 다시 눌러 주세요.')).toBeVisible()
+    expect(onOpen).not.toHaveBeenCalled()
+  })
 })

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { legalDocumentVersion } from '@talkhugam/domain'
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { mobileColors } from '../../shared/ui/theme'
 
 type LegalDocument = {
   id: 'terms' | 'privacy'
@@ -132,45 +133,45 @@ export function LegalConsentScreen({ onSubmit }: LegalConsentScreenProps): React
 const styles = StyleSheet.create({
   checkbox: {
     alignItems: 'center',
-    borderColor: '#C9B8B1',
-    borderRadius: 10,
+    borderColor: mobileColors.borderStrong,
+    borderRadius: 8,
     borderWidth: 1,
     height: 24,
     justifyContent: 'center',
     width: 24,
   },
-  checkboxChecked: { backgroundColor: '#AD3D22', borderColor: '#AD3D22' },
-  checkmark: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', lineHeight: 20 },
-  container: { backgroundColor: '#FFF8F5', flex: 1, padding: 16 },
+  checkboxChecked: { backgroundColor: mobileColors.primaryAction, borderColor: mobileColors.ink },
+  checkmark: { color: mobileColors.primaryActionText, fontSize: 16, fontWeight: '700', lineHeight: 20 },
+  container: { backgroundColor: mobileColors.surface, flex: 1, padding: 16 },
   content: { flex: 1, paddingTop: 32 },
-  description: { color: '#645954', fontSize: 15, lineHeight: 22, marginTop: 12 },
+  description: { color: mobileColors.inkSubtle, fontSize: 15, lineHeight: 22, marginTop: 12 },
   documentCopy: { flex: 1, gap: 4 },
-  documentLink: { color: '#AD3D22', fontSize: 14, fontWeight: '700', lineHeight: 44 },
+  documentLink: { color: mobileColors.ink, fontSize: 14, fontWeight: '700', lineHeight: 44 },
   documentList: { gap: 12, marginTop: 32 },
   documentRow: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E8DAD4',
+    backgroundColor: mobileColors.surfaceRaised,
+    borderColor: mobileColors.border,
     borderRadius: 12,
     borderWidth: 1,
     flexDirection: 'row',
     minHeight: 64,
     paddingHorizontal: 12,
   },
-  documentTitle: { color: '#241C19', fontSize: 15, fontWeight: '700', lineHeight: 22 },
+  documentTitle: { color: mobileColors.ink, fontSize: 15, fontWeight: '700', lineHeight: 22 },
   documentToggle: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: 12, minHeight: 52 },
-  documentVersion: { color: '#756964', fontSize: 12, lineHeight: 18 },
-  eyebrow: { color: '#AD3D22', fontSize: 14, fontWeight: '700', lineHeight: 20 },
-  errorMessage: { color: '#B42318', fontSize: 14, lineHeight: 20, marginTop: 16 },
+  documentVersion: { color: mobileColors.inkSubtle, fontSize: 12, lineHeight: 18 },
+  eyebrow: { color: mobileColors.accentText, fontSize: 14, fontWeight: '700', lineHeight: 20 },
+  errorMessage: { color: mobileColors.danger, fontSize: 14, lineHeight: 20, marginTop: 16 },
   submitButton: {
     alignItems: 'center',
-    backgroundColor: '#AD3D22',
+    backgroundColor: mobileColors.primaryAction,
     borderRadius: 12,
     justifyContent: 'center',
     minHeight: 52,
   },
-  submitButtonDisabled: { backgroundColor: '#DEC9C1' },
-  submitButtonPressed: { backgroundColor: '#8E2F18' },
-  submitButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', lineHeight: 24 },
-  title: { color: '#241C19', fontSize: 28, fontWeight: '700', lineHeight: 38, marginTop: 8 },
+  submitButtonDisabled: { backgroundColor: mobileColors.borderStrong },
+  submitButtonPressed: { backgroundColor: mobileColors.primaryActionPressed },
+  submitButtonText: { color: mobileColors.primaryActionText, fontSize: 16, fontWeight: '700', lineHeight: 24 },
+  title: { color: mobileColors.ink, fontSize: 28, fontWeight: '700', lineHeight: 38, marginTop: 8 },
 })

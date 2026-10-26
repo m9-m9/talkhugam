@@ -10,14 +10,18 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  Share,
   View,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { createMobileRoomWithInvite } from '../../entities/reading-room'
 import { createMobileSupabaseClient } from '../../shared/api/mobileSupabaseClient'
+import { MobileBackButton } from '../../shared/ui/MobileBackButton'
+import { mobileButtonStyles, mobileColors } from '../../shared/ui/theme'
 
 type CreateRoomScreenProps = {
+  onBack?: () => void
   onFinished(): void
 }
 
@@ -28,7 +32,7 @@ type CreatedRoomInvite = {
 const initialForm: CreateRoomForm = { description: '', name: '' }
 
 /** 비공개 책방 생성 입력을 검증하고 생성 직후 발급된 초대 코드만 한 번 표시한다. */
-export function CreateRoomScreen({ onFinished }: CreateRoomScreenProps): React.JSX.Element {
+export function CreateRoomScreen({ onBack, onFinished }: CreateRoomScreenProps): React.JSX.Element {
   const queryClient = useQueryClient()
   const [form, setForm] = useState<CreateRoomForm>(initialForm)
   const [createdInvite, setCreatedInvite] = useState<CreatedRoomInvite | null>(null)
@@ -78,6 +82,7 @@ export function CreateRoomScreen({ onFinished }: CreateRoomScreenProps): React.J
 
   return (
     <SafeAreaView style={styles.container}>
+      {onBack ? <MobileBackButton onPress={onBack} /> : null}
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardContainer}
@@ -87,7 +92,6 @@ export function CreateRoomScreen({ onFinished }: CreateRoomScreenProps): React.J
           keyboardShouldPersistTaps="handled"
         >
           <View>
-            <Text style={styles.eyebrow}>새 비공개 책방</Text>
             <Text style={styles.title}>함께 읽을 공간을{`\n`}만들어 볼까요?</Text>
             <Text style={styles.description}>초대받은 사람만 참여할 수 있어요.</Text>
             <View style={styles.fieldGroup}>
@@ -98,7 +102,7 @@ export function CreateRoomScreen({ onFinished }: CreateRoomScreenProps): React.J
                 maxLength={40}
                 onChangeText={handleChangeName}
                 placeholder="예: 금요일 아침 책방"
-                placeholderTextColor="#8D8D8D"
+                placeholderTextColor={mobileColors.placeholder}
                 style={styles.textInput}
                 value={form.name}
               />
@@ -112,7 +116,7 @@ export function CreateRoomScreen({ onFinished }: CreateRoomScreenProps): React.J
                 multiline
                 onChangeText={handleChangeDescription}
                 placeholder="예: 이번 달 함께 읽는 책들"
-                placeholderTextColor="#8D8D8D"
+                placeholderTextColor={mobileColors.placeholder}
                 style={[styles.textInput, styles.descriptionInput]}
                 textAlignVertical="top"
                 value={form.description}
@@ -147,6 +151,15 @@ export function CreateRoomScreen({ onFinished }: CreateRoomScreenProps): React.J
   )
 }
 
+/** 한 번만 보이는 초대 코드를 기기 공유 시트로 보낸다. 사용자가 닫아도 오류로 보지 않는다. */
+async function handleShareInvite(code: string): Promise<void> {
+  try {
+    await Share.share({ message: `Talk후감 책방 초대 코드: ${code}` })
+  } catch {
+    // 공유 시트를 열 수 없으면 화면의 선택 가능한 코드로 대신 복사할 수 있다.
+  }
+}
+
 type CreatedRoomInviteScreenProps = {
   invite: CreatedRoomInvite
   onFinished(): void
@@ -160,13 +173,28 @@ function CreatedRoomInviteScreen({
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.completedContent}>
-        <Text style={styles.eyebrow}>책방 만들기 완료</Text>
         <Text style={styles.title}>책방이 만들어졌어요!</Text>
         <Text style={styles.description}>초대 코드를 친구에게 보내고 함께 읽어 보세요.</Text>
         <View style={styles.inviteCard}>
           <Text style={styles.inviteLabel}>초대 코드</Text>
-          <Text style={styles.inviteCode}>{invite.code}</Text>
+          <Text selectable style={styles.inviteCode}>
+            {invite.code}
+          </Text>
           <Text style={styles.inviteNotice}>지금 한 번만 확인할 수 있는 초대 코드예요.</Text>
+          <Pressable
+            accessibilityLabel="초대 코드 공유하기"
+            accessibilityRole="button"
+            onPress={() => void handleShareInvite(invite.code)}
+            style={({ pressed }) => [
+              styles.shareAction,
+              mobileButtonStyles.secondary,
+              pressed && mobileButtonStyles.secondaryPressed,
+            ]}
+          >
+            <Text style={[styles.shareActionText, mobileButtonStyles.secondaryText]}>
+              초대 코드 공유하기
+            </Text>
+          </Pressable>
         </View>
       </View>
       <Pressable
@@ -183,55 +211,63 @@ function CreatedRoomInviteScreen({
 
 const styles = StyleSheet.create({
   completedContent: { flex: 1, justifyContent: 'center' },
-  container: { backgroundColor: '#000000', flex: 1, padding: 16 },
-  description: { color: '#C7C7C7', fontSize: 15, lineHeight: 22, marginTop: 12 },
+  container: { backgroundColor: mobileColors.surface, flex: 1, padding: 16 },
+  description: { color: mobileColors.inkSubtle, fontSize: 15, lineHeight: 22, marginTop: 12 },
   descriptionInput: { minHeight: 112, paddingTop: 12 },
-  errorText: { color: '#FF8A8A', fontSize: 14, lineHeight: 20, marginTop: 16 },
-  eyebrow: { color: '#FF835F', fontSize: 14, fontWeight: '700', lineHeight: 20 },
+  errorText: { color: mobileColors.danger, fontSize: 14, lineHeight: 20, marginTop: 16 },
   fieldGroup: { gap: 8, marginTop: 24 },
-  fieldLabel: { color: '#FFFFFF', fontSize: 15, fontWeight: '700', lineHeight: 22 },
+  fieldLabel: { color: mobileColors.ink, fontSize: 15, fontWeight: '700', lineHeight: 22 },
   inviteCard: {
-    backgroundColor: '#101010',
-    borderColor: '#393939',
+    backgroundColor: mobileColors.surfaceRaised,
+    borderColor: mobileColors.borderStrong,
     borderRadius: 12,
     borderWidth: 1,
     marginTop: 32,
     padding: 24,
   },
   inviteCode: {
-    color: '#FFFFFF',
+    color: mobileColors.ink,
     fontSize: 32,
     fontWeight: '700',
     letterSpacing: 4,
     lineHeight: 40,
     marginTop: 8,
   },
-  inviteLabel: { color: '#C7C7C7', fontSize: 13, lineHeight: 20 },
-  inviteNotice: { color: '#FFB5A3', fontSize: 13, lineHeight: 20, marginTop: 16 },
+  inviteLabel: { color: mobileColors.inkSubtle, fontSize: 13, lineHeight: 20 },
+  inviteNotice: { color: mobileColors.inkSubtle, fontSize: 13, lineHeight: 20, marginTop: 16 },
   keyboardContainer: { flex: 1 },
   primaryAction: {
     alignItems: 'center',
-    backgroundColor: '#FF835F',
+    backgroundColor: mobileColors.primaryAction,
     borderRadius: 12,
     flexDirection: 'row',
     gap: 8,
     justifyContent: 'center',
     minHeight: 52,
   },
-  primaryActionDisabled: { backgroundColor: '#6F4B41' },
-  primaryActionPressed: { backgroundColor: '#E46845' },
-  primaryActionText: { color: '#000000', fontSize: 16, fontWeight: '700', lineHeight: 24 },
+  primaryActionDisabled: { backgroundColor: mobileColors.borderStrong },
+  primaryActionPressed: { backgroundColor: mobileColors.primaryActionPressed },
+  primaryActionText: { color: mobileColors.primaryActionText, fontSize: 16, fontWeight: '700', lineHeight: 24 },
   scrollContent: { flexGrow: 1, justifyContent: 'space-between', paddingVertical: 24 },
   textInput: {
-    backgroundColor: '#101010',
-    borderColor: '#393939',
+    backgroundColor: mobileColors.surfaceRaised,
+    borderColor: mobileColors.borderStrong,
     borderRadius: 12,
     borderWidth: 1,
-    color: '#FFFFFF',
+    color: mobileColors.ink,
     fontSize: 16,
     lineHeight: 24,
     minHeight: 52,
     paddingHorizontal: 12,
   },
-  title: { color: '#FFFFFF', fontSize: 28, fontWeight: '700', lineHeight: 38, marginTop: 8 },
+  title: { color: mobileColors.ink, fontSize: 28, fontWeight: '700', lineHeight: 38, marginTop: 8 },
+  shareAction: {
+    alignItems: 'center',
+    borderRadius: 8,
+    justifyContent: 'center',
+    marginTop: 16,
+    minHeight: 44,
+    paddingHorizontal: 16,
+  },
+  shareActionText: { fontSize: 15, fontWeight: '600', lineHeight: 22 },
 })

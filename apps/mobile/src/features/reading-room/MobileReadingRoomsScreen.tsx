@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { getMobileReadingRooms } from '../../entities/reading-room'
 import { useMobileSessionProfileId } from '../../shared/api/MobileAppProviders'
 import { createMobileSupabaseClient } from '../../shared/api/mobileSupabaseClient'
+import { mobileColors } from '../../shared/ui/theme'
 
 type MobileReadingRoomsScreenProps = {
   onCreateRoom(): void
@@ -54,7 +55,6 @@ export function MobileReadingRoomsScreen({
               <Text style={styles.profileButtonText}>내 정보</Text>
             </Pressable>
           ) : null}
-          <Text style={styles.eyebrow}>내 책방</Text>
           <Text style={styles.title}>함께 읽는 이야기를{`\n`}이어 가요</Text>
           <Text style={styles.description}>초대받은 사람만 함께할 수 있는 비공개 책방이에요.</Text>
         </View>
@@ -112,7 +112,7 @@ function RoomsLoadingState(): React.JSX.Element {
       accessibilityRole="progressbar"
       style={styles.centeredState}
     >
-      <ActivityIndicator color="#FF835F" />
+      <ActivityIndicator color={mobileColors.accent} />
       <Text style={styles.stateText}>책방을 준비하고 있어요.</Text>
     </View>
   )
@@ -207,30 +207,29 @@ function SecondaryAction({ label, onPress }: ActionProps): React.JSX.Element {
 const styles = StyleSheet.create({
   actions: { gap: 12, marginTop: 32 },
   centeredState: { alignItems: 'center', gap: 12, justifyContent: 'center', minHeight: 224 },
-  container: { backgroundColor: '#000000', flex: 1, paddingHorizontal: 16 },
-  description: { color: '#C7C7C7', fontSize: 15, lineHeight: 22, marginTop: 12 },
+  container: { backgroundColor: mobileColors.surface, flex: 1, paddingHorizontal: 16 },
+  description: { color: mobileColors.inkSubtle, fontSize: 15, lineHeight: 22, marginTop: 12 },
   emptyTitle: {
-    color: '#FFFFFF',
+    color: mobileColors.ink,
     fontSize: 18,
     fontWeight: '700',
     lineHeight: 26,
     textAlign: 'center',
   },
-  errorText: { color: '#FF8A8A', fontSize: 15, lineHeight: 22, textAlign: 'center' },
-  eyebrow: { color: '#FF835F', fontSize: 14, fontWeight: '700', lineHeight: 20 },
+  errorText: { color: mobileColors.danger, fontSize: 15, lineHeight: 22, textAlign: 'center' },
   header: { marginTop: 40 },
   primaryAction: {
     alignItems: 'center',
-    backgroundColor: '#FF835F',
+    backgroundColor: mobileColors.primaryAction,
     borderRadius: 12,
     justifyContent: 'center',
     minHeight: 52,
   },
-  primaryActionPressed: { backgroundColor: '#E46845' },
-  primaryActionText: { color: '#000000', fontSize: 16, fontWeight: '700', lineHeight: 24 },
+  primaryActionPressed: { backgroundColor: mobileColors.primaryActionPressed },
+  primaryActionText: { color: mobileColors.primaryActionText, fontSize: 16, fontWeight: '700', lineHeight: 24 },
   profileButton: {
     alignSelf: 'flex-end',
-    borderColor: '#393939',
+    borderColor: mobileColors.borderStrong,
     borderRadius: 12,
     borderWidth: 1,
     justifyContent: 'center',
@@ -238,32 +237,32 @@ const styles = StyleSheet.create({
     minHeight: 44,
     paddingHorizontal: 12,
   },
-  profileButtonPressed: { backgroundColor: '#1B1B1B', borderColor: '#FF835F' },
-  profileButtonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700', lineHeight: 20 },
+  profileButtonPressed: { backgroundColor: mobileColors.surfacePressed, borderColor: mobileColors.inkSubtle },
+  profileButtonText: { color: mobileColors.ink, fontSize: 14, fontWeight: '700', lineHeight: 20 },
   roomCard: {
-    backgroundColor: '#101010',
-    borderColor: '#393939',
+    backgroundColor: mobileColors.surfaceRaised,
+    borderColor: mobileColors.borderStrong,
     borderRadius: 12,
     borderWidth: 1,
     gap: 8,
     padding: 16,
   },
-  roomCardPressed: { backgroundColor: '#1B1B1B', borderColor: '#FF835F' },
+  roomCardPressed: { backgroundColor: mobileColors.surfacePressed, borderColor: mobileColors.inkSubtle },
   roomList: { gap: 12, marginTop: 32 },
-  roomMembers: { color: '#FFB5A3', fontSize: 14, lineHeight: 20 },
-  roomName: { color: '#FFFFFF', fontSize: 18, fontWeight: '700', lineHeight: 26 },
-  roomPreview: { color: '#C7C7C7', fontSize: 14, lineHeight: 20 },
+  roomMembers: { color: mobileColors.inkSubtle, fontSize: 14, lineHeight: 20 },
+  roomName: { color: mobileColors.ink, fontSize: 18, fontWeight: '700', lineHeight: 26 },
+  roomPreview: { color: mobileColors.inkSubtle, fontSize: 14, lineHeight: 20 },
   scrollContent: { flexGrow: 1, paddingBottom: 32 },
   secondaryAction: {
     alignItems: 'center',
-    borderColor: '#FF835F',
+    borderColor: mobileColors.borderStrong,
     borderRadius: 12,
     borderWidth: 1,
     justifyContent: 'center',
     minHeight: 48,
   },
-  secondaryActionPressed: { backgroundColor: '#25130E' },
-  secondaryActionText: { color: '#FF835F', fontSize: 16, fontWeight: '700', lineHeight: 24 },
-  stateText: { color: '#C7C7C7', fontSize: 15, lineHeight: 22, maxWidth: 260, textAlign: 'center' },
-  title: { color: '#FFFFFF', fontSize: 28, fontWeight: '700', lineHeight: 38, marginTop: 8 },
+  secondaryActionPressed: { backgroundColor: mobileColors.surfacePressed },
+  secondaryActionText: { color: mobileColors.ink, fontSize: 16, fontWeight: '700', lineHeight: 24 },
+  stateText: { color: mobileColors.inkSubtle, fontSize: 15, lineHeight: 22, maxWidth: 260, textAlign: 'center' },
+  title: { color: mobileColors.ink, fontSize: 28, fontWeight: '700', lineHeight: 38, marginTop: 8 },
 })

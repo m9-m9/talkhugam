@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { getMobileBookChats, getMobileReadingRoomDetail } from '../../entities/reading-room'
 import { createMobileSupabaseClient } from '../../shared/api/mobileSupabaseClient'
+import { mobileColors } from '../../shared/ui/theme'
 
 type MobileRoomDetailScreenProps = {
   onAddBook?(): void
@@ -68,7 +69,6 @@ export function MobileRoomDetailScreen({
           <View style={styles.headerSpacer} />
         </View>
         <View style={styles.introduction}>
-          <Text style={styles.eyebrow}>책방</Text>
           <Text style={styles.roomName}>{roomQuery.data.name}</Text>
           {roomQuery.data.description ? (
             <Text style={styles.description}>{roomQuery.data.description}</Text>
@@ -125,7 +125,7 @@ function BookChatsContent({
 function BookChatsLoadingState(): React.JSX.Element {
   return (
     <View accessibilityLabel="책을 불러오고 있어요." accessibilityRole="progressbar" style={styles.state}>
-      <ActivityIndicator color="#FF835F" />
+      <ActivityIndicator color={mobileColors.accent} />
       <Text style={styles.stateText}>책을 불러오고 있어요.</Text>
     </View>
   )
@@ -195,7 +195,7 @@ function RoomLoadingState(): React.JSX.Element {
   return (
     <SafeAreaView style={styles.container}>
       <View accessibilityLabel="책방을 불러오고 있어요." accessibilityRole="progressbar" style={styles.fullState}>
-        <ActivityIndicator color="#FF835F" />
+        <ActivityIndicator color={mobileColors.accent} />
         <Text style={styles.stateText}>책방을 불러오고 있어요.</Text>
       </View>
     </SafeAreaView>
@@ -252,36 +252,35 @@ function SecondaryAction({ label, onPress }: ActionProps): React.JSX.Element {
 
 const styles = StyleSheet.create({
   backButton: { alignItems: 'center', justifyContent: 'center', minHeight: 44, minWidth: 44 },
-  backButtonText: { color: '#FFFFFF', fontSize: 32, lineHeight: 36 },
-  bookAuthor: { color: '#FFB5A3', fontSize: 14, lineHeight: 20, marginTop: 4 },
-  bookCard: { alignItems: 'center', backgroundColor: '#101010', borderColor: '#393939', borderRadius: 12, borderWidth: 1, flexDirection: 'row', minHeight: 92, padding: 12 },
-  bookCardPressed: { backgroundColor: '#1B1B1B', borderColor: '#FF835F' },
+  backButtonText: { color: mobileColors.ink, fontSize: 32, lineHeight: 36 },
+  bookAuthor: { color: mobileColors.inkSubtle, fontSize: 14, lineHeight: 20, marginTop: 4 },
+  bookCard: { alignItems: 'center', backgroundColor: mobileColors.surfaceRaised, borderColor: mobileColors.borderStrong, borderRadius: 12, borderWidth: 1, flexDirection: 'row', minHeight: 92, padding: 12 },
+  bookCardPressed: { backgroundColor: mobileColors.surfacePressed, borderColor: mobileColors.inkSubtle },
   bookCopy: { flex: 1, marginLeft: 12 },
   bookList: { gap: 12, marginTop: 16 },
-  bookPlaceholder: { alignItems: 'center', backgroundColor: '#2D1712', borderRadius: 8, height: 64, justifyContent: 'center', width: 48 },
-  bookPlaceholderText: { color: '#FFB5A3', fontSize: 12, fontWeight: '700', lineHeight: 18 },
-  bookTitle: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', lineHeight: 24 },
+  bookPlaceholder: { alignItems: 'center', backgroundColor: mobileColors.surfaceRaised, borderRadius: 8, height: 64, justifyContent: 'center', width: 48 },
+  bookPlaceholderText: { color: mobileColors.inkSubtle, fontSize: 12, fontWeight: '700', lineHeight: 18 },
+  bookTitle: { color: mobileColors.ink, fontSize: 16, fontWeight: '700', lineHeight: 24 },
   booksSection: { marginTop: 40 },
   booksSectionHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
-  container: { backgroundColor: '#000000', flex: 1, paddingHorizontal: 16 },
-  description: { color: '#C7C7C7', fontSize: 15, lineHeight: 22, marginTop: 12 },
-  emptyState: { alignItems: 'center', backgroundColor: '#101010', borderColor: '#393939', borderRadius: 12, borderWidth: 1, gap: 8, marginTop: 16, padding: 24 },
-  emptyTitle: { color: '#FFFFFF', fontSize: 17, fontWeight: '700', lineHeight: 24, textAlign: 'center' },
-  errorText: { color: '#FF8A8A', fontSize: 15, lineHeight: 22, textAlign: 'center' },
-  eyebrow: { color: '#FF835F', fontSize: 14, fontWeight: '700', lineHeight: 20 },
+  container: { backgroundColor: mobileColors.surface, flex: 1, paddingHorizontal: 16 },
+  description: { color: mobileColors.inkSubtle, fontSize: 15, lineHeight: 22, marginTop: 12 },
+  emptyState: { alignItems: 'center', backgroundColor: mobileColors.surfaceRaised, borderColor: mobileColors.borderStrong, borderRadius: 12, borderWidth: 1, gap: 8, marginTop: 16, padding: 24 },
+  emptyTitle: { color: mobileColors.ink, fontSize: 17, fontWeight: '700', lineHeight: 24, textAlign: 'center' },
+  errorText: { color: mobileColors.danger, fontSize: 15, lineHeight: 22, textAlign: 'center' },
   fullState: { alignItems: 'center', flex: 1, gap: 12, justifyContent: 'center' },
   headerRow: { alignItems: 'center', flexDirection: 'row', marginTop: 8 },
   headerSpacer: { minWidth: 44 },
-  headerTitle: { color: '#FFFFFF', flex: 1, fontSize: 16, fontWeight: '700', lineHeight: 24, textAlign: 'center' },
+  headerTitle: { color: mobileColors.ink, flex: 1, fontSize: 16, fontWeight: '700', lineHeight: 24, textAlign: 'center' },
   introduction: { marginTop: 32 },
-  primaryAction: { alignItems: 'center', backgroundColor: '#FF835F', borderRadius: 12, justifyContent: 'center', minHeight: 48, minWidth: 160, paddingHorizontal: 16 },
-  primaryActionText: { color: '#000000', fontSize: 16, fontWeight: '700', lineHeight: 24 },
-  roomName: { color: '#FFFFFF', fontSize: 28, fontWeight: '700', lineHeight: 38, marginTop: 8 },
+  primaryAction: { alignItems: 'center', backgroundColor: mobileColors.primaryAction, borderRadius: 12, justifyContent: 'center', minHeight: 48, minWidth: 160, paddingHorizontal: 16 },
+  primaryActionText: { color: mobileColors.primaryActionText, fontSize: 16, fontWeight: '700', lineHeight: 24 },
+  roomName: { color: mobileColors.ink, fontSize: 28, fontWeight: '700', lineHeight: 38, marginTop: 8 },
   scrollContent: { flexGrow: 1, paddingBottom: 32 },
-  secondaryAction: { alignItems: 'center', borderColor: '#FF835F', borderRadius: 12, borderWidth: 1, justifyContent: 'center', minHeight: 44, minWidth: 120, paddingHorizontal: 12 },
-  secondaryActionText: { color: '#FF835F', fontSize: 14, fontWeight: '700', lineHeight: 20 },
-  sectionTitle: { color: '#FFFFFF', fontSize: 18, fontWeight: '700', lineHeight: 26 },
+  secondaryAction: { alignItems: 'center', borderColor: mobileColors.borderStrong, borderRadius: 12, borderWidth: 1, justifyContent: 'center', minHeight: 44, minWidth: 120, paddingHorizontal: 12 },
+  secondaryActionText: { color: mobileColors.ink, fontSize: 14, fontWeight: '700', lineHeight: 20 },
+  sectionTitle: { color: mobileColors.ink, fontSize: 18, fontWeight: '700', lineHeight: 26 },
   state: { alignItems: 'center', gap: 12, minHeight: 180, justifyContent: 'center' },
-  stateText: { color: '#C7C7C7', fontSize: 15, lineHeight: 22, maxWidth: 280, textAlign: 'center' },
-  unavailableTitle: { color: '#FFFFFF', fontSize: 20, fontWeight: '700', lineHeight: 28, textAlign: 'center' },
+  stateText: { color: mobileColors.inkSubtle, fontSize: 15, lineHeight: 22, maxWidth: 280, textAlign: 'center' },
+  unavailableTitle: { color: mobileColors.ink, fontSize: 20, fontWeight: '700', lineHeight: 28, textAlign: 'center' },
 })

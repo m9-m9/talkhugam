@@ -24,5 +24,5 @@ export default function JoinRoomRoute(): React.JSX.Element {
 
   if (!isAllowed) return <MobileRouteLoadingScreen label="초대 정보를 확인하고 있어요." />
 
-  return <JoinRoomScreen inviteToken={inviteToken} onJoined={handleJoined} />
+  return <JoinRoomScreen inviteToken={inviteToken} onBack={() => router.back()} onJoined={handleJoined} />
 }

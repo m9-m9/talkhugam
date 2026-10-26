@@ -1,5 +1,6 @@
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { mobileColors } from './theme'
 
 type MobileRouteLoadingScreenProps = {
   label: string
@@ -12,7 +13,7 @@ export function MobileRouteLoadingScreen({
   return (
     <SafeAreaView style={styles.container}>
       <View accessibilityLabel={label} accessibilityRole="progressbar" style={styles.content}>
-        <ActivityIndicator color="#AD3D22" />
+        <ActivityIndicator color={mobileColors.accent} />
         <Text style={styles.label}>{label}</Text>
       </View>
     </SafeAreaView>
@@ -20,7 +21,7 @@ export function MobileRouteLoadingScreen({
 }
 
 const styles = StyleSheet.create({
-  container: { backgroundColor: '#FFF8F5', flex: 1, padding: 16 },
+  container: { backgroundColor: mobileColors.surface, flex: 1, padding: 16 },
   content: { alignItems: 'center', flex: 1, gap: 12, justifyContent: 'center' },
-  label: { color: '#645954', fontSize: 15, lineHeight: 22 },
+  label: { color: mobileColors.inkSubtle, fontSize: 15, lineHeight: 22 },
 })

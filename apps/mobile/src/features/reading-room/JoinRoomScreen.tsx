@@ -16,14 +16,17 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { joinMobileRoomByCode } from '../../entities/reading-room'
 import { createMobileSupabaseClient } from '../../shared/api/mobileSupabaseClient'
+import { MobileBackButton } from '../../shared/ui/MobileBackButton'
+import { mobileColors } from '../../shared/ui/theme'
 
 type JoinRoomScreenProps = {
   inviteToken: string | null
+  onBack?: () => void
   onJoined(): void
 }
 
 /** 초대 코드 또는 이미 검증된 링크 토큰으로 비공개 책방 참여를 요청한다. */
-export function JoinRoomScreen({ inviteToken, onJoined }: JoinRoomScreenProps): React.JSX.Element {
+export function JoinRoomScreen({ inviteToken, onBack, onJoined }: JoinRoomScreenProps): React.JSX.Element {
   const queryClient = useQueryClient()
   const [code, setCode] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -65,6 +68,7 @@ export function JoinRoomScreen({ inviteToken, onJoined }: JoinRoomScreenProps): 
 
   return (
     <SafeAreaView style={styles.container}>
+      {onBack ? <MobileBackButton onPress={onBack} /> : null}
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardContainer}
@@ -74,7 +78,6 @@ export function JoinRoomScreen({ inviteToken, onJoined }: JoinRoomScreenProps): 
           keyboardShouldPersistTaps="handled"
         >
           <View>
-            <Text style={styles.eyebrow}>비공개 책방 초대</Text>
             <Text style={styles.title}>책방 초대장을{`\n`}받았어요</Text>
             <Text style={styles.description}>
               {hasInviteToken
@@ -92,7 +95,7 @@ export function JoinRoomScreen({ inviteToken, onJoined }: JoinRoomScreenProps): 
                   maxLength={6}
                   onChangeText={handleChangeCode}
                   placeholder="ABC123"
-                  placeholderTextColor="#8D8D8D"
+                  placeholderTextColor={mobileColors.placeholder}
                   style={styles.textInput}
                   value={code}
                 />
@@ -129,33 +132,32 @@ export function JoinRoomScreen({ inviteToken, onJoined }: JoinRoomScreenProps): 
 }
 
 const styles = StyleSheet.create({
-  container: { backgroundColor: '#000000', flex: 1, padding: 16 },
-  description: { color: '#C7C7C7', fontSize: 15, lineHeight: 22, marginTop: 12 },
-  errorText: { color: '#FF8A8A', fontSize: 14, lineHeight: 20, marginTop: 16 },
-  eyebrow: { color: '#FF835F', fontSize: 14, fontWeight: '700', lineHeight: 20 },
+  container: { backgroundColor: mobileColors.surface, flex: 1, padding: 16 },
+  description: { color: mobileColors.inkSubtle, fontSize: 15, lineHeight: 22, marginTop: 12 },
+  errorText: { color: mobileColors.danger, fontSize: 14, lineHeight: 20, marginTop: 16 },
   fieldGroup: { gap: 8, marginTop: 32 },
-  fieldLabel: { color: '#FFFFFF', fontSize: 15, fontWeight: '700', lineHeight: 22 },
-  helpText: { color: '#C7C7C7', fontSize: 13, lineHeight: 20 },
+  fieldLabel: { color: mobileColors.ink, fontSize: 15, fontWeight: '700', lineHeight: 22 },
+  helpText: { color: mobileColors.inkSubtle, fontSize: 13, lineHeight: 20 },
   keyboardContainer: { flex: 1 },
   primaryAction: {
     alignItems: 'center',
-    backgroundColor: '#FF835F',
+    backgroundColor: mobileColors.primaryAction,
     borderRadius: 12,
     flexDirection: 'row',
     gap: 8,
     justifyContent: 'center',
     minHeight: 52,
   },
-  primaryActionDisabled: { backgroundColor: '#6F4B41' },
-  primaryActionPressed: { backgroundColor: '#E46845' },
-  primaryActionText: { color: '#000000', fontSize: 16, fontWeight: '700', lineHeight: 24 },
+  primaryActionDisabled: { backgroundColor: mobileColors.borderStrong },
+  primaryActionPressed: { backgroundColor: mobileColors.primaryActionPressed },
+  primaryActionText: { color: mobileColors.primaryActionText, fontSize: 16, fontWeight: '700', lineHeight: 24 },
   scrollContent: { flexGrow: 1, justifyContent: 'space-between', paddingVertical: 24 },
   textInput: {
-    backgroundColor: '#101010',
-    borderColor: '#393939',
+    backgroundColor: mobileColors.surfaceRaised,
+    borderColor: mobileColors.borderStrong,
     borderRadius: 12,
     borderWidth: 1,
-    color: '#FFFFFF',
+    color: mobileColors.ink,
     fontSize: 20,
     fontWeight: '700',
     letterSpacing: 3,
@@ -165,5 +167,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     textTransform: 'uppercase',
   },
-  title: { color: '#FFFFFF', fontSize: 28, fontWeight: '700', lineHeight: 38, marginTop: 8 },
+  title: { color: mobileColors.ink, fontSize: 28, fontWeight: '700', lineHeight: 38, marginTop: 8 },
 })

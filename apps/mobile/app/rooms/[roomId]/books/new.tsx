@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { useMobileProtectedRoute } from '../../../../src/features/auth/useMobileProtectedRoute'
 import { MobileBookDiscoveryScreen } from '../../../../src/features/reading-room/MobileBookDiscoveryScreen'
 import { MobileRouteLoadingScreen } from '../../../../src/shared/ui/MobileRouteLoadingScreen'
+import { mobileColors } from '../../../../src/shared/ui/theme'
 
 /** 동적 경로 값을 UUID로 검증해 잘못된 책방에는 검색·생성 요청을 보내지 않는다. */
 function parseRoomId(value: string | string[] | undefined): string | null {
@@ -57,10 +58,10 @@ function UnavailableRoomRoute({ onBack }: { onBack(): void }): React.JSX.Element
 }
 
 const styles = StyleSheet.create({
-  button: { alignItems: 'center', backgroundColor: '#FF835F', borderRadius: 12, justifyContent: 'center', marginTop: 24, minHeight: 48, paddingHorizontal: 16 },
-  buttonText: { color: '#000000', fontSize: 16, fontWeight: '700', lineHeight: 24 },
-  container: { backgroundColor: '#000000', flex: 1, paddingHorizontal: 16 },
+  button: { alignItems: 'center', backgroundColor: mobileColors.primaryAction, borderRadius: 12, justifyContent: 'center', marginTop: 24, minHeight: 48, paddingHorizontal: 16 },
+  buttonText: { color: mobileColors.primaryActionText, fontSize: 16, fontWeight: '700', lineHeight: 24 },
+  container: { backgroundColor: mobileColors.surface, flex: 1, paddingHorizontal: 16 },
   content: { alignItems: 'center', flex: 1, justifyContent: 'center' },
-  description: { color: '#C7C7C7', fontSize: 15, lineHeight: 22, marginTop: 12, maxWidth: 280, textAlign: 'center' },
-  title: { color: '#FFFFFF', fontSize: 22, fontWeight: '700', lineHeight: 30, textAlign: 'center' },
+  description: { color: mobileColors.inkSubtle, fontSize: 15, lineHeight: 22, marginTop: 12, maxWidth: 280, textAlign: 'center' },
+  title: { color: mobileColors.ink, fontSize: 22, fontWeight: '700', lineHeight: 30, textAlign: 'center' },
 })
