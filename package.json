@@ -26,6 +26,7 @@
     "backend:functions:serve": "supabase functions serve --env-file supabase/functions/.env.local",
     "backend:types": "mkdir -p supabase/types && supabase gen types typescript --local > supabase/types/database.types.ts",
     "dev:web": "pnpm --filter @talkhugam/web dev",
+    "dev:mobile": "pnpm --filter @talkhugam/mobile dev",
     "docs:functions:web": "pnpm --filter @talkhugam/web docs:functions",
     "docs:functions:write:web": "pnpm --filter @talkhugam/web docs:functions:write",
     "build:web": "pnpm --filter @talkhugam/web build",
@@ -33,6 +34,8 @@
     "format:web": "pnpm --filter @talkhugam/web format",
     "typecheck:web": "pnpm --filter @talkhugam/web typecheck",
     "test:web": "pnpm --filter @talkhugam/web test",
+    "test:mobile": "pnpm --filter @talkhugam/mobile test",
+    "typecheck:mobile": "pnpm --filter @talkhugam/mobile typecheck",
     "test:e2e:web": "pnpm --filter @talkhugam/web test:e2e"
   },
   "devDependencies": {

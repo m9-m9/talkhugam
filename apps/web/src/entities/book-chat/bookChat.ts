@@ -1,130 +1,36 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import {
+  managedBookChatRowSchema,
+  mapManagedBookChat,
+  parseArchivedBookChats,
+  parseBookChats,
+  parseBookSearchResponse,
+  parseReadingBooks,
+  readingRoomDetailSchema,
+  type BookChat,
+  type BookSearchItem,
+  type ManagedBookChat,
+  type ReadingRoomDetail,
+  type ArchivedBookChat,
+  type ReadingBook,
+} from '@talkhugam/domain'
 import { z } from 'zod'
 
-const bookChatRowSchema = z.object({
-  books: z
-    .object({
-      authors: z.array(z.string()),
-      thumbnail_url: z.string().nullable(),
-      title: z.string(),
-    })
-    .nullable(),
-  id: z.string().uuid(),
-  name: z.string(),
-})
-
-const bookSearchItemSchema = z.object({
-  authors: z.array(z.string()),
-  externalUrl: z.string().url().nullable(),
-  isbn10: z.string().nullable(),
-  isbn13: z.string().nullable(),
-  publishedAt: z.string().nullable(),
-  publisher: z.string().nullable(),
-  source: z.enum(['kakao', 'aladin']),
-  thumbnailUrl: z.string().url().nullable(),
-  title: z.string(),
-})
-
-const bookSearchResponseSchema = z.object({
-  data: z.object({ items: z.array(bookSearchItemSchema) }),
-  ok: z.literal(true),
-  requestId: z.string(),
-})
+export {
+  bookChatKeys,
+  parseArchivedBookChats,
+  parseBookChats,
+  parseBookSearchResponse,
+  parseReadingBooks,
+  type ArchivedBookChat,
+  type BookChat,
+  type BookSearchItem,
+  type ManagedBookChat,
+  type ReadingBook,
+  type ReadingRoomDetail,
+} from '@talkhugam/domain'
 
 const bookChatResultSchema = z.array(z.object({ book_chat_id: z.string().uuid() })).length(1)
-const roomSchema = z.object({
-  description: z.string().nullable(),
-  id: z.string().uuid(),
-  name: z.string(),
-})
-
-const managedBookChatSchema = z.object({
-  books: z.object({ thumbnail_url: z.string().nullable(), title: z.string() }).nullable(),
-  id: z.string().uuid(),
-  name: z.string().min(1),
-  room_id: z.string().uuid(),
-  status: z.enum(['reading', 'completed', 'archived', 'deleted']),
-})
-
-const archivedBookChatRowSchema = z.object({
-  archived_at: z.string().datetime({ offset: true }),
-  books: z
-    .object({
-      authors: z.array(z.string()),
-      thumbnail_url: z.string().nullable(),
-      title: z.string(),
-    })
-    .nullable(),
-  id: z.string().uuid(),
-  name: z.string().min(1),
-  room_id: z.string().uuid(),
-})
-
-const readingBookRowSchema = z.object({
-  books: z
-    .object({
-      authors: z.array(z.string()),
-      thumbnail_url: z.string().nullable(),
-      title: z.string(),
-    })
-    .nullable(),
-  id: z.string().uuid(),
-  name: z.string().min(1),
-  reading_rooms: z.object({ name: z.string().min(1) }).nullable(),
-  room_id: z.string().uuid(),
-})
-
-export type BookChat = {
-  authors: string[]
-  id: string
-  name: string
-  thumbnailUrl: string | null
-  title: string
-}
-
-export type BookSearchItem = z.infer<typeof bookSearchItemSchema>
-export type ReadingRoomDetail = z.infer<typeof roomSchema>
-export type ManagedBookChat = {
-  id: string
-  name: string
-  roomId: string
-  status: 'reading' | 'completed' | 'archived' | 'deleted'
-  thumbnailUrl: string | null
-  title: string
-}
-
-export type ArchivedBookChat = {
-  archivedAt: string
-  authors: string[]
-  bookChatId: string
-  roomId: string
-  thumbnailUrl: string | null
-  title: string
-}
-
-export type ReadingBook = {
-  authors: string[]
-  bookChatId: string
-  isCompleted: boolean
-  roomId: string
-  roomName: string
-  thumbnailUrl: string | null
-  title: string
-}
-
-export const bookChatKeys = {
-  /** 책방 식별자로 안정적인 query key를 생성한다. */
-  byRoom: (roomId: string) => ['book-chats', roomId] as const,
-  /** 책방 식별자로 책방 상세 query key를 생성한다. */
-  room: (roomId: string) => ['reading-room', roomId] as const,
-  /** 책 대화 식별자로 제목과 소속 책방을 조회하는 query key를 생성한다. */
-  detail: (bookChatId: string) => ['book-chat', bookChatId] as const,
-  /** 프로필별 보관한 책 대화 목록 query key를 생성한다. */
-  myArchived: (profileId: string) => ['archived-book-chats', profileId] as const,
-  /** 프로필과 개인 완독 상태로 모든 참여 책방의 읽는 책 목록 query key를 생성한다. */
-  myReading: (profileId: string, completedBookChatIds: readonly string[]) =>
-    ['my-reading-books', profileId, ...completedBookChatIds] as const,
-}
 
 /** 책 대화방 목록 데이터를 조회하거나 계산해 반환한다. */
 export async function getBookChats(client: SupabaseClient, roomId: string): Promise<BookChat[]> {
@@ -152,24 +58,28 @@ export async function getReadingRoom(
     .maybeSingle()
 
   if (response.error) throw response.error
-  return response.data ? roomSchema.parse(response.data) : null
+  return response.data ? readingRoomDetailSchema.parse(response.data) : null
 }
 
 /** 관리 화면용 책 대화방 상태와 책 정보를 조회한다. */
 export async function getManagedBookChat(
   client: SupabaseClient,
+  roomId: string,
   bookChatId: string,
 ): Promise<ManagedBookChat | null> {
+  const parsedRoomId = z.string().uuid().parse(roomId)
+  const parsedBookChatId = z.string().uuid().parse(bookChatId)
   const response = await client
     .from('book_chats')
     .select('id, name, room_id, status, books(title, thumbnail_url)')
-    .eq('id', bookChatId)
+    .eq('id', parsedBookChatId)
+    .eq('room_id', parsedRoomId)
     .maybeSingle()
 
   if (response.error) throw response.error
   if (response.data === null) return null
 
-  return mapManagedBookChat(managedBookChatSchema.parse(response.data))
+  return mapManagedBookChat(managedBookChatRowSchema.parse(response.data))
 }
 
 /** 현재 사용자가 참여했던 책방에서 보관한 책 대화 목록을 조회한다. */
@@ -270,82 +180,4 @@ export async function createBookChat(
   if (!result) throw new Error('Book chat creation returned no result')
 
   return result.book_chat_id
-}
-
-/** 원본 데이터를 책 대화방 도메인 모델로 변환한다. */
-function mapBookChat(row: z.infer<typeof bookChatRowSchema>): BookChat {
-  return {
-    authors: row.books?.authors ?? [],
-    id: row.id,
-    name: row.name,
-    thumbnailUrl: row.books?.thumbnail_url ?? null,
-    title: row.books?.title ?? row.name,
-  }
-}
-
-/** 원본 관리 행을 화면에서 쓰는 책 대화 모델로 변환한다. */
-function mapManagedBookChat(row: z.infer<typeof managedBookChatSchema>): ManagedBookChat {
-  return {
-    id: row.id,
-    name: row.name,
-    roomId: row.room_id,
-    status: row.status,
-    thumbnailUrl: row.books?.thumbnail_url ?? null,
-    title: row.books?.title ?? row.name,
-  }
-}
-
-/** 외부 입력을 검증해 책 대화방 목록 형식으로 변환한다. */
-export function parseBookChats(value: unknown): BookChat[] {
-  return z.array(bookChatRowSchema).parse(value).map(mapBookChat)
-}
-
-/** 외부 응답을 내 정보 화면에서 쓰는 보관한 책 모델로 변환한다. */
-export function parseArchivedBookChats(value: unknown): ArchivedBookChat[] {
-  return z.array(archivedBookChatRowSchema).parse(value).map(mapArchivedBookChat)
-}
-
-/** 외부 입력을 검증해 책방별 개인 읽는 책 목록 모델로 변환한다. */
-export function parseReadingBooks(
-  value: unknown,
-  completedBookChatIds: readonly string[],
-): ReadingBook[] {
-  const completedIds = new Set(completedBookChatIds)
-  return z
-    .array(readingBookRowSchema)
-    .parse(value)
-    .map((row) => mapReadingBook(row, completedIds))
-}
-
-/** 원본 데이터를 개인 책 목록에서 쓰는 읽기 상태 모델로 변환한다. */
-function mapReadingBook(
-  row: z.infer<typeof readingBookRowSchema>,
-  completedBookChatIds: ReadonlySet<string>,
-): ReadingBook {
-  return {
-    authors: row.books?.authors ?? [],
-    bookChatId: row.id,
-    isCompleted: completedBookChatIds.has(row.id),
-    roomId: row.room_id,
-    roomName: row.reading_rooms?.name ?? '이름 없는 책방',
-    thumbnailUrl: row.books?.thumbnail_url ?? null,
-    title: row.books?.title ?? row.name,
-  }
-}
-
-/** 원본 보관한 책 행을 개인 기록 화면의 도메인 모델로 변환한다. */
-function mapArchivedBookChat(row: z.infer<typeof archivedBookChatRowSchema>): ArchivedBookChat {
-  return {
-    archivedAt: row.archived_at,
-    authors: row.books?.authors ?? [],
-    bookChatId: row.id,
-    roomId: row.room_id,
-    thumbnailUrl: row.books?.thumbnail_url ?? null,
-    title: row.books?.title ?? row.name,
-  }
-}
-
-/** 외부 입력을 검증해 책 검색 응답 형식으로 변환한다. */
-export function parseBookSearchResponse(value: unknown): BookSearchItem[] {
-  return bookSearchResponseSchema.parse(value).data.items
 }

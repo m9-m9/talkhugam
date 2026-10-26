@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { describe, expect, it, vi } from 'vitest'
-import { createPost, createReply, parsePostForm, parsePosts } from './post'
+import { createPost, createReply, getPosts, parsePostForm, parsePosts } from './post'
 
 const postId = 'f17c0d6d-3e6e-4b7f-a1f1-5d652aa2a85e'
 const mentionedMemberId = 'b3c8b282-6092-45f8-b15f-523a9dcd0eab'
@@ -113,4 +113,23 @@ describe('post parser', () => {
         rootPostId: null,
       },
     ]))
+})
+
+describe('getPosts', () => {
+  it('limits text posts to the book chat within its route room', async () => {
+    const order = vi.fn().mockResolvedValue({ data: [], error: null })
+    const deletedAtFilter = vi.fn().mockReturnValue({ order })
+    const typeFilter = vi.fn().mockReturnValue({ is: deletedAtFilter })
+    const roomIdFilter = vi.fn().mockReturnValue({ eq: typeFilter })
+    const bookChatIdFilter = vi.fn().mockReturnValue({ eq: roomIdFilter })
+    const select = vi.fn().mockReturnValue({ eq: bookChatIdFilter })
+    const from = vi.fn().mockReturnValue({ select })
+    const client = { from }
+    const roomId = '11dd2691-ca0d-4b86-bb2b-9fa7c6cd374f'
+
+    await getPosts(client as never, roomId, postId)
+
+    expect(bookChatIdFilter).toHaveBeenCalledWith('book_chat_id', postId)
+    expect(roomIdFilter).toHaveBeenCalledWith('book_chats.room_id', roomId)
+  })
 })

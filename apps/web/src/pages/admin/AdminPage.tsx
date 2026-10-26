@@ -13,6 +13,7 @@ import {
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { BottomSheet } from '../../shared/ui/BottomSheet'
 import { BrandLoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { CommunityReportInbox } from './CommunityReportInbox'
 
 const statusFilters: readonly { label: string; value: FeedbackStatus | undefined }[] = [
   { label: '전체', value: undefined },
@@ -160,6 +161,7 @@ export function AdminPage() {
           </section>
         </BottomSheet>
       ) : null}
+      <CommunityReportInbox />
     </main>
   )
 }

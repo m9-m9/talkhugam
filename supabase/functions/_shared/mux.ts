@@ -156,7 +156,7 @@ function timingSafeEqual(left: string, right: string): boolean {
 /** 직접 업로드 데이터를 생성해 반환한다. */
 export async function createDirectUpload(
   credentials: MuxCredentials,
-  input: { corsOrigin: string; postId: string },
+  input: { corsOrigin?: string; postId: string },
   fetcher: typeof fetch = fetch,
 ): Promise<DirectUpload> {
   const response = await fetcher('https://api.mux.com/video/v1/uploads', {
@@ -166,7 +166,7 @@ export async function createDirectUpload(
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      cors_origin: input.corsOrigin,
+      ...(input.corsOrigin ? { cors_origin: input.corsOrigin } : {}),
       new_asset_settings: {
         passthrough: input.postId,
         playback_policies: ['signed'],

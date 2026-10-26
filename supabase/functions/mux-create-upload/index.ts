@@ -28,7 +28,7 @@ export async function handleMuxCreateUpload(request: Request): Promise<Response>
     )
   }
 
-  if (!origin || new Headers(headers).get('access-control-allow-origin') === 'null') {
+  if (origin && new Headers(headers).get('access-control-allow-origin') === 'null') {
     return failureResponse(
       { code: 'VALIDATION_FAILED', message: '허용되지 않은 업로드 출처입니다.' },
       requestId,
@@ -90,7 +90,10 @@ export async function handleMuxCreateUpload(request: Request): Promise<Response>
       )
     }
 
-    const upload = await createDirectUpload(credentials, { corsOrigin: origin, postId })
+    const upload = await createDirectUpload(
+      credentials,
+      { ...(origin ? { corsOrigin: origin } : {}), postId },
+    )
     const assetResponse = await admin.from('video_assets').insert({
       post_id: postId,
       mux_upload_id: upload.id,

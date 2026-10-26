@@ -10,8 +10,8 @@ select is(
     where pg_namespace.nspname = 'public'
       and pg_class.relkind = 'r'
   ),
-  19::bigint,
-  'the backend should expose exactly nineteen public tables'
+  26::bigint,
+  'the backend should expose exactly twenty-six public tables'
 );
 select is(
   (
@@ -130,7 +130,8 @@ select is(
         ('post_mentions'),
         ('notifications'),
         ('video_assets'),
-        ('user_legal_consents')
+        ('user_legal_consents'),
+        ('community_messages')
     ) as expected(table_name)
     where not exists (
       select 1

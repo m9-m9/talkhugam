@@ -208,6 +208,15 @@ describe('BookDiscussionPage', () => {
     videoUploadState.isUploadingVideo = false
   })
 
+  it('scopes book chat and text post queries to the route room', async () => {
+    renderBookDiscussionPage()
+
+    await vi.waitFor(() => {
+      expect(getManagedBookChat).toHaveBeenCalledWith(undefined, 'room-1', 'book-1')
+      expect(getPosts).toHaveBeenCalledWith(undefined, 'room-1', 'book-1')
+    })
+  })
+
   it('keeps a text message within seventy percent of the chat timeline width', async () => {
     getPosts.mockResolvedValueOnce([
       {

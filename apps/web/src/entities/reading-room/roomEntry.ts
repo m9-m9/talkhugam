@@ -1,10 +1,14 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import {
+  createRoomFormSchema,
+  joinRoomFormSchema,
+  parseInviteToken,
+  type CreateRoomForm,
+  type JoinRoomForm,
+} from '@talkhugam/domain'
 import { z } from 'zod'
 
 import { getProfile } from '../profile'
-
-const inviteCodeSchema = z.string().length(6, '6자리 초대 코드를 입력해 주세요.')
-const inviteTokenSchema = z.string().regex(/^[a-f0-9]{64}$/)
 
 const createRoomResultSchema = z
   .array(
@@ -19,7 +23,7 @@ const inviteResultSchema = z
     z.object({
       code: z.string().length(6),
       expires_at: z.string().datetime({ offset: true }),
-      token: inviteTokenSchema,
+      token: z.string().regex(/^[a-f0-9]{64}$/),
     }),
   )
   .length(1)
@@ -32,37 +36,14 @@ const joinRoomResultSchema = z
   )
   .length(1)
 
-export const createRoomFormSchema = z.object({
-  description: z.string().trim().max(120, '소개는 120자 이내로 작성해 주세요.'),
-  name: z
-    .string()
-    .trim()
-    .min(1, '책방 이름을 입력해 주세요.')
-    .max(40, '책방 이름은 40자 이내로 작성해 주세요.'),
-})
-
-export const joinRoomFormSchema = z.object({
-  code: z
-    .string()
-    .trim()
-    .transform(normalizeInviteValue)
-    .pipe(z.union([inviteCodeSchema, inviteTokenSchema])),
-})
-
-export type CreateRoomForm = z.infer<typeof createRoomFormSchema>
-export type JoinRoomForm = z.infer<typeof joinRoomFormSchema>
+export { createRoomFormSchema, joinRoomFormSchema, parseInviteToken }
+export type { CreateRoomForm, JoinRoomForm }
 
 export type CreatedRoomInvite = {
   code: string
   expiresAt: string
   roomId: string
   token: string
-}
-
-/** URL 쿼리의 초대 토큰이 서버가 발급한 형태인지 확인한다. */
-export function parseInviteToken(value: unknown): string | null {
-  const parsedToken = inviteTokenSchema.safeParse(value)
-  return parsedToken.success ? parsedToken.data : null
 }
 
 /** 책방과 초대 코드를 함께 생성해 반환한다. */
@@ -95,7 +76,7 @@ export async function joinRoomByCode(
   return getSingleResult(joinRoomResultSchema.parse(response.data)).room_id
 }
 
-/** 책방 데이터를 생성해 반환한다. */
+/** 검증된 입력과 생성자 표시명을 서버 RPC로 전달해 책방 ID를 반환한다. */
 async function createReadingRoom(
   client: SupabaseClient,
   values: CreateRoomForm,
@@ -112,7 +93,7 @@ async function createReadingRoom(
   return getSingleResult(createRoomResultSchema.parse(response.data)).room_id
 }
 
-/** 초대 데이터를 생성해 반환한다. */
+/** 생성된 책방 ID로 일회용 초대 데이터를 발급해 반환한다. */
 async function createInvite(client: SupabaseClient, roomId: string) {
   const response = await client.rpc('create_room_invite', { p_room_id: roomId })
 
@@ -122,12 +103,7 @@ async function createInvite(client: SupabaseClient, roomId: string) {
   return { code: invite.code, expiresAt: invite.expires_at, token: invite.token }
 }
 
-/** 6자리 코드는 대문자로 맞추고 링크 토큰은 원문 그대로 유지한다. */
-function normalizeInviteValue(value: string): string {
-  return value.length === 6 ? value.toUpperCase() : value
-}
-
-/** Supabase 응답에서 단일 결과를 검증해 반환한다. */
+/** Supabase RPC 응답 배열에서 검증된 단일 결과를 반환한다. */
 function getSingleResult<T>(results: readonly T[]): T {
   const result = results.at(0)
   if (!result) throw new Error('RPC returned no result')

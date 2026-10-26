@@ -1,73 +1,30 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { parsePosts, type DiscussionPost, type PostForm } from '@talkhugam/domain'
 import { z } from 'zod'
 
-const postRowSchema = z.object({
-  author_member_id: z.string().uuid().nullable(),
-  author_name_snapshot: z.string(),
-  body: z.string().nullable(),
-  created_at: z.string().datetime({ offset: true }),
-  depth: z.union([z.literal(0), z.literal(1)]),
-  id: z.string().uuid(),
-  post_labels: z
-    .array(
-      z.object({
-        kind: z.enum(['page', 'chapter', 'custom']),
-        sort_order: z.number().int().nonnegative(),
-        value: z.string().min(1).max(40),
-      }),
-    )
-    .default([]),
-  root_post_id: z.string().uuid().nullable(),
-})
-
-const postLabelSchema = z.object({
-  kind: z.enum(['page', 'chapter', 'custom']),
-  value: z.string().trim().min(1).max(40),
-})
-
-const postFormSchema = z
-  .object({
-    body: z.string().trim().max(500),
-    labels: z.array(postLabelSchema).max(10).default([]),
-    mentionedMemberIds: z.array(z.string().uuid()).max(6).default([]),
-  })
-  .refine((value) => value.body.length > 0 || value.labels.length > 0, {
-    message: '독후감이나 라벨을 하나 이상 남겨 주세요.',
-  })
-
-export type DiscussionPost = {
-  authorMemberId: string | null
-  authorName: string
-  body: string | null
-  createdAt: string
-  depth: 0 | 1
-  id: string
-  labels: z.infer<typeof postLabelSchema>[]
-  rootPostId: string | null
-}
-export type PostForm = z.infer<typeof postFormSchema>
-
-export const postKeys = {
-  /** 책 대화방 식별자로 안정적인 query key를 생성한다. */
-  byBookChat: (bookChatId: string) => ['posts', bookChatId] as const,
-}
-
-/** 외부 입력을 검증해 메시지 목록 형식으로 변환한다. */
-export function parsePosts(value: unknown): DiscussionPost[] {
-  return z.array(postRowSchema).parse(value).map(mapDiscussionPost)
-}
+export {
+  parsePostForm,
+  parsePosts,
+  postKeys,
+  type DiscussionPost,
+  type PostForm,
+} from '@talkhugam/domain'
 
 /** 메시지 목록 데이터를 조회하거나 계산해 반환한다. */
 export async function getPosts(
   client: SupabaseClient,
+  roomId: string,
   bookChatId: string,
 ): Promise<DiscussionPost[]> {
+  const parsedRoomId = z.string().uuid().parse(roomId)
+  const parsedBookChatId = z.string().uuid().parse(bookChatId)
   const response = await client
     .from('posts')
     .select(
-      'id, body, depth, root_post_id, author_member_id, author_name_snapshot, created_at, post_labels(kind, value, sort_order)',
+      'id, body, depth, root_post_id, author_member_id, author_name_snapshot, created_at, post_labels(kind, value, sort_order), book_chats!inner(room_id)',
     )
-    .eq('book_chat_id', bookChatId)
+    .eq('book_chat_id', parsedBookChatId)
+    .eq('book_chats.room_id', parsedRoomId)
     .eq('type', 'text')
     .is('deleted_at', null)
     .order('created_at', { ascending: true })
@@ -108,25 +65,4 @@ export async function createReply(
   })
   if (response.error) throw response.error
   return z.string().uuid().parse(response.data)
-}
-
-/** 외부 입력을 검증해 메시지 입력 폼 형식으로 변환한다. */
-export function parsePostForm(value: unknown): PostForm {
-  return postFormSchema.parse(value)
-}
-
-/** 원본 데이터를 대화 메시지 도메인 모델로 변환한다. */
-function mapDiscussionPost(row: z.infer<typeof postRowSchema>): DiscussionPost {
-  return {
-    authorMemberId: row.author_member_id,
-    authorName: row.author_name_snapshot,
-    body: row.body,
-    createdAt: row.created_at,
-    depth: row.depth,
-    id: row.id,
-    labels: [...row.post_labels]
-      .sort((first, second) => first.sort_order - second.sort_order)
-      .map(({ kind, value }) => ({ kind, value })),
-    rootPostId: row.root_post_id,
-  }
 }

@@ -34,8 +34,8 @@ export function BookChatManagementPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isCompletionEditorOpen, setIsCompletionEditorOpen] = useState(false)
   const bookChatQuery = useQuery({
-    enabled: Boolean(bookChatId),
-    queryFn: () => getManagedBookChat(client, bookChatId ?? ''),
+    enabled: Boolean(roomId && bookChatId),
+    queryFn: () => getManagedBookChat(client, roomId ?? '', bookChatId ?? ''),
     queryKey: ['managed-book-chat', bookChatId],
   })
   const completionsQuery = useQuery({

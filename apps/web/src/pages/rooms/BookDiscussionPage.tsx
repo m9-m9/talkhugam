@@ -101,14 +101,14 @@ export function BookDiscussionPage() {
     uploadVideo,
   } = useVideoUpload(bookChatId)
   const postsQuery = useQuery({
-    enabled: Boolean(bookChatId),
-    queryFn: () => getPosts(createSupabaseClient(), bookChatId ?? ''),
-    queryKey: postKeys.byBookChat(bookChatId ?? ''),
+    enabled: Boolean(roomId && bookChatId),
+    queryFn: () => getPosts(createSupabaseClient(), roomId ?? '', bookChatId ?? ''),
+    queryKey: postKeys.byBookChat(roomId ?? '', bookChatId ?? ''),
   })
   const bookChatQuery = useQuery({
-    enabled: Boolean(bookChatId),
-    queryFn: () => getManagedBookChat(createSupabaseClient(), bookChatId ?? ''),
-    queryKey: bookChatKeys.detail(bookChatId ?? ''),
+    enabled: Boolean(roomId && bookChatId),
+    queryFn: () => getManagedBookChat(createSupabaseClient(), roomId ?? '', bookChatId ?? ''),
+    queryKey: bookChatKeys.detail(roomId ?? '', bookChatId ?? ''),
   })
   const roomQuery = useQuery({
     enabled: Boolean(roomId),
@@ -205,7 +205,9 @@ export function BookDiscussionPage() {
       setLabels([])
       setMentionedMemberIds([])
       setReplyTo(null)
-      await queryClient.invalidateQueries({ queryKey: postKeys.byBookChat(bookChatId) })
+      await queryClient.invalidateQueries({
+        queryKey: postKeys.byBookChat(roomId ?? '', bookChatId),
+      })
       await queryClient.invalidateQueries({ queryKey: readingRoomKeys.all })
     } catch {
       setErrorMessage('독후감을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.')

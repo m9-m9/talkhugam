@@ -2,7 +2,7 @@ begin;
 
 \ir ../helpers/auth.inc
 
-select plan(14);
+select plan(16);
 
 select has_table(
   'public',
@@ -190,6 +190,46 @@ select is(
   (select count(*) from public.book_chat_completions),
   0::bigint,
   'removing a completion should remove it from the roster'
+);
+
+reset role;
+
+insert into public.book_chat_completions (book_chat_id, profile_id, rating, review)
+values (
+  '40000000-0000-0000-0000-000000000181',
+  '00000000-0000-0000-0000-000000000181',
+  5,
+  '보관 전 완독 기록'
+);
+
+update public.book_chats
+set status = 'archived', archived_at = now()
+where id = '40000000-0000-0000-0000-000000000181';
+
+select tests.authenticate_as('00000000-0000-0000-0000-000000000181');
+set local role authenticated;
+
+select throws_ok(
+  $$
+    select public.upsert_book_chat_completion(
+      '40000000-0000-0000-0000-000000000181',
+      4::smallint,
+      '보관된 대화에서는 수정할 수 없어요.'
+    )
+  $$,
+  'P0001',
+  'BOOK_CHAT_ARCHIVED',
+  'an archived book chat should reject completion upserts'
+);
+select throws_ok(
+  $$
+    select public.remove_book_chat_completion(
+      '40000000-0000-0000-0000-000000000181'
+    )
+  $$,
+  'P0001',
+  'BOOK_CHAT_ARCHIVED',
+  'an archived book chat should reject completion removals'
 );
 
 reset role;
