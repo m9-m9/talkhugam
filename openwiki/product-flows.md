@@ -41,7 +41,7 @@ README의 Phase 1 제약은 책방당 최대 6명이다. 생성·참여·멤버�
 
 각 사용자는 책 대화 안에서 독후감을 남기고, 책별로 별점(1~5, 필수)과 총평(선택, 1000자 이하)을 기록할 수 있다. 진행률과 완독 표시는 없으며 별점 저장은 알림을 만들지 않는다. 책 대화 관리 화면의 `내 별점` 카드에서 `별점 남기기`·`수정하기`로 같은 시트를 열고, 책 대화 입력창 옆 `+` 메뉴의 `별점`은 평균과 멤버별 별점을 보여 준다. `/profile`은 내 정보 수정·책방 보기·내 책 보기·계정 설정으로 들어가는 요약 허브이며, `/profile/books`(`내 책`)는 참여한 책방의 읽는 중인 책과 종료된(다 읽은) 책을 책방별로 묶어 내 별점 또는 `별점 남기기`와 함께 보여 주고, 종료된 책에는 `다 읽은 책` 표시를 붙인다. 보관된 책 대화는 책방 목록과 마찬가지로 제외하며, 별점 남기기·수정은 서버가 허용하는 보관되지 않은 책에만 보인다. `entities/book-rating/bookRating.ts`가 이 도메인 접근을 담당하고, `features/book-rating`이 별점 작성 UI를 제공한다. 모바일 책 대화에도 평균과 멤버 별점을 보여 주는 `별점` 시트가 있다.
 
-서버는 `book_chat_ratings` 테이블과 `upsert_book_chat_rating`·`remove_book_chat_rating` RPC가 담당한다. 기존 완독·진행률 데이터는 별점이 있던 행만 `book_chat_ratings`로 옮기고, 원본은 비공개 백업 테이블(`private.book_chat_completions_backup_20261026`, `private.book_chat_reading_progresses_backup_20261026`)에 두며 계정 삭제 시 함께 지워진다. GA4 이벤트는 `book_completed`에서 `book_rated`로 바뀌었다. 개인 기록은 책방의 공동 대화와 연결되지만 사용자별 상태이므로, 화면 상태와 서버 저장 모델을 혼동하지 않는다. 관련 화면 변경은 [테스트](./testing.md)의 `book-rating`·프로필·책 대화 테스트를 확인한다.
+서버는 `book_chat_ratings` 테이블과 `upsert_book_chat_rating`·`remove_book_chat_rating` RPC가 담당한다. 기존 완독·진행률 데이터는 별점이 있던 행만 `book_chat_ratings`로 옮기고, 별점이 없던 완독 행과 진행률 테이블은 백업 없이 삭제했다(되돌릴 수 없음). GA4 이벤트는 `book_completed`에서 `book_rated`로 바뀌었다. 개인 기록은 책방의 공동 대화와 연결되지만 사용자별 상태이므로, 화면 상태와 서버 저장 모델을 혼동하지 않는다. 관련 화면 변경은 [테스트](./testing.md)의 `book-rating`·프로필·책 대화 테스트를 확인한다.
 
 ## 5. 책방과 책 대화 관리
 
