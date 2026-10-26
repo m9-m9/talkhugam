@@ -4,9 +4,11 @@ import {
   parseCommunityRooms,
   parseJoinCommunityRoomResult,
   communityKeys,
+  roomRoleSchema,
   type CommunityRoom,
   type CreateCommunityRoomForm,
   type JoinCommunityRoomResult,
+  type RoomRole,
 } from '@talkhugam/domain'
 import { z } from 'zod'
 
@@ -20,6 +22,7 @@ const communityDetailSchema = z
       name: z.string(),
       description: z.string().nullable(),
       current_member_id: z.string().uuid(),
+      current_member_role: roomRoleSchema,
       is_owner: z.boolean(),
     }),
   )
@@ -31,6 +34,7 @@ const communityMessagesSchema = z.array(
     created_at: z.string().datetime({ offset: true }),
     sender_member_id: z.string().uuid(),
     sender_display_name: z.string(),
+    sender_role: roomRoleSchema,
   }),
 )
 const contentReportStatusSchema = z.enum(['open', 'reviewing', 'resolved', 'dismissed'])
@@ -64,6 +68,7 @@ export type CommunityDetail = {
   name: string
   description: string | null
   currentMemberId: string
+  currentMemberRole: RoomRole
   isOwner: boolean
 }
 export type CommunityMessage = {
@@ -72,6 +77,7 @@ export type CommunityMessage = {
   createdAt: string
   senderMemberId: string
   senderDisplayName: string
+  senderRole: RoomRole
 }
 export type ContentReportStatus = z.infer<typeof contentReportStatusSchema>
 export type AdminContentReportAction = z.infer<typeof contentReportActionSchema>
@@ -96,7 +102,7 @@ export async function getCommunityRooms(client: SupabaseClient): Promise<Communi
   return parseCommunityRooms(response.data)
 }
 
-/** 활성 멤버에게 허용된 오픈 책방 상세와 본인 방장 권한을 조회한다. */
+/** 활성 멤버에게 허용된 오픈 책방 상세와 본인 멤버 역할을 조회한다. */
 export async function getCommunityRoom(
   client: SupabaseClient,
   roomId: string,
@@ -107,6 +113,7 @@ export async function getCommunityRoom(
   if (!room) throw new Error('오픈 책방을 찾을 수 없어요.')
   return {
     currentMemberId: room.current_member_id,
+    currentMemberRole: room.current_member_role,
     description: room.description,
     id: room.id,
     isOwner: room.is_owner,
@@ -114,7 +121,7 @@ export async function getCommunityRoom(
   }
 }
 
-/** 활성 멤버에게 허용된 자유 채팅 메시지를 최근 순서로 조회한다. */
+/** 활성 멤버에게 허용된 자유 채팅 메시지를 보낸 사람 역할과 함께 최근 순서로 조회한다. */
 export async function getCommunityMessages(
   client: SupabaseClient,
   roomId: string,
@@ -127,6 +134,7 @@ export async function getCommunityMessages(
     id: message.id,
     senderDisplayName: message.sender_display_name,
     senderMemberId: message.sender_member_id,
+    senderRole: message.sender_role,
   }))
 }
 

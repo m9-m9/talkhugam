@@ -4,6 +4,7 @@ import {
   createMuxThumbnailUrl,
   filterVideoPosts,
   mapVideoThumbnailAuthorizations,
+  parseVideoDeletePermission,
   parseVideoPlaybackAuthorization,
   parseVideoPosts,
   validateVideoDuration,
@@ -57,5 +58,14 @@ describe('video domain', () => {
     expect(authorizations.get('4b7227b2-5350-4a61-9114-b2d0c915fd1b')?.playbackId).toBe('playback-id')
     expect(validateVideoDuration(30)).toBe(true)
     expect(validateVideoDuration(30.1)).toBe(false)
+  })
+
+  it('accepts a manager row but keeps video deletion for authors and owners', () => {
+    expect(
+      parseVideoDeletePermission(
+        { id: '6a1f0c2e-5b3d-4c7e-9f10-2a3b4c5d6e7f', role: 'manager' },
+        '7b2e1d3f-6c4a-4d8b-8a21-3b4c5d6e7f80',
+      ),
+    ).toEqual({ canDelete: false })
   })
 })

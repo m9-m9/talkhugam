@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   banCommunityMember,
   createCommunityRoom,
+  getCommunityMessages,
+  getCommunityRoom,
   getCommunityRooms,
   joinCommunityRoom,
   listAdminContentReports,
@@ -19,6 +21,46 @@ function createClient(response: unknown = { data: [], error: null }) {
 }
 
 describe('community repository', () => {
+  it('오픈 책방 상세와 자유 채팅에서 역할을 함께 읽는다', async () => {
+    const memberId = '33333333-3333-4333-8333-333333333333'
+    const client = createClient()
+    client.rpc
+      .mockResolvedValueOnce({
+        data: [
+          {
+            current_member_id: memberId,
+            current_member_role: 'manager',
+            description: null,
+            id: roomId,
+            is_owner: false,
+            name: '밤 독서회',
+          },
+        ],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            body: '반가워요',
+            created_at: '2026-10-27T00:00:00.000Z',
+            id: '44444444-4444-4444-8444-444444444444',
+            sender_display_name: '참여자',
+            sender_member_id: '55555555-5555-4555-8555-555555555555',
+            sender_role: 'member',
+          },
+        ],
+        error: null,
+      })
+
+    await expect(getCommunityRoom(client as never, roomId)).resolves.toMatchObject({
+      currentMemberRole: 'manager',
+      isOwner: false,
+    })
+    await expect(getCommunityMessages(client as never, roomId)).resolves.toEqual([
+      expect.objectContaining({ senderRole: 'member' }),
+    ])
+  })
+
   it('발견 목록과 입장을 전용 RPC로 처리한다', async () => {
     const client = createClient({ data: [], error: null })
     client.rpc.mockResolvedValueOnce({ data: [], error: null }).mockResolvedValueOnce({

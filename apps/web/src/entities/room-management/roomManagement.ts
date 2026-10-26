@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { canManageRoomContent, roomRoleSchema, type RoomRole } from '@talkhugam/domain'
 import { z } from 'zod'
 
 const roomIdSchema = z.string().uuid()
@@ -15,7 +16,7 @@ const roomManagementMemberRowSchema = z.object({
   id: z.string().uuid(),
   joined_at: z.string().datetime({ offset: true }),
   profile_id: z.string().uuid().nullable(),
-  role: z.enum(['owner', 'member']),
+  role: roomRoleSchema,
   room_avatar_path: z.string().nullable(),
   room_display_name: z.string().min(1).max(30),
   room_id: roomIdSchema,
@@ -73,7 +74,9 @@ export type ManagedRoomInvite = {
 }
 
 export type RoomManagement = {
+  canCurrentUserManageContent: boolean
   createdBy: string | null
+  currentUserRole: RoomRole | null
   description: string | null
   id: string
   isCurrentUserOwner: boolean
@@ -89,7 +92,7 @@ export type RoomManagementMember = {
   isCurrentUser: boolean
   joinedAt: string
   profileId: string | null
-  role: 'owner' | 'member'
+  role: RoomRole
 }
 
 export type CreatedManagedRoomInvite = {
@@ -109,7 +112,7 @@ export const roomManagementKeys = {
   invites: (roomId: string) => ['room-management', roomId, 'invites'] as const,
 }
 
-/** 방 관리 화면에 필요한 방과 활성 멤버 데이터를 도메인 모델로 변환한다. */
+/** 방 관리 화면에 필요한 방과 활성 멤버 데이터를 현재 사용자 역할이 포함된 도메인 모델로 변환한다. */
 export function parseRoomManagement(
   roomValue: unknown,
   memberValue: unknown,
@@ -118,14 +121,15 @@ export function parseRoomManagement(
   const currentProfile = roomIdSchema.parse(currentProfileId)
   const room = roomManagementRowSchema.parse(roomValue)
   const members = z.array(roomManagementMemberRowSchema).parse(memberValue)
+  const currentUserRole = findCurrentUserRole(members, currentProfile)
 
   return {
+    canCurrentUserManageContent: canManageRoomContent(currentUserRole),
     createdBy: room.created_by,
+    currentUserRole,
     description: room.description,
     id: room.id,
-    isCurrentUserOwner: members.some(
-      (member) => member.profile_id === currentProfile && member.role === 'owner',
-    ),
+    isCurrentUserOwner: currentUserRole === 'owner',
     members: members.map((member) => mapRoomManagementMember(member, currentProfile)),
     name: room.name,
     status: room.status,
@@ -276,6 +280,14 @@ export async function leaveManagedRoom(
   })
 
   if (response.error) throw response.error
+}
+
+/** 활성 멤버 목록에서 현재 프로필의 책방 역할을 찾고, 없으면 null을 반환한다. */
+function findCurrentUserRole(
+  members: readonly z.infer<typeof roomManagementMemberRowSchema>[],
+  currentProfileId: string,
+): RoomRole | null {
+  return members.find((member) => member.profile_id === currentProfileId)?.role ?? null
 }
 
 /** 원본 멤버 행을 방 관리 화면 전용 멤버 모델로 변환한다. */

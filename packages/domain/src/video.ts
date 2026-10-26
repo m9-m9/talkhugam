@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import { roomRoleSchema } from './roomPermission'
+
 export const videoUploadResponseSchema = z.object({
   data: z.object({ postId: z.string().uuid(), uploadUrl: z.string().url() }),
   ok: z.literal(true),
@@ -61,7 +63,7 @@ export const videoFilterMemberRowSchema = z.object({
 
 export const currentRoomMemberRowSchema = z.object({
   id: z.string().uuid(),
-  role: z.enum(['owner', 'member']),
+  role: roomRoleSchema,
 })
 
 export type VideoAsset = {

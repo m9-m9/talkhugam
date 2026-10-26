@@ -55,11 +55,11 @@ describe('mobile community repository', () => {
 
   it('자유 채팅 목록을 검증된 화면 모델로 변환한다', async () => {
     const client = createClient([[
-      { body: '첫 인사', created_at: '2026-08-18T00:00:00.000Z', id: '44444444-4444-4444-8444-444444444444', sender_display_name: '민규', sender_member_id: '33333333-3333-4333-8333-333333333333' },
+      { body: '첫 인사', created_at: '2026-08-18T00:00:00.000Z', id: '44444444-4444-4444-8444-444444444444', sender_display_name: '민규', sender_member_id: '33333333-3333-4333-8333-333333333333', sender_role: 'member' },
     ]])
 
     await expect(getMobileCommunityMessages(client as never, roomId)).resolves.toEqual([
-      expect.objectContaining({ body: '첫 인사', senderDisplayName: '민규' }),
+      expect.objectContaining({ body: '첫 인사', senderDisplayName: '민규', senderRole: 'member' }),
     ])
   })
 })
