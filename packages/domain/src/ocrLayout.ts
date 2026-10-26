@@ -69,34 +69,28 @@ function normalizeBounds(bounds: PixelBounds, pageWidth: number, pageHeight: num
   }
 }
 
-/** 두 단어를 같은 줄로 볼 최소 세로 겹침 비율(작은 쪽 높이 대비). */
-export const OCR_LINE_MIN_VERTICAL_OVERLAP = 0.5
+/** 본문 왼쪽·오른쪽 선을 추정할 때 쓰는 "넓은 줄"의 최소 폭(페이지 폭 대비). */
+export const OCR_WIDE_LINE_MIN_WIDTH_RATIO = 0.35
 
-/** 같은 높이라도 이 배수(글자 높이 대비)보다 가로 간격이 크면 다른 줄·다른 페이지로 나눈다. */
-export const OCR_LINE_MAX_GAP_HEIGHT_RATIO = 3
+/** 본문 선을 추정하기 위해 필요한 넓은 줄의 최소 개수. 이보다 적으면 거르지 않고 그대로 돌려준다. */
+export const OCR_MIN_WIDE_LINES_FOR_MARGINS = 3
+
+/** 본문 선 바깥으로 볼 여유 폭(페이지 폭 대비). 이보다 더 바깥에서 시작한 필드는 지운다. */
+export const OCR_MARGIN_TOLERANCE_RATIO = 0.02
+
+/** 직선 적합 뒤 잔차 하위 이 비율까지만 남겨 한 번 다시 적합한다(들여쓰기·화자 표시 같은 이상치 제거). */
+export const OCR_MARGIN_FIT_KEEP_QUANTILE = 0.8
+
+/** 숫자·점·가운뎃점·말줄임표만 남은 줄(쪽 번호 등)을 가려내는 패턴. */
+const pageNumberPattern = /^[\d.…·\s]+$/
 
 type OcrWord = { bounds: PixelBounds; text: string }
 
-type LineGroup = { words: OcrWord[] }
+type LineDraft = { words: OcrWord[] }
 
-type ColumnGroup = { lines: LineGroup[]; maxX: number; minX: number }
+type MarginLine = (y: number) => number
 
-/** 사각형의 세로 높이를 반환한다. 높이가 0이면 나눗셈을 위해 1로 본다. */
-function getHeight(bounds: PixelBounds): number {
-  return Math.max(1, bounds.maxY - bounds.minY)
-}
-
-/** 두 사각형의 세로 겹침 길이를 작은 쪽 높이로 나눈 비율을 반환한다. */
-function getVerticalOverlapRatio(a: PixelBounds, b: PixelBounds): number {
-  const overlap = Math.min(a.maxY, b.maxY) - Math.max(a.minY, b.minY)
-  return overlap / Math.min(getHeight(a), getHeight(b))
-}
-
-/** 숫자 목록의 중앙값을 반환한다. 빈 목록이면 1을 반환한다. */
-function getMedian(values: number[]): number {
-  const sorted = [...values].sort((first, second) => first - second)
-  return sorted[Math.floor(sorted.length / 2)] ?? 1
-}
+type FitPoint = { x: number; y: number }
 
 /** CLOVA 필드를 글자와 좌표가 모두 있는 단어로 바꾼다. 둘 중 하나라도 없으면 null을 반환한다. */
 function toOcrWord(field: ClovaField): OcrWord | null {
@@ -105,96 +99,107 @@ function toOcrWord(field: ClovaField): OcrWord | null {
   return text && bounds ? { bounds, text } : null
 }
 
-/** 줄의 마지막(가장 오른쪽) 단어를 반환한다. */
-function getLastWord(line: LineGroup): OcrWord | undefined {
-  return line.words[line.words.length - 1]
-}
-
-/**
- * 새 단어가 줄의 마지막 단어 뒤에 이어질 수 있는지 점수로 반환한다. 세로 겹침이 부족하거나
- * 가로 간격이 글자 높이의 임계 배수보다 크면 null을 반환한다. 마지막 단어 기준이라 기운 줄·곡면에 견딘다.
- */
-function scoreLineContinuation(line: LineGroup, word: OcrWord): number | null {
-  const last = getLastWord(line)
-  if (!last) return null
-  const overlap = getVerticalOverlapRatio(last.bounds, word.bounds)
-  const gap = word.bounds.minX - last.bounds.maxX
-  const maxGap = OCR_LINE_MAX_GAP_HEIGHT_RATIO * Math.max(getHeight(last.bounds), getHeight(word.bounds))
-  if (overlap < OCR_LINE_MIN_VERTICAL_OVERLAP || gap > maxGap) return null
-  return overlap
-}
-
-/** 단어를 이어 붙일 가장 잘 맞는 줄을 찾고, 없으면 null을 반환한다. */
-function findBestLine(lines: LineGroup[], word: OcrWord): LineGroup | null {
-  let best: { line: LineGroup; score: number } | null = null
-  for (const line of lines) {
-    const score = scoreLineContinuation(line, word)
-    if (score !== null && (best === null || score > best.score)) best = { line, score }
+/** CLOVA가 준 읽기 순서와 `lineBreak`로 줄 초안을 만든다. 각 단어의 좌표는 그대로 둔다. */
+function collectLineDrafts(fields: ClovaField[]): LineDraft[] {
+  const drafts: LineDraft[] = []
+  let words: OcrWord[] = []
+  for (const [index, field] of fields.entries()) {
+    const word = toOcrWord(field)
+    if (word) words.push(word)
+    if (!field.lineBreak && index < fields.length - 1) continue
+    if (words.length > 0) drafts.push({ words })
+    words = []
   }
-  return best?.line ?? null
+  return drafts
 }
 
-/** 단어를 왼쪽부터 훑으며 세로로 겹치는 줄의 마지막 단어에 이어 붙여 줄 묶음을 만든다. */
-function groupWordsIntoLines(words: OcrWord[]): LineGroup[] {
-  const lines: LineGroup[] = []
-  const sortedWords = [...words].sort((first, second) => first.bounds.minX - second.bounds.minX)
-  for (const word of sortedWords) {
-    const line = findBestLine(lines, word)
-    if (line) line.words.push(word)
-    else lines.push({ words: [word] })
-  }
-  return lines
-}
-
-/** 줄 안 단어를 모두 덮는 픽셀 경계를 반환한다. */
-function getLineBounds(line: LineGroup): PixelBounds {
-  return line.words.reduce<PixelBounds | null>(
-    (bounds, word) => mergeBounds(bounds, word.bounds),
-    null,
-  ) ?? { maxX: 0, maxY: 0, minX: 0, minY: 0 }
-}
-
-/** 줄의 세로 중심을 반환한다. */
-function getLineCenterY(line: LineGroup): number {
-  const bounds = getLineBounds(line)
+/** 단어 사각형의 세로 중심을 반환한다. */
+function getCenterY(bounds: PixelBounds): number {
   return (bounds.minY + bounds.maxY) / 2
 }
 
-/**
- * 줄의 가로 범위를 겹치거나 간격이 좁은 것끼리 열(페이지)로 묶는다. 간격이 제본선처럼
- * `columnGap`보다 넓을 때만 다른 열로 나눈다. 열은 왼쪽부터 정렬된다.
- */
-function groupLinesIntoColumns(lines: LineGroup[], columnGap: number): ColumnGroup[] {
-  const columns: ColumnGroup[] = []
-  const sortedLines = [...lines].sort(
-    (first, second) => getLineBounds(first).minX - getLineBounds(second).minX,
-  )
-  for (const line of sortedLines) {
-    const bounds = getLineBounds(line)
-    const column = columns[columns.length - 1]
-    if (column && bounds.minX - column.maxX <= columnGap) {
-      column.lines.push(line)
-      column.maxX = Math.max(column.maxX, bounds.maxX)
-      continue
+/** 줄 안 단어를 모두 덮는 픽셀 경계를 반환한다. */
+function getDraftBounds(draft: LineDraft): PixelBounds {
+  return (
+    draft.words.reduce<PixelBounds | null>((bounds, word) => mergeBounds(bounds, word.bounds), null) ?? {
+      maxX: 0,
+      maxY: 0,
+      minX: 0,
+      minY: 0,
     }
-    columns.push({ lines: [line], maxX: bounds.maxX, minX: bounds.minX })
-  }
-  return columns
-}
-
-/** 단어 목록을 줄로 묶고, 열(왼쪽 페이지 → 오른쪽 페이지) 단위로 위→아래 읽기 순서로 정렬해 반환한다. */
-function orderLinesForReading(words: OcrWord[]): LineGroup[] {
-  const lines = groupWordsIntoLines(words)
-  const columnGap = OCR_LINE_MAX_GAP_HEIGHT_RATIO * getMedian(words.map((word) => getHeight(word.bounds)))
-  return groupLinesIntoColumns(lines, columnGap).flatMap((column) =>
-    [...column.lines].sort((first, second) => getLineCenterY(first) - getLineCenterY(second)),
   )
 }
 
+/** 줄 첫 단어의 세로 중심을 반환한다. 사진이 기울어도 줄 순서를 안정적으로 정하는 기준이다. */
+function getDraftAnchorY(draft: LineDraft): number {
+  const first = draft.words[0]
+  return first ? getCenterY(first.bounds) : 0
+}
+
+/** 점 목록에 y = a + b·x 직선을 최소제곱으로 맞춰 계수를 반환한다. */
+function fitLine(points: FitPoint[]): { intercept: number; slope: number } {
+  const count = points.length
+  const sumX = points.reduce((sum, point) => sum + point.x, 0)
+  const sumY = points.reduce((sum, point) => sum + point.y, 0)
+  const sumXX = points.reduce((sum, point) => sum + point.x * point.x, 0)
+  const sumXY = points.reduce((sum, point) => sum + point.x * point.y, 0)
+  const slope = (count * sumXY - sumX * sumY) / (count * sumXX - sumX * sumX || 1)
+  return { intercept: (sumY - slope * sumX) / count, slope }
+}
+
 /**
- * CLOVA OCR General V2의 `fields`와 인식한 이미지의 픽셀 크기를 받아,
- * `lineBreak`와 응답 순서에 기대지 않고 좌표(세로 겹침·가로 간격)로 줄을 묶은 뒤
- * 열 단위 위→아래 순서와 페이지 비율 박스를 가진 줄 목록을 반환한다.
+ * 점 목록에 직선을 맞춘 뒤 잔차가 큰 상위 점을 한 번 빼고 다시 맞춰, 세로 위치(y)를 받아
+ * 본문 선의 x를 돌려주는 함수를 반환한다. 사진 기울기를 반영하고 들여쓰기 같은 이상치에 덜 흔들린다.
+ */
+function fitRobustMargin(points: FitPoint[]): MarginLine {
+  const first = fitLine(points)
+  const residuals = points.map((point) => Math.abs(point.y - (first.intercept + first.slope * point.x)))
+  const limit = [...residuals].sort((a, b) => a - b)[Math.floor(residuals.length * OCR_MARGIN_FIT_KEEP_QUANTILE)] ?? Infinity
+  const second = fitLine(points.filter((_, index) => (residuals[index] ?? 0) <= limit))
+  return (y) => second.intercept + second.slope * y
+}
+
+/** 넓은 줄로 본문 왼쪽·오른쪽 선을 추정한다. 넓은 줄이 부족하면 null을 반환한다. */
+function estimateBodyMargins(drafts: LineDraft[], pageWidth: number): { left: MarginLine; right: MarginLine } | null {
+  const wideBounds = drafts
+    .map((draft) => ({ anchorY: getDraftAnchorY(draft), bounds: getDraftBounds(draft) }))
+    .filter(({ bounds }) => bounds.maxX - bounds.minX >= OCR_WIDE_LINE_MIN_WIDTH_RATIO * pageWidth)
+  if (wideBounds.length < OCR_MIN_WIDE_LINES_FOR_MARGINS) return null
+  return {
+    left: fitRobustMargin(wideBounds.map(({ anchorY, bounds }) => ({ x: anchorY, y: bounds.minX }))),
+    right: fitRobustMargin(wideBounds.map(({ anchorY, bounds }) => ({ x: anchorY, y: bounds.maxX }))),
+  }
+}
+
+/** 단어가 그 높이에서 본문 왼쪽·오른쪽 선(여유 폭 포함) 안에서 시작하는지 판단한다. */
+function isInsideBody(word: OcrWord, margins: { left: MarginLine; right: MarginLine }, tolerance: number): boolean {
+  const y = getCenterY(word.bounds)
+  return word.bounds.minX >= margins.left(y) - tolerance && word.bounds.minX < margins.right(y) + tolerance
+}
+
+/** 줄 초안이 쪽 번호처럼 숫자·점만으로 이루어졌는지 판단한다. */
+function isPageNumberDraft(draft: LineDraft): boolean {
+  return pageNumberPattern.test(draft.words.map((word) => word.text).join(' '))
+}
+
+/**
+ * 본문 선 바깥 단어(잘린 앞 페이지 조각·화자 표시)를 지우고, 비었거나 쪽 번호만 남은 줄을 빼서
+ * 줄 첫 단어의 세로 중심 순으로 정렬한다. 본문 선을 추정할 수 없으면 줄 초안을 그대로 돌려준다.
+ */
+function keepBodyLines(drafts: LineDraft[], pageWidth: number): LineDraft[] {
+  const margins = estimateBodyMargins(drafts, pageWidth)
+  if (!margins) return drafts
+  const tolerance = OCR_MARGIN_TOLERANCE_RATIO * pageWidth
+  return drafts
+    .map((draft) => ({ words: draft.words.filter((word) => isInsideBody(word, margins, tolerance)) }))
+    .filter((draft) => draft.words.length > 0 && !isPageNumberDraft(draft))
+    .sort((first, second) => getDraftAnchorY(first) - getDraftAnchorY(second))
+}
+
+/**
+ * CLOVA OCR General V2의 `fields`와 인식한 이미지의 픽셀 크기를 받아 줄 목록을 반환한다.
+ * 줄은 CLOVA 순서와 `lineBreak`(기운 줄에서도 정확)로 나누고, 넓은 줄로 기울기를 반영한 본문 선을
+ * 추정해 선 바깥 조각·화자 표시와 쪽 번호를 지운 뒤 위→아래로 정렬한다. 박스는 남은 단어로만 계산한다.
  */
 export function groupClovaFieldsIntoLines(
   fields: ClovaField[] | undefined,
@@ -202,11 +207,10 @@ export function groupClovaFieldsIntoLines(
 ): OcrLine[] {
   if (!fields?.length || !pageSize?.width || !pageSize.height) return []
   const { height: pageHeight, width: pageWidth } = pageSize
-  const words = fields.map(toOcrWord).filter((word): word is OcrWord => word !== null)
 
-  return orderLinesForReading(words).map((line, index) => ({
-    box: normalizeBounds(getLineBounds(line), pageWidth, pageHeight),
+  return keepBodyLines(collectLineDrafts(fields), pageWidth).map((draft, index) => ({
+    box: normalizeBounds(getDraftBounds(draft), pageWidth, pageHeight),
     id: `line-${index}`,
-    text: line.words.map((word) => word.text).join(' '),
+    text: draft.words.map((word) => word.text).join(' '),
   }))
 }

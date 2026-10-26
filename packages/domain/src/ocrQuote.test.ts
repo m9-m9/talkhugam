@@ -17,6 +17,29 @@ describe('joinOcrLines', () => {
     )
   })
 
+  it.each([
+    [['나는 오늘 아침에', '책을 읽었다.'], '나는 오늘 아침에 책을 읽었다.'],
+    [['사람들은', '모두 웃었다'], '사람들은 모두 웃었다'],
+    [['도서관에서 빌린 책', '을 펼쳤다'], '도서관에서 빌린 책을 펼쳤다'],
+    [['사람들', '은 모두 웃었다'], '사람들은 모두 웃었다'],
+    [['마음이 따뜻해', '졌다'], '마음이 따뜻해졌다'],
+    [['한참을 걸었', '다'], '한참을 걸었다'],
+  ])('한국어 음절 줄바꿈은 앞 어절 끝 조사·어미를 보고 띄우거나 붙인다 (%j)', (lines, expected) => {
+    expect(joinOcrLines(lines)).toBe(expected)
+  })
+
+  it('앞 줄이 문장부호·닫는 따옴표로 끝나거나 다음 줄이 여는 따옴표·괄호로 시작하면 띄운다', () => {
+    expect(joinOcrLines(['그가 말했다.', '나도 그렇다'])).toBe('그가 말했다. 나도 그렇다')
+    expect(joinOcrLines(['「정말이야」', '그가 웃었다'])).toBe('「정말이야」 그가 웃었다')
+    expect(joinOcrLines(['그가 물었', '「왜?」'])).toBe('그가 물었 「왜?」')
+    expect(joinOcrLines(['조금 쉬었', '(잠깐)'])).toBe('조금 쉬었 (잠깐)')
+  })
+
+  it('영문이나 숫자로 끝나거나 시작하는 줄은 기존처럼 띄운다', () => {
+    expect(joinOcrLines(['hello', 'world'])).toBe('hello world')
+    expect(joinOcrLines(['책 이름은', 'Demian이다'])).toBe('책 이름은 Demian이다')
+  })
+
   it('줄 끝 하이픈 뒤 영문 소문자로 이어지면 하이픈을 지우고 붙인다', () => {
     expect(joinOcrLines(['an extra-', 'ordinary day'])).toBe('an extraordinary day')
   })

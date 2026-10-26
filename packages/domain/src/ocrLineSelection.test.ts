@@ -53,7 +53,7 @@ describe('lineSelection', () => {
     expect(getLineSelectionSummary(lines, ['line-0', 'line-1'])).toEqual({
       isOverLimit: false,
       lineCount: 2,
-      quoteLength: 9,
+      quoteLength: 8,
       texts: ['첫째 줄', '둘째 줄'],
     })
     const longLines = [
