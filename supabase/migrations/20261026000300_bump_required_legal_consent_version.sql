@@ -1,5 +1,8 @@
 -- 개인정보처리방침 개정(완독 기록 -> 책별 별점·총평)에 맞춰 필수 동의 버전을 올린다.
--- 기존 사용자는 이전 버전 동의만 있으므로 다음 실행 때 다시 동의해야 한다.
+-- 새 앱은 packages/domain 의 legalDocumentVersion(2026-10-26.1) 동의가 없으면 다시 동의를 요구한다.
+-- 전환 단계: DB 마이그레이션과 웹 배포·모바일 빌드 배포 시점이 어긋나는 동안 옛 클라이언트도
+-- 동의를 저장할 수 있도록 이전 버전(2026-07-18.2)도 함께 받는다. 그 밖의 버전은 거부한다.
+-- 이전 버전 허용은 후속 마이그레이션에서 제거한다.
 create or replace function public.record_required_legal_consents(
   p_terms_version text,
   p_privacy_version text
@@ -10,7 +13,7 @@ security definer
 set search_path = pg_catalog, public
 as $$
 declare
-  v_required_document_version constant text := '2026-10-26.1';
+  v_accepted_document_versions constant text[] := array['2026-10-26.1', '2026-07-18.2'];
 begin
   if (select auth.uid()) is null then
     raise exception using errcode = 'P0001', message = 'AUTHENTICATION_REQUIRED';
@@ -23,8 +26,8 @@ begin
     raise exception using errcode = 'P0001', message = 'LEGAL_DOCUMENT_VERSION_INVALID';
   end if;
 
-  if p_terms_version <> v_required_document_version
-    or p_privacy_version <> v_required_document_version then
+  if not (p_terms_version = any (v_accepted_document_versions))
+    or not (p_privacy_version = any (v_accepted_document_versions)) then
     raise exception using errcode = 'P0001', message = 'LEGAL_DOCUMENT_VERSION_REQUIRED';
   end if;
 
@@ -37,4 +40,4 @@ end;
 $$;
 
 comment on function public.record_required_legal_consents(text, text) is
-'인증된 사용자가 서버에 고정된 현재 이용약관·개인정보처리방침 버전만 기록하도록 제한한다';
+'인증된 사용자의 이용약관·개인정보처리방침 동의를 기록한다. 전환 단계라 현재 버전 2026-10-26.1과 이전 버전 2026-07-18.2만 받고 그 밖의 버전은 거부한다. 이전 버전 허용은 웹·모바일 배포가 끝난 뒤 후속 마이그레이션에서 제거한다';
