@@ -8,7 +8,7 @@ tags: [talkhugam, onboarding, frontend, supabase]
 
 # Talk후감 빠른 시작
 
-Talk후감은 가까운 사람들과 비공개 **책방**에서 책에 관한 대화, **독후감**, 짧은 독서 순간 영상을 함께 기록하는 모바일 우선 웹 서비스다. Phase 1은 책방당 최대 6명, 책별 대화와 답글·멘션·앱 내 알림, 개인 완독 기록, 30초 영상, Kakao·Naver·Google 로그인을 범위로 둔다. 근거는 [`README.md`](../README.md)와 화면 라우트 정의인 [`apps/web/src/app/router/router.tsx`](../apps/web/src/app/router/router.tsx)다.
+Talk후감은 가까운 사람들과 비공개 **책방**에서 책에 관한 대화, **독후감**, 짧은 독서 순간 영상을 함께 기록하는 모바일 우선 웹 서비스다. Phase 1은 책방당 최대 6명, 책별 대화와 답글·멘션·앱 내 알림, 책별 별점 기록, 30초 영상, Kakao·Naver·Google 로그인을 범위로 둔다. 근거는 [`README.md`](../README.md)와 화면 라우트 정의인 [`apps/web/src/app/router/router.tsx`](../apps/web/src/app/router/router.tsx)다.
 
 ## 먼저 알아둘 용어
 
@@ -23,7 +23,7 @@ Talk후감은 가까운 사람들과 비공개 **책방**에서 책에 관한 �
 | `apps/web` | React/Vite 클라이언트 | `src/main.tsx`, `src/app/router/router.tsx` |
 | `apps/web/src/pages` | 경로 단위 화면 조립 | `pages/rooms`, `pages/profile`, `pages/legal` |
 | `apps/web/src/features` | 인증·피드백·업로드처럼 재사용되는 사용자 행동 | `features/auth`, `features/video-upload` |
-| `apps/web/src/entities` | Supabase 호출, Zod 검증, DB 행→도메인 모델 변환, Query key | `entities/reading-room`, `book-chat`, `book-completion` |
+| `apps/web/src/entities` | Supabase 호출, Zod 검증, DB 행→도메인 모델 변환, Query key | `entities/reading-room`, `book-chat`, `book-rating` |
 | `supabase/migrations` | 스키마, RPC, RLS, worker 스케줄의 변경 이력 | `20260718000500_add_room_management.sql` 등 |
 | `supabase/functions` | 외부 API, webhook, 관리자·삭제 등 서버 경계 | `_shared`, `mux-*`, `account-delete`, `feedback-*` |
 | `supabase/tests` | pgTAP 스키마·RLS·RPC 계약 | `tests/README.md` |

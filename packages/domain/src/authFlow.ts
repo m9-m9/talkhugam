@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const legalDocumentVersion = '2026-07-18.2' as const
+export const legalDocumentVersion = '2026-10-26.1' as const
 
 const legalDocumentIdSchema = z.enum(['terms', 'privacy'])
 const legalConsentRecordsSchema = z.array(

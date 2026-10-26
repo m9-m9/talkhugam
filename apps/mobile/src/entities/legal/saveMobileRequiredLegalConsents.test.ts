@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
+import { legalDocumentVersion } from '@talkhugam/domain'
+
 import { saveMobileRequiredLegalConsents } from './saveMobileRequiredLegalConsents'
 
 describe('saveMobileRequiredLegalConsents', () => {
@@ -19,8 +21,8 @@ describe('saveMobileRequiredLegalConsents', () => {
 
     expect(receivedFunction).toBe('record_required_legal_consents')
     expect(receivedArguments).toEqual({
-      p_privacy_version: '2026-07-18.2',
-      p_terms_version: '2026-07-18.2',
+      p_privacy_version: legalDocumentVersion,
+      p_terms_version: legalDocumentVersion,
     })
   })
 })

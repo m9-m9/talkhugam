@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
+import { legalDocumentVersion } from '@talkhugam/domain'
+
 import { resolveMobileAuthDestination } from './resolveMobileAuthDestination'
 
 /** 인증과 정책 상태를 조회하는 최소 Supabase 응답을 만든다. */
@@ -48,8 +50,8 @@ describe('resolveMobileAuthDestination', () => {
   it('reads the profile with single so Supabase array rows do not reach the domain parser', async () => {
     const client = createClient({
       consents: [
-        { document_type: 'terms', document_version: '2026-07-18.2' },
-        { document_type: 'privacy', document_version: '2026-07-18.2' },
+        { document_type: 'terms', document_version: legalDocumentVersion },
+        { document_type: 'privacy', document_version: legalDocumentVersion },
       ],
       onboardingCompletedAt: '2026-07-16T00:00:00.000Z',
     })
@@ -59,7 +61,19 @@ describe('resolveMobileAuthDestination', () => {
 
   it('sends a completed profile without current policy consent to the legal screen', async () => {
     const client = createClient({
-      consents: [{ document_type: 'terms', document_version: '2026-07-18.2' }],
+      consents: [{ document_type: 'terms', document_version: legalDocumentVersion }],
+      onboardingCompletedAt: '2026-07-16T00:00:00.000Z',
+    })
+
+    await expect(resolveMobileAuthDestination(client)).resolves.toBe('/legal-consent')
+  })
+
+  it('sends a user who consented only to the previous 2026-07-18.2 documents to the legal screen', async () => {
+    const client = createClient({
+      consents: [
+        { document_type: 'terms', document_version: '2026-07-18.2' },
+        { document_type: 'privacy', document_version: '2026-07-18.2' },
+      ],
       onboardingCompletedAt: '2026-07-16T00:00:00.000Z',
     })
 
@@ -69,8 +83,8 @@ describe('resolveMobileAuthDestination', () => {
   it('sends a consented first-run profile to onboarding', async () => {
     const client = createClient({
       consents: [
-        { document_type: 'terms', document_version: '2026-07-18.2' },
-        { document_type: 'privacy', document_version: '2026-07-18.2' },
+        { document_type: 'terms', document_version: legalDocumentVersion },
+        { document_type: 'privacy', document_version: legalDocumentVersion },
       ],
       onboardingCompletedAt: null,
     })

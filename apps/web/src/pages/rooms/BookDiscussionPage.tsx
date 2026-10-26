@@ -16,13 +16,14 @@ import {
   type PostForm,
 } from '../../entities/post'
 import {
-  bookCompletionKeys,
-  getBookChatCompletions,
-  removeBookChatCompletion,
-  upsertBookChatCompletion,
-  type BookChatCompletion,
-  type BookCompletionInput,
-} from '../../entities/book-completion'
+  bookRatingKeys,
+  calculateAverageRating,
+  getBookChatRatings,
+  removeBookChatRating,
+  upsertBookChatRating,
+  type BookChatRating,
+  type BookRatingInput,
+} from '../../entities/book-rating'
 import {
   createMuxThumbnailUrl,
   getVideoFilterMembers,
@@ -37,11 +38,11 @@ import {
 } from '../../entities/video'
 import { useVideoUpload } from '../../features/video-upload'
 import {
-  CompletionReviewForm,
-  invalidateCompletionQueries,
-  removeBookCompletionFromCache,
-  storeBookCompletionInCache,
-} from '../../features/book-completion'
+  invalidateRatingQueries,
+  RatingForm,
+  removeBookRatingFromCache,
+  storeBookRatingInCache,
+} from '../../features/book-rating'
 import { useAuthenticatedUser } from '../../features/auth'
 import { readingRoomKeys } from '../../entities/reading-room'
 import {
@@ -66,11 +67,10 @@ import { getClientEnv } from '../../app/env'
 import { trackAnalyticsEvent } from '../../shared/analytics'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { BottomSheet } from '../../shared/ui/BottomSheet'
-import { CompletionMark } from '../../shared/ui/CompletionMark'
 import { LazyMuxVideoPlayer } from '../../shared/ui/LazyMuxVideoPlayer'
 import { BookLoadingIndicator, BrandLoadingSpinner } from '../../shared/ui/LoadingSpinner'
+import { RatingStars } from '../../shared/ui/RatingStars'
 import { RetryState } from '../../shared/ui/RetryState'
-import { StarIcon } from '../../shared/ui/StarIcon'
 
 type LabelKind = 'page' | 'chapter'
 
@@ -87,13 +87,13 @@ export function BookDiscussionPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isRetryingTimeline, setIsRetryingTimeline] = useState(false)
   const [timelineRetryMessage, setTimelineRetryMessage] = useState<string | null>(null)
-  const [isCompletionSheetOpen, setIsCompletionSheetOpen] = useState(false)
-  const [isCompletionEditorOpen, setIsCompletionEditorOpen] = useState(false)
+  const [isRatingSheetOpen, setIsRatingSheetOpen] = useState(false)
+  const [isRatingEditorOpen, setIsRatingEditorOpen] = useState(false)
   const [createdInvite, setCreatedInvite] = useState<CreatedManagedRoomInvite | null>(null)
   const [inviteRequestMessage, setInviteRequestMessage] = useState<string | null>(null)
   const [inviteShareError, setInviteShareError] = useState<string | null>(null)
   const [isInviteShareSheetOpen, setIsInviteShareSheetOpen] = useState(false)
-  const completionTriggerRef = useRef<HTMLButtonElement>(null)
+  const ratingTriggerRef = useRef<HTMLButtonElement>(null)
   const inviteShareTriggerRef = useRef<HTMLButtonElement>(null)
   const {
     errorMessage: videoErrorMessage,
@@ -161,27 +161,26 @@ export function BookDiscussionPage() {
     staleTime: 4 * 60 * 1_000,
   })
   const thumbnailsByPostId = mapVideoThumbnailAuthorizations(thumbnailsQuery.data ?? [])
-  const completionsQuery = useQuery({
-    enabled: Boolean(bookChatId) && isCompletionSheetOpen,
-    queryFn: () => getBookChatCompletions(createSupabaseClient(), bookChatId ?? '', profileId),
-    queryKey: bookCompletionKeys.byChat(bookChatId ?? ''),
+  const ratingsQuery = useQuery({
+    enabled: Boolean(bookChatId) && isRatingSheetOpen,
+    queryFn: () => getBookChatRatings(createSupabaseClient(), bookChatId ?? '', profileId),
+    queryKey: bookRatingKeys.byChat(bookChatId ?? ''),
   })
-  const completionMutation = useMutation({
-    mutationFn: (input: BookCompletionInput) =>
-      upsertBookChatCompletion(createSupabaseClient(), input),
+  const ratingMutation = useMutation({
+    mutationFn: (input: BookRatingInput) => upsertBookChatRating(createSupabaseClient(), input),
     onSuccess: (_result, input) => {
-      storeBookCompletionInCache(queryClient, { ...input, profileId })
-      setIsCompletionEditorOpen(false)
-      trackAnalyticsEvent('book_completed')
-      invalidateCompletionQueries(queryClient, bookChatId ?? '', profileId)
+      storeBookRatingInCache(queryClient, { ...input, profileId })
+      setIsRatingEditorOpen(false)
+      trackAnalyticsEvent('book_rated')
+      invalidateRatingQueries(queryClient, input.bookChatId, profileId)
     },
   })
-  const completionRemovalMutation = useMutation({
+  const ratingRemovalMutation = useMutation({
     mutationFn: (targetBookChatId: string) =>
-      removeBookChatCompletion(createSupabaseClient(), targetBookChatId),
-    onSuccess: () => {
-      removeBookCompletionFromCache(queryClient, { bookChatId: bookChatId ?? '', profileId })
-      invalidateCompletionQueries(queryClient, bookChatId ?? '', profileId)
+      removeBookChatRating(createSupabaseClient(), targetBookChatId),
+    onSuccess: (_result, targetBookChatId) => {
+      removeBookRatingFromCache(queryClient, { bookChatId: targetBookChatId, profileId })
+      invalidateRatingQueries(queryClient, targetBookChatId, profileId)
     },
   })
 
@@ -226,38 +225,45 @@ export function BookDiscussionPage() {
     })
   }
 
-  /** 완독 기록 시트를 열어 현재 책의 멤버 기록을 확인한다. */
-  function handleOpenCompletionSheet() {
-    setIsCompletionEditorOpen(false)
-    setIsCompletionSheetOpen(true)
+  /** 별점 시트를 열어 현재 책의 평균 별점과 멤버 별점을 확인한다. */
+  function handleOpenRatingSheet() {
+    setIsRatingEditorOpen(false)
+    setIsRatingSheetOpen(true)
   }
 
-  /** 완독 기록 시트를 닫고 메시지 추가 버튼으로 포커스를 돌려준다. */
-  function handleCloseCompletionSheet() {
-    setIsCompletionEditorOpen(false)
-    setIsCompletionSheetOpen(false)
-    completionTriggerRef.current?.focus()
+  /** 별점 시트를 닫고 메시지 추가 버튼으로 포커스를 돌려준다. */
+  function handleCloseRatingSheet() {
+    setIsRatingEditorOpen(false)
+    setIsRatingSheetOpen(false)
+    ratingTriggerRef.current?.focus()
   }
 
-  /** 완독 기록 요약에서 별점과 총평을 작성하거나 수정하는 상태로 전환한다. */
-  function handleOpenCompletionEditor() {
-    setIsCompletionEditorOpen(true)
+  /** 별점 요약에서 내 별점과 총평을 작성하거나 수정하는 상태로 전환한다. */
+  function handleOpenRatingEditor() {
+    ratingMutation.reset()
+    ratingRemovalMutation.reset()
+    setIsRatingEditorOpen(true)
   }
 
-  /** 완독 기록 작성 상태를 닫고 현재의 완독 요약으로 돌아간다. */
-  function handleCloseCompletionEditor() {
-    setIsCompletionEditorOpen(false)
+  /** 별점 작성 상태를 닫고 현재의 별점 요약으로 돌아간다. */
+  function handleCloseRatingEditor() {
+    setIsRatingEditorOpen(false)
   }
 
-  /** 작성한 별점과 총평을 현재 책 대화의 개인 완독 기록으로 저장한다. */
-  function handleSaveCompletion(input: BookCompletionInput) {
-    completionMutation.mutate(input)
+  /** 작성한 별점과 총평을 현재 책 대화의 개인 별점으로 저장한다. */
+  function handleSaveRating(input: BookRatingInput) {
+    ratingMutation.mutate(input)
   }
 
-  /** 현재 사용자의 완독 기록을 제거하고 관련 목록을 최신 상태로 갱신한다. */
-  function handleRemoveCompletion() {
+  /** 불러오지 못한 책 대화 별점을 다시 조회한다. */
+  function handleRetryRatings() {
+    void ratingsQuery.refetch()
+  }
+
+  /** 현재 사용자의 별점을 삭제하고 관련 목록을 최신 상태로 갱신한다. */
+  function handleRemoveRating() {
     if (!bookChatId) return
-    completionRemovalMutation.mutate(bookChatId)
+    ratingRemovalMutation.mutate(bookChatId)
   }
 
   /** 방장이 새 초대 코드를 만들거나 이미 만든 초대를 공유 시트로 연다. */
@@ -387,13 +393,13 @@ export function BookDiscussionPage() {
         onChangeLabels={setLabels}
         onChangeMentionedMemberIds={setMentionedMemberIds}
         onOpenVideoArchive={() => void navigate(`/rooms/${roomId}/books/${bookChatId}/videos`)}
-        onOpenCompletion={handleOpenCompletionSheet}
+        onOpenRating={handleOpenRatingSheet}
         onOpenRoomInvite={handleOpenRoomInvite}
         onRequestRoomInvite={handleRequestRoomInvite}
         onRetryMentionMembers={() => void membersQuery.refetch()}
         onSelectVideo={uploadVideo}
         onSubmit={() => void handleSubmit()}
-        completionTriggerRef={completionTriggerRef}
+        ratingTriggerRef={ratingTriggerRef}
         hasMentionMemberError={membersQuery.isError}
         isRequestingRoomInvite={inviteRequestMutation.isPending}
         isUploadingVideo={isUploadingVideo}
@@ -409,24 +415,27 @@ export function BookDiscussionPage() {
           방장에게 초대 요청을 보내지 못했어요. 다시 시도해 주세요.
         </p>
       ) : null}
-      {isCompletionSheetOpen ? (
-        <CompletionSheet
+      {isRatingSheetOpen ? (
+        <RatingSheet
           bookChatId={bookChatId}
-          completions={completionsQuery.data ?? []}
-          errorMessage={
-            completionMutation.isError || completionRemovalMutation.isError
-              ? '완독 기록을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.'
-              : null
-          }
-          isLoading={completionsQuery.isPending}
-          isEditorOpen={isCompletionEditorOpen}
-          isSaving={completionMutation.isPending || completionRemovalMutation.isPending}
-          onClose={handleCloseCompletionSheet}
-          onCloseEditor={handleCloseCompletionEditor}
-          onOpenEditor={handleOpenCompletionEditor}
-          onRemove={handleRemoveCompletion}
-          onSave={handleSaveCompletion}
-          returnFocusRef={completionTriggerRef}
+          canEdit={bookChatQuery.data?.status !== 'archived'}
+          errorMessage={getRatingMutationErrorMessage(
+            ratingMutation.isError,
+            ratingRemovalMutation.isError,
+          )}
+          isEditorOpen={isRatingEditorOpen}
+          isError={ratingsQuery.isError && ratingsQuery.data === undefined}
+          isLoading={ratingsQuery.isPending}
+          isRetrying={ratingsQuery.isFetching}
+          isSaving={ratingMutation.isPending || ratingRemovalMutation.isPending}
+          onClose={handleCloseRatingSheet}
+          onCloseEditor={handleCloseRatingEditor}
+          onOpenEditor={handleOpenRatingEditor}
+          onRemove={handleRemoveRating}
+          onRetry={handleRetryRatings}
+          onSave={handleSaveRating}
+          ratings={ratingsQuery.data ?? []}
+          returnFocusRef={ratingTriggerRef}
         />
       ) : null}
       {createdInvite !== null && isInviteShareSheetOpen ? (
@@ -543,150 +552,211 @@ function getDiscussionTimelineErrorMessage(
   return null
 }
 
-/** 개인 완독 기록과 책방 멤버의 총평 현황을 하단 시트로 렌더링한다. */
-function CompletionSheet({
-  bookChatId,
-  completions,
-  errorMessage,
-  isEditorOpen,
-  isLoading,
-  isSaving,
-  onClose,
-  onCloseEditor,
-  onOpenEditor,
-  onRemove,
-  onSave,
-  returnFocusRef,
-}: {
+/** 별점 저장·삭제 실패를 구분해 사용자에게 보여 줄 안내 문구를 고른다. */
+function getRatingMutationErrorMessage(hasSaveError: boolean, hasRemoveError: boolean) {
+  if (hasRemoveError) return '별점을 삭제하지 못했어요. 잠시 후 다시 시도해 주세요.'
+  if (hasSaveError) return '별점을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.'
+  return null
+}
+
+type RatingSheetProps = {
   bookChatId: string
-  completions: BookChatCompletion[]
+  canEdit: boolean
   errorMessage: string | null
   isEditorOpen: boolean
+  isError: boolean
   isLoading: boolean
+  isRetrying: boolean
   isSaving: boolean
   onClose: () => void
   onCloseEditor: () => void
   onOpenEditor: () => void
   onRemove: () => void
-  onSave: (input: BookCompletionInput) => void
+  onRetry: () => void
+  onSave: (input: BookRatingInput) => void
+  ratings: BookChatRating[]
   returnFocusRef: RefObject<HTMLElement | null>
-}) {
-  const ownCompletion = completions.find((completion) => completion.isMe)
+}
+
+/** 평균 별점과 멤버별 별점·총평, 내 별점 작성·수정·삭제를 하단 시트로 렌더링한다. */
+function RatingSheet({ onClose, returnFocusRef, ...bodyProps }: RatingSheetProps) {
   return (
-    <BottomSheet onClose={onClose} returnFocusRef={returnFocusRef} title="완독 기록">
-      {isLoading ? <BookLoadingIndicator label="완독 현황을 불러오고 있어요." size="xs" /> : null}
-      {!isLoading ? (
-        <>
-          {isEditorOpen ? (
-            <CompletionReviewForm
-              bookChatId={bookChatId}
-              initialRating={ownCompletion?.rating ?? null}
-              initialReview={ownCompletion?.review ?? null}
-              isSaving={isSaving}
-              key={ownCompletion?.completedAt ?? 'new-completion'}
-              onCancel={onCloseEditor}
-              onSave={onSave}
-              submitLabel={ownCompletion ? '완독 기록 수정' : '완독 기록 저장'}
-            />
-          ) : (
-            <CompletionSummary
-              completionCount={completions.length}
-              hasOwnCompletion={Boolean(ownCompletion)}
-              isSaving={isSaving}
-              onOpenEditor={onOpenEditor}
-              onRemove={onRemove}
-            />
-          )}
-          {errorMessage ? (
-            <p className="mt-3 text-sm text-red-600" role="alert">
-              {errorMessage}
-            </p>
-          ) : null}
-          {!isEditorOpen && completions.length === 0 ? (
-            <p className="text-ink-subtle mt-4 text-sm">아직 완독한 멤버가 없어요.</p>
-          ) : null}
-          {!isEditorOpen && completions.length > 0 ? (
-            <ul className="mt-4 space-y-3" aria-label="완독한 멤버">
-              {completions.map((completion) => (
-                <li
-                  className="border-ink/10 border-t pt-3 first:border-t-0 first:pt-0"
-                  key={completion.profileId}
-                >
-                  <p className="text-ink text-sm font-semibold">
-                    {completion.isMe ? '나' : completion.displayName}
-                  </p>
-                  {completion.rating ? (
-                    <p className="text-primary mt-1 flex items-center gap-1">
-                      {Array.from({ length: completion.rating }, (_, index) => (
-                        <StarIcon className="size-4" filled key={index} />
-                      ))}
-                      <span className="sr-only">{completion.rating}점</span>
-                    </p>
-                  ) : null}
-                  {completion.review ? (
-                    <p className="text-ink-subtle mt-1 text-sm">{completion.review}</p>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </>
-      ) : null}
+    <BottomSheet onClose={onClose} returnFocusRef={returnFocusRef} title="별점">
+      <RatingSheetBody {...bodyProps} />
     </BottomSheet>
   )
 }
 
-/** 현재 사용자의 완독 여부에 맞는 작성 또는 수정 CTA를 렌더링한다. */
-function CompletionSummary({
-  completionCount,
-  hasOwnCompletion,
+/**
+ * 별점 시트 본문을 조회 상태에 맞게 렌더링한다. 조회 중이거나 실패했을 때는 빈 입력으로
+ * 기존 별점을 덮어쓰지 않도록 작성·수정·삭제를 숨기고, 보관된 책 대화에서는 읽기만 허용한다.
+ */
+function RatingSheetBody({
+  bookChatId,
+  canEdit,
+  errorMessage,
+  isEditorOpen,
+  isError,
+  isLoading,
+  isRetrying,
+  isSaving,
+  onCloseEditor,
+  onOpenEditor,
+  onRemove,
+  onRetry,
+  onSave,
+  ratings,
+}: Omit<RatingSheetProps, 'onClose' | 'returnFocusRef'>) {
+  if (isLoading) return <BookLoadingIndicator label="별점을 불러오고 있어요." size="xs" />
+  if (isError)
+    return (
+      <RetryState
+        isRetrying={isRetrying}
+        message="별점을 불러오지 못했어요. 다시 시도해 주세요."
+        onRetry={onRetry}
+        retryLabel="별점 다시 시도"
+      />
+    )
+
+  const ownRating = ratings.find((rating) => rating.isMe)
+  const isEditing = canEdit && isEditorOpen
+  return (
+    <>
+      {isEditing ? (
+        <RatingForm
+          bookChatId={bookChatId}
+          initialRating={ownRating?.rating ?? null}
+          initialReview={ownRating?.review ?? null}
+          isSaving={isSaving}
+          key={ownRating?.updatedAt ?? 'new-rating'}
+          onCancel={onCloseEditor}
+          onSave={onSave}
+          submitLabel={ownRating ? '별점 수정' : '별점 저장'}
+        />
+      ) : (
+        <RatingSummary
+          averageRating={calculateAverageRating(ratings)}
+          canEdit={canEdit}
+          hasOwnRating={Boolean(ownRating)}
+          isSaving={isSaving}
+          onOpenEditor={onOpenEditor}
+          onRemove={onRemove}
+          ratingCount={ratings.length}
+        />
+      )}
+      {errorMessage ? (
+        <p className="mt-3 text-sm text-red-600" role="alert">
+          {errorMessage}
+        </p>
+      ) : null}
+      {!isEditing ? <MemberRatingList ratings={ratings} /> : null}
+    </>
+  )
+}
+
+/** 평균 별점과, 편집할 수 있을 때 현재 사용자의 별점 여부에 맞는 작성·수정·삭제 CTA를 렌더링한다. */
+function RatingSummary({
+  averageRating,
+  canEdit,
+  hasOwnRating,
+  isSaving,
+  onOpenEditor,
+  onRemove,
+  ratingCount,
+}: {
+  averageRating: number | null
+  canEdit: boolean
+  hasOwnRating: boolean
+  isSaving: boolean
+  onOpenEditor: () => void
+  onRemove: () => void
+  ratingCount: number
+}) {
+  return (
+    <div className="border-ink/10 mt-4 border-t pt-4">
+      <p className="text-ink text-sm font-semibold tabular-nums">
+        {averageRating === null ? '아직 평균 별점이 없어요' : `평균 ${averageRating}`}
+        <span className="text-ink-subtle ml-2 font-normal">{ratingCount}명 참여</span>
+      </p>
+      {canEdit ? (
+        <RatingActions
+          hasOwnRating={hasOwnRating}
+          isSaving={isSaving}
+          onOpenEditor={onOpenEditor}
+          onRemove={onRemove}
+        />
+      ) : null}
+    </div>
+  )
+}
+
+/** 현재 사용자의 별점 여부에 맞는 작성·수정·삭제 버튼을 렌더링한다. */
+function RatingActions({
+  hasOwnRating,
   isSaving,
   onOpenEditor,
   onRemove,
 }: {
-  completionCount: number
-  hasOwnCompletion: boolean
+  hasOwnRating: boolean
   isSaving: boolean
   onOpenEditor: () => void
   onRemove: () => void
 }) {
   return (
-    <div className="border-ink/10 mt-4 border-t pt-4">
-      <p className="text-ink text-sm font-semibold tabular-nums">
-        함께 읽은 기록 · {completionCount}명 완독
-      </p>
-      <div className="mt-3 flex items-center gap-2">
-        {hasOwnCompletion ? <CompletionMark label="내 완독" /> : null}
+    <div className="mt-3 flex flex-wrap items-center gap-2">
+      <SeedActionButton
+        className="talkhugam-foundation-action--outline"
+        disabled={isSaving}
+        onClick={onOpenEditor}
+        size="medium"
+        type="button"
+        variant="neutralOutline"
+      >
+        {hasOwnRating ? '별점 수정' : '별점 남기기'}
+      </SeedActionButton>
+      {hasOwnRating ? (
         <SeedActionButton
-          className="talkhugam-primary-action"
+          className="talkhugam-foundation-action--outline"
           disabled={isSaving}
-          onClick={onOpenEditor}
+          onClick={onRemove}
           size="medium"
           type="button"
-          variant="brandSolid"
+          variant="neutralOutline"
         >
-          {hasOwnCompletion ? '완독 기록 수정' : '완독하기'}
+          별점 삭제
         </SeedActionButton>
-        {hasOwnCompletion ? (
-          <SeedActionButton
-            className="talkhugam-foundation-action--outline"
-            disabled={isSaving}
-            onClick={onRemove}
-            size="medium"
-            type="button"
-            variant="neutralOutline"
-          >
-            완독 취소
-          </SeedActionButton>
-        ) : null}
-      </div>
+      ) : null}
     </div>
+  )
+}
+
+/** 책방 멤버가 남긴 별점과 총평을 목록으로 렌더링한다. */
+function MemberRatingList({ ratings }: { ratings: BookChatRating[] }) {
+  if (ratings.length === 0)
+    return <p className="text-ink-subtle mt-4 text-sm">아직 별점을 남긴 멤버가 없어요.</p>
+
+  return (
+    <ul className="mt-4 space-y-3" aria-label="멤버 별점">
+      {ratings.map((rating) => (
+        <li
+          className="border-ink/10 border-t pt-3 first:border-t-0 first:pt-0"
+          key={rating.profileId}
+        >
+          <p className="text-ink text-sm font-semibold">
+            {rating.isMe ? '나' : rating.displayName}
+          </p>
+          <p className="mt-1">
+            <RatingStars rating={rating.rating} />
+          </p>
+          {rating.review ? <p className="text-ink-subtle mt-1 text-sm">{rating.review}</p> : null}
+        </li>
+      ))}
+    </ul>
   )
 }
 
 /** 대화 입력창 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function ChatComposer({
-  completionTriggerRef,
   errorMessage,
   hasMentionMemberError,
   isReplying,
@@ -699,17 +769,17 @@ function ChatComposer({
   onChangeDraft,
   onChangeLabels,
   onChangeMentionedMemberIds,
-  onOpenCompletion,
+  onOpenRating,
   onOpenRoomInvite,
   onRequestRoomInvite,
   onOpenVideoArchive,
   onRetryMentionMembers,
   onSelectVideo,
   onSubmit,
+  ratingTriggerRef,
   value,
   inviteTriggerRef,
 }: {
-  completionTriggerRef: RefObject<HTMLButtonElement | null>
   errorMessage: string | null
   hasMentionMemberError: boolean
   isReplying: boolean
@@ -722,13 +792,14 @@ function ChatComposer({
   onChangeDraft: (value: string) => void
   onChangeLabels: (labels: PostForm['labels']) => void
   onChangeMentionedMemberIds: (mentionedMemberIds: PostForm['mentionedMemberIds']) => void
-  onOpenCompletion: () => void
+  onOpenRating: () => void
   onOpenRoomInvite: () => void
   onRequestRoomInvite: () => void
   onOpenVideoArchive: () => void
   onRetryMentionMembers: () => void
   onSelectVideo: (file: File | undefined) => void
   onSubmit: () => void
+  ratingTriggerRef: RefObject<HTMLButtonElement | null>
   value: string
   inviteTriggerRef: RefObject<HTMLButtonElement | null>
 }) {
@@ -965,13 +1036,13 @@ function ChatComposer({
               <SeedActionButton
                 className="talkhugam-action-sheet-choice"
                 onClick={() => {
-                  completionTriggerRef.current = actionMenuButtonRef.current
+                  ratingTriggerRef.current = actionMenuButtonRef.current
                   handleCloseActionTray(false)
-                  onOpenCompletion()
+                  onOpenRating()
                 }}
                 variant="neutralWeak"
               >
-                완독 기록
+                별점
               </SeedActionButton>
               {isCurrentUserOwner ? (
                 <SeedActionButton

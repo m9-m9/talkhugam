@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   hasRequiredLegalConsent,
+  legalDocumentVersion,
   parseOnboardingStatus,
   parseLegalConsentRecords,
   resolveAuthDestination,
@@ -11,10 +12,19 @@ describe('authentication flow domain', () => {
   it('accepts consent only when every current required document has been recorded', () => {
     expect(
       hasRequiredLegalConsent([
+        { document_type: 'terms', document_version: legalDocumentVersion },
+        { document_type: 'privacy', document_version: legalDocumentVersion },
+      ]),
+    ).toBe(true)
+  })
+
+  it('rejects consent recorded only for the previous 2026-07-18.2 version', () => {
+    expect(
+      hasRequiredLegalConsent([
         { document_type: 'terms', document_version: '2026-07-18.2' },
         { document_type: 'privacy', document_version: '2026-07-18.2' },
       ]),
-    ).toBe(true)
+    ).toBe(false)
   })
 
   it('rejects malformed consent records before they are used for an access decision', () => {

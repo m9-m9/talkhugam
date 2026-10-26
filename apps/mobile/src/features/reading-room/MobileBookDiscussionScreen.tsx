@@ -1,13 +1,14 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   bookChatKeys,
-  bookCompletionKeys,
-  parseBookCompletionInput,
+  bookRatingKeys,
+  calculateAverageRating,
+  parseBookRatingInput,
   parsePostForm,
   postKeys,
   readingRoomKeys,
-  type BookChatCompletion,
-  type BookCompletionInput,
+  type BookChatRating,
+  type BookRatingInput,
   type DiscussionPost,
   type PostForm,
 } from '@talkhugam/domain'
@@ -33,10 +34,10 @@ import {
   type MobileDiscussionMember,
 } from '../../entities/post'
 import {
-  getMobileBookChatCompletions,
-  removeMobileBookChatCompletion,
-  upsertMobileBookChatCompletion,
-} from '../../entities/book-completion'
+  getMobileBookChatRatings,
+  removeMobileBookChatRating,
+  upsertMobileBookChatRating,
+} from '../../entities/book-rating'
 import { getMobileDiscussionBookChat } from '../../entities/reading-room'
 import { useMobileSessionProfileId } from '../../shared/api/MobileAppProviders'
 import { createMobileSupabaseClient } from '../../shared/api/mobileSupabaseClient'
@@ -69,12 +70,12 @@ export function MobileBookDiscussionScreen({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [failedSubmission, setFailedSubmission] = useState<Submission | null>(null)
-  const [isCompletionSheetOpen, setIsCompletionSheetOpen] = useState(false)
-  const [isCompletionEditorOpen, setIsCompletionEditorOpen] = useState(false)
-  const [completionRating, setCompletionRating] = useState<number | null>(null)
-  const [completionReview, setCompletionReview] = useState('')
-  const [completionError, setCompletionError] = useState<string | null>(null)
-  const [isCompletionSaving, setIsCompletionSaving] = useState(false)
+  const [isRatingSheetOpen, setIsRatingSheetOpen] = useState(false)
+  const [isRatingEditorOpen, setIsRatingEditorOpen] = useState(false)
+  const [selectedRating, setSelectedRating] = useState<number | null>(null)
+  const [ratingReview, setRatingReview] = useState('')
+  const [ratingError, setRatingError] = useState<string | null>(null)
+  const [isRatingSaving, setIsRatingSaving] = useState(false)
 
   /** 경로의 책방과 일치하는 책 대화만 RLS 범위에서 조회한다. */
   async function fetchBookChat() {
@@ -111,19 +112,19 @@ export function MobileBookDiscussionScreen({
     queryKey: ['mobile-discussion-members', roomId],
   })
 
-  /** 현재 로그인 회원을 기준으로 책 대화 완독 기록과 방 멤버 표시명을 함께 읽어 온다. */
-  async function fetchCompletions(): Promise<BookChatCompletion[]> {
+  /** 현재 로그인 회원을 기준으로 책 대화 별점과 방 멤버 표시명을 함께 읽어 온다. */
+  async function fetchRatings(): Promise<BookChatRating[]> {
     if (profileId === null) return []
-    return getMobileBookChatCompletions(createMobileSupabaseClient(), bookChatId, profileId)
+    return getMobileBookChatRatings(createMobileSupabaseClient(), bookChatId, profileId)
   }
 
-  const completionsQuery = useQuery({
+  const ratingsQuery = useQuery({
     enabled:
       profileId !== null &&
       bookChatQuery.data !== null &&
       bookChatQuery.data !== undefined,
-    queryFn: fetchCompletions,
-    queryKey: bookCompletionKeys.byChat(bookChatId),
+    queryFn: fetchRatings,
+    queryKey: bookRatingKeys.byChat(bookChatId),
   })
 
   /** 저장할 값과 멘션 대상을 검증해 한 번의 제출에 사용할 입력 모델로 만든다. */
@@ -224,81 +225,81 @@ export function MobileBookDiscussionScreen({
     onOpenVideoArchive?.()
   }
 
-  /** 완독 기록 시트를 열고 기존 기록은 목록 상태로 먼저 확인하도록 한다. */
-  function handleOpenCompletionSheet(): void {
-    setCompletionError(null)
-    setIsCompletionEditorOpen(false)
-    setIsCompletionSheetOpen(true)
+  /** 별점 시트를 열고 기존 기록은 목록 상태로 먼저 확인하도록 한다. */
+  function handleOpenRatingSheet(): void {
+    setRatingError(null)
+    setIsRatingEditorOpen(false)
+    setIsRatingSheetOpen(true)
   }
 
-  /** 완독 기록 시트와 작성 중이던 입력을 닫아 다음 열기에서 최신 데이터를 사용한다. */
-  function handleCloseCompletionSheet(): void {
-    if (isCompletionSaving) return
-    setCompletionError(null)
-    setIsCompletionEditorOpen(false)
-    setIsCompletionSheetOpen(false)
+  /** 별점 시트와 작성 중이던 입력을 닫아 다음 열기에서 최신 데이터를 사용한다. */
+  function handleCloseRatingSheet(): void {
+    if (isRatingSaving) return
+    setRatingError(null)
+    setIsRatingEditorOpen(false)
+    setIsRatingSheetOpen(false)
   }
 
-  /** 현재 회원의 기존 완독 값 또는 빈 입력으로 별점·총평 편집 상태를 연다. */
-  function handleOpenCompletionEditor(): void {
-    const ownCompletion = completionsQuery.data?.find((completion) => completion.isMe)
-    setCompletionRating(ownCompletion?.rating ?? null)
-    setCompletionReview(ownCompletion?.review ?? '')
-    setCompletionError(null)
-    setIsCompletionEditorOpen(true)
+  /** 현재 회원의 기존 별점 값 또는 빈 입력으로 별점·총평 편집 상태를 연다. */
+  function handleOpenRatingEditor(): void {
+    const ownRating = ratingsQuery.data?.find((rating) => rating.isMe)
+    setSelectedRating(ownRating?.rating ?? null)
+    setRatingReview(ownRating?.review ?? '')
+    setRatingError(null)
+    setIsRatingEditorOpen(true)
   }
 
-  /** 편집 상태만 닫고 완독 멤버 목록과 기존 저장 내용은 유지한다. */
-  function handleCancelCompletionEditor(): void {
-    if (isCompletionSaving) return
-    setCompletionError(null)
-    setIsCompletionEditorOpen(false)
+  /** 편집 상태만 닫고 별점 멤버 목록과 기존 저장 내용은 유지한다. */
+  function handleCancelRatingEditor(): void {
+    if (isRatingSaving) return
+    setRatingError(null)
+    setIsRatingEditorOpen(false)
   }
 
-  /** 별점과 천 자 이내 총평을 검증해 현재 회원의 완독 기록으로 저장한다. */
-  async function handleSaveCompletion(): Promise<void> {
-    if (profileId === null || isCompletionSaving) return
+  /** 별점과 천 자 이내 총평을 검증해 현재 회원의 별점으로 저장한다. */
+  async function handleSaveRating(): Promise<void> {
+    if (profileId === null || isRatingSaving) return
 
-    let input: BookCompletionInput
+    let input: BookRatingInput
     try {
-      input = parseBookCompletionInput({
+      input = parseBookRatingInput({
         bookChatId,
-        rating: completionRating,
-        review: completionReview.trim() || null,
+        rating: selectedRating,
+        review: ratingReview.trim() || null,
       })
     } catch {
-      setCompletionError('별점은 1점부터 5점까지, 총평은 1,000자 이내로 남겨 주세요.')
+      setRatingError('별점은 1점부터 5점까지, 총평은 1,000자 이내로 남겨 주세요.')
       return
     }
 
-    setIsCompletionSaving(true)
-    setCompletionError(null)
+    setIsRatingSaving(true)
+    setRatingError(null)
     try {
-      await upsertMobileBookChatCompletion(createMobileSupabaseClient(), input)
-      setIsCompletionEditorOpen(false)
-      await invalidateCompletionCaches(queryClient, bookChatId, profileId)
-      await completionsQuery.refetch()
+      await upsertMobileBookChatRating(createMobileSupabaseClient(), input)
+      setIsRatingEditorOpen(false)
+      await invalidateRatingCaches(queryClient, bookChatId, profileId)
+      await ratingsQuery.refetch()
     } catch {
-      setCompletionError('완독 기록을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.')
+      setRatingError('별점을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.')
     } finally {
-      setIsCompletionSaving(false)
+      setIsRatingSaving(false)
     }
   }
 
-  /** 현재 회원의 완독 기록만 제거하고 책방·내 정보 화면의 관련 캐시를 갱신한다. */
-  async function handleRemoveCompletion(): Promise<void> {
-    if (profileId === null || isCompletionSaving) return
+  /** 현재 회원의 별점만 제거하고 관련 화면의 캐시를 갱신한다. */
+  async function handleRemoveRating(): Promise<void> {
+    if (profileId === null || isRatingSaving) return
 
-    setIsCompletionSaving(true)
-    setCompletionError(null)
+    setIsRatingSaving(true)
+    setRatingError(null)
     try {
-      await removeMobileBookChatCompletion(createMobileSupabaseClient(), bookChatId)
-      await invalidateCompletionCaches(queryClient, bookChatId, profileId)
-      await completionsQuery.refetch()
+      await removeMobileBookChatRating(createMobileSupabaseClient(), bookChatId)
+      await invalidateRatingCaches(queryClient, bookChatId, profileId)
+      await ratingsQuery.refetch()
     } catch {
-      setCompletionError('완독 기록을 취소하지 못했어요. 잠시 후 다시 시도해 주세요.')
+      setRatingError('별점을 삭제하지 못했어요. 잠시 후 다시 시도해 주세요.')
     } finally {
-      setIsCompletionSaving(false)
+      setIsRatingSaving(false)
     }
   }
 
@@ -336,12 +337,12 @@ export function MobileBookDiscussionScreen({
             </Pressable>
           ) : null}
           <Pressable
-            accessibilityLabel="완독 기록"
+            accessibilityLabel="별점"
             accessibilityRole="button"
-            onPress={handleOpenCompletionSheet}
-            style={styles.completionHeaderAction}
+            onPress={handleOpenRatingSheet}
+            style={styles.ratingHeaderAction}
           >
-            <Text style={styles.completionHeaderActionText}>완독</Text>
+            <Text style={styles.ratingHeaderActionText}>별점</Text>
           </Pressable>
         </View>
         <ScrollView contentContainerStyle={styles.timeline} keyboardShouldPersistTaps="handled">
@@ -433,25 +434,25 @@ export function MobileBookDiscussionScreen({
           </View>
         </View>
         )}
-        {isCompletionSheetOpen ? (
-          <CompletionSheet
-            completions={completionsQuery.data ?? []}
-            completionError={completionError}
-            completionRating={completionRating}
-            completionReview={completionReview}
+        {isRatingSheetOpen ? (
+          <RatingSheet
+            ratings={ratingsQuery.data ?? []}
+            ratingError={ratingError}
+            selectedRating={selectedRating}
+            ratingReview={ratingReview}
             isArchived={isArchived}
-            isEditorOpen={isCompletionEditorOpen}
-            isError={completionsQuery.isError}
-            isLoading={completionsQuery.isPending}
-            isSaving={isCompletionSaving}
-            onCancelEditor={handleCancelCompletionEditor}
-            onClose={handleCloseCompletionSheet}
-            onOpenEditor={handleOpenCompletionEditor}
-            onRemove={handleRemoveCompletion}
-            onRetry={() => void completionsQuery.refetch()}
-            onReviewChange={setCompletionReview}
-            onSave={handleSaveCompletion}
-            onSelectRating={setCompletionRating}
+            isEditorOpen={isRatingEditorOpen}
+            isError={ratingsQuery.isError}
+            isLoading={ratingsQuery.isPending}
+            isSaving={isRatingSaving}
+            onCancelEditor={handleCancelRatingEditor}
+            onClose={handleCloseRatingSheet}
+            onOpenEditor={handleOpenRatingEditor}
+            onRemove={handleRemoveRating}
+            onRetry={() => void ratingsQuery.refetch()}
+            onReviewChange={setRatingReview}
+            onSave={handleSaveRating}
+            onSelectRating={setSelectedRating}
           />
         ) : null}
       </KeyboardAvoidingView>
@@ -647,11 +648,11 @@ function createSubmissionClientId(): string {
   return globalThis.crypto.randomUUID()
 }
 
-type CompletionSheetProps = {
-  completionError: string | null
-  completionRating: number | null
-  completionReview: string
-  completions: readonly BookChatCompletion[]
+type RatingSheetProps = {
+  ratingError: string | null
+  selectedRating: number | null
+  ratingReview: string
+  ratings: readonly BookChatRating[]
   isArchived: boolean
   isEditorOpen: boolean
   isError: boolean
@@ -667,12 +668,12 @@ type CompletionSheetProps = {
   onSelectRating(rating: number): void
 }
 
-/** 책 대화의 완독 멤버 현황과 현재 회원의 작성·수정·취소 제어를 하단 시트로 표시한다. */
-function CompletionSheet({
-  completionError,
-  completionRating,
-  completionReview,
-  completions,
+/** 평균 별점과 멤버 별점, 현재 회원의 작성·수정·삭제 제어를 하단 시트로 표시한다. */
+function RatingSheet({
+  ratingError,
+  selectedRating,
+  ratingReview,
+  ratings,
   isArchived,
   isEditorOpen,
   isError,
@@ -686,66 +687,67 @@ function CompletionSheet({
   onReviewChange,
   onSave,
   onSelectRating,
-}: CompletionSheetProps): React.JSX.Element {
-  const ownCompletion = completions.find((completion) => completion.isMe)
+}: RatingSheetProps): React.JSX.Element {
+  const ownRating = ratings.find((rating) => rating.isMe)
 
   return (
     <View
-      accessibilityLabel="완독 기록 시트"
+      accessibilityLabel="별점 시트"
       accessibilityViewIsModal
-      style={styles.completionBackdrop}
+      style={styles.ratingBackdrop}
     >
-      <View style={styles.completionSheet}>
-        <View style={styles.completionSheetHeader}>
-          <Text style={styles.completionSheetTitle}>완독 기록</Text>
+      <View style={styles.ratingSheet}>
+        <View style={styles.ratingSheetHeader}>
+          <Text style={styles.ratingSheetTitle}>별점</Text>
           <Pressable
-            accessibilityLabel="완독 기록 닫기"
+            accessibilityLabel="별점 닫기"
             accessibilityRole="button"
             disabled={isSaving}
             onPress={onClose}
-            style={styles.completionCloseAction}
+            style={styles.ratingCloseAction}
           >
-            <Text style={styles.completionCloseActionText}>닫기</Text>
+            <Text style={styles.ratingCloseActionText}>닫기</Text>
           </Pressable>
         </View>
-        {isLoading ? <CompletionLoadingState /> : null}
-        {!isLoading && isError ? <CompletionErrorState onRetry={onRetry} /> : null}
+        {isLoading ? <RatingLoadingState /> : null}
+        {!isLoading && isError ? <RatingErrorState onRetry={onRetry} /> : null}
         {!isLoading && !isError && isEditorOpen ? (
-          <CompletionEditor
-            error={completionError}
+          <RatingEditor
+            error={ratingError}
             isSaving={isSaving}
             onCancel={onCancelEditor}
             onReviewChange={onReviewChange}
             onSave={onSave}
             onSelectRating={onSelectRating}
-            rating={completionRating}
-            review={completionReview}
+            rating={selectedRating}
+            review={ratingReview}
           />
         ) : null}
         {!isLoading && !isError && !isEditorOpen ? (
           <>
-            <CompletionRoster completions={completions} />
-            {completionError ? <Text accessibilityRole="alert" style={styles.saveError}>{completionError}</Text> : null}
+            <RatingAverage ratings={ratings} />
+            <RatingRoster ratings={ratings} />
+            {ratingError ? <Text accessibilityRole="alert" style={styles.saveError}>{ratingError}</Text> : null}
             {!isArchived ? (
-              <View style={styles.completionActions}>
+              <View style={styles.sheetActions}>
                 <Pressable
-                  accessibilityLabel={ownCompletion ? '완독 기록 수정' : '완독하기'}
+                  accessibilityLabel={ownRating ? '수정하기' : '별점 남기기'}
                   accessibilityRole="button"
                   disabled={isSaving}
                   onPress={onOpenEditor}
-                  style={styles.completionPrimaryAction}
+                  style={styles.ratingPrimaryAction}
                 >
-                  <Text style={styles.completionPrimaryActionText}>{ownCompletion ? '완독 기록 수정' : '완독하기'}</Text>
+                  <Text style={styles.ratingPrimaryActionText}>{ownRating ? '수정하기' : '별점 남기기'}</Text>
                 </Pressable>
-                {ownCompletion ? (
+                {ownRating ? (
                   <Pressable
-                    accessibilityLabel="완독 취소"
+                    accessibilityLabel="별점 삭제"
                     accessibilityRole="button"
                     disabled={isSaving}
                     onPress={onRemove}
-                    style={styles.completionSecondaryAction}
+                    style={styles.ratingSecondaryAction}
                   >
-                    <Text style={styles.completionSecondaryActionText}>완독 취소</Text>
+                    <Text style={styles.ratingSecondaryActionText}>별점 삭제</Text>
                   </Pressable>
                 ) : null}
               </View>
@@ -757,46 +759,60 @@ function CompletionSheet({
   )
 }
 
-/** 완독 현황 조회 실패를 알리고 같은 책 대화 범위에서만 다시 불러온다. */
-function CompletionErrorState({ onRetry }: { onRetry(): void }): React.JSX.Element {
+/** 별점 조회 실패를 알리고 같은 책 대화 범위에서만 다시 불러온다. */
+function RatingErrorState({ onRetry }: { onRetry(): void }): React.JSX.Element {
   return (
-    <View style={styles.completionLoadingState}>
-      <Text accessibilityRole="alert" style={styles.errorText}>완독 현황을 불러오지 못했어요. 다시 시도해 주세요.</Text>
-      <SecondaryAction label="완독 현황 다시 시도" onPress={onRetry} />
+    <View style={styles.ratingLoadingState}>
+      <Text accessibilityRole="alert" style={styles.errorText}>별점을 불러오지 못했어요. 다시 시도해 주세요.</Text>
+      <SecondaryAction label="별점 다시 시도" onPress={onRetry} />
     </View>
   )
 }
 
-/** 완독 현황을 기다리는 동안 시트 안에서 짧은 진행 상태를 제공한다. */
-function CompletionLoadingState(): React.JSX.Element {
+/** 별점을 기다리는 동안 시트 안에서 짧은 진행 상태를 제공한다. */
+function RatingLoadingState(): React.JSX.Element {
   return (
-    <View accessibilityLabel="완독 현황을 불러오고 있어요." accessibilityRole="progressbar" style={styles.completionLoadingState}>
+    <View accessibilityLabel="별점을 불러오고 있어요." accessibilityRole="progressbar" style={styles.ratingLoadingState}>
       <ActivityIndicator color="#FF835F" />
-      <Text style={styles.stateText}>완독 현황을 불러오고 있어요.</Text>
+      <Text style={styles.stateText}>별점을 불러오고 있어요.</Text>
     </View>
   )
 }
 
-/** 책방 멤버가 남긴 별점과 총평을 개인 표시와 함께 시간순으로 렌더링한다. */
-function CompletionRoster({ completions }: { completions: readonly BookChatCompletion[] }): React.JSX.Element {
-  if (completions.length === 0) {
-    return <Text style={styles.completionEmptyText}>아직 완독한 멤버가 없어요.</Text>
+/** 멤버 별점의 평균과 참여 인원을 계산해 시트 상단에 표시한다. */
+function RatingAverage({ ratings }: { ratings: readonly BookChatRating[] }): React.JSX.Element {
+  const average = calculateAverageRating([...ratings])
+
+  return (
+    <View style={styles.ratingAverage}>
+      <Text style={styles.ratingAverageText}>
+        {average === null ? '아직 평균 별점이 없어요' : `평균 ${average}`}
+      </Text>
+      {average === null ? null : <Text style={styles.ratingCountText}>{`${ratings.length}명 참여`}</Text>}
+    </View>
+  )
+}
+
+/** 책방 멤버가 남긴 별점과 총평을 개인 표시와 함께 렌더링한다. */
+function RatingRoster({ ratings }: { ratings: readonly BookChatRating[] }): React.JSX.Element {
+  if (ratings.length === 0) {
+    return <Text style={styles.ratingEmptyText}>아직 별점을 남긴 멤버가 없어요.</Text>
   }
 
   return (
-    <View accessibilityLabel="완독한 멤버" style={styles.completionRoster}>
-      {completions.map((completion) => (
-        <View key={completion.profileId} style={styles.completionMember}>
-          <Text style={styles.completionMemberName}>{completion.isMe ? '나' : completion.displayName}</Text>
-          {completion.rating ? <Text accessibilityLabel={`${completion.rating}점`} style={styles.completionRatingText}>{'★'.repeat(completion.rating)}</Text> : null}
-          {completion.review ? <Text style={styles.completionReviewText}>{completion.review}</Text> : null}
+    <View accessibilityLabel="멤버 별점" style={styles.ratingRoster}>
+      {ratings.map((rating) => (
+        <View key={rating.profileId} style={styles.ratingMember}>
+          <Text style={styles.ratingMemberName}>{rating.isMe ? '나' : rating.displayName}</Text>
+          {rating.rating ? <Text accessibilityLabel={`${rating.rating}점`} style={styles.memberRatingText}>{'★'.repeat(rating.rating)}</Text> : null}
+          {rating.review ? <Text style={styles.ratingReviewText}>{rating.review}</Text> : null}
         </View>
       ))}
     </View>
   )
 }
 
-type CompletionEditorProps = {
+type RatingEditorProps = {
   error: string | null
   isSaving: boolean
   onCancel(): void
@@ -807,8 +823,8 @@ type CompletionEditorProps = {
   review: string
 }
 
-/** 별점과 천 자 이내 총평을 입력해 개인 완독 기록으로 저장하는 편집기를 표시한다. */
-function CompletionEditor({
+/** 별점과 천 자 이내 총평을 입력해 개인 별점으로 저장하는 편집기를 표시한다. */
+function RatingEditor({
   error,
   isSaving,
   onCancel,
@@ -817,10 +833,10 @@ function CompletionEditor({
   onSelectRating,
   rating,
   review,
-}: CompletionEditorProps): React.JSX.Element {
+}: RatingEditorProps): React.JSX.Element {
   return (
-    <View style={styles.completionEditor}>
-      <Text style={styles.completionEditorLabel}>별점</Text>
+    <View style={styles.ratingEditor}>
+      <Text style={styles.ratingEditorLabel}>별점</Text>
       <View accessibilityLabel="별점 선택" style={styles.ratingActions}>
         {[1, 2, 3, 4, 5].map((score) => (
           <Pressable
@@ -841,43 +857,40 @@ function CompletionEditor({
         maxLength={1000}
         multiline
         onChangeText={onReviewChange}
-        placeholder="이 책을 다 읽고 남은 생각을 적어 주세요."
+        placeholder="이 책에 대한 생각을 적어 주세요. (선택)"
         placeholderTextColor="#8C8C8C"
-        style={styles.completionReviewInput}
+        style={styles.ratingReviewInput}
         value={review}
       />
-      <Text accessibilityLabel={`총평 ${review.length}자`} style={styles.completionLengthText}>{review.length}/1000</Text>
+      <Text accessibilityLabel={`총평 ${review.length}자`} style={styles.ratingLengthText}>{review.length}/1000</Text>
       {error ? <Text accessibilityRole="alert" style={styles.saveError}>{error}</Text> : null}
-      <View style={styles.completionActions}>
-        <Pressable accessibilityLabel="취소" accessibilityRole="button" disabled={isSaving} onPress={onCancel} style={styles.completionSecondaryAction}>
-          <Text style={styles.completionSecondaryActionText}>취소</Text>
+      <View style={styles.sheetActions}>
+        <Pressable accessibilityLabel="취소" accessibilityRole="button" disabled={isSaving} onPress={onCancel} style={styles.ratingSecondaryAction}>
+          <Text style={styles.ratingSecondaryActionText}>취소</Text>
         </Pressable>
         <Pressable
-          accessibilityLabel="완독 기록 저장"
+          accessibilityLabel="별점 저장"
           accessibilityRole="button"
           disabled={isSaving}
           onPress={onSave}
-          style={[styles.completionPrimaryAction, isSaving && styles.submitActionDisabled]}
+          style={[styles.ratingPrimaryAction, isSaving && styles.submitActionDisabled]}
         >
-          {isSaving ? <ActivityIndicator color="#000000" /> : <Text style={styles.completionPrimaryActionText}>완독 기록 저장</Text>}
+          {isSaving ? <ActivityIndicator color="#000000" /> : <Text style={styles.ratingPrimaryActionText}>별점 저장</Text>}
         </Pressable>
       </View>
     </View>
   )
 }
 
-/** 완독 변경 뒤 책 대화와 개인 프로필·책방 읽기 목록 캐시를 모두 최신화한다. */
-async function invalidateCompletionCaches(
+/** 별점 변경 뒤 책 대화 별점 현황과 내 별점 도서 캐시를 최신화한다. */
+async function invalidateRatingCaches(
   queryClient: ReturnType<typeof useQueryClient>,
   bookChatId: string,
   profileId: string,
 ): Promise<void> {
   await Promise.all([
-    queryClient.invalidateQueries({ queryKey: bookCompletionKeys.byChat(bookChatId) }),
-    queryClient.invalidateQueries({ queryKey: bookCompletionKeys.myBooks(profileId) }),
-    queryClient.invalidateQueries({ queryKey: bookCompletionKeys.myBookChatIds(profileId) }),
-    queryClient.invalidateQueries({ queryKey: bookChatKeys.myReading(profileId, []) }),
-    queryClient.invalidateQueries({ queryKey: readingRoomKeys.all }),
+    queryClient.invalidateQueries({ queryKey: bookRatingKeys.byChat(bookChatId) }),
+    queryClient.invalidateQueries({ queryKey: bookRatingKeys.myBooks(profileId) }),
   ])
 }
 
@@ -890,30 +903,33 @@ const styles = StyleSheet.create({
   bodyInput: { backgroundColor: '#101010', borderColor: '#393939', borderRadius: 12, borderWidth: 1, color: '#FFFFFF', fontSize: 16, lineHeight: 24, maxHeight: 120, minHeight: 76, padding: 12, textAlignVertical: 'top' },
   composer: { backgroundColor: '#000000', borderColor: '#393939', borderTopWidth: 1, gap: 8, paddingBottom: 12, paddingHorizontal: 16, paddingTop: 12 },
   composerActions: { alignItems: 'center', flexDirection: 'row', gap: 8, justifyContent: 'flex-end' },
-  completionActions: { flexDirection: 'row', gap: 8, justifyContent: 'flex-end', marginTop: 16 },
-  completionBackdrop: { backgroundColor: 'rgba(0, 0, 0, 0.72)', bottom: 0, justifyContent: 'flex-end', left: 0, position: 'absolute', right: 0, top: 0 },
-  completionCloseAction: { alignItems: 'center', justifyContent: 'center', minHeight: 44, paddingHorizontal: 8 },
-  completionCloseActionText: { color: '#FFB5A3', fontSize: 14, fontWeight: '700', lineHeight: 20 },
-  completionEditor: { gap: 12, marginTop: 16 },
-  completionEditorLabel: { color: '#FFFFFF', fontSize: 15, fontWeight: '700', lineHeight: 22 },
-  completionEmptyText: { color: '#C7C7C7', fontSize: 15, lineHeight: 22, marginTop: 16 },
-  completionHeaderAction: { alignItems: 'center', justifyContent: 'center', minHeight: 44, minWidth: 44, paddingHorizontal: 4 },
-  completionHeaderActionText: { color: '#FFB5A3', fontSize: 13, fontWeight: '700', lineHeight: 20 },
-  completionLengthText: { alignSelf: 'flex-end', color: '#8C8C8C', fontSize: 12, lineHeight: 18, marginTop: -8 },
-  completionLoadingState: { alignItems: 'center', gap: 12, minHeight: 180, justifyContent: 'center' },
-  completionMember: { borderColor: '#393939', borderRadius: 12, borderWidth: 1, padding: 12 },
-  completionMemberName: { color: '#FFFFFF', fontSize: 15, fontWeight: '700', lineHeight: 22 },
-  completionPrimaryAction: { alignItems: 'center', backgroundColor: '#FF835F', borderRadius: 12, flex: 1, justifyContent: 'center', minHeight: 44, paddingHorizontal: 12 },
-  completionPrimaryActionText: { color: '#000000', fontSize: 14, fontWeight: '700', lineHeight: 20 },
-  completionRatingText: { color: '#FF835F', fontSize: 15, letterSpacing: 1, lineHeight: 22, marginTop: 4 },
-  completionReviewInput: { backgroundColor: '#101010', borderColor: '#393939', borderRadius: 12, borderWidth: 1, color: '#FFFFFF', fontSize: 16, lineHeight: 24, minHeight: 108, padding: 12, textAlignVertical: 'top' },
-  completionReviewText: { color: '#C7C7C7', fontSize: 14, lineHeight: 20, marginTop: 4 },
-  completionRoster: { gap: 8, marginTop: 16 },
-  completionSecondaryAction: { alignItems: 'center', borderColor: '#FF835F', borderRadius: 12, borderWidth: 1, justifyContent: 'center', minHeight: 44, paddingHorizontal: 12 },
-  completionSecondaryActionText: { color: '#FF835F', fontSize: 14, fontWeight: '700', lineHeight: 20 },
-  completionSheet: { backgroundColor: '#101010', borderColor: '#393939', borderTopLeftRadius: 20, borderTopRightRadius: 20, borderTopWidth: 1, maxHeight: '82%', paddingBottom: 24, paddingHorizontal: 16, paddingTop: 12 },
-  completionSheetHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
-  completionSheetTitle: { color: '#FFFFFF', fontSize: 18, fontWeight: '700', lineHeight: 26 },
+  sheetActions: { flexDirection: 'row', gap: 8, justifyContent: 'flex-end', marginTop: 16 },
+  ratingAverage: { alignItems: 'baseline', flexDirection: 'row', gap: 8, marginTop: 16 },
+  ratingAverageText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700', lineHeight: 22 },
+  ratingCountText: { color: '#C7C7C7', fontSize: 13, lineHeight: 20 },
+  ratingBackdrop: { backgroundColor: 'rgba(0, 0, 0, 0.72)', bottom: 0, justifyContent: 'flex-end', left: 0, position: 'absolute', right: 0, top: 0 },
+  ratingCloseAction: { alignItems: 'center', justifyContent: 'center', minHeight: 44, paddingHorizontal: 8 },
+  ratingCloseActionText: { color: '#FFB5A3', fontSize: 14, fontWeight: '700', lineHeight: 20 },
+  ratingEditor: { gap: 12, marginTop: 16 },
+  ratingEditorLabel: { color: '#FFFFFF', fontSize: 15, fontWeight: '700', lineHeight: 22 },
+  ratingEmptyText: { color: '#C7C7C7', fontSize: 15, lineHeight: 22, marginTop: 16 },
+  ratingHeaderAction: { alignItems: 'center', justifyContent: 'center', minHeight: 44, minWidth: 44, paddingHorizontal: 4 },
+  ratingHeaderActionText: { color: '#FFB5A3', fontSize: 13, fontWeight: '700', lineHeight: 20 },
+  ratingLengthText: { alignSelf: 'flex-end', color: '#8C8C8C', fontSize: 12, lineHeight: 18, marginTop: -8 },
+  ratingLoadingState: { alignItems: 'center', gap: 12, minHeight: 180, justifyContent: 'center' },
+  ratingMember: { borderColor: '#393939', borderRadius: 12, borderWidth: 1, padding: 12 },
+  ratingMemberName: { color: '#FFFFFF', fontSize: 15, fontWeight: '700', lineHeight: 22 },
+  ratingPrimaryAction: { alignItems: 'center', backgroundColor: '#FF835F', borderRadius: 12, flex: 1, justifyContent: 'center', minHeight: 44, paddingHorizontal: 12 },
+  ratingPrimaryActionText: { color: '#000000', fontSize: 14, fontWeight: '700', lineHeight: 20 },
+  memberRatingText: { color: '#FF835F', fontSize: 15, letterSpacing: 1, lineHeight: 22, marginTop: 4 },
+  ratingReviewInput: { backgroundColor: '#101010', borderColor: '#393939', borderRadius: 12, borderWidth: 1, color: '#FFFFFF', fontSize: 16, lineHeight: 24, minHeight: 108, padding: 12, textAlignVertical: 'top' },
+  ratingReviewText: { color: '#C7C7C7', fontSize: 14, lineHeight: 20, marginTop: 4 },
+  ratingRoster: { gap: 8, marginTop: 16 },
+  ratingSecondaryAction: { alignItems: 'center', borderColor: '#FF835F', borderRadius: 12, borderWidth: 1, justifyContent: 'center', minHeight: 44, paddingHorizontal: 12 },
+  ratingSecondaryActionText: { color: '#FF835F', fontSize: 14, fontWeight: '700', lineHeight: 20 },
+  ratingSheet: { backgroundColor: '#101010', borderColor: '#393939', borderTopLeftRadius: 20, borderTopRightRadius: 20, borderTopWidth: 1, maxHeight: '82%', paddingBottom: 24, paddingHorizontal: 16, paddingTop: 12 },
+  ratingSheetHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
+  ratingSheetTitle: { color: '#FFFFFF', fontSize: 18, fontWeight: '700', lineHeight: 26 },
   container: { backgroundColor: '#000000', flex: 1 },
   emptyTitle: { color: '#FFFFFF', fontSize: 17, fontWeight: '700', lineHeight: 24, textAlign: 'center' },
   errorText: { color: '#FF8A8A', fontSize: 15, lineHeight: 22, textAlign: 'center' },

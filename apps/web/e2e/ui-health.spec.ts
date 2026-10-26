@@ -580,12 +580,6 @@ test('renders room detail command controls with SEED components', async ({ page 
       status: 200,
     })
   })
-  await page.route('**/rest/v1/book_chat_completions?*', async (route) => {
-    await route.fulfill({ body: JSON.stringify([]), contentType: 'application/json', status: 200 })
-  })
-  await page.route('**/rest/v1/book_chat_reading_progresses?*', async (route) => {
-    await route.fulfill({ body: JSON.stringify([]), contentType: 'application/json', status: 200 })
-  })
   await page.goto(`/rooms/${roomId}`)
 
   await expect(page.getByRole('heading', { name: '금요일 아침 책방' })).toBeVisible()
@@ -618,9 +612,7 @@ test('renders book-chat management deletion controls with SEED components', asyn
       status: 200,
     })
   })
-  await page.route('**/rest/v1/book_chat_completions?*', async (route) => {
-    await route.fulfill({ body: JSON.stringify([]), contentType: 'application/json', status: 200 })
-  })
+  await mockBookRatingRecords(page)
   await page.goto(`/rooms/${roomId}/books/${bookChatId}/manage`)
 
   await expect(page.getByRole('heading', { name: '미움받을 용기' })).toBeVisible()
@@ -631,6 +623,45 @@ test('renders book-chat management deletion controls with SEED components', asyn
     path: `artifacts/seed-comparison/15-book-chat-management-after-${testInfo.project.name}.png`,
   })
   await expect(page.getByLabel('삭제할 책 이름').locator('xpath=..')).toHaveClass(/seed-text-input/)
+})
+
+test('saves a four-star rating from book-chat management', async ({ page }, testInfo) => {
+  let savedRating: null | { p_book_chat_id: string; p_rating: number; p_review: null | string } =
+    null
+  await authenticatePage(page)
+  await page.route('**/rest/v1/book_chats?*', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        books: { thumbnail_url: null, title: '미움받을 용기' },
+        id: bookChatId,
+        name: '미움받을 용기',
+        room_id: roomId,
+        status: 'reading',
+      }),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+  await mockBookRatingRecords(page)
+  await page.route('**/rest/v1/rpc/upsert_book_chat_rating', async (route) => {
+    savedRating = route.request().postDataJSON() as typeof savedRating
+    await route.fulfill({ body: 'null', contentType: 'application/json', status: 200 })
+  })
+  await page.goto(`/rooms/${roomId}/books/${bookChatId}/manage`)
+
+  await expect(page.getByRole('heading', { name: '내 별점' })).toBeVisible()
+  await page.getByRole('button', { name: '별점 남기기' }).click()
+  await expect(page.getByRole('dialog', { name: '별점 남기기' })).toBeVisible()
+  await expectDialogToFitViewport(page, '별점 남기기', testInfo.project.use.viewport?.height ?? 900)
+  await page.screenshot({
+    path: `artifacts/seed-comparison/15-book-chat-management-rating-sheet-after-${testInfo.project.name}.png`,
+  })
+  await page.getByRole('button', { name: '4점' }).click()
+  await page.getByRole('button', { name: '별점 저장' }).click()
+
+  await expect(page.getByRole('dialog', { name: '별점 남기기' })).toBeHidden()
+  await expect(page.getByRole('img', { name: '별점 4점' })).toBeVisible()
+  expect(savedRating).toEqual({ p_book_chat_id: bookChatId, p_rating: 4, p_review: null })
 })
 
 test('recovers from an unknown authenticated route by returning to reading rooms', async ({
@@ -902,26 +933,26 @@ test('resets a dismissed book-chat label editor while keeping the message draft'
   await expect(page.getByRole('textbox', { name: '페이지 번호' })).toBeHidden()
 })
 
-test('opens completion records from the book-chat plus menu and restores focus on close', async ({
+test('opens ratings from the book-chat plus menu and restores focus on close', async ({
   page,
 }, testInfo) => {
   await authenticatePage(page)
-  await mockBookCompletionRecords(page)
+  await mockBookRatingRecords(page)
   await page.goto(`/rooms/${roomId}/books/${bookChatId}`)
 
   const plusButton = page.getByRole('button', { name: '메시지 추가 메뉴 열기' })
   await plusButton.click()
-  await page.getByRole('button', { name: '완독 기록' }).click()
+  await page.getByRole('button', { name: '별점', exact: true }).click()
 
-  await expect(page.getByRole('dialog', { name: '완독 기록' })).toBeVisible()
-  await expect(page.getByRole('button', { name: '완독하기' })).toBeVisible()
-  await expectDialogToFitViewport(page, '완독 기록', testInfo.project.use.viewport?.height ?? 900)
+  await expect(page.getByRole('dialog', { name: '별점' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '별점 남기기' })).toBeVisible()
+  await expectDialogToFitViewport(page, '별점', testInfo.project.use.viewport?.height ?? 900)
   await page.screenshot({
-    path: `artifacts/seed-comparison/7-book-discussion-completion-sheet-after-${testInfo.project.name}.png`,
+    path: `artifacts/seed-comparison/7-book-discussion-rating-sheet-after-${testInfo.project.name}.png`,
   })
 
   await page.keyboard.press('Escape')
-  await expect(page.getByRole('dialog', { name: '완독 기록' })).toBeHidden()
+  await expect(page.getByRole('dialog', { name: '별점' })).toBeHidden()
   await expect(plusButton).toBeFocused()
 })
 
@@ -989,12 +1020,9 @@ test('shows global navigation outside the book chat and hides it inside', async 
   await expect(page.getByRole('navigation', { name: '주요 메뉴' })).toBeHidden()
 })
 
-test('opens reading books from the profile hub and edits a personal completion record', async ({
-  page,
-}) => {
+test('opens my books from the profile hub and edits my rating', async ({ page }) => {
   await authenticatePage(page)
   await mockAuthenticatedPageData(page)
-  await mockReadingProgresses(page, [])
   await mockReadingBooks(page, [
     {
       books: {
@@ -1006,9 +1034,10 @@ test('opens reading books from the profile hub and edits a personal completion r
       name: '미움받을 용기',
       reading_rooms: { name: '금요일 아침 책방' },
       room_id: roomId,
+      status: 'reading',
     },
   ])
-  await page.route('**/rest/v1/book_chat_completions?*', async (route) => {
+  await page.route('**/rest/v1/book_chat_ratings?*', async (route) => {
     await route.fulfill({
       body: JSON.stringify([
         {
@@ -1021,9 +1050,9 @@ test('opens reading books from the profile hub and edits a personal completion r
             },
             room_id: roomId,
           },
-          completed_at: '2026-07-18T01:00:00+00:00',
           rating: 4,
           review: '다시 읽고 싶은 문장이 많아요.',
+          updated_at: '2026-07-18T01:00:00+00:00',
         },
       ]),
       contentType: 'application/json',
@@ -1032,10 +1061,10 @@ test('opens reading books from the profile hub and edits a personal completion r
   })
   await page.goto('/profile')
 
-  await page.getByRole('button', { name: '읽고 있는 책' }).click()
+  await page.getByRole('button', { name: '내 책' }).click()
 
   await expect(page).toHaveURL('/profile/books')
-  await expect(page.getByRole('heading', { name: '읽고 있는 책' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '내 책', exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: '금요일 아침 책방' })).toBeVisible()
   await expect(page.getByText('미움받을 용기')).toBeVisible()
   await expect(
@@ -1043,9 +1072,9 @@ test('opens reading books from the profile hub and edits a personal completion r
       .getByRole('link', { name: '미움받을 용기 책 대화로 이동' })
       .locator('xpath=ancestor::article[1]'),
   ).toHaveCSS('background-color', 'rgb(16, 16, 16)')
-  await expect(page.getByText('완독', { exact: true })).toBeVisible()
-  await page.getByRole('button', { name: '미움받을 용기 기록 수정' }).click()
-  await expect(page.getByRole('dialog', { name: '완독 기록' })).toBeVisible()
+  await expect(page.getByRole('img', { name: '별점 4점' })).toBeVisible()
+  await page.getByRole('button', { name: '미움받을 용기 별점 수정하기' }).click()
+  await expect(page.getByRole('dialog', { name: '별점 남기기' })).toBeVisible()
   await expectBottomSheetToHideInternalScrollbar(page)
   await expect(page.getByRole('button', { name: '4점' })).toHaveAttribute('aria-pressed', 'true')
   await expect(page.getByRole('textbox', { name: '총평 (선택)' })).toHaveValue(
@@ -1070,9 +1099,7 @@ test('opens service information from the fifth profile destination', async ({ pa
   )
 })
 
-test('keeps personal reading progress after refresh and lets the user complete then edit it', async ({
-  page,
-}) => {
+test('saves a rating from my books and reopens it for editing after refresh', async ({ page }) => {
   const readingBook = {
     books: {
       authors: ['기시미 이치로'],
@@ -1083,28 +1110,22 @@ test('keeps personal reading progress after refresh and lets the user complete t
     name: '미움받을 용기',
     reading_rooms: { name: '금요일 아침 책방' },
     room_id: roomId,
+    status: 'reading',
   }
-  let progress = {
-    book_chat_id: bookChatId,
-    current_page: 87,
-    total_pages: 320,
-    updated_at: '2026-07-19T01:00:00+00:00',
-  }
-  let completion: null | { rating: number; review: string } = null
+  let rating: null | { rating: number; review: null | string } = null
 
   await authenticatePage(page)
   await mockAuthenticatedPageData(page)
   await mockReadingBooks(page, [readingBook])
-  await mockReadingProgresses(page, () => [progress])
-  await page.route('**/rest/v1/book_chat_completions?*', async (route) => {
-    const body = completion
+  await page.route('**/rest/v1/book_chat_ratings?*', async (route) => {
+    const body = rating
       ? [
           {
             book_chat_id: bookChatId,
             book_chats: { books: readingBook.books, room_id: roomId },
-            completed_at: '2026-07-19T01:00:00+00:00',
-            rating: completion.rating,
-            review: completion.review,
+            rating: rating.rating,
+            review: rating.review,
+            updated_at: '2026-07-19T01:02:00+00:00',
           },
         ]
       : []
@@ -1114,27 +1135,9 @@ test('keeps personal reading progress after refresh and lets the user complete t
       status: 200,
     })
   })
-  await page.route('**/rest/v1/rpc/upsert_book_chat_reading_progress', async (route) => {
-    const request = route.request().postDataJSON() as {
-      p_current_page: number
-      p_total_pages: number
-    }
-    progress = {
-      book_chat_id: bookChatId,
-      current_page: request.p_current_page,
-      total_pages: request.p_total_pages,
-      updated_at: '2026-07-19T01:01:00+00:00',
-    }
-    await route.fulfill({ body: 'null', contentType: 'application/json', status: 200 })
-  })
-  await page.route('**/rest/v1/rpc/upsert_book_chat_completion', async (route) => {
-    const request = route.request().postDataJSON() as { p_rating: number; p_review: string }
-    completion = { rating: request.p_rating, review: request.p_review }
-    progress = {
-      ...progress,
-      current_page: progress.total_pages,
-      updated_at: '2026-07-19T01:02:00+00:00',
-    }
+  await page.route('**/rest/v1/rpc/upsert_book_chat_rating', async (route) => {
+    const request = route.request().postDataJSON() as { p_rating: number; p_review: null | string }
+    rating = { rating: request.p_rating, review: request.p_review }
     await route.fulfill({ body: 'null', contentType: 'application/json', status: 200 })
   })
   await page.goto('/profile/books')
@@ -1144,23 +1147,18 @@ test('keeps personal reading progress after refresh and lets the user complete t
       .getByRole('link', { name: '미움받을 용기 책 대화로 이동' })
       .locator('xpath=ancestor::article[1]'),
   ).not.toHaveClass(/bg-white/)
-  await expect(page.getByText('87 / 320쪽')).toBeVisible()
-  await page.getByRole('button', { name: '미움받을 용기 진행률 기록하기' }).click()
-  await page.getByRole('spinbutton', { name: '현재 읽은 페이지' }).fill('146')
-  await page.getByRole('button', { name: '진행률 저장' }).click()
-  await expect(page.getByText('146 / 320쪽')).toBeVisible()
-
-  await page.reload()
-  await expect(page.getByText('146 / 320쪽')).toBeVisible()
-  await page.getByRole('button', { name: '미움받을 용기 완독하기' }).click()
+  await expect(page.getByRole('spinbutton')).toHaveCount(0)
+  await page.getByRole('button', { name: '미움받을 용기 별점 남기기' }).click()
   await page.getByRole('button', { name: '5점' }).click()
   await page.getByRole('textbox', { name: '총평 (선택)' }).fill('다시 읽고 싶은 문장이 많아요.')
-  await page.getByRole('button', { name: '완독 기록 저장' }).click()
+  await page.getByRole('button', { name: '별점 저장' }).click()
 
-  await expect(page.getByRole('dialog', { name: '완독 기록' })).toBeHidden()
-  await expect(page.locator('article').getByText('완독', { exact: true })).toBeVisible()
-  await expect(page.getByText('별점 5점')).toBeVisible()
-  await page.getByRole('button', { name: '미움받을 용기 기록 수정' }).click()
+  await expect(page.getByRole('dialog', { name: '별점 남기기' })).toBeHidden()
+  await expect(page.getByRole('img', { name: '별점 5점' })).toBeVisible()
+
+  await page.reload()
+  await expect(page.getByRole('img', { name: '별점 5점' })).toBeVisible()
+  await page.getByRole('button', { name: '미움받을 용기 별점 수정하기' }).click()
   await expect(page.getByRole('textbox', { name: '총평 (선택)' })).toHaveValue(
     '다시 읽고 싶은 문장이 많아요.',
   )
@@ -1382,8 +1380,8 @@ async function authenticatePage(page: Page) {
   await page.route('**/rest/v1/user_legal_consents?*', async (route) => {
     await route.fulfill({
       body: JSON.stringify([
-        { document_type: 'terms', document_version: '2026-07-18.2' },
-        { document_type: 'privacy', document_version: '2026-07-18.2' },
+        { document_type: 'terms', document_version: '2026-10-26.1' },
+        { document_type: 'privacy', document_version: '2026-10-26.1' },
       ]),
       contentType: 'application/json',
       status: 200,
@@ -1520,7 +1518,7 @@ async function mockAuthenticatedPageData(page: Page) {
       status: 200,
     })
   })
-  await page.route('**/rest/v1/book_chat_completions?*', async (route) => {
+  await page.route('**/rest/v1/book_chat_ratings?*', async (route) => {
     await route.fulfill({
       body: JSON.stringify([]),
       contentType: 'application/json',
@@ -1632,21 +1630,9 @@ async function mockReadingBooks(page: Page, books: unknown[]) {
   })
 }
 
-/** 현재 사용자에게 보이는 개인 독서 진행률 목록을 안정적인 테스트 응답으로 제공한다. */
-async function mockReadingProgresses(page: Page, progresses: unknown[] | (() => unknown[])) {
-  await page.route('**/rest/v1/book_chat_reading_progresses?*', async (route) => {
-    const body = typeof progresses === 'function' ? progresses() : progresses
-    await route.fulfill({
-      body: JSON.stringify(body),
-      contentType: 'application/json',
-      status: 200,
-    })
-  })
-}
-
-/** 책 대화의 완독 시트가 필요한 빈 완독 기록 응답을 브라우저에 제공한다. */
-async function mockBookCompletionRecords(page: Page) {
-  await page.route('**/rest/v1/book_chat_completions?*', async (route) => {
+/** 책 대화의 별점 시트가 필요한 빈 별점 응답을 브라우저에 제공한다. */
+async function mockBookRatingRecords(page: Page) {
+  await page.route('**/rest/v1/book_chat_ratings?*', async (route) => {
     await route.fulfill({
       body: JSON.stringify([]),
       contentType: 'application/json',

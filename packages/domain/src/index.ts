@@ -57,19 +57,18 @@ export {
   type JoinRoomForm,
 } from './readingRoomEntry'
 export {
-  bookChatCompletionIdRowSchema,
-  bookChatCompletionRowSchema,
-  bookCompletionInputSchema,
-  bookCompletionKeys,
-  completedBookRowSchema,
-  parseBookChatCompletionIds,
-  parseBookChatCompletions,
-  parseBookCompletionInput,
-  parseCompletedBooks,
-  type BookChatCompletion,
-  type BookCompletionInput,
-  type CompletedBook,
-} from './bookCompletion'
+  bookChatRatingRowSchema,
+  bookRatingInputSchema,
+  bookRatingKeys,
+  calculateAverageRating,
+  parseBookChatRatings,
+  parseBookRatingInput,
+  parseRatedBooks,
+  ratedBookRowSchema,
+  type BookChatRating,
+  type BookRatingInput,
+  type RatedBook,
+} from './bookRating'
 export {
   archivedBookChatRowSchema,
   bookBestsellerKeys,

@@ -1,17 +1,14 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { RoomDetailPage } from './RoomDetailPage'
 
-const { getBookChats, getMyBookChatCompletionIds, getMyReadingProgresses, getReadingRoom } =
-  vi.hoisted(() => ({
-    getBookChats: vi.fn(),
-    getMyBookChatCompletionIds: vi.fn().mockResolvedValue([]),
-    getMyReadingProgresses: vi.fn().mockResolvedValue([]),
-    getReadingRoom: vi.fn(),
-  }))
+const { getBookChats, getReadingRoom } = vi.hoisted(() => ({
+  getBookChats: vi.fn(),
+  getReadingRoom: vi.fn(),
+}))
 
 vi.mock('../../entities/book-chat', () => ({
   bookChatKeys: {
@@ -22,34 +19,9 @@ vi.mock('../../entities/book-chat', () => ({
   getReadingRoom,
 }))
 
-vi.mock('../../entities/book-completion', () => ({
-  bookCompletionKeys: {
-    myBookChatIds: (profileId: string) => ['my-completion-book-chat-ids', profileId],
-  },
-  getMyBookChatCompletionIds,
-}))
-
-vi.mock('../../entities/reading-progress', () => ({
-  calculateReadingProgressPercent: (currentPage: number, totalPages: number) =>
-    Math.round((currentPage / totalPages) * 100),
-  getMyReadingProgresses,
-  readingProgressKeys: { byProfile: (profileId: string) => ['reading-progresses', profileId] },
-}))
-
-vi.mock('../../features/auth', () => ({
-  useAuthenticatedUser: () => ({ id: '00000000-0000-0000-0000-000000000001' }),
-}))
-
 vi.mock('../../shared/api/supabaseClient', () => ({ createSupabaseClient: vi.fn() }))
 
 describe('RoomDetailPage', () => {
-  beforeEach(() => {
-    getMyBookChatCompletionIds.mockReset()
-    getMyBookChatCompletionIds.mockResolvedValue([])
-    getMyReadingProgresses.mockReset()
-    getMyReadingProgresses.mockResolvedValue([])
-  })
-
   afterEach(() => {
     cleanup()
     vi.clearAllMocks()
@@ -83,24 +55,6 @@ describe('RoomDetailPage', () => {
     expect(await screen.findByText('책 대화 화면')).toBeInTheDocument()
   })
 
-  it('marks a book already completed by me in the room book list', async () => {
-    getReadingRoom.mockResolvedValue({ description: null, id: 'room-1', name: '금요일 아침 모임' })
-    getBookChats.mockResolvedValue([
-      {
-        authors: ['기시미 이치로'],
-        id: 'chat-1',
-        name: '미움받을 용기',
-        thumbnailUrl: null,
-        title: '미움받을 용기',
-      },
-    ])
-    getMyBookChatCompletionIds.mockResolvedValue(['chat-1'])
-
-    renderRoomDetailPage('/rooms/room-1')
-
-    expect(await screen.findByText('완독')).toBeInTheDocument()
-  })
-
   it('uses a white information surface when the room has no books yet', async () => {
     getReadingRoom.mockResolvedValue({ description: null, id: 'room-1', name: '금요일 아침 모임' })
     getBookChats.mockResolvedValue([])
@@ -114,7 +68,7 @@ describe('RoomDetailPage', () => {
     ).not.toBeNull()
   })
 
-  it('shows my personal reading progress in the room book list before completion', async () => {
+  it('shows only the title and authors on room book cards', async () => {
     getReadingRoom.mockResolvedValue({ description: null, id: 'room-1', name: '금요일 아침 책방' })
     getBookChats.mockResolvedValue([
       {
@@ -125,19 +79,12 @@ describe('RoomDetailPage', () => {
         title: '미움받을 용기',
       },
     ])
-    getMyReadingProgresses.mockResolvedValue([
-      {
-        bookChatId: 'chat-1',
-        currentPage: 87,
-        totalPages: 320,
-        updatedAt: '2026-07-19T00:00:00.000Z',
-      },
-    ])
 
     renderRoomDetailPage('/rooms/room-1')
 
-    expect(await screen.findByText('87 / 320쪽')).toBeInTheDocument()
-    expect(screen.getByText('27%')).toBeInTheDocument()
+    expect(await screen.findByText('기시미 이치로')).toBeInTheDocument()
+    expect(screen.queryByLabelText(/독서 진행률/)).toBeNull()
+    expect(screen.queryByText('완독')).toBeNull()
   })
 
   it('offers a clear route back when the reading room is unavailable', async () => {

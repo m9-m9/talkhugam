@@ -6,7 +6,7 @@ select is(
   (
     select count(*)
     from pg_trigger
-    where tgrelid = 'public.book_chat_completions'::regclass
+    where tgrelid = 'public.book_chat_ratings'::regclass
       and tgname = 'book_chat_completions_notify_review'
       and not tgisinternal
   ),
