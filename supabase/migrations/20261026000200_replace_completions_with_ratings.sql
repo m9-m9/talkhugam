@@ -1,24 +1,5 @@
-create table private.book_chat_completions_backup_20261026 as
-select * from public.book_chat_completions;
-
-create table private.book_chat_reading_progresses_backup_20261026 as
-select * from public.book_chat_reading_progresses;
-
-alter table private.book_chat_completions_backup_20261026
-  add constraint book_chat_completions_backup_20261026_book_chat_id_fkey
-    foreign key (book_chat_id) references public.book_chats (id) on delete cascade,
-  add constraint book_chat_completions_backup_20261026_profile_id_fkey
-    foreign key (profile_id) references public.profiles (id) on delete cascade;
-
-alter table private.book_chat_reading_progresses_backup_20261026
-  add constraint book_chat_reading_progresses_backup_20261026_book_chat_id_fkey
-    foreign key (book_chat_id) references public.book_chats (id) on delete cascade,
-  add constraint book_chat_reading_progresses_backup_20261026_profile_id_fkey
-    foreign key (profile_id) references public.profiles (id) on delete cascade;
-
-revoke all on table private.book_chat_completions_backup_20261026 from public, anon, authenticated;
-revoke all on table private.book_chat_reading_progresses_backup_20261026 from public, anon, authenticated;
-
+-- 진행률·완독 기록을 책별 별점으로 바꾼다. 사용자 결정에 따라 백업 없이 삭제하며 되돌릴 수 없다.
+-- 진행률 테이블은 통째로 지우고, 별점이 없는 완독 행은 삭제한 뒤 나머지를 별점으로 옮긴다.
 drop function if exists public.upsert_book_chat_reading_progress(uuid, integer, integer);
 drop table public.book_chat_reading_progresses;
 

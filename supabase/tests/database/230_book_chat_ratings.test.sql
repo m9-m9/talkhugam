@@ -2,7 +2,7 @@ begin;
 
 \ir ../helpers/auth.inc
 
-select plan(27);
+select plan(28);
 
 select has_table('public', 'book_chat_ratings', '별점 테이블이 존재해야 한다');
 select hasnt_table('public', 'book_chat_completions', '완독 테이블은 제거되어야 한다');
@@ -164,21 +164,8 @@ select throws_ok(
 );
 
 reset role;
-insert into private.book_chat_completions_backup_20261026 (id, book_chat_id, profile_id)
-values (gen_random_uuid(), '30000000-0000-0000-0000-000000000301', '00000000-0000-0000-0000-000000000302');
-insert into private.book_chat_reading_progresses_backup_20261026 (book_chat_id, profile_id)
-values ('30000000-0000-0000-0000-000000000301', '00000000-0000-0000-0000-000000000302');
-
-delete from auth.users where id = '00000000-0000-0000-0000-000000000302';
-
-select is(
-  (select count(*) from private.book_chat_completions_backup_20261026
-    where profile_id = '00000000-0000-0000-0000-000000000302')
-  + (select count(*) from private.book_chat_reading_progresses_backup_20261026
-    where profile_id = '00000000-0000-0000-0000-000000000302'),
-  0::bigint,
-  '계정이 삭제되면 백업 테이블의 해당 사용자 행도 삭제되어야 한다'
-);
+select hasnt_table('private', 'book_chat_completions_backup_20261026', '완독 기록은 백업 없이 삭제되어야 한다');
+select hasnt_table('private', 'book_chat_reading_progresses_backup_20261026', '진행률 기록은 백업 없이 삭제되어야 한다');
 
 select * from finish();
 
