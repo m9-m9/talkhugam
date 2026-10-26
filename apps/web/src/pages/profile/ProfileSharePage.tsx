@@ -50,8 +50,7 @@ export function ProfileSharePage() {
     <main className="app-page bg-surface px-4 pb-8">
       <AppHeader onBack={() => void navigate('/profile')} title="공유 카드" />
       <header className="mt-8">
-        <p className="text-primary text-sm font-medium">나의 독서 기록</p>
-        <h1 className="text-ink mt-2 text-2xl font-bold">공유 카드</h1>
+        <h1 className="text-ink text-2xl font-bold">공유 카드</h1>
         <p className="text-ink-subtle mt-2 text-sm">
           내가 좋아하는 독서 방식을 가볍게 나눠 보세요.
         </p>

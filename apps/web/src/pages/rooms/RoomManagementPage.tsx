@@ -155,8 +155,7 @@ export function RoomManagementPage() {
     <main className="app-page bg-surface px-4 pb-8">
       <AppHeader onBack={() => void navigate(`/rooms/${roomId}`)} title="방 정보" />
       <header className="mt-8">
-        <p className="text-primary text-sm font-medium">함께 읽는 책방</p>
-        <h1 className="text-ink mt-2 text-xl font-bold">{room.name}</h1>
+        <h1 className="text-ink text-xl font-bold">{room.name}</h1>
         <p className="text-ink-subtle mt-2 text-sm">{room.description ?? '아직 소개가 없어요.'}</p>
       </header>
 

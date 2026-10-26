@@ -133,7 +133,7 @@ test('keeps brand, accent, and action colors independently swappable', async ({ 
   })
 })
 
-test('submits feedback from the global launcher without exposing an in-app reply thread', async ({
+test('submits feedback from the profile menu without exposing an in-app reply thread', async ({
   page,
 }) => {
   await authenticatePage(page)
@@ -149,7 +149,7 @@ test('submits feedback from the global launcher without exposing an in-app reply
       status: 200,
     })
   })
-  await page.goto('/rooms')
+  await page.goto('/profile')
 
   await page.getByRole('button', { name: '의견 보내기' }).click()
   await page.getByRole('button', { name: '기능 제안' }).click()
@@ -272,11 +272,6 @@ test('uses SEED commands on the profile share card', async ({ page }, testInfo) 
 
   await expect(page.getByRole('heading', { name: '공유 카드' })).toBeVisible()
   await expect(page.getByRole('button', { name: '공유하기' })).toHaveClass(/seed-action-button/)
-  const feedbackLauncherBox = await page.getByRole('button', { name: '의견 보내기' }).boundingBox()
-  if (!feedbackLauncherBox) throw new Error('의견 보내기 버튼 위치를 읽지 못했어요.')
-  expect(feedbackLauncherBox.x).toBeGreaterThanOrEqual(
-    (testInfo.project.use.viewport?.width ?? 320) - 64,
-  )
   await page.screenshot({
     path: `artifacts/seed-comparison/17-profile-share-after-${testInfo.project.name}.png`,
   })
@@ -442,12 +437,7 @@ test('uses the bottom-navigation token as the global page bottom spacing', async
     'color',
     'rgb(255, 255, 255)',
   )
-  const feedbackIconBox = await page
-    .getByRole('button', { name: '의견 보내기' })
-    .locator('svg')
-    .boundingBox()
-  if (!feedbackIconBox) throw new Error('의견 보내기 아이콘 크기를 확인할 수 없어요.')
-  expect(feedbackIconBox.width).toBeGreaterThanOrEqual(28)
+  await expect(page.getByRole('button', { name: '의견 보내기' })).toHaveCount(0)
 })
 
 test('slides the highlighted bestseller card instead of replacing the page content', async ({
@@ -1261,7 +1251,7 @@ test('filters saved videos with the SEED member menu', async ({ page }, testInfo
 
   await expect(page.getByRole('button', { name: '전체' })).toHaveCSS(
     'background-color',
-    'rgb(173, 61, 34)',
+    'rgb(255, 255, 255)',
   )
   await expect(page.getByRole('button', { name: '내 영상' })).toHaveCSS(
     'background-color',

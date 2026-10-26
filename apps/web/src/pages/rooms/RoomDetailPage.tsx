@@ -83,8 +83,7 @@ export function RoomDetailPage() {
         title="책방"
       />
       <header className="mt-8">
-        <p className="text-primary text-sm font-medium">책방</p>
-        <h1 className="text-ink mt-2 text-xl font-bold">{roomQuery.data.name}</h1>
+        <h1 className="text-ink text-xl font-bold">{roomQuery.data.name}</h1>
         {roomQuery.data.description ? (
           <p className="text-ink-subtle mt-2 text-sm">{roomQuery.data.description}</p>
         ) : null}

@@ -101,8 +101,7 @@ export function AccountSettingsPage() {
     <main className="app-page bg-surface px-4 pb-8">
       <AppHeader onBack={() => void navigate('/profile')} title="계정 설정" />
       <header className="mt-8">
-        <p className="text-primary text-sm font-medium">계정</p>
-        <h1 className="text-ink mt-2 text-2xl font-bold">계정 설정</h1>
+        <h1 className="text-ink text-2xl font-bold">계정 설정</h1>
         <p className="text-ink-subtle mt-2 text-sm">로그인과 알림 수신 방식을 관리해요.</p>
       </header>
 

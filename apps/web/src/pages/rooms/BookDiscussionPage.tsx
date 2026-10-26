@@ -346,8 +346,7 @@ export function BookDiscussionPage() {
         title={roomQuery.data?.name ?? '책방'}
       />
       <header className="mt-8">
-        <p className="text-primary text-sm font-medium">책 대화</p>
-        <h1 className="text-ink mt-2 text-xl font-bold">
+        <h1 className="text-ink text-xl font-bold">
           {bookChatQuery.data?.title ?? '책을 불러오고 있어요.'}
         </h1>
       </header>

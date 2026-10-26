@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { ActionButton, TextField, ToggleButton } from '@seed-design/react'
 
 import {
@@ -9,7 +9,6 @@ import {
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { trackAnalyticsEvent } from '../../shared/analytics'
 import { BottomSheet } from '../../shared/ui/BottomSheet'
-import { SupportIcon } from '../../shared/ui/SupportIcon'
 
 const feedbackCategories: readonly { label: string; value: FeedbackCategory }[] = [
   { label: '불편한 점', value: 'issue' },
@@ -17,8 +16,13 @@ const feedbackCategories: readonly { label: string; value: FeedbackCategory }[] 
   { label: '기타', value: 'other' },
 ]
 
-/** 앱 전역에서 이용자가 운영자에게 의견을 남길 수 있는 런처와 제출 시트를 렌더링한다. */
-export function FeedbackLauncher() {
+type FeedbackLauncherProps = {
+  /** 의견 시트를 여는 진입점. 화면마다 메뉴 행이나 버튼 등 맞는 형태로 그린다. */
+  renderTrigger: (props: { onOpen: () => void }) => ReactNode
+}
+
+/** 이용자가 운영자에게 의견을 남길 수 있는 진입점과 제출 시트를 렌더링한다. */
+export function FeedbackLauncher({ renderTrigger }: FeedbackLauncherProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [category, setCategory] = useState<FeedbackCategory>('issue')
   const [body, setBody] = useState('')
@@ -71,15 +75,7 @@ export function FeedbackLauncher() {
 
   return (
     <>
-      <ActionButton
-        aria-label="의견 보내기"
-        className="talkhugam-feedback-launcher talkhugam-primary-action fixed z-30 size-12 rounded-full p-0 shadow-lg [--seed-icon-size:28px]"
-        onClick={handleOpen}
-        type="button"
-        variant="brandSolid"
-      >
-        <SupportIcon className="talkhugam-feedback-launcher__icon text-ink" />
-      </ActionButton>
+      {renderTrigger({ onOpen: handleOpen })}
       {isOpen ? (
         <BottomSheet onClose={handleClose} title="의견 보내기">
           {isSubmitted ? (

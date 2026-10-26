@@ -5,6 +5,7 @@ import { ActionButton } from '@seed-design/react'
 
 import { getProfile, getProfileAvatarUrl } from '../../entities/profile'
 import { useAuthenticatedUser } from '../../features/auth'
+import { FeedbackLauncher } from '../../features/feedback'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { BrandLoadingSpinner } from '../../shared/ui/LoadingSpinner'
@@ -17,7 +18,7 @@ type ProfileNavigationRowProps = {
   onClick: () => void
 }
 
-/** 현재 사용자의 기본 정보를 요약하고 다섯 개의 상세 화면 진입점을 렌더링한다. */
+/** 현재 사용자의 기본 정보를 요약하고 상세 화면 진입점과 의견 보내기를 렌더링한다. */
 export function ProfilePage() {
   const navigate = useNavigate()
   const profileId = useAuthenticatedUser().id
@@ -120,6 +121,15 @@ export function ProfilePage() {
             description="이용약관, 개인정보처리방침, 문의 방법을 확인해요."
             label="서비스 정보"
             onClick={() => void navigate('/contact')}
+          />
+          <FeedbackLauncher
+            renderTrigger={({ onOpen }) => (
+              <ProfileNavigationRow
+                description="불편한 점이나 바라는 기능을 알려 주세요."
+                label="의견 보내기"
+                onClick={onOpen}
+              />
+            )}
           />
         </div>
       </section>

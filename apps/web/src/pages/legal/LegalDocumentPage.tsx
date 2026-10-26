@@ -14,7 +14,7 @@ export function LegalDocumentPage() {
     <main className="app-page bg-surface px-4 pb-12">
       <AppHeader onBack={() => window.history.back()} title={document.shortTitle} />
       <article className="py-8">
-        <p className="text-primary text-sm font-medium">시행일 · {document.version}</p>
+        <p className="text-ink-subtle text-sm">시행일 · {document.version}</p>
         <h1 className="text-ink mt-2 text-2xl font-bold">{document.title}</h1>
         <p className="text-ink-subtle mt-3 text-sm leading-6">
           Talk후감은 함께 읽는 사람들의 기록을 존중합니다. 아래 내용을 확인해 주세요.

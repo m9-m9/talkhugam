@@ -353,7 +353,6 @@ describe('BookDiscussionPage', () => {
     renderBookDiscussionPage()
 
     expect(await screen.findByText('금요일 아침 책방')).toBeInTheDocument()
-    expect(screen.getByText('책 대화')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: '미움받을 용기' })).toBeInTheDocument()
   })
 

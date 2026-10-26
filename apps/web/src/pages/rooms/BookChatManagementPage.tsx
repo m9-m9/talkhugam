@@ -104,8 +104,7 @@ export function BookChatManagementPage() {
         title="책 대화 관리"
       />
       <header className="mt-8">
-        <p className="text-primary text-sm font-medium">책 대화</p>
-        <h1 className="text-ink mt-2 text-xl font-bold">{chat.title}</h1>
+        <h1 className="text-ink text-xl font-bold">{chat.title}</h1>
       </header>
       <section className="border-border mt-8 flex items-center gap-4 rounded-lg border bg-white p-4">
         <BookCover alt={`${chat.title} 표지`} thumbnailUrl={chat.thumbnailUrl} />

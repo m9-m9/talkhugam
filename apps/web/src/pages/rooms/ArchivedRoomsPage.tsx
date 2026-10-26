@@ -18,8 +18,7 @@ export function ArchivedRoomsPage() {
     <main className="app-page bg-surface px-4 pb-8">
       <AppHeader onBack={() => void navigate('/rooms')} title="지난 기록" />
       <header className="mt-8">
-        <p className="text-primary text-sm font-medium">아카이브</p>
-        <h1 className="text-ink mt-2 text-xl font-bold">지난 책방</h1>
+        <h1 className="text-ink text-xl font-bold">지난 책방</h1>
         <p className="text-ink-subtle mt-2 text-sm">함께 읽었던 방과 책을 보관해요.</p>
       </header>
       {archiveQuery.isPending ? (

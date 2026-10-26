@@ -86,6 +86,15 @@ describe('ProfilePage', () => {
     expect(screen.queryByText('미움받을 용기')).not.toBeInTheDocument()
   })
 
+  it('opens the feedback sheet from the profile menu row', async () => {
+    renderProfilePage()
+
+    fireEvent.click(await screen.findByRole('button', { name: '의견 보내기' }))
+
+    expect(screen.getByRole('dialog', { name: '의견 보내기' })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: '의견 내용' })).toBeInTheDocument()
+  })
+
   it('shows a retry state instead of a loading spinner when the profile lookup fails', async () => {
     getProfile.mockRejectedValueOnce(new Error('network'))
     renderProfilePage()
