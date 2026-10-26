@@ -47,7 +47,7 @@ type ReadingBookGroupsProps = {
   ratingsByChatId: ReadonlyMap<string, RatedBook>
 }
 
-/** 참여한 모든 책방의 책을 조회하고 책마다 내 별점을 남기거나 수정한다. */
+/** 참여한 모든 책방의 읽는 중·다 읽은 책을 조회하고 책마다 내 별점을 남기거나 수정한다. */
 export function MyReadingBooksPage() {
   const navigate = useNavigate()
   const profileId = useAuthenticatedUser().id
@@ -213,9 +213,13 @@ function ReadingBookGroups({ books, onOpenRating, ratingsByChatId }: ReadingBook
   )
 }
 
-/** 하나의 책에 책 대화 이동 링크와 내 별점 또는 별점 남기기 행동을 함께 렌더링한다. */
+/**
+ * 하나의 책에 책 대화 이동 링크와 내 별점을 렌더링한다. 다 읽은 책에는 표시를 붙이고,
+ * 서버가 별점 변경을 허용하는(보관되지 않은) 책에만 별점 남기기·수정 행동을 보여 준다.
+ */
 function ReadingBookCard({ book, onOpenRating, rating }: ReadingBookCardProps) {
   const actionLabel = rating ? '수정하기' : '별점 남기기'
+  const canRate = book.status !== 'archived'
 
   /** 현재 카드의 책을 별점 작성 또는 수정 대상으로 연다. */
   function handleOpenRating() {
@@ -240,23 +244,37 @@ function ReadingBookCard({ book, onOpenRating, rating }: ReadingBookCardProps) {
           ›
         </span>
       </Link>
-      <div className="border-border flex min-h-14 items-center justify-between gap-3 border-t px-3 py-2">
-        {rating ? (
-          <RatingStars rating={rating.rating} />
-        ) : (
-          <span className="text-ink-subtle text-xs">별점과 총평을 남길 수 있어요.</span>
-        )}
-        <ActionButton
-          aria-label={rating ? `${book.title} 별점 수정하기` : `${book.title} 별점 남기기`}
-          className="talkhugam-foundation-action--outline"
-          onClick={handleOpenRating}
-          type="button"
-          variant="neutralOutline"
-        >
-          {actionLabel}
-        </ActionButton>
+      <div className="border-border flex min-h-14 flex-wrap items-center justify-between gap-3 border-t px-3 py-2">
+        <span className="flex min-w-0 items-center gap-2">
+          {book.status === 'completed' ? <FinishedBookBadge /> : null}
+          {rating ? (
+            <RatingStars rating={rating.rating} />
+          ) : (
+            <span className="text-ink-subtle text-xs">별점과 총평을 남길 수 있어요.</span>
+          )}
+        </span>
+        {canRate ? (
+          <ActionButton
+            aria-label={rating ? `${book.title} 별점 수정하기` : `${book.title} 별점 남기기`}
+            className="talkhugam-foundation-action--outline"
+            onClick={handleOpenRating}
+            type="button"
+            variant="neutralOutline"
+          >
+            {actionLabel}
+          </ActionButton>
+        ) : null}
       </div>
     </article>
+  )
+}
+
+/** 종료된 책 대화를 읽는 중인 책과 구분하는 작은 표시를 렌더링한다. */
+function FinishedBookBadge() {
+  return (
+    <span className="border-border text-ink-subtle shrink-0 rounded-full border px-2 py-0.5 text-xs">
+      다 읽은 책
+    </span>
   )
 }
 
@@ -265,7 +283,7 @@ function createRatingsByChatId(ratedBooks: RatedBook[]): ReadonlyMap<string, Rat
   return new Map(ratedBooks.map((book) => [book.bookChatId, book]))
 }
 
-/** 읽는 책 목록을 책방 순서대로 묶어 렌더링에 필요한 구조로 변환한다. */
+/** 읽는 중·다 읽은 책 목록을 책방 순서대로 묶어 렌더링에 필요한 구조로 변환한다. */
 function groupReadingBooksByRoom(books: ReadingBook[]): Array<{
   books: ReadingBook[]
   roomId: string

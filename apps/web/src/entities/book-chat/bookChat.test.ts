@@ -4,6 +4,7 @@ import {
   bookChatKeys,
   getManagedBookChat,
   getMyArchivedBookChats,
+  getMyReadingBooks,
   parseReadingBooks,
   parseBookChats,
   parseBookSearchResponse,
@@ -57,6 +58,7 @@ describe('parseReadingBooks', () => {
           name: '미움받을 용기',
           reading_rooms: { name: '금요일 아침 독서방' },
           room_id: '11dd2691-ca0d-4b86-bb2b-9fa7c6cd374f',
+          status: 'reading',
         },
         {
           books: { authors: ['양귀자'], thumbnail_url: null, title: '모순' },
@@ -64,6 +66,7 @@ describe('parseReadingBooks', () => {
           name: '모순',
           reading_rooms: { name: '토요일 저녁 독서방' },
           room_id: '719dc8f2-2de0-4a91-a7d5-20a6a89cad75',
+          status: 'completed',
         },
       ]),
     ).toEqual([
@@ -72,6 +75,7 @@ describe('parseReadingBooks', () => {
         bookChatId: 'f17c0d6d-3e6e-4b7f-a1f1-5d652aa2a85e',
         roomId: '11dd2691-ca0d-4b86-bb2b-9fa7c6cd374f',
         roomName: '금요일 아침 독서방',
+        status: 'reading',
         thumbnailUrl: null,
         title: '미움받을 용기',
       },
@@ -80,10 +84,26 @@ describe('parseReadingBooks', () => {
         bookChatId: '58f62b06-824c-41f1-85ab-5b9db99cd467',
         roomId: '719dc8f2-2de0-4a91-a7d5-20a6a89cad75',
         roomName: '토요일 저녁 독서방',
+        status: 'completed',
         thumbnailUrl: null,
         title: '모순',
       },
     ])
+  })
+})
+
+describe('getMyReadingBooks', () => {
+  it('asks for both reading and finished book chats but not archived ones', async () => {
+    const order = vi.fn().mockResolvedValue({ data: [], error: null })
+    const statusFilter = vi.fn().mockReturnValue({ order })
+    const select = vi.fn().mockReturnValue({ in: statusFilter })
+    const from = vi.fn().mockReturnValue({ select })
+
+    await getMyReadingBooks({ from } as never, 'f17c0d6d-3e6e-4b7f-a1f1-5d652aa2a85e')
+
+    expect(from).toHaveBeenCalledWith('book_chats')
+    expect(select).toHaveBeenCalledWith(expect.stringContaining('status'))
+    expect(statusFilter).toHaveBeenCalledWith('status', ['reading', 'completed'])
   })
 })
 

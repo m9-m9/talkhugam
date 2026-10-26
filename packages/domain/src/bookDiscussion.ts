@@ -75,6 +75,7 @@ export const readingBookRowSchema = z.object({
   name: z.string().min(1),
   reading_rooms: z.object({ name: z.string().min(1) }).nullable(),
   room_id: z.string().uuid(),
+  status: z.enum(['reading', 'completed', 'archived']),
 })
 
 export const postRowSchema = z.object({
@@ -145,6 +146,7 @@ export type ReadingBook = {
   bookChatId: string
   roomId: string
   roomName: string
+  status: 'reading' | 'completed' | 'archived'
   thumbnailUrl: string | null
   title: string
 }
@@ -240,6 +242,7 @@ function mapReadingBook(row: z.infer<typeof readingBookRowSchema>): ReadingBook 
     bookChatId: row.id,
     roomId: row.room_id,
     roomName: row.reading_rooms?.name ?? '이름 없는 책방',
+    status: row.status,
     thumbnailUrl: row.books?.thumbnail_url ?? null,
     title: row.books?.title ?? row.name,
   }

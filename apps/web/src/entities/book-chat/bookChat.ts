@@ -98,7 +98,10 @@ export async function getMyArchivedBookChats(
   return parseArchivedBookChats(response.data)
 }
 
-/** 참여 중인 모든 책방에서 함께 읽는 책 목록을 조회한다. */
+/**
+ * 참여 중인 모든 책방에서 읽고 있거나 다 읽은(종료) 책 목록을 조회한다.
+ * 보관된 책 대화는 책방 목록과 같이 제외하고, 삭제된 책 대화는 RLS가 숨긴다.
+ */
 export async function getMyReadingBooks(
   client: SupabaseClient,
   profileId: string,
@@ -106,8 +109,8 @@ export async function getMyReadingBooks(
   z.string().uuid().parse(profileId)
   const response = await client
     .from('book_chats')
-    .select('id, room_id, name, books(title, authors, thumbnail_url), reading_rooms(name)')
-    .eq('status', 'reading')
+    .select('id, room_id, name, status, books(title, authors, thumbnail_url), reading_rooms(name)')
+    .in('status', ['reading', 'completed'])
     .order('created_at', { ascending: false })
 
   if (response.error) throw response.error

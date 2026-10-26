@@ -10,6 +10,7 @@ const ratedBookChatId = '3b0f6c1e-8d2a-4f5b-9c7e-2a1d4e6f8a02'
 const unratedBookChatId = '3b0f6c1e-8d2a-4f5b-9c7e-2a1d4e6f8a03'
 const fridayRoomId = '3b0f6c1e-8d2a-4f5b-9c7e-2a1d4e6f8a04'
 const saturdayRoomId = '3b0f6c1e-8d2a-4f5b-9c7e-2a1d4e6f8a05'
+const finishedBookChatId = '3b0f6c1e-8d2a-4f5b-9c7e-2a1d4e6f8a06'
 
 const { getMyRatedBooks, getMyReadingBooks, upsertBookChatRating } = vi.hoisted(() => ({
   getMyRatedBooks: vi.fn(),
@@ -47,6 +48,7 @@ function createReadingBooks() {
       bookChatId: ratedBookChatId,
       roomId: fridayRoomId,
       roomName: '금요일 아침 책방',
+      status: 'reading',
       thumbnailUrl: null,
       title: '미움받을 용기',
     },
@@ -55,6 +57,7 @@ function createReadingBooks() {
       bookChatId: unratedBookChatId,
       roomId: saturdayRoomId,
       roomName: '토요일 저녁 책방',
+      status: 'reading',
       thumbnailUrl: null,
       title: '모순',
     },
@@ -150,6 +153,33 @@ describe('MyReadingBooksPage', () => {
     expect(screen.getByRole('button', { name: '별점 수정' })).toBeInTheDocument()
   })
 
+  it('lists a finished book in its room with a finished badge and my rating', async () => {
+    getMyReadingBooks.mockResolvedValue([...createReadingBooks(), createFinishedBook('completed')])
+    getMyRatedBooks.mockResolvedValue([...createRatedBooks(), createFinishedBookRating()])
+    renderMyReadingBooksPage()
+
+    const fridayRoom = await screen.findByRole('region', { name: '금요일 아침 책방' })
+    const finishedCard = within(fridayRoom)
+      .getByRole('link', { name: '소년이 온다 책 대화로 이동' })
+      .closest('article')
+    if (!finishedCard) throw new Error('finished book card is missing')
+    expect(within(finishedCard).getByText('다 읽은 책')).toBeInTheDocument()
+    expect(within(finishedCard).getByRole('img', { name: '별점 5점' })).toBeInTheDocument()
+    expect(
+      within(finishedCard).getByRole('button', { name: '소년이 온다 별점 수정하기' }),
+    ).toBeInTheDocument()
+    expect(screen.getAllByText('다 읽은 책')).toHaveLength(1)
+  })
+
+  it('shows an archived book rating without rating actions', async () => {
+    getMyReadingBooks.mockResolvedValue([createFinishedBook('archived')])
+    getMyRatedBooks.mockResolvedValue([createFinishedBookRating()])
+    renderMyReadingBooksPage()
+
+    expect(await screen.findByRole('img', { name: '별점 5점' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '소년이 온다 별점 수정하기' })).toBeNull()
+  })
+
   it('shows a recoverable message when saving my rating fails', async () => {
     getMyReadingBooks.mockResolvedValue(createReadingBooks())
     getMyRatedBooks.mockResolvedValue(createRatedBooks())
@@ -165,6 +195,33 @@ describe('MyReadingBooksPage', () => {
     )
   })
 })
+
+/** 끝난 책 테스트에서 쓰는 종료된 책 대화 응답을 생성한다. */
+function createFinishedBook(status: 'completed' | 'archived') {
+  return {
+    authors: ['한강'],
+    bookChatId: finishedBookChatId,
+    roomId: fridayRoomId,
+    roomName: '금요일 아침 책방',
+    status,
+    thumbnailUrl: null,
+    title: '소년이 온다',
+  }
+}
+
+/** 끝난 책에 남긴 내 별점 응답을 생성한다. */
+function createFinishedBookRating() {
+  return {
+    authors: ['한강'],
+    bookChatId: finishedBookChatId,
+    rating: 5,
+    review: null,
+    roomId: fridayRoomId,
+    thumbnailUrl: null,
+    title: '소년이 온다',
+    updatedAt: '2026-07-20T01:00:00+00:00',
+  }
+}
 
 /** 내 책 화면을 라우터와 서버 상태 Provider를 포함해 렌더링한다. */
 function renderMyReadingBooksPage() {

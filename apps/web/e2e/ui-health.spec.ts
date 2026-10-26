@@ -1034,6 +1034,7 @@ test('opens my books from the profile hub and edits my rating', async ({ page })
       name: '미움받을 용기',
       reading_rooms: { name: '금요일 아침 책방' },
       room_id: roomId,
+      status: 'reading',
     },
   ])
   await page.route('**/rest/v1/book_chat_ratings?*', async (route) => {
@@ -1109,6 +1110,7 @@ test('saves a rating from my books and reopens it for editing after refresh', as
     name: '미움받을 용기',
     reading_rooms: { name: '금요일 아침 책방' },
     room_id: roomId,
+    status: 'reading',
   }
   let rating: null | { rating: number; review: null | string } = null
 
