@@ -143,7 +143,6 @@ export type ArchivedBookChat = {
 export type ReadingBook = {
   authors: string[]
   bookChatId: string
-  isCompleted: boolean
   roomId: string
   roomName: string
   thumbnailUrl: string | null
@@ -172,9 +171,8 @@ export const bookChatKeys = {
   detail: (roomId: string, bookChatId: string) => ['book-chat', roomId, bookChatId] as const,
   /** 프로필별 보관한 책 대화 목록 query key를 생성한다. */
   myArchived: (profileId: string) => ['archived-book-chats', profileId] as const,
-  /** 프로필과 개인 완독 상태로 모든 참여 책방의 읽는 책 목록 query key를 생성한다. */
-  myReading: (profileId: string, completedBookChatIds: readonly string[]) =>
-    ['my-reading-books', profileId, ...completedBookChatIds] as const,
+  /** 프로필별 모든 참여 책방의 읽는 책 목록 query key를 생성한다. */
+  myReading: (profileId: string) => ['my-reading-books', profileId] as const,
 }
 
 export const postKeys = {
@@ -193,15 +191,8 @@ export function parseArchivedBookChats(value: unknown): ArchivedBookChat[] {
 }
 
 /** 외부 입력을 검증해 책방별 개인 읽는 책 목록 모델로 변환한다. */
-export function parseReadingBooks(
-  value: unknown,
-  completedBookChatIds: readonly string[],
-): ReadingBook[] {
-  const completedIds = new Set(completedBookChatIds)
-  return z
-    .array(readingBookRowSchema)
-    .parse(value)
-    .map((row) => mapReadingBook(row, completedIds))
+export function parseReadingBooks(value: unknown): ReadingBook[] {
+  return z.array(readingBookRowSchema).parse(value).map(mapReadingBook)
 }
 
 /** 외부 입력을 검증해 책 검색 응답 형식으로 변환한다. */
@@ -243,14 +234,10 @@ export function mapManagedBookChat(row: z.infer<typeof managedBookChatRowSchema>
 }
 
 /** 원본 데이터를 개인 책 목록에서 쓰는 읽기 상태 모델로 변환한다. */
-function mapReadingBook(
-  row: z.infer<typeof readingBookRowSchema>,
-  completedBookChatIds: ReadonlySet<string>,
-): ReadingBook {
+function mapReadingBook(row: z.infer<typeof readingBookRowSchema>): ReadingBook {
   return {
     authors: row.books?.authors ?? [],
     bookChatId: row.id,
-    isCompleted: completedBookChatIds.has(row.id),
     roomId: row.room_id,
     roomName: row.reading_rooms?.name ?? '이름 없는 책방',
     thumbnailUrl: row.books?.thumbnail_url ?? null,

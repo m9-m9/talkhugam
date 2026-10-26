@@ -111,7 +111,7 @@ export async function getMyReadingBooks(
     .order('created_at', { ascending: false })
 
   if (response.error) throw response.error
-  return parseReadingBooks(response.data, [])
+  return parseReadingBooks(response.data)
 }
 
 /** 책 대화방의 공용 읽기 상태(읽는 중·종료·아카이브)를 바꾼다. */

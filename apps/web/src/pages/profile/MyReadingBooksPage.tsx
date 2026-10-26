@@ -55,7 +55,7 @@ export function MyReadingBooksPage() {
   const [selectedBook, setSelectedBook] = useState<ReadingBook | null>(null)
   const readingBooksQuery = useQuery({
     queryFn: () => getMyReadingBooks(createSupabaseClient(), profileId),
-    queryKey: bookChatKeys.myReading(profileId, []),
+    queryKey: bookChatKeys.myReading(profileId),
   })
   const ratedBooksQuery = useQuery({
     queryFn: () => getMyRatedBooks(createSupabaseClient(), profileId),

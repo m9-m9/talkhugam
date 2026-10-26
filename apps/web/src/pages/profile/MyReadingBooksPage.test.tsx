@@ -19,11 +19,7 @@ const { getMyRatedBooks, getMyReadingBooks, upsertBookChatRating } = vi.hoisted(
 
 vi.mock('../../entities/book-chat', () => ({
   bookChatKeys: {
-    myReading: (targetProfileId: string, completedBookChatIds: readonly string[]) => [
-      'my-reading-books',
-      targetProfileId,
-      ...completedBookChatIds,
-    ],
+    myReading: (targetProfileId: string) => ['my-reading-books', targetProfileId],
   },
   getMyReadingBooks,
 }))
@@ -49,7 +45,6 @@ function createReadingBooks() {
     {
       authors: ['기시미 이치로'],
       bookChatId: ratedBookChatId,
-      isCompleted: false,
       roomId: fridayRoomId,
       roomName: '금요일 아침 책방',
       thumbnailUrl: null,
@@ -58,7 +53,6 @@ function createReadingBooks() {
     {
       authors: ['양귀자'],
       bookChatId: unratedBookChatId,
-      isCompleted: false,
       roomId: saturdayRoomId,
       roomName: '토요일 저녁 책방',
       thumbnailUrl: null,
