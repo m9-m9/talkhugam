@@ -2,7 +2,7 @@ begin;
 
 \ir ../helpers/auth.inc
 
-select plan(17);
+select plan(12);
 
 select tests.create_supabase_user(
   '00000000-0000-0000-0000-000000000871',
@@ -203,58 +203,14 @@ select is(
   '중복 영상 이벤트 뒤에도 영상 알림 수가 유지된다'
 );
 
-select tests.authenticate_as('00000000-0000-0000-0000-000000000871');
-set local role authenticated;
-
-select lives_ok(
-  $$
-    select public.upsert_book_chat_completion(
-      '40000000-0000-0000-0000-000000000871',
-      5::smallint,
-      '완독 총평'
-    )
-  $$,
-  '첫 완독 기록을 저장할 수 있다'
-);
-
-reset role;
-
-select is(
-  (select count(*) from public.notifications where type = 'completion'),
-  2::bigint,
-  '첫 완독 기록은 알림을 켠 다른 책방 멤버에게만 알린다'
-);
-
-select tests.authenticate_as('00000000-0000-0000-0000-000000000871');
-set local role authenticated;
-
-select lives_ok(
-  $$
-    select public.upsert_book_chat_completion(
-      '40000000-0000-0000-0000-000000000871',
-      4::smallint,
-      '수정한 총평'
-    )
-  $$,
-  '기존 완독 기록을 수정할 수 있다'
-);
-
-reset role;
-
-select is(
-  (select count(*) from public.notifications where type = 'completion'),
-  2::bigint,
-  '완독 기록 수정은 새 책 활동 알림을 만들지 않는다'
-);
-
 reset role;
 select tests.authenticate_as('00000000-0000-0000-0000-000000000872');
 set local role authenticated;
 
 select is(
   (select count(*) from public.notifications),
-  3::bigint,
-  '책방 멤버는 자신의 새 독후감·영상·완독 알림만 조회한다'
+  2::bigint,
+  '책방 멤버는 자신의 새 독후감·영상 알림만 조회한다'
 );
 
 reset role;
@@ -266,19 +222,6 @@ select is(
   0::bigint,
   '책방 외부 사용자는 책 활동 알림을 조회하지 못한다'
 );
-select throws_ok(
-  $$
-    select public.upsert_book_chat_completion(
-      '40000000-0000-0000-0000-000000000871',
-      null,
-      null
-    )
-  $$,
-  'P0001',
-  'ROOM_FORBIDDEN',
-  '책방 외부 사용자는 완독 활동을 만들 수 없다'
-);
-
 reset role;
 
 select * from finish();

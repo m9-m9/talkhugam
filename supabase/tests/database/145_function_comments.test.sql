@@ -64,7 +64,7 @@ with documented_function_names(function_name) as (
     ('public.restore_reading_room'),
     ('public.register_device_token'),
     ('public.revoke_device_token'),
-    ('public.remove_book_chat_completion'),
+    ('public.remove_book_chat_rating'),
     ('public.send_community_message'),
     ('public.revoke_room_invite'),
     ('public.set_book_chat_status'),
@@ -72,8 +72,7 @@ with documented_function_names(function_name) as (
     ('public.update_content_report'),
     ('public.ban_community_member'),
     ('public.unfollow_profile'),
-    ('public.upsert_book_chat_completion'),
-    ('public.upsert_book_chat_reading_progress'),
+    ('public.upsert_book_chat_rating'),
     ('public.update_room_member_profile')
 ),
 database_functions as (
@@ -155,7 +154,7 @@ with documented_function_names(function_name) as (
     ('public.restore_reading_room'),
     ('public.register_device_token'),
     ('public.revoke_device_token'),
-    ('public.remove_book_chat_completion'),
+    ('public.remove_book_chat_rating'),
     ('public.send_community_message'),
     ('public.revoke_room_invite'),
     ('public.set_book_chat_status'),
@@ -163,8 +162,7 @@ with documented_function_names(function_name) as (
     ('public.update_content_report'),
     ('public.ban_community_member'),
     ('public.unfollow_profile'),
-    ('public.upsert_book_chat_completion'),
-    ('public.upsert_book_chat_reading_progress'),
+    ('public.upsert_book_chat_rating'),
     ('public.update_room_member_profile')
 ),
 undocumented_functions as (
