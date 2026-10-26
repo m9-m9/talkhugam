@@ -21,6 +21,9 @@ describe('getMobileBookChatRatings', () => {
     ).resolves.toEqual([])
 
     expect(from).toHaveBeenCalledWith('book_chat_ratings')
+    expect(select.mock.calls[0]?.[0]).toContain(
+      'book_chats!inner(reading_rooms!inner(room_members(',
+    )
     expect(eq).toHaveBeenCalledWith('book_chat_id', bookChatId)
     expect(order).toHaveBeenCalledWith('updated_at', { ascending: true })
   })

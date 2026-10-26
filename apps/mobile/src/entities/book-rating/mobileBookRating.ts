@@ -16,7 +16,7 @@ export async function getMobileBookChatRatings(
   const response = await client
     .from('book_chat_ratings')
     .select(
-      'profile_id, rating, review, updated_at, profiles(display_name, avatar_path), book_chats!inner(room_members(profile_id, room_display_name, room_avatar_path))',
+      'profile_id, rating, review, updated_at, profiles(display_name, avatar_path), book_chats!inner(reading_rooms!inner(room_members(profile_id, room_display_name, room_avatar_path)))',
     )
     .eq('book_chat_id', z.string().uuid().parse(bookChatId))
     .order('updated_at', { ascending: true })

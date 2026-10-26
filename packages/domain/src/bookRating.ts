@@ -17,13 +17,15 @@ export const ratedBookRowSchema = z.object({
 
 export const bookChatRatingRowSchema = z.object({
   book_chats: z.object({
-    room_members: z.array(
-      z.object({
-        profile_id: z.string().uuid(),
-        room_avatar_path: z.string().nullable(),
-        room_display_name: z.string(),
-      }),
-    ),
+    reading_rooms: z.object({
+      room_members: z.array(
+        z.object({
+          profile_id: z.string().uuid(),
+          room_avatar_path: z.string().nullable(),
+          room_display_name: z.string(),
+        }),
+      ),
+    }),
   }),
   profile_id: z.string().uuid(),
   profiles: z.object({
@@ -117,7 +119,7 @@ function mapBookChatRating(
   row: z.infer<typeof bookChatRatingRowSchema>,
   currentProfileId: string,
 ): BookChatRating {
-  const member = row.book_chats.room_members.find(
+  const member = row.book_chats.reading_rooms.room_members.find(
     (roomMember) => roomMember.profile_id === row.profile_id,
   )
 
