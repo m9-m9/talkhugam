@@ -137,17 +137,21 @@ vi.mock('../../entities/video', () => ({
 
 vi.mock('../../features/photo-quote', async () => {
   const { insertQuoteIntoDraft } = await import('@talkhugam/domain')
+  const { findPastedImageFile, unsupportedPhotoFileMessage } =
+    await import('../../features/photo-quote/imageFileSelection')
   return {
+    findPastedImageFile,
     insertQuoteIntoDraft,
+    unsupportedPhotoFileMessage,
     PhotoQuoteFlow: ({
       file,
       onInsert,
     }: {
-      file: File
+      file: File | null
       onInsert: (value: { page: string | null; quote: string }) => void
     }) => (
       <div aria-label="문장 고르기" role="dialog">
-        <p>{file.name}</p>
+        <p>{file?.name ?? '직접 입력'}</p>
         <button
           onClick={() => onInsert({ page: '87', quote: '우리는 늘 떠나는 쪽이었다' })}
           type="button"
@@ -454,25 +458,107 @@ describe('BookDiscussionPage', () => {
     expect(screen.queryByText('몰입형 영상 화면')).not.toBeInTheDocument()
   })
 
-  it('opens the message actions in a SEED action sheet', () => {
+  it('opens the message actions in a SEED action sheet', async () => {
     renderBookDiscussionPage()
 
     fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
 
-    expect(screen.getByRole('dialog', { name: '메시지 추가' })).toHaveClass(
-      'seed-menu-sheet__content',
-    )
-    expect(screen.getByRole('button', { name: '영상 올리기' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '페이지 라벨' })).toHaveClass(
+    await screen.findByRole('button', { name: '책방 초대하기' })
+    const sheet = screen.getByRole('dialog', { name: '메시지 추가' })
+    expect(sheet).toHaveClass('seed-menu-sheet__content')
+    expect(
+      within(sheet)
+        .getAllByRole('button')
+        .map((button) => button.textContent)
+        .filter((name) => name !== '닫기'),
+    ).toEqual(['문장 인용', '라벨', '영상', '별점', '책방 초대하기'])
+    expect(screen.getByRole('button', { name: '라벨' })).toHaveClass(
       'talkhugam-action-sheet-choice',
     )
+  })
+
+  it('splits the video action into upload and archive inside the same sheet', () => {
+    renderBookDiscussionPage()
+
+    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
+    fireEvent.click(screen.getByRole('button', { name: '영상' }))
+
+    expect(screen.getByRole('dialog', { name: '영상' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '영상 올리기' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '영상 기록' }))
+    expect(screen.getByText('영상 기록 화면')).toBeInTheDocument()
+  })
+
+  it('opens an empty quote confirmation from direct quote input', async () => {
+    renderBookDiscussionPage()
+
+    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
+    fireEvent.click(screen.getByRole('button', { name: '문장 인용' }))
+    expect(screen.getByRole('dialog', { name: '문장 인용' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '직접 입력' }))
+
+    expect(await screen.findByRole('dialog', { name: '문장 고르기' })).toHaveTextContent(
+      '직접 입력',
+    )
+  })
+
+  it('opens the photo quote flow when an image is pasted into the message input', async () => {
+    renderBookDiscussionPage()
+    const image = new File(['jpeg'], 'pasted-page.png', { type: 'image/png' })
+
+    fireEvent.paste(screen.getByLabelText('메시지 입력'), {
+      clipboardData: { files: [image], getData: () => '' },
+    })
+
+    expect(await screen.findByRole('dialog', { name: '문장 고르기' })).toHaveTextContent(
+      'pasted-page.png',
+    )
+  })
+
+  it('leaves text-only paste to the message input', () => {
+    renderBookDiscussionPage()
+
+    const isNotPrevented = fireEvent.paste(screen.getByLabelText('메시지 입력'), {
+      clipboardData: { files: [], getData: () => '붙여 넣은 문장' },
+    })
+
+    expect(isNotPrevented).toBe(true)
+    expect(screen.queryByRole('dialog', { name: '문장 고르기' })).not.toBeInTheDocument()
+  })
+
+  it('opens the photo quote flow when an image is dropped on the composer', async () => {
+    renderBookDiscussionPage()
+    const composer = screen.getByLabelText('메시지 입력').closest('section')
+    if (!composer) throw new Error('composer missing')
+
+    fireEvent.drop(composer, {
+      dataTransfer: { files: [new File(['jpeg'], 'dropped.jpg', { type: 'image/jpeg' })] },
+    })
+
+    expect(await screen.findByRole('dialog', { name: '문장 고르기' })).toHaveTextContent(
+      'dropped.jpg',
+    )
+  })
+
+  it('tells me that only photos can be dropped on the composer', () => {
+    renderBookDiscussionPage()
+    const composer = screen.getByLabelText('메시지 입력').closest('section')
+    if (!composer) throw new Error('composer missing')
+
+    fireEvent.drop(composer, {
+      dataTransfer: { files: [new File(['memo'], 'memo.pdf', { type: 'application/pdf' })] },
+    })
+
+    expect(screen.getByRole('alert')).toHaveTextContent('사진 파일만 넣을 수 있어요.')
+    expect(screen.queryByRole('dialog', { name: '문장 고르기' })).not.toBeInTheDocument()
   })
 
   it('inserts a quote picked from a page photo with its page label', async () => {
     renderBookDiscussionPage()
 
     fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
-    fireEvent.click(screen.getByRole('button', { name: '사진에서 문장 가져오기' }))
+    fireEvent.click(screen.getByRole('button', { name: '문장 인용' }))
+    fireEvent.click(screen.getByRole('button', { name: '사진에서 가져오기' }))
     fireEvent.change(screen.getByLabelText('문장을 가져올 사진 선택'), {
       target: { files: [new File(['jpeg'], 'page-87.jpg', { type: 'image/jpeg' })] },
     })
@@ -981,45 +1067,43 @@ describe('BookDiscussionPage', () => {
       target: { value: '이 문장을 기억할게요' },
     })
 
-    fireEvent.click(screen.getByRole('button', { name: '페이지 라벨 닫기' }))
+    fireEvent.click(screen.getByRole('button', { name: '라벨 닫기' }))
     fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
 
-    expect(screen.getByRole('button', { name: '페이지 라벨' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '라벨' })).toBeInTheDocument()
     expect(screen.queryByLabelText('페이지 번호')).not.toBeInTheDocument()
     expect(screen.getByLabelText('메시지 입력')).toHaveValue('이 문장을 기억할게요')
 
-    fireEvent.click(screen.getByRole('button', { name: '페이지 라벨' }))
+    fireEvent.click(screen.getByRole('button', { name: '라벨' }))
     expect(screen.getByLabelText('페이지 번호')).toHaveValue('')
   })
 
-  it('keeps separate label drafts while returning inside the still-open action menu', () => {
+  it('keeps separate page and chapter drafts while switching label tabs', () => {
     renderBookDiscussionPage()
     openPageLabelEditor()
+    expect(screen.getByRole('tab', { name: '페이지' })).toHaveAttribute('aria-selected', 'true')
     fireEvent.change(screen.getByLabelText('페이지 번호'), { target: { value: '87' } })
-    fireEvent.click(screen.getByRole('button', { name: '라벨 종류 선택으로 돌아가기' }))
-    fireEvent.click(screen.getByRole('button', { name: '챕터 라벨' }))
+    fireEvent.click(screen.getByRole('tab', { name: '챕터' }))
     fireEvent.change(screen.getByLabelText('챕터 이름 또는 번호'), {
       target: { value: '3장 고독' },
     })
 
-    fireEvent.click(screen.getByRole('button', { name: '라벨 종류 선택으로 돌아가기' }))
-    fireEvent.click(screen.getByRole('button', { name: '페이지 라벨' }))
+    fireEvent.click(screen.getByRole('tab', { name: '페이지' }))
     expect(screen.getByLabelText('페이지 번호')).toHaveValue('87')
 
-    fireEvent.click(screen.getByRole('button', { name: '라벨 종류 선택으로 돌아가기' }))
-    fireEvent.click(screen.getByRole('button', { name: '챕터 라벨' }))
+    fireEvent.click(screen.getByRole('tab', { name: '챕터' }))
     expect(screen.getByLabelText('챕터 이름 또는 번호')).toHaveValue('3장 고독')
+    fireEvent.click(screen.getByRole('button', { name: '라벨 추가' }))
+    expect(screen.getByText('챕터 3장 고독')).toBeInTheDocument()
   })
 
-  it('moves focus to the first label action when returning to label selection', async () => {
+  it('moves focus back to the label action when returning to the message menu', async () => {
     renderBookDiscussionPage()
     openPageLabelEditor()
 
-    fireEvent.click(screen.getByRole('button', { name: '라벨 종류 선택으로 돌아가기' }))
+    fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴로 돌아가기' }))
 
-    await vi.waitFor(() =>
-      expect(screen.getByRole('button', { name: '페이지 라벨' })).toHaveFocus(),
-    )
+    await vi.waitFor(() => expect(screen.getByRole('button', { name: '라벨' })).toHaveFocus())
   })
 
   it('clears only the submitted label draft, closes the menu, and focuses the message input', async () => {
@@ -1034,7 +1118,7 @@ describe('BookDiscussionPage', () => {
     await vi.waitFor(() => expect(screen.getByLabelText('메시지 입력')).toHaveFocus())
 
     fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
-    fireEvent.click(screen.getByRole('button', { name: '페이지 라벨' }))
+    fireEvent.click(screen.getByRole('button', { name: '라벨' }))
     expect(screen.getByLabelText('페이지 번호')).toHaveValue('')
   })
 
@@ -1057,7 +1141,7 @@ describe('BookDiscussionPage', () => {
     fireEvent.click(screen.getByRole('button', { name: '라벨 추가' }))
 
     expect(screen.getByLabelText('페이지 번호')).toHaveValue('   ')
-    expect(screen.getByRole('dialog', { name: '페이지 라벨' })).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: '라벨' })).toBeInTheDocument()
   })
 
   it('uses the book loader while the selected video is uploading', () => {
@@ -1099,7 +1183,7 @@ async function openVideoTab() {
 
 function openPageLabelEditor() {
   fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
-  fireEvent.click(screen.getByRole('button', { name: '페이지 라벨' }))
+  fireEvent.click(screen.getByRole('button', { name: '라벨' }))
 }
 
 /** 본문·페이지 라벨·멤버 멘션을 포함한 작성 중 상태를 만든다. */
@@ -1137,6 +1221,7 @@ function renderBookDiscussionPage() {
             path="/rooms/:roomId/books/:bookChatId/videos/:videoId"
             element={<p>몰입형 영상 화면</p>}
           />
+          <Route path="/rooms/:roomId/books/:bookChatId/videos" element={<p>영상 기록 화면</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,

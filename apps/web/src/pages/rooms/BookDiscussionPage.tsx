@@ -38,8 +38,10 @@ import {
 } from '../../entities/video'
 import { useVideoUpload } from '../../features/video-upload'
 import {
+  findPastedImageFile,
   insertQuoteIntoDraft,
   PhotoQuoteFlow,
+  unsupportedPhotoFileMessage,
   type PhotoQuoteInsert,
 } from '../../features/photo-quote'
 import {
@@ -72,12 +74,16 @@ import { getClientEnv } from '../../app/env'
 import { trackAnalyticsEvent } from '../../shared/analytics'
 import { AppHeader } from '../../shared/ui/AppHeader'
 import { BottomSheet } from '../../shared/ui/BottomSheet'
+import { MessageActionSheet, type MessageLabelKind } from './MessageActionSheet'
 import { LazyMuxVideoPlayer } from '../../shared/ui/LazyMuxVideoPlayer'
 import { BookLoadingIndicator, BrandLoadingSpinner } from '../../shared/ui/LoadingSpinner'
 import { RatingStars } from '../../shared/ui/RatingStars'
 import { RetryState } from '../../shared/ui/RetryState'
 
-type LabelKind = 'page' | 'chapter'
+type LabelKind = MessageLabelKind
+
+/** 문장 인용 확인 화면에 넘길 사진. file이 null이면 직접 입력이다. */
+type QuoteSource = { file: File | null }
 
 /** 책 Discussion 페이지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 export function BookDiscussionPage() {
@@ -813,38 +819,25 @@ function ChatComposer({
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const photoInputRef = useRef<HTMLInputElement>(null)
-  const [photoQuoteFile, setPhotoQuoteFile] = useState<File | null>(null)
+  const [quoteSource, setQuoteSource] = useState<QuoteSource | null>(null)
+  const [photoNotice, setPhotoNotice] = useState<string | null>(null)
   const messageInputRef = useRef<HTMLTextAreaElement>(null)
   const actionMenuButtonRef = useRef<HTMLButtonElement>(null)
-  const firstActionButtonRef = useRef<HTMLButtonElement>(null)
   const mentionMenuRef = useRef<HTMLDivElement>(null)
   const shouldRestoreActionTrayFocusRef = useRef(true)
   const [isActionTrayOpen, setIsActionTrayOpen] = useState(false)
-  const [labelKind, setLabelKind] = useState<LabelKind | null>(null)
   const [isMentionMenuDismissed, setIsMentionMenuDismissed] = useState(false)
-  const [labelDrafts, setLabelDrafts] = useState<Record<LabelKind, string>>({
-    chapter: '',
-    page: '',
-  })
   const mentionQuery = getActiveMentionQuery(value)
   const shouldShowMentionMenu = mentionQuery !== null && !isMentionMenuDismissed
   const matchingMentionCandidates = getMatchingMentionCandidates(mentionCandidates, mentionQuery)
 
-  /** Add 라벨 요청이나 사용자 동작을 처리한다. */
-  function handleAddLabel() {
-    if (!labelKind) return
-    const nextLabel = createDraftLabel(labelKind, labelDrafts[labelKind])
-    if (!nextLabel) return
+  /** 시트에서 고른 종류와 값으로 라벨을 더하고 메시지 입력으로 포커스를 옮긴다. 값이 올바르지 않으면 false를 반환한다. */
+  function handleAddLabel(kind: LabelKind, value: string): boolean {
+    const nextLabel = createDraftLabel(kind, value)
+    if (!nextLabel) return false
     onChangeLabels([...labels, nextLabel])
-    handleCloseActionTray(false)
     window.setTimeout(() => messageInputRef.current?.focus(), 250)
-  }
-
-  /** 라벨 입력창에서 Enter를 누르면 현재 라벨을 추가한다. */
-  function handleLabelInputKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
-    if (event.key !== 'Enter') return
-    event.preventDefault()
-    handleAddLabel()
+    return true
   }
 
   /** Remove 라벨 요청이나 사용자 동작을 처리한다. */
@@ -875,22 +868,54 @@ function ChatComposer({
 
   /** 사진 인식 화면을 닫고 사진 파일 참조를 버린 뒤 메시지 입력으로 포커스를 돌려준다. */
   function handleClosePhotoQuote() {
-    setPhotoQuoteFile(null)
+    setQuoteSource(null)
     window.requestAnimationFrame(() => messageInputRef.current?.focus())
   }
 
-  /** 복귀 To 라벨 선택 요청이나 사용자 동작을 처리한다. */
-  function handleReturnToLabelSelection() {
-    setLabelKind(null)
-    window.requestAnimationFrame(() => firstActionButtonRef.current?.focus())
+  /** 브라우저가 열 수 없는 사진을 골랐을 때 인식 화면을 닫고 사진 선택 창을 다시 연다. */
+  function handlePickAnotherPhoto() {
+    setQuoteSource(null)
+    photoInputRef.current?.click()
   }
 
-  /** 라벨 임시 입력을 비우고 메시지 추가 메뉴를 닫는다. */
+  /**
+   * 붙여넣거나 끌어 놓은 파일 목록에서 사진을 찾아 문장 가져오기 화면을 연다.
+   * 사진을 찾으면 true(기본 동작을 막아야 함), 파일이 없으면 false를 반환하고 사진이 아닌 파일은 짧게 안내한다.
+   */
+  function openQuoteFromFiles(files: ArrayLike<File> | undefined): boolean {
+    const result = findPastedImageFile(files)
+    if (result.status === 'none') return false
+    if (result.status === 'unsupported') {
+      setPhotoNotice(unsupportedPhotoFileMessage)
+      return true
+    }
+    setPhotoNotice(null)
+    if (bookChatId) setQuoteSource({ file: result.file })
+    return true
+  }
+
+  /** 입력창에 사진을 붙여넣으면 가로채 문장 가져오기를 연다. 텍스트만 있으면 기본 붙여넣기를 둔다. */
+  function handlePaste(event: React.ClipboardEvent<HTMLTextAreaElement>) {
+    if (findPastedImageFile(event.clipboardData.files).status !== 'image') return
+    event.preventDefault()
+    openQuoteFromFiles(event.clipboardData.files)
+  }
+
+  /** 입력 영역 위로 파일을 끌고 오면 놓을 수 있도록 브라우저 기본 동작(파일 열기)을 막는다. */
+  function handleDragOver(event: React.DragEvent<HTMLElement>) {
+    if (!event.dataTransfer.types.includes('Files')) return
+    event.preventDefault()
+  }
+
+  /** 입력 영역에 파일을 놓으면 사진은 문장 가져오기로 열고, 사진이 아니면 안내한다. */
+  function handleDrop(event: React.DragEvent<HTMLElement>) {
+    if (openQuoteFromFiles(event.dataTransfer.files)) event.preventDefault()
+  }
+
+  /** 메시지 추가 메뉴를 닫는다. 라벨 임시 입력은 시트와 함께 사라진다. */
   function handleCloseActionTray(shouldRestoreFocus = true) {
     shouldRestoreActionTrayFocusRef.current = shouldRestoreFocus
     setIsActionTrayOpen(false)
-    setLabelKind(null)
-    setLabelDrafts({ chapter: '', page: '' })
   }
 
   /** 메시지 추가 메뉴를 열거나, 열려 있으면 라벨 임시 입력을 비우고 닫는다. */
@@ -932,7 +957,11 @@ function ChatComposer({
   }, [shouldShowMentionMenu])
 
   return (
-    <section className="border-ink/10 relative mt-6 border-t pt-4">
+    <section
+      className="border-ink/10 relative mt-6 border-t pt-4"
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
       {isReplying ? (
         <div className="mb-3 flex items-center justify-between gap-3">
           <p className="text-ink-subtle text-xs">답글 남기기</p>
@@ -964,149 +993,27 @@ function ChatComposer({
         </ul>
       ) : null}
       {isActionTrayOpen ? (
-        <BottomSheet
+        <MessageActionSheet
+          canCreateRoomInvite={canCreateRoomInvite}
+          hasBookChat={Boolean(bookChatId)}
+          inviteTriggerRef={inviteTriggerRef}
+          isReplying={isReplying}
+          isRequestingRoomInvite={isRequestingRoomInvite}
+          onAddLabel={handleAddLabel}
           onClose={handleCloseActionTray}
+          onOpenRating={() => {
+            ratingTriggerRef.current = actionMenuButtonRef.current
+            onOpenRating()
+          }}
+          onOpenRoomInvite={onOpenRoomInvite}
+          onOpenVideoArchive={onOpenVideoArchive}
+          onPickPhoto={() => photoInputRef.current?.click()}
+          onPickVideo={() => fileInputRef.current?.click()}
+          onRequestRoomInvite={onRequestRoomInvite}
+          onWriteQuote={() => setQuoteSource({ file: null })}
           returnFocusRef={actionMenuButtonRef}
           shouldRestoreFocus={() => shouldRestoreActionTrayFocusRef.current}
-          title={
-            labelKind === 'page'
-              ? '페이지 라벨'
-              : labelKind === 'chapter'
-                ? '챕터 라벨'
-                : '메시지 추가'
-          }
-        >
-          {labelKind ? (
-            <div className="space-y-3">
-              <div className="mb-2 flex min-h-11 items-center gap-2">
-                <SeedActionButton
-                  aria-label="라벨 종류 선택으로 돌아가기"
-                  onClick={handleReturnToLabelSelection}
-                  type="button"
-                  variant="ghost"
-                >
-                  이전
-                </SeedActionButton>
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="sr-only" htmlFor="post-label-value">
-                  {labelKind === 'page' ? '페이지 번호' : '챕터 이름 또는 번호'}
-                </label>
-                <TextField.Root className="talkhugam-information-field min-w-0 flex-1">
-                  <TextField.Input
-                    autoFocus
-                    aria-label={labelKind === 'page' ? '페이지 번호' : '챕터 이름 또는 번호'}
-                    id="post-label-value"
-                    onChange={(event) =>
-                      setLabelDrafts((drafts) => ({
-                        ...drafts,
-                        [labelKind]: event.target.value,
-                      }))
-                    }
-                    onKeyDown={handleLabelInputKeyDown}
-                    placeholder={labelKind === 'page' ? '예: 87' : '예: 3장 또는 고독'}
-                    value={labelDrafts[labelKind]}
-                  />
-                </TextField.Root>
-                <SeedActionButton
-                  aria-label="라벨 추가"
-                  className="talkhugam-primary-action"
-                  onClick={handleAddLabel}
-                  type="button"
-                >
-                  추가
-                </SeedActionButton>
-              </div>
-            </div>
-          ) : (
-            <div className="talkhugam-action-sheet-list">
-              <SeedActionButton
-                className="talkhugam-action-sheet-choice"
-                disabled={isReplying}
-                onClick={() => setLabelKind('page')}
-                ref={firstActionButtonRef}
-                variant="neutralWeak"
-              >
-                페이지 라벨
-              </SeedActionButton>
-              <SeedActionButton
-                className="talkhugam-action-sheet-choice"
-                disabled={isReplying}
-                onClick={() => setLabelKind('chapter')}
-                variant="neutralWeak"
-              >
-                챕터 라벨
-              </SeedActionButton>
-              <SeedActionButton
-                className="talkhugam-action-sheet-choice"
-                onClick={() => {
-                  handleCloseActionTray(false)
-                  fileInputRef.current?.click()
-                }}
-                variant="neutralWeak"
-              >
-                영상 올리기
-              </SeedActionButton>
-              <SeedActionButton
-                className="talkhugam-action-sheet-choice"
-                disabled={!bookChatId}
-                onClick={() => {
-                  handleCloseActionTray(false)
-                  photoInputRef.current?.click()
-                }}
-                variant="neutralWeak"
-              >
-                사진에서 문장 가져오기
-              </SeedActionButton>
-              <SeedActionButton
-                className="talkhugam-action-sheet-choice"
-                onClick={() => {
-                  handleCloseActionTray(false)
-                  onOpenVideoArchive()
-                }}
-                variant="neutralWeak"
-              >
-                영상 기록
-              </SeedActionButton>
-              <SeedActionButton
-                className="talkhugam-action-sheet-choice"
-                onClick={() => {
-                  ratingTriggerRef.current = actionMenuButtonRef.current
-                  handleCloseActionTray(false)
-                  onOpenRating()
-                }}
-                variant="neutralWeak"
-              >
-                별점
-              </SeedActionButton>
-              {canCreateRoomInvite ? (
-                <SeedActionButton
-                  className="talkhugam-action-sheet-choice"
-                  onClick={() => {
-                    handleCloseActionTray(false)
-                    onOpenRoomInvite()
-                  }}
-                  ref={inviteTriggerRef}
-                  variant="neutralWeak"
-                >
-                  책방 초대하기
-                </SeedActionButton>
-              ) : (
-                <SeedActionButton
-                  className="talkhugam-action-sheet-choice"
-                  disabled={isRequestingRoomInvite}
-                  onClick={() => {
-                    handleCloseActionTray()
-                    onRequestRoomInvite()
-                  }}
-                  variant="neutralWeak"
-                >
-                  초대 요청
-                </SeedActionButton>
-              )}
-            </div>
-          )}
-        </BottomSheet>
+        />
       ) : null}
       <div className="talkhugam-chat-composer-row">
         <input
@@ -1125,7 +1032,7 @@ function ChatComposer({
           aria-label="문장을 가져올 사진 선택"
           className="sr-only"
           onChange={(event) => {
-            setPhotoQuoteFile(event.target.files?.[0] ?? null)
+            openQuoteFromFiles(event.target.files ?? undefined)
             event.target.value = ''
           }}
           ref={photoInputRef}
@@ -1207,6 +1114,7 @@ function ChatComposer({
               className="!h-11 !min-h-11 text-base"
               id="discussion-message"
               onChange={(event) => handleChangeMessage(event.target.value)}
+              onPaste={handlePaste}
               onKeyDown={(event) => {
                 if (!shouldSubmitMessage(event.key, event.shiftKey)) return
                 event.preventDefault()
@@ -1227,17 +1135,18 @@ function ChatComposer({
           전송
         </SeedActionButton>
       </div>
-      {errorMessage ? (
-        <p className="mt-2 text-sm text-red-600" role="alert">
-          {errorMessage}
+      {(errorMessage ?? photoNotice) ? (
+        <p className="text-danger mt-2 text-sm" role="alert">
+          {errorMessage ?? photoNotice}
         </p>
       ) : null}
-      {photoQuoteFile && bookChatId ? (
+      {quoteSource && bookChatId ? (
         <PhotoQuoteFlow
           bookChatId={bookChatId}
-          file={photoQuoteFile}
+          file={quoteSource.file}
           onClose={handleClosePhotoQuote}
           onInsert={handleInsertPhotoQuote}
+          onPickAnotherPhoto={handlePickAnotherPhoto}
         />
       ) : null}
       {isUploadingVideo ? (
