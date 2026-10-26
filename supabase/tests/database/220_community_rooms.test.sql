@@ -26,7 +26,7 @@ select tests.authenticate_as('00000000-0000-0000-0000-000000000281');
 set local role authenticated;
 
 select lives_ok(
-  $$select * from public.create_community_room('공개 오픈 책방', '자유 채팅', '방장', 'public', 3, null)$$,
+  $$select * from public.create_community_room('공개 오픈 책방', '자유 채팅', '방장', 'public', 3::smallint, null)$$,
   '방장은 1~100명 정원의 공개 오픈 책방을 만들 수 있어야 한다'
 );
 
@@ -64,7 +64,7 @@ select tests.authenticate_as('00000000-0000-0000-0000-000000000281');
 set local role authenticated;
 
 select lives_ok(
-  $$select * from public.create_community_room('비밀번호 오픈 책방', null, '방장', 'password', 3, 'secrets123')$$,
+  $$select * from public.create_community_room('비밀번호 오픈 책방', null, '방장', 'password', 3::smallint, 'secrets123')$$,
   '방장은 비밀번호 오픈 책방을 만들 수 있어야 한다'
 );
 select throws_ok(
@@ -97,7 +97,7 @@ select tests.authenticate_as('00000000-0000-0000-0000-000000000281');
 set local role authenticated;
 
 select lives_ok(
-  $$select * from public.create_community_room('정원 한 명', null, '방장', 'public', 1, null)$$,
+  $$select * from public.create_community_room('정원 한 명', null, '방장', 'public', 1::smallint, null)$$,
   '정원 1명 오픈 책방을 만들 수 있어야 한다'
 );
 

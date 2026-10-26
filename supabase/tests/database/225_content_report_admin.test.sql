@@ -1,5 +1,7 @@
 begin;
 
+\ir ../helpers/auth.inc
+
 select plan(13);
 
 select has_table('public', 'content_report_actions', '신고 조치 이력 테이블이 존재해야 한다');

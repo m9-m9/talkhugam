@@ -11,7 +11,7 @@ select tests.create_supabase_user('00000000-0000-0000-0000-000000000292', 'commu
 
 select tests.authenticate_as('00000000-0000-0000-0000-000000000291');
 set local role authenticated;
-select lives_ok($$select * from public.create_community_room('조회 오픈 책방', null, '방장', 'public', 5)$$, '방장이 조회할 오픈 책방을 만들 수 있어야 한다');
+select lives_ok($$select * from public.create_community_room('조회 오픈 책방', null, '방장', 'public', 5::smallint)$$, '방장이 조회할 오픈 책방을 만들 수 있어야 한다');
 
 reset role;
 select tests.authenticate_as('00000000-0000-0000-0000-000000000292');
