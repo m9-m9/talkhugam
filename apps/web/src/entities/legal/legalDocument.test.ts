@@ -1,14 +1,23 @@
 import { describe, expect, it } from 'vitest'
 
-import { getLegalDocument, getRequiredLegalDocuments } from './legalDocument'
+import { getLegalDocument, getRequiredLegalDocuments, legalDocumentVersion } from './legalDocument'
 
 describe('legalDocument', () => {
   it('exposes the two required launch documents with versioned Korean copy', () => {
     const documents = getRequiredLegalDocuments()
 
     expect(documents.map((document) => document.id)).toEqual(['terms', 'privacy'])
-    expect(documents.every((document) => document.version === '2026-07-18.2')).toBe(true)
+    expect(documents.every((document) => document.version === legalDocumentVersion)).toBe(true)
     expect(documents.every((document) => document.sections.length > 0)).toBe(true)
+  })
+
+  it('uses the 2026-10-26.1 version and describes per-book ratings instead of completion records', () => {
+    const privacy = getLegalDocument('privacy')
+    const privacyText = privacy?.sections.flatMap((section) => section.body).join(' ') ?? ''
+
+    expect(legalDocumentVersion).toBe('2026-10-26.1')
+    expect(privacyText).toContain('책별 별점·총평')
+    expect(privacyText).not.toContain('완독')
   })
 
   it('returns no document for an unknown public route parameter', () => {

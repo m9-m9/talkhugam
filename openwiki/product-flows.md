@@ -14,7 +14,7 @@ tags: [talkhugam, product, user-flow, books]
 
 1. 사용자는 로그인 화면(`/`)에서 Google·Kakao OAuth 또는 Naver 전용 시작 흐름을 선택한다.
 2. OAuth callback(`/auth/callback`)은 인증 이후 약관 동의와 온보딩 상태에 맞는 목적지를 결정한다.
-3. 필수 동의가 없으면 `ConsentRequiredRoute`가 `/legal-consent`로 이동시킨다. 동의된 사용자는 온보딩과 앱 내 화면으로 진입한다.
+3. 필수 동의가 없으면 `ConsentRequiredRoute`가 `/legal-consent`로 이동시킨다. 동의된 사용자는 온보딩과 앱 내 화면으로 진입한다. 필수 동의는 현재 정책 버전(`legalDocumentVersion`, 서버 RPC와 동일)과 일치해야 하므로, 정책을 개정해 버전을 올리면 기존 사용자도 다시 동의해야 한다.
 
 이 흐름은 [`apps/web/src/pages/auth`](../apps/web/src/pages/auth), [`features/auth`](../apps/web/src/features/auth), [`router.tsx`](../apps/web/src/app/router/router.tsx)에 구현되어 있다. 인증만으로 데이터 접근이 허용되는 것은 아니며, 이후의 상태 저장과 권한은 [보안과 운영](./security-operations.md)의 RLS/RPC 경계를 통과한다.
 
