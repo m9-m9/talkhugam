@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { getScaledImageSize } from './ocrPhoto'
+import { getScaledImageSize, isPhotoDecodeError, PhotoDecodeError } from './ocrPhoto'
 
 describe('getScaledImageSize', () => {
   it('긴 변을 2000px로 맞추고 비율을 유지한다', () => {
@@ -10,5 +10,12 @@ describe('getScaledImageSize', () => {
 
   it('이미 작은 사진은 키우지 않는다', () => {
     expect(getScaledImageSize({ height: 800, width: 600 })).toEqual({ height: 800, width: 600 })
+  })
+})
+
+describe('isPhotoDecodeError', () => {
+  it('사진 디코드 실패만 구분한다', () => {
+    expect(isPhotoDecodeError(new PhotoDecodeError(new Error('heic')))).toBe(true)
+    expect(isPhotoDecodeError(new Error('network'))).toBe(false)
   })
 })

@@ -180,7 +180,9 @@ export {
 } from './ocrPageClient'
 export {
   getScaledImageSize,
+  isPhotoDecodeError,
   ocrPhotoJpegQuality,
+  PhotoDecodeError,
   ocrPhotoMaxSide,
   type OcrImageSize,
 } from './ocrPhoto'

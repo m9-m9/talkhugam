@@ -11,3 +11,17 @@ export function getScaledImageSize(size: OcrImageSize, maxSide = ocrPhotoMaxSide
   const scale = Math.min(1, maxSide / Math.max(size.width, size.height))
   return { height: Math.round(size.height * scale), width: Math.round(size.width * scale) }
 }
+
+/** 사진을 서버로 보내기 전, 기기·브라우저에서 디코드·축소하지 못했음을 서버 인식 실패와 구분해 나타낸다. */
+export class PhotoDecodeError extends Error {
+  /** 원인 오류를 받아 사진 형식 오류를 만든다. 원인은 기록하지 않고 구분용으로만 둔다. */
+  constructor(cause?: unknown) {
+    super('photo decode failed', { cause })
+    this.name = 'PhotoDecodeError'
+  }
+}
+
+/** 오류가 사진 디코드·축소 실패인지 판단한다. */
+export function isPhotoDecodeError(error: unknown): error is PhotoDecodeError {
+  return error instanceof PhotoDecodeError
+}
