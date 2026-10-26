@@ -98,4 +98,3 @@ comment on function public.get_my_room_role(uuid)
 is '현재 사용자의 활성 책방 역할을 반환하고, 활성 멤버가 아니거나 삭제된 책방이면 null을 반환한다.';
 comment on function public.update_room_member_role(uuid, uuid, public.member_role)
 is '활성 책방의 방장만 다른 활성 멤버를 운영자 또는 참여자로 바꾼다. 방장 이양은 transfer_room_ownership으로만 처리한다.';
-```
