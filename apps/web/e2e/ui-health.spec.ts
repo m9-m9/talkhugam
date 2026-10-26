@@ -1,5 +1,18 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+
 import { expect, test, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
+import {
+  findLineAtPoint,
+  getLineRangeIds,
+  getQuoteDrafts,
+  groupClovaFieldsIntoLines,
+  ocrQuoteMaxLength,
+  splitOcrSentences,
+  type ClovaField,
+  type OcrLine,
+} from '@talkhugam/domain'
 
 const roomId = '89544530-dd36-422b-aaff-b6a70180f521'
 const bookChatId = '00000000-0000-4000-8000-000000000002'
@@ -990,39 +1003,10 @@ test('opens the bookshop invite sheet from the plus menu without losing a draft'
   await expect(page.getByRole('dialog', { name: '책방 초대하기' })).toBeHidden()
   await expect(composer).toHaveValue('이 문장을 함께 나누고 싶어요.')
 })
-test('opens quote, label tabs, and photo line selection from the book-chat plus menu', async ({
+test('opens quote, label tabs, and video choices from the book-chat plus menu', async ({
   page,
 }, testInfo) => {
   await authenticatePage(page)
-  await page.route('**/functions/v1/ocr-page', async (route) => {
-    await route.fulfill({
-      body: JSON.stringify({
-        data: {
-          lines: [
-            {
-              box: { height: 0.05, width: 0.8, x: 0.1, y: 0.1 },
-              id: 'line-0',
-              text: '우리는 늘 떠나는 쪽이었고',
-            },
-            {
-              box: { height: 0.05, width: 0.8, x: 0.1, y: 0.2 },
-              id: 'line-1',
-              text: '남는 쪽의 마음을 헤아린',
-            },
-            {
-              box: { height: 0.05, width: 0.6, x: 0.1, y: 0.3 },
-              id: 'line-2',
-              text: '적이 없었다.',
-            },
-          ],
-        },
-        ok: true,
-        requestId: 'e2e',
-      }),
-      contentType: 'application/json',
-      status: 200,
-    })
-  })
   await page.goto(`/rooms/${roomId}/books/${bookChatId}`)
   const shotPrefix = `artifacts/photo-quote/${testInfo.project.name}`
 
@@ -1039,47 +1023,79 @@ test('opens quote, label tabs, and photo line selection from the book-chat plus 
 
   await page.getByRole('button', { name: '메시지 추가 메뉴로 돌아가기' }).click()
   await page.getByRole('button', { name: '문장 인용' }).click()
+  await expect(page.getByText('한 페이지만, 위에서 평평하게 찍으면 더 정확해요.')).toBeVisible()
   await expect(page.getByRole('button', { name: '사진에서 가져오기' })).toBeVisible()
   await expect(page.getByRole('button', { name: '직접 입력' })).toBeVisible()
+  await expectDialogToFitViewport(page, '문장 인용', testInfo.project.use.viewport?.height ?? 900)
   await page.screenshot({ path: `${shotPrefix}-3-quote.png` })
-  await page.keyboard.press('Escape')
+})
 
-  const pagePhoto = await page.evaluate(() => {
-    const canvas = document.createElement('canvas')
-    canvas.width = 600
-    canvas.height = 800
-    const context = canvas.getContext('2d')
-    if (context) {
-      context.fillStyle = '#f4f1ea'
-      context.fillRect(0, 0, 600, 800)
-    }
-    return canvas.toDataURL('image/png').replace(/^data:[^,]*,/, '')
+test('reads a real-layout page fixture into body sentences and aligns dragged lines to sentences', async ({
+  page,
+}, testInfo) => {
+  const { lines, removedTokens } = readOcrFixtureLines('a')
+  const sentences = splitOcrSentences(lines)
+  const dragTarget = findAlignedDragTarget(lines)
+  const viewportWidth = testInfo.project.use.viewport?.width ?? 640
+  const shotPrefix = `artifacts/photo-quote/fixture-${testInfo.project.name}`
+  await authenticatePage(page)
+  await page.route('**/functions/v1/ocr-page', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({ data: { lines }, ok: true, requestId: 'e2e' }),
+      contentType: 'application/json',
+      status: 200,
+    })
   })
-  await page.getByLabel('문장을 가져올 사진 선택').setInputFiles({
-    buffer: Buffer.from(pagePhoto, 'base64'),
-    mimeType: 'image/png',
-    name: 'page.png',
-  })
+  await page.goto(`/rooms/${roomId}/books/${bookChatId}`)
+  await uploadGrayPagePhoto(page)
+
+  const toggle = page.getByRole('button', { name: '문장으로 고르기' })
+  await expect(toggle).toBeVisible()
+  await page.screenshot({ fullPage: true, path: `${shotPrefix}-1-select.png` })
+  await toggle.click()
+  const sentenceButtons = page.locator('#photo-quote-sentence-list button')
+  await expect(sentenceButtons).toHaveText(sentences.map((sentence) => sentence.text))
+  const listText = (await sentenceButtons.allTextContents()).join(' ')
+  for (const token of removedTokens) expect(listText).not.toContain(token)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+    viewportWidth,
+  )
+  await page.screenshot({ fullPage: true, path: `${shotPrefix}-2-sentences.png` })
+
+  const pickedSentence = sentences[2]
+  if (!pickedSentence) throw new Error('fixture sentence missing')
+  await sentenceButtons.nth(2).click()
+  await expect(sentenceButtons.nth(2)).toHaveAttribute('aria-pressed', 'true')
+  await page.getByRole('button', { name: '다음' }).click()
+  await expect(page.getByRole('textbox', { name: '인용할 문장' })).toHaveValue(pickedSentence.text)
+  await page.screenshot({ path: `${shotPrefix}-3-sentence-confirm.png` })
+  await page
+    .getByRole('dialog', { name: '가져올 문장 확인' })
+    .getByRole('button', { name: '이전 화면으로' })
+    .click()
 
   const overlay = page.getByTestId('photo-quote-overlay')
-  await expect(page.getByRole('button', { name: '줄 목록으로 고르기' })).toBeVisible()
+  await overlay.scrollIntoViewIfNeeded()
   const box = await overlay.boundingBox()
   if (!box) throw new Error('overlay missing')
-  await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.12)
+  await page.mouse.move(
+    box.x + box.width * dragTarget.from.x,
+    box.y + box.height * dragTarget.from.y,
+  )
   await page.mouse.down()
-  await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.32, { steps: 4 })
+  await page.mouse.move(box.x + box.width * dragTarget.to.x, box.y + box.height * dragTarget.to.y, {
+    steps: 6,
+  })
   await page.mouse.up()
-  await expect(page.getByText('3줄 · 36자')).toBeVisible()
-  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
-    testInfo.project.use.viewport?.width ?? 640,
-  )
-  await page.screenshot({ fullPage: true, path: `${shotPrefix}-4-select.png` })
-
+  await page.screenshot({ fullPage: true, path: `${shotPrefix}-4-dragged.png` })
   await page.getByRole('button', { name: '다음' }).click()
-  await expect(page.getByRole('textbox', { name: '인용할 문장' })).toHaveValue(
-    '우리는 늘 떠나는 쪽이었고 남는 쪽의 마음을 헤아린 적이 없었다.',
-  )
-  await page.screenshot({ path: `${shotPrefix}-5-confirm.png` })
+  const quoteInput = page.getByRole('textbox', { name: '인용할 문장' })
+  await expect(quoteInput).toHaveValue(dragTarget.alignedQuote)
+  await expect(page.getByText('앞뒤 잘린 문장 조각은 뺐어요.')).toBeVisible()
+  await page.screenshot({ path: `${shotPrefix}-5-aligned.png` })
+  await page.getByRole('button', { name: '고른 줄 그대로' }).click()
+  await expect(quoteInput).toHaveValue(dragTarget.rawQuote)
+  await page.screenshot({ path: `${shotPrefix}-6-raw.png` })
 })
 
 test('selects a member by typing an at-sign in the book-chat composer', async ({ page }) => {
@@ -1835,4 +1851,70 @@ function createAdminFeedbackTicket() {
     id: '8fc963a4-da01-4696-995c-755fe145776f',
     status: 'unread',
   }
+}
+
+type OcrFixture = {
+  images: Array<{ convertedImageInfo: { height: number; width: number }; fields: ClovaField[] }>
+}
+
+/**
+ * 글자를 가짜 한글로 바꾼 실제 CLOVA 좌표 픽스처를 서버와 같은 domain 알고리즘으로 줄로 만들고,
+ * 본문에서 지워진(잘린 조각·화자·쪽 번호) 두 글자 이상 토큰을 함께 돌려준다.
+ */
+function readOcrFixtureLines(name: 'a' | 'b'): { lines: OcrLine[]; removedTokens: string[] } {
+  const path = resolve(
+    process.cwd(),
+    `../../packages/domain/src/__fixtures__/clova-fixture-page-${name}.json`,
+  )
+  const image = (JSON.parse(readFileSync(path, 'utf8')) as OcrFixture).images[0]
+  if (!image) throw new Error('fixture image missing')
+  const lines = groupClovaFieldsIntoLines(image.fields, image.convertedImageInfo)
+  const keptTokens = new Set(lines.flatMap((line) => line.text.split(' ')))
+  const removedTokens = image.fields
+    .map((field) => (field.inferText ?? '').trim())
+    .filter((token) => token.length >= 2 && !keptTokens.has(token))
+  return { lines, removedTokens }
+}
+
+/** 줄 박스의 가운데 비율 좌표를 반환한다. */
+function getLineCenter(line: OcrLine): { x: number; y: number } {
+  return { x: line.box.x + line.box.width / 2, y: line.box.y + line.box.height / 2 }
+}
+
+/**
+ * 사진 위에서 몇 줄을 끌었을 때 문장 경계 맞춤 결과가 고른 줄 그대로와 달라지는 끌기 구간을 찾는다.
+ * 기운 줄 박스가 겹칠 수 있어 실제 화면과 같은 findLineAtPoint·getLineRangeIds로 기대값을 계산한다.
+ */
+function findAlignedDragTarget(lines: OcrLine[]) {
+  for (let start = 1; start < lines.length - 3; start += 1) {
+    const from = getLineCenter(lines[start] as OcrLine)
+    const to = getLineCenter(lines[start + 3] as OcrLine)
+    const anchor = findLineAtPoint(lines, from.x, from.y)
+    const end = findLineAtPoint(lines, to.x, to.y)
+    const ids = anchor && end ? getLineRangeIds(lines, anchor.id, end.id) : []
+    const drafts = getQuoteDrafts(lines, ids)
+    if (drafts.alignedQuote && drafts.rawQuote.length <= ocrQuoteMaxLength)
+      return { alignedQuote: drafts.alignedQuote, from, rawQuote: drafts.rawQuote, to }
+  }
+  throw new Error('no aligned drag target in fixture')
+}
+
+/** 사진 선택 입력에 1500×2000 빈 회색 JPEG을 넣어 문장 고르기 화면을 연다. */
+async function uploadGrayPagePhoto(page: Page) {
+  const pagePhoto = await page.evaluate(() => {
+    const canvas = document.createElement('canvas')
+    canvas.width = 1500
+    canvas.height = 2000
+    const context = canvas.getContext('2d')
+    if (context) {
+      context.fillStyle = '#9a9a9a'
+      context.fillRect(0, 0, 1500, 2000)
+    }
+    return canvas.toDataURL('image/jpeg', 0.8).replace(/^data:[^,]*,/, '')
+  })
+  await page.getByLabel('문장을 가져올 사진 선택').setInputFiles({
+    buffer: Buffer.from(pagePhoto, 'base64'),
+    mimeType: 'image/jpeg',
+    name: 'page.jpg',
+  })
 }
