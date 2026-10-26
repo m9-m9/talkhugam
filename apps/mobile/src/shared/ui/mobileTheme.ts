@@ -11,11 +11,13 @@ export const mobileColors = {
   dangerAction: '#C4302B',
   ink: '#FFFFFF',
   inkSubtle: '#C7C7C7',
-  /** 사진 위 줄 박스: Ink를 10%·30% 면, 40% 테두리로 겹친다(웹 `bg-ink/10`·`bg-ink/30`·`ring-ink/40`과 같다). */
-  inkOverlay: 'rgba(255, 255, 255, 0.1)',
-  inkOverlayBorder: 'rgba(255, 255, 255, 0.4)',
-  inkOverlayStrong: 'rgba(255, 255, 255, 0.3)',
-  /** 시트·전체 화면 뒤를 가리는 반투명 검정. Surface를 72% 불투명도로 쓴다. */
+  /**
+   * 사진 위 줄 박스. 밝은 책 종이에서도 보이도록 고르지 않은 줄은 Surface 5% 면·50% 테두리,
+   * 고른 줄은 Accent 35% 면·Accent 테두리로 겹친다(웹 `bg-surface/5`·`bg-accent/35`와 같다).
+   */
+  lineOverlay: 'rgba(0, 0, 0, 0.05)',
+  lineOverlayBorder: 'rgba(0, 0, 0, 0.5)',
+  lineOverlaySelected: 'rgba(255, 131, 95, 0.35)',
   scrim: 'rgba(0, 0, 0, 0.72)',
   surface: '#000000',
   surfaceRaised: '#101010',

@@ -379,8 +379,8 @@ function PhotoLineOverlay({
           <span
             className={`pointer-events-none absolute rounded-sm ${
               selectedIds.includes(line.id)
-                ? 'bg-ink/30 ring-ink ring-2'
-                : 'bg-ink/10 ring-ink/40 ring-1'
+                ? 'bg-accent/35 ring-accent ring-2'
+                : 'bg-surface/5 ring-surface/50 ring-1'
             }`}
             key={line.id}
             style={{
@@ -512,7 +512,7 @@ function ConfirmStep({
           </TextField.Root>
         </div>
         {isManual ? null : (
-          <>
+          <div className="flex flex-col items-start gap-3">
             <SeedActionButton
               aria-pressed={isKeepingLineBreaks}
               className="talkhugam-foundation-toggle min-h-11"
@@ -526,7 +526,7 @@ function ConfirmStep({
             <p className="text-ink-subtle talkhugam-balanced-copy text-sm">
               사진은 저장되지 않아요.
             </p>
-          </>
+          </div>
         )}
         <p className="text-ink-subtle talkhugam-balanced-copy text-xs">
           책 속 문장은 짧게 인용하고 내 생각을 함께 남겨 주세요.

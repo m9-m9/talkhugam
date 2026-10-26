@@ -522,13 +522,13 @@ const styles = StyleSheet.create({
   },
   headerSpacer: { minWidth: mobileTouchTarget },
   lineBox: {
-    backgroundColor: mobileColors.inkOverlay,
-    borderColor: mobileColors.inkOverlayBorder,
+    backgroundColor: mobileColors.lineOverlay,
+    borderColor: mobileColors.lineOverlayBorder,
     borderRadius: 2,
     borderWidth: 1,
     position: 'absolute',
   },
-  lineBoxSelected: { backgroundColor: mobileColors.inkOverlayStrong, borderColor: mobileColors.ink, borderWidth: 2 },
+  lineBoxSelected: { backgroundColor: mobileColors.lineOverlaySelected, borderColor: mobileColors.accent, borderWidth: 2 },
   lineRow: {
     borderBottomWidth: 1,
     borderColor: mobileColors.border,

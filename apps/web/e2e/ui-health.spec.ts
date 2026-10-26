@@ -896,18 +896,18 @@ test('resets a dismissed book-chat label editor while keeping the message draft'
     'rgb(0, 0, 0)',
   )
   await expectBottomSheetToHideInternalScrollbar(page)
-  await expect(page.getByRole('button', { name: '페이지 라벨' })).toHaveCSS(
+  await expect(page.getByRole('button', { name: '라벨', exact: true })).toHaveCSS(
     'background-color',
     'rgba(0, 0, 0, 0)',
   )
-  await expect(page.getByRole('button', { name: '페이지 라벨' })).toHaveCSS(
+  await expect(page.getByRole('button', { name: '라벨', exact: true })).toHaveCSS(
     'border-bottom-color',
     'rgb(42, 42, 42)',
   )
   await page.screenshot({
     path: `artifacts/seed-comparison/8-book-discussion-action-menu-after-${testInfo.project.name}.png`,
   })
-  await page.getByRole('button', { name: '페이지 라벨' }).click()
+  await page.getByRole('button', { name: '라벨', exact: true }).click()
   await page.getByRole('textbox', { name: '페이지 번호' }).fill('87')
   await page.keyboard.press('Escape')
   await expect(page.getByRole('textbox', { name: '페이지 번호' })).toBeHidden()
@@ -916,14 +916,14 @@ test('resets a dismissed book-chat label editor while keeping the message draft'
   await composer.fill('이 문장을 기억할게요')
 
   await page.getByRole('button', { name: '메시지 추가 메뉴 열기' }).click()
-  await expect(page.getByRole('button', { name: '페이지 라벨' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '라벨', exact: true })).toBeVisible()
   await expect(page.getByRole('textbox', { name: '페이지 번호' })).toBeHidden()
   await page.keyboard.press('Escape')
   await expect(page.getByRole('dialog', { name: '메시지 추가' })).toBeHidden()
   await expect(composer).toHaveValue('이 문장을 기억할게요')
 
   await page.getByRole('button', { name: '메시지 추가 메뉴 열기' }).click()
-  await page.getByRole('button', { name: '페이지 라벨' }).click()
+  await page.getByRole('button', { name: '라벨', exact: true }).click()
   await expect(page.getByRole('textbox', { name: '페이지 번호' })).toHaveValue('')
 
   const accessibilityScanResults = await new AxeBuilder({ page }).analyze()
@@ -990,6 +990,98 @@ test('opens the bookshop invite sheet from the plus menu without losing a draft'
   await expect(page.getByRole('dialog', { name: '책방 초대하기' })).toBeHidden()
   await expect(composer).toHaveValue('이 문장을 함께 나누고 싶어요.')
 })
+test('opens quote, label tabs, and photo line selection from the book-chat plus menu', async ({
+  page,
+}, testInfo) => {
+  await authenticatePage(page)
+  await page.route('**/functions/v1/ocr-page', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        data: {
+          lines: [
+            {
+              box: { height: 0.05, width: 0.8, x: 0.1, y: 0.1 },
+              id: 'line-0',
+              text: '우리는 늘 떠나는 쪽이었고',
+            },
+            {
+              box: { height: 0.05, width: 0.8, x: 0.1, y: 0.2 },
+              id: 'line-1',
+              text: '남는 쪽의 마음을 헤아린',
+            },
+            {
+              box: { height: 0.05, width: 0.6, x: 0.1, y: 0.3 },
+              id: 'line-2',
+              text: '적이 없었다.',
+            },
+          ],
+        },
+        ok: true,
+        requestId: 'e2e',
+      }),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+  await page.goto(`/rooms/${roomId}/books/${bookChatId}`)
+  const shotPrefix = `artifacts/photo-quote/${testInfo.project.name}`
+
+  await page.getByRole('button', { name: '메시지 추가 메뉴 열기' }).click()
+  await expectDialogToFitViewport(page, '메시지 추가', testInfo.project.use.viewport?.height ?? 900)
+  await page.screenshot({ path: `${shotPrefix}-1-menu.png` })
+
+  await page.getByRole('button', { name: '라벨', exact: true }).click()
+  await expect(page.getByRole('tab', { name: '페이지' })).toHaveAttribute('aria-selected', 'true')
+  await page.getByRole('tab', { name: '챕터' }).click()
+  await expect(page.getByRole('textbox', { name: '챕터 이름 또는 번호' })).toBeVisible()
+  await expectDialogToFitViewport(page, '라벨', testInfo.project.use.viewport?.height ?? 900)
+  await page.screenshot({ path: `${shotPrefix}-2-label.png` })
+
+  await page.getByRole('button', { name: '메시지 추가 메뉴로 돌아가기' }).click()
+  await page.getByRole('button', { name: '문장 인용' }).click()
+  await expect(page.getByRole('button', { name: '사진에서 가져오기' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '직접 입력' })).toBeVisible()
+  await page.screenshot({ path: `${shotPrefix}-3-quote.png` })
+  await page.keyboard.press('Escape')
+
+  const pagePhoto = await page.evaluate(() => {
+    const canvas = document.createElement('canvas')
+    canvas.width = 600
+    canvas.height = 800
+    const context = canvas.getContext('2d')
+    if (context) {
+      context.fillStyle = '#f4f1ea'
+      context.fillRect(0, 0, 600, 800)
+    }
+    return canvas.toDataURL('image/png').replace(/^data:[^,]*,/, '')
+  })
+  await page.getByLabel('문장을 가져올 사진 선택').setInputFiles({
+    buffer: Buffer.from(pagePhoto, 'base64'),
+    mimeType: 'image/png',
+    name: 'page.png',
+  })
+
+  const overlay = page.getByTestId('photo-quote-overlay')
+  await expect(page.getByRole('button', { name: '줄 목록으로 고르기' })).toBeVisible()
+  const box = await overlay.boundingBox()
+  if (!box) throw new Error('overlay missing')
+  await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.12)
+  await page.mouse.down()
+  await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.32, { steps: 4 })
+  await page.mouse.up()
+  await expect(page.getByText('3줄 · 36자')).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+    testInfo.project.use.viewport?.width ?? 640,
+  )
+  await page.screenshot({ fullPage: true, path: `${shotPrefix}-4-select.png` })
+
+  await page.getByRole('button', { name: '다음' }).click()
+  await expect(page.getByRole('textbox', { name: '인용할 문장' })).toHaveValue(
+    '우리는 늘 떠나는 쪽이었고 남는 쪽의 마음을 헤아린 적이 없었다.',
+  )
+  await page.screenshot({ path: `${shotPrefix}-5-confirm.png` })
+})
+
 test('selects a member by typing an at-sign in the book-chat composer', async ({ page }) => {
   await authenticatePage(page)
   await mockVideoMembers(page, [
