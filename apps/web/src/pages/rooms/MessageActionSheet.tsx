@@ -17,6 +17,9 @@ const menuTitles: Record<MenuView, string> = {
   video: '영상',
 }
 
+/** 사진을 고르기 직전에 보여 주는 촬영 안내. 막지 않고 정확도를 높이는 방법만 알린다. */
+export const photoQuoteShootingHint = '한 페이지만, 위에서 평평하게 찍으면 더 정확해요.'
+
 const labelTabs: Array<{ kind: MessageLabelKind; name: string }> = [
   { kind: 'page', name: '페이지' },
   { kind: 'chapter', name: '챕터' },
@@ -193,17 +196,20 @@ function SubmenuBody({ view, ...props }: MenuBodyProps & { view: SubmenuView }) 
   if (view === 'label') return <LabelEditor onAddLabel={props.onAddLabel} onClose={props.onClose} />
   if (view === 'quote')
     return (
-      <ChoiceList
-        choices={[
-          {
-            isDisabled: !props.hasBookChat,
-            label: '사진에서 가져오기',
-            onSelect: props.onPickPhoto,
-          },
-          { isDisabled: !props.hasBookChat, label: '직접 입력', onSelect: props.onWriteQuote },
-        ]}
-        onClose={props.onClose}
-      />
+      <>
+        <p className="text-ink-subtle talkhugam-balanced-copy text-sm">{photoQuoteShootingHint}</p>
+        <ChoiceList
+          choices={[
+            {
+              isDisabled: !props.hasBookChat,
+              label: '사진에서 가져오기',
+              onSelect: props.onPickPhoto,
+            },
+            { isDisabled: !props.hasBookChat, label: '직접 입력', onSelect: props.onWriteQuote },
+          ]}
+          onClose={props.onClose}
+        />
+      </>
     )
   return (
     <ChoiceList

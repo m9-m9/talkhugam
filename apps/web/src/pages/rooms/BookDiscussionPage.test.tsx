@@ -527,6 +527,7 @@ describe('BookDiscussionPage', () => {
     fireEvent.click(screen.getByRole('button', { name: '메시지 추가 메뉴 열기' }))
     fireEvent.click(screen.getByRole('button', { name: '문장 인용' }))
     expect(screen.getByRole('dialog', { name: '문장 인용' })).toBeInTheDocument()
+    expect(screen.getByText('한 페이지만, 위에서 평평하게 찍으면 더 정확해요.')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: '직접 입력' }))
 
     expect(await screen.findByRole('dialog', { name: '문장 고르기' })).toHaveTextContent(

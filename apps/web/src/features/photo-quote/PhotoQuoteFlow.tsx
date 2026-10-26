@@ -6,16 +6,16 @@ import {
   applyLineRange,
   findLineAtPoint,
   getLineRangeIds,
-  getLineSelectionSummary,
   getPhotoQuoteErrorMessage,
+  getQuoteDrafts,
   isQuoteWithinLimit,
-  joinOcrLines,
   ocrEmptyResultMessage,
   ocrQuoteMaxLength,
   recognizePagePhoto,
-  toggleLineId,
+  splitOcrSentences,
   type LineRangeMode,
   type OcrLine,
+  type OcrSentence,
 } from '@talkhugam/domain'
 
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
@@ -40,6 +40,12 @@ type PhotoQuoteFlowProps = {
 
 type DragState = { anchorId: string; baseIds: string[]; mode: LineRangeMode }
 
+/**
+ * 확인 화면 문장이 어디서 왔는지. sentence는 문장 목록에서 고른 문장, aligned는 사진 위에서 고른 줄을
+ * 문장 경계에 맞춘 문장, raw는 고른 줄 그대로, manual은 직접 입력이다.
+ */
+type QuoteSource = 'manual' | 'sentence' | 'aligned' | 'raw'
+
 const titleId = 'photo-quote-title'
 
 /** 사진 파일을 줄여 ocr-page 함수로 보내고 인식한 줄 목록을 반환한다. */
@@ -63,8 +69,19 @@ function usePhotoObjectUrl(file: File | null): string | null {
   return photoUrl
 }
 
+/** 고른 문장이 있으면 그 문장, 없으면 문장 경계에 맞춘 문장(없으면 고른 줄 그대로)을 확인 화면 기본값으로 고른다. */
+function getDefaultQuote(
+  sentence: OcrSentence | undefined,
+  lines: OcrLine[],
+  selectedIds: string[],
+): string {
+  if (sentence) return sentence.text
+  const drafts = getQuoteDrafts(lines, selectedIds)
+  return drafts.alignedQuote ?? drafts.rawQuote
+}
+
 /**
- * 책 페이지 사진을 받아 인식 → 줄 선택 → 문장 확인 단계를 전체 화면으로 보여 주고,
+ * 책 페이지 사진을 받아 인식 → 줄·문장 선택 → 문장 확인 단계를 전체 화면으로 보여 주고,
  * 사용자가 확인한 인용 문장과 쪽을 onInsert로 넘긴다. 사진이 없으면(직접 입력) 빈 확인 화면만 연다.
  * 사진과 인식 결과는 저장하지 않는다.
  */
@@ -78,8 +95,10 @@ export function PhotoQuoteFlow({
   const dialogRef = useRef<HTMLDivElement>(null)
   const [requestKey] = useState(() => crypto.randomUUID())
   const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [selectedSentenceId, setSelectedSentenceId] = useState<string | null>(null)
   const isManual = file === null
   const [step, setStep] = useState<'select' | 'confirm'>(isManual ? 'confirm' : 'select')
+  const [quoteSource, setQuoteSource] = useState<QuoteSource>(isManual ? 'manual' : 'raw')
   const [isKeepingLineBreaks, setIsKeepingLineBreaks] = useState(false)
   const [quoteDraft, setQuoteDraft] = useState('')
   const [pageDraft, setPageDraft] = useState('')
@@ -95,7 +114,9 @@ export function PhotoQuoteFlow({
     staleTime: Infinity,
   })
   const lines = recognitionQuery.data ?? []
-  const selectedTexts = getLineSelectionSummary(lines, selectedIds).texts
+  const sentences = splitOcrSentences(lines)
+  const selectedSentence = sentences.find((sentence) => sentence.id === selectedSentenceId)
+  const hasAlignedOption = getQuoteDrafts(lines, selectedIds).alignedQuote !== null
 
   useEffect(() => {
     /** Escape로 흐름을 닫고 Tab 포커스를 화면 안에 가둔다. */
@@ -112,17 +133,41 @@ export function PhotoQuoteFlow({
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [onClose])
 
-  /** 고른 줄을 정리한 문장으로 확인 화면을 연다. */
+  /** 사진 위에서 줄을 고치면 문장 목록 선택을 풀고 줄 선택만 남긴다. */
+  function handleChangeLineSelection(ids: string[]) {
+    setSelectedIds(ids)
+    setSelectedSentenceId(null)
+  }
+
+  /** 문장을 고르면 그 문장에 걸친 줄도 사진 위에 표시하고, 같은 문장을 다시 누르면 선택을 푼다. */
+  function handleSelectSentence(sentence: OcrSentence) {
+    const isSame = sentence.id === selectedSentenceId
+    setSelectedSentenceId(isSame ? null : sentence.id)
+    setSelectedIds(isSame ? [] : sentence.lineIds)
+  }
+
+  /** 고른 문장 또는 문장 경계에 맞춘 문장(없으면 고른 줄 그대로)으로 확인 화면을 연다. */
   function handleOpenConfirm() {
-    setQuoteDraft(joinOcrLines(selectedTexts, { shouldKeepLineBreaks: isKeepingLineBreaks }))
+    const drafts = getQuoteDrafts(lines, selectedIds, { shouldKeepLineBreaks: isKeepingLineBreaks })
+    if (selectedSentence) setQuoteSource('sentence')
+    else setQuoteSource(drafts.alignedQuote ? 'aligned' : 'raw')
+    setQuoteDraft(selectedSentence?.text ?? drafts.alignedQuote ?? drafts.rawQuote)
     setStep('confirm')
   }
 
-  /** 원문 줄바꿈 유지 여부를 바꾸고 고른 줄로 문장을 다시 만든다. */
+  /** 문장 경계에 맞춘 문장과 고른 줄 그대로를 오가며 확인 화면 문장을 다시 만든다. */
+  function handleToggleRawLines() {
+    const drafts = getQuoteDrafts(lines, selectedIds, { shouldKeepLineBreaks: isKeepingLineBreaks })
+    const nextSource: QuoteSource = quoteSource === 'raw' ? 'aligned' : 'raw'
+    setQuoteSource(nextSource)
+    setQuoteDraft(nextSource === 'raw' ? drafts.rawQuote : (drafts.alignedQuote ?? drafts.rawQuote))
+  }
+
+  /** 고른 줄 그대로일 때 원문 줄바꿈 유지 여부를 바꾸고 문장을 다시 만든다. */
   function handleToggleLineBreaks() {
     const nextValue = !isKeepingLineBreaks
     setIsKeepingLineBreaks(nextValue)
-    setQuoteDraft(joinOcrLines(selectedTexts, { shouldKeepLineBreaks: nextValue }))
+    setQuoteDraft(getQuoteDrafts(lines, selectedIds, { shouldKeepLineBreaks: nextValue }).rawQuote)
   }
 
   /** 확인한 문장과 쪽을 입력창에 넣도록 부모에 전달한다. */
@@ -157,6 +202,7 @@ export function PhotoQuoteFlow({
         <AppHeader onBack={handleBack} title={title} />
         {step === 'select' ? (
           <SelectStep
+            defaultQuote={getDefaultQuote(selectedSentence, lines, selectedIds)}
             errorMessage={
               recognitionQuery.isError ? getRecognitionErrorMessage(recognitionQuery.error) : null
             }
@@ -166,24 +212,28 @@ export function PhotoQuoteFlow({
             isRecognizing={recognitionQuery.isPending}
             isRetrying={recognitionQuery.isFetching}
             lines={lines}
-            onChangeSelection={setSelectedIds}
+            onChangeSelection={handleChangeLineSelection}
             onNext={handleOpenConfirm}
             onPickAnotherPhoto={onPickAnotherPhoto ?? onClose}
             onRetry={() => void recognitionQuery.refetch()}
+            onSelectSentence={handleSelectSentence}
             photoUrl={photoUrl}
             selectedIds={selectedIds}
-            selectedTexts={selectedTexts}
+            selectedSentenceId={selectedSentenceId}
+            sentences={sentences}
           />
         ) : (
           <ConfirmStep
+            hasAlignedOption={quoteSource !== 'sentence' && hasAlignedOption}
             isKeepingLineBreaks={isKeepingLineBreaks}
-            isManual={isManual}
             onChangePage={setPageDraft}
             onChangeQuote={setQuoteDraft}
             onInsert={handleInsert}
             onToggleLineBreaks={handleToggleLineBreaks}
+            onToggleRawLines={handleToggleRawLines}
             pageDraft={pageDraft}
             quoteDraft={quoteDraft}
+            quoteSource={quoteSource}
           />
         )}
       </div>
@@ -204,6 +254,7 @@ function getFlowTitle(step: 'select' | 'confirm', isManual: boolean): string {
 }
 
 type SelectStepProps = {
+  defaultQuote: string
   errorMessage: string | null
   isPhotoUnreadable: boolean
   isRecognizing: boolean
@@ -213,13 +264,16 @@ type SelectStepProps = {
   onNext: () => void
   onPickAnotherPhoto: () => void
   onRetry: () => void
+  onSelectSentence: (sentence: OcrSentence) => void
   photoUrl: string | null
   selectedIds: string[]
-  selectedTexts: string[]
+  selectedSentenceId: string | null
+  sentences: OcrSentence[]
 }
 
-/** 인식 상태에 맞춰 사진, 줄 박스, 줄 목록과 하단 선택 요약을 렌더링한다. */
+/** 인식 상태에 맞춰 사진, 줄 박스, 문장 목록과 하단 선택 요약을 렌더링한다. 글자 수는 확인 화면에 넣을 문장 기준이다. */
 function SelectStep({
+  defaultQuote,
   errorMessage,
   isPhotoUnreadable,
   isRecognizing,
@@ -229,12 +283,14 @@ function SelectStep({
   onNext,
   onPickAnotherPhoto,
   onRetry,
+  onSelectSentence,
   photoUrl,
   selectedIds,
-  selectedTexts,
+  selectedSentenceId,
+  sentences,
 }: SelectStepProps) {
-  const joinedLength = joinOcrLines(selectedTexts).length
-  const isOverLimit = joinedLength > ocrQuoteMaxLength
+  const quoteLength = defaultQuote.length
+  const isOverLimit = quoteLength > ocrQuoteMaxLength
   const isEmptyResult = !isRecognizing && !errorMessage && lines.length === 0
 
   return (
@@ -267,11 +323,11 @@ function SelectStep({
             {ocrEmptyResultMessage}
           </p>
         ) : null}
-        {lines.length > 0 ? (
-          <LineToggleList
-            lines={lines}
-            onToggle={(lineId) => onChangeSelection(toggleLineId(selectedIds, lineId))}
-            selectedIds={selectedIds}
+        {sentences.length > 0 ? (
+          <SentencePicker
+            onSelect={onSelectSentence}
+            selectedSentenceId={selectedSentenceId}
+            sentences={sentences}
           />
         ) : null}
       </div>
@@ -282,8 +338,8 @@ function SelectStep({
           </p>
         ) : null}
         <div className="flex items-center justify-between gap-3">
-          <p aria-live="polite" className="text-ink-subtle text-sm">
-            {selectedIds.length}줄 · {joinedLength}자
+          <p aria-live="polite" className="text-ink-subtle text-sm tabular-nums">
+            {selectedIds.length}줄 · {quoteLength}자
           </p>
           <SeedActionButton
             className="talkhugam-foundation-action--outline min-h-11"
@@ -397,27 +453,27 @@ function PhotoLineOverlay({
 }
 
 /**
- * 사진 위 탭·끌기를 주 방식으로 안내하고, 박스가 작은 화면·키보드·스크린리더 사용자를 위해
- * 인식한 줄 전체를 토글 목록으로 고를 수 있게 한다. 목록은 보조 수단이라 기본으로 접어 둔다.
+ * 사진 위 탭·끌기를 주 방식으로 안내하고, 본문 줄을 이어 붙여 나눈 문장 목록을 보조로 보여 준다.
+ * 문장을 누르면 그 문장만 고르고, 걸친 줄은 사진 위에도 표시된다. 목록은 기본으로 접어 둔다.
  */
-function LineToggleList({
-  lines,
-  onToggle,
-  selectedIds,
+function SentencePicker({
+  onSelect,
+  selectedSentenceId,
+  sentences,
 }: {
-  lines: OcrLine[]
-  onToggle: (lineId: string) => void
-  selectedIds: string[]
+  onSelect: (sentence: OcrSentence) => void
+  selectedSentenceId: string | null
+  sentences: OcrSentence[]
 }) {
   const [isExpanded, setIsExpanded] = useState(false)
 
   return (
-    <section aria-label="인식한 줄" className="mt-4">
+    <section aria-label="문장 목록" className="mt-4">
       <p className="text-ink-subtle talkhugam-balanced-copy text-sm">
         사진 위 줄을 누르거나 끌어서 고르세요.
       </p>
       <SeedActionButton
-        aria-controls="photo-quote-line-list"
+        aria-controls="photo-quote-sentence-list"
         aria-expanded={isExpanded}
         className="mt-3 min-h-11"
         onClick={() => setIsExpanded((value) => !value)}
@@ -425,23 +481,23 @@ function LineToggleList({
         type="button"
         variant="ghost"
       >
-        줄 목록으로 고르기
+        문장으로 고르기
       </SeedActionButton>
       {isExpanded ? (
-        <ul className="border-border mt-2 border-t" id="photo-quote-line-list">
-          {lines.map((line) => {
-            const isSelected = selectedIds.includes(line.id)
+        <ul className="border-border mt-2 border-t" id="photo-quote-sentence-list">
+          {sentences.map((sentence) => {
+            const isSelected = sentence.id === selectedSentenceId
             return (
-              <li className="border-border border-b" key={line.id}>
+              <li className="border-border border-b" key={sentence.id}>
                 <button
                   aria-pressed={isSelected}
                   className={`min-h-11 w-full px-2 py-2 text-left text-sm ${
                     isSelected ? 'bg-ink text-surface' : 'text-ink'
                   }`}
-                  onClick={() => onToggle(line.id)}
+                  onClick={() => onSelect(sentence)}
                   type="button"
                 >
-                  {line.text}
+                  {sentence.text}
                 </button>
               </li>
             )
@@ -453,28 +509,36 @@ function LineToggleList({
 }
 
 type ConfirmStepProps = {
+  hasAlignedOption: boolean
   isKeepingLineBreaks: boolean
-  isManual: boolean
   onChangePage: (value: string) => void
   onChangeQuote: (value: string) => void
   onInsert: () => void
   onToggleLineBreaks: () => void
+  onToggleRawLines: () => void
   pageDraft: string
   quoteDraft: string
+  quoteSource: QuoteSource
 }
 
-/** 인용 문장을 고치거나 직접 적고 쪽을 적은 뒤 입력창에 넣는 확인 화면을 렌더링한다. 사진 전용 안내는 사진 흐름에서만 보인다. */
+/**
+ * 인용 문장을 고치거나 직접 적고 쪽을 적은 뒤 입력창에 넣는 확인 화면을 렌더링한다. 사진 위에서 줄로 고른 경우
+ * 문장 경계에 맞춘 문장을 기본으로 보여 주고 "고른 줄 그대로"로 바꿀 수 있다. 사진 전용 안내는 사진 흐름에서만 보인다.
+ */
 function ConfirmStep({
+  hasAlignedOption,
   isKeepingLineBreaks,
-  isManual,
   onChangePage,
   onChangeQuote,
   onInsert,
   onToggleLineBreaks,
+  onToggleRawLines,
   pageDraft,
   quoteDraft,
+  quoteSource,
 }: ConfirmStepProps) {
   const quoteLength = quoteDraft.trim().length
+  const isManual = quoteSource === 'manual'
 
   return (
     <>
@@ -490,7 +554,7 @@ function ConfirmStep({
             />
           </TextField.Root>
           <p
-            className={`mt-1 text-right text-xs ${quoteLength > ocrQuoteMaxLength ? 'text-danger' : 'text-ink-subtle'}`}
+            className={`mt-1 text-right text-xs tabular-nums ${quoteLength > ocrQuoteMaxLength ? 'text-danger' : 'text-ink-subtle'}`}
           >
             {quoteLength}/{ocrQuoteMaxLength}
           </p>
@@ -513,16 +577,37 @@ function ConfirmStep({
         </div>
         {isManual ? null : (
           <div className="flex flex-col items-start gap-3">
-            <SeedActionButton
-              aria-pressed={isKeepingLineBreaks}
-              className="talkhugam-foundation-toggle min-h-11"
-              onClick={onToggleLineBreaks}
-              size="medium"
-              type="button"
-              variant="neutralOutline"
-            >
-              원문 줄바꿈 유지
-            </SeedActionButton>
+            {quoteSource === 'aligned' ? (
+              <p className="text-ink-subtle talkhugam-balanced-copy text-sm">
+                앞뒤 잘린 문장 조각은 뺐어요.
+              </p>
+            ) : null}
+            <div className="flex flex-wrap gap-3">
+              {hasAlignedOption ? (
+                <SeedActionButton
+                  aria-pressed={quoteSource === 'raw'}
+                  className="talkhugam-foundation-toggle min-h-11"
+                  onClick={onToggleRawLines}
+                  size="medium"
+                  type="button"
+                  variant="neutralOutline"
+                >
+                  고른 줄 그대로
+                </SeedActionButton>
+              ) : null}
+              {quoteSource === 'raw' ? (
+                <SeedActionButton
+                  aria-pressed={isKeepingLineBreaks}
+                  className="talkhugam-foundation-toggle min-h-11"
+                  onClick={onToggleLineBreaks}
+                  size="medium"
+                  type="button"
+                  variant="neutralOutline"
+                >
+                  원문 줄바꿈 유지
+                </SeedActionButton>
+              ) : null}
+            </div>
             <p className="text-ink-subtle talkhugam-balanced-copy text-sm">
               사진은 저장되지 않아요.
             </p>
