@@ -217,3 +217,9 @@ OCR 브랜치에 넘길 항목(웹 3, 모바일 9)은 위 건수에 들어 있�
 | `playwright test e2e/ui-health.spec.ts`(4391 포트 임시 설정) | 102개 통과, 320·640px 스크린샷 44장 확인      |
 
 다른 작업이 같은 기기에서 동시에 돌아 부하가 높았을 때(load average 130 이상) `pnpm test:web`에서 시간 초과 2건(`AdminPage`, `NotificationsPage`)이 한 번 났고, 단독 실행과 전체 재실행 모두 통과했다. 코드 변경과 관계없는 부하 문제로 본다.
+
+## 후속: 프로필 사진 깜빡임 (2026-10-27)
+
+- **문제(P1)**: 사진을 등록한 사용자도 `/profile`에서 처음엔 이름 첫 글자가 보였다가 사진으로 바뀌었다. `ProfileAvatar`가 "사진 경로 없음"과 "임시 URL을 받는 중"을 구분하지 못했고, 사진 URL 조회의 `staleTime`이 0이라 화면에 돌아올 때마다 새 서명 URL로 사진을 다시 받았다. 프로필·프로필 편집·멤버 프로필이 서로 다른 Query key를 써서 캐시도 공유하지 않았다.
+- **수정**: `ProfileAvatar`가 상태를 셋으로 나눈다. 경로 없음 → 첫 글자, 경로 있음 + URL 대기·이미지 로딩 중 → 크기 고정된 표면색 빈 원(첫 글자 없음), 이미지 `onLoad` 뒤 150ms opacity 전환(`motion-reduce` 존중), URL 조회·이미지 실패 → 첫 글자. 세 화면이 `avatarPath`·`hasAvatarError`를 넘기고, 공용 `createProfileAvatarUrlQueryKey`와 `staleTime` 50분(서명 URL 1시간)을 쓴다. 모바일 `MobileProfileScreen`도 공용 `MobileProfileAvatar`로 같은 규칙과 `staleTime`을 적용했다.
+- **테스트**: 웹 `ProfileAvatar.test.tsx`(경로 있음 + 대기 중 첫 글자 없음, 로드 전 투명, 실패 시 첫 글자, URL 오류 시 첫 글자, 경로 없음 시 첫 글자), `ProfilePage.test.tsx`(URL 대기 중 첫 글자 없음), 모바일 `MobileProfileAvatar.test.tsx` 3건.

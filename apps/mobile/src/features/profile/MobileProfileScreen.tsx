@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
 import {
   ActivityIndicator,
-  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -22,6 +21,7 @@ import {
 } from '../../entities/profile'
 import { useMobileSessionProfileId } from '../../shared/api/MobileAppProviders'
 import { createMobileSupabaseClient } from '../../shared/api/mobileSupabaseClient'
+import { MobileProfileAvatar } from '../../shared/ui/MobileProfileAvatar'
 import { mobileColors } from '../../shared/ui/mobileTheme'
 
 type MobileProfileScreenProps = {
@@ -68,6 +68,8 @@ export function MobileProfileScreen({
     enabled: Boolean(profileQuery.data?.avatarPath),
     queryFn: () => getMobileProfileAvatarUrl(createMobileSupabaseClient(), profileQuery.data?.avatarPath ?? null),
     queryKey: ['mobile-profile-avatar', profileId, profileQuery.data?.avatarPath, profileQuery.data?.updatedAt],
+    // 서명 URL(1시간)보다 짧게 캐시해 화면에 돌아올 때마다 사진을 새로 받지 않는다.
+    staleTime: 50 * 60 * 1000,
   })
   const preferenceMutation = useMutation({
     mutationFn: (preferences: MobileNotificationPreferences) =>
@@ -160,7 +162,7 @@ export function MobileProfileScreen({
           <View style={styles.topBarSpacer} />
         </View>
         <View style={styles.profileCard}>
-          <View style={styles.avatar}>{avatarQuery.data ? <Image accessibilityLabel="프로필 사진" source={{ uri: avatarQuery.data }} style={styles.avatarImage} /> : <Text style={styles.avatarText}>{profile.displayName.slice(0, 1)}</Text>}</View>
+          <MobileProfileAvatar avatarPath={profile.avatarPath} avatarUrl={avatarQuery.data} displayName={profile.displayName} hasAvatarError={avatarQuery.isError} />
           <View style={styles.profileCopy}>
             <Text style={styles.displayName}>{profile.displayName}</Text>
             <Text style={styles.bio}>{profile.bio || '아직 소개를 작성하지 않았어요.'}</Text>

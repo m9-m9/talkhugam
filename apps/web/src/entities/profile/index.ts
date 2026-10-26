@@ -28,3 +28,8 @@ export {
 } from './notificationPreferences'
 export { profileFormSchema, type ProfileForm } from './profileForm'
 export { updateProfile } from './updateProfile'
+export {
+  createProfileAvatarUrlQueryKey,
+  createProfileAvatarUrlQueryPrefix,
+  profileAvatarUrlStaleTime,
+} from './profileAvatarQuery'
