@@ -205,7 +205,9 @@ export function BookDiscussionPage() {
       setLabels([])
       setMentionedMemberIds([])
       setReplyTo(null)
-      await queryClient.invalidateQueries({ queryKey: postKeys.byBookChat(roomId ?? '', bookChatId) })
+      await queryClient.invalidateQueries({
+        queryKey: postKeys.byBookChat(roomId ?? '', bookChatId),
+      })
       await queryClient.invalidateQueries({ queryKey: readingRoomKeys.all })
     } catch {
       setErrorMessage('독후감을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.')

@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQueryClient } from '@tanstack/react-query'
 import { ActionButton, TextField } from '@seed-design/react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 
 import {
@@ -25,7 +25,7 @@ export function CreateCommunityRoomPage() {
     defaultValues: { access: 'public', capacity: 10, description: '', name: '', password: '' },
     resolver: zodResolver(createCommunityRoomFormSchema),
   })
-  const access = form.watch('access')
+  const access = useWatch({ control: form.control, name: 'access' })
 
   /** 현재 프로필 이름을 방장 표시 이름으로 사용해 오픈 책방을 만든다. */
   async function handleSubmit(values: CreateCommunityRoomForm) {
