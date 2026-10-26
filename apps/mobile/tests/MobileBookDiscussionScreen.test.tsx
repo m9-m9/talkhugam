@@ -3,6 +3,7 @@ import { bookRatingKeys, readingRoomKeys } from '@talkhugam/domain'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native'
 import { beforeEach, describe, expect, it, jest } from '@jest/globals'
 import type { PropsWithChildren } from 'react'
+import { Alert } from 'react-native'
 
 jest.mock('../src/entities/post')
 jest.mock('../src/entities/book-rating')
@@ -45,6 +46,12 @@ const mockCreateMobileSupabaseClient = jest.mocked(createMobileSupabaseClient)
 const mockRemoveMobileBookChatRating = jest.mocked(removeMobileBookChatRating)
 const mockUpsertMobileBookChatRating = jest.mocked(upsertMobileBookChatRating)
 const mockUseMobileSessionProfileId = jest.mocked(useMobileSessionProfileId)
+
+/** 책 대화가 준비되길 기다려 + 메뉴의 별점 항목으로 별점 시트를 연다. */
+async function openRatingFromMenu(): Promise<void> {
+  fireEvent.press(await screen.findByRole('button', { name: '메시지 추가 메뉴 열기' }))
+  fireEvent.press(screen.getByRole('button', { name: '별점' }))
+}
 
 /** 화면 상태를 격리할 Query Client를 생성한다. */
 function createQueryClient(): QueryClient {
@@ -105,7 +112,8 @@ describe('MobileBookDiscussionScreen', () => {
       { wrapper: createQueryWrapper(queryClient) },
     )
 
-    expect(await screen.findByRole('button', { name: '영상 기록' })).toBeVisible()
+    fireEvent.press(await screen.findByRole('button', { name: '메시지 추가 메뉴 열기' }))
+    fireEvent.press(screen.getByRole('button', { name: '영상' }))
     fireEvent.press(screen.getByRole('button', { name: '영상 기록' }))
 
     await waitFor(() => expect(queryClient.isFetching()).toBe(0))
@@ -303,8 +311,7 @@ describe('MobileBookDiscussionScreen', () => {
       wrapper: createQueryWrapper(queryClient),
     })
 
-    expect(await screen.findByRole('button', { name: '별점' })).toBeVisible()
-    fireEvent.press(screen.getByRole('button', { name: '별점' }))
+    await openRatingFromMenu()
     expect(await screen.findByLabelText('별점 시트')).toBeVisible()
     expect(screen.getByText('아직 평균 별점이 없어요')).toBeVisible()
     fireEvent.press(screen.getByRole('button', { name: '별점 남기기' }))
@@ -314,7 +321,8 @@ describe('MobileBookDiscussionScreen', () => {
       await screen.findByRole('alert', { name: '별점은 1점부터 5점까지, 총평은 1,000자 이내로 남겨 주세요.' }),
     ).toBeVisible()
 
-    fireEvent.press(screen.getByRole('button', { name: '5점' }))
+    fireEvent.press(screen.getByRole('radio', { name: '5점' }))
+    expect(screen.getByRole('radio', { name: '5점' })).toBeChecked()
     fireEvent.changeText(screen.getByLabelText('총평'), ' 오래 남는 문장이 많았어요. ')
     fireEvent.press(screen.getByRole('button', { name: '별점 저장' }))
 
@@ -354,7 +362,8 @@ describe('MobileBookDiscussionScreen', () => {
       wrapper: createQueryWrapper(),
     })
 
-    fireEvent.press(await screen.findByRole('button', { name: '별점' }))
+    expect(screen.queryByRole('button', { name: '메시지 추가 메뉴 열기' })).toBeNull()
+    fireEvent.press(await screen.findByRole('button', { name: '별점 보기' }))
     expect(await screen.findByText('민지')).toBeVisible()
     expect(screen.getByText('평균 4')).toBeVisible()
     expect(screen.getByText('천천히 다시 읽고 싶어요.')).toBeVisible()
@@ -368,7 +377,7 @@ describe('MobileBookDiscussionScreen', () => {
       wrapper: createQueryWrapper(),
     })
 
-    fireEvent.press(await screen.findByRole('button', { name: '별점' }))
+    await openRatingFromMenu()
     expect(
       await screen.findByRole('alert', { name: '별점을 불러오지 못했어요. 다시 시도해 주세요.' }),
     ).toBeVisible()
@@ -397,9 +406,14 @@ describe('MobileBookDiscussionScreen', () => {
     })
 
     await waitFor(() => expect(mockGetMobileBookChatRatings).toHaveBeenCalledTimes(1))
-    fireEvent.press(await screen.findByRole('button', { name: '별점' }))
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined)
+    await openRatingFromMenu()
     expect(await screen.findByRole('button', { name: '수정하기' })).toBeVisible()
     fireEvent.press(await screen.findByRole('button', { name: '별점 삭제' }))
+    expect(mockRemoveMobileBookChatRating).not.toHaveBeenCalled()
+    const deleteButton = alert.mock.calls[0]?.[2]?.find((button) => button.style === 'destructive')
+    deleteButton?.onPress?.()
+    await waitFor(() => expect(mockRemoveMobileBookChatRating).toHaveBeenCalledTimes(1))
 
     expect(
       await screen.findByRole('alert', { name: '별점을 삭제하지 못했어요. 잠시 후 다시 시도해 주세요.' }),

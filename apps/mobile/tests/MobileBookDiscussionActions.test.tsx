@@ -98,6 +98,9 @@ describe('MobileBookDiscussionScreen message actions', () => {
 
   it('lists the message actions in the same order and names as the web', async () => {
     renderScreen()
+    await screen.findByRole('button', { name: '메시지 추가 메뉴 열기' })
+    expect(screen.queryByRole('button', { name: '별점' })).toBeNull()
+    expect(screen.queryByRole('button', { name: '영상 기록' })).toBeNull()
     await openMenu()
 
     const sheet = screen.getByLabelText('메시지 추가')

@@ -18,6 +18,7 @@ import {
 import { useState } from 'react'
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -51,7 +52,9 @@ import {
 } from '../../entities/reading-room'
 import { useMobileSessionProfileId } from '../../shared/api/MobileAppProviders'
 import { createMobileSupabaseClient } from '../../shared/api/mobileSupabaseClient'
-import { mobileColors, mobileRadius, mobileSpacing, mobileTouchTarget } from '../../shared/ui/mobileTheme'
+import { MobileBackButton } from '../../shared/ui/MobileBackButton'
+import { mobileRadius, mobileSpacing, mobileTouchTarget, withAlpha } from '../../shared/ui/mobileLayout'
+import { mobileButtonStyles, mobileColors } from '../../shared/ui/mobileTheme'
 import {
   MobilePhotoQuoteFlow,
   pickPhotoForQuote,
@@ -423,9 +426,7 @@ export function MobileBookDiscussionScreen({
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.keyboardAvoidingView}>
         <View style={styles.header}>
-          <Pressable accessibilityLabel="책방으로 돌아가기" accessibilityRole="button" onPress={onBack} style={styles.backButton}>
-            <Text style={styles.backButtonText}>‹</Text>
-          </Pressable>
+          <MobileBackButton accessibilityLabel="책방으로 돌아가기" onPress={onBack} />
           <View style={styles.headerCopy}>
             <Text numberOfLines={1} style={styles.title}>
               {bookChatQuery.data.title}
@@ -434,24 +435,7 @@ export function MobileBookDiscussionScreen({
               책 대화
             </Text>
           </View>
-          {onOpenVideoArchive ? (
-            <Pressable
-              accessibilityLabel="영상 기록"
-              accessibilityRole="button"
-              onPress={handleOpenVideoArchive}
-              style={styles.videoHeaderAction}
-            >
-              <Text style={styles.videoHeaderActionText}>영상</Text>
-            </Pressable>
-          ) : null}
-          <Pressable
-            accessibilityLabel="별점"
-            accessibilityRole="button"
-            onPress={handleOpenRatingSheet}
-            style={styles.ratingHeaderAction}
-          >
-            <Text style={styles.ratingHeaderActionText}>별점</Text>
-          </Pressable>
+          <View style={styles.headerSpacer} />
         </View>
         <ScrollView contentContainerStyle={styles.timeline} keyboardShouldPersistTaps="handled">
           <DiscussionTimeline
@@ -466,6 +450,10 @@ export function MobileBookDiscussionScreen({
           <View accessibilityLabel="보관된 책 대화" style={styles.archivedNotice}>
             <Text style={styles.archivedNoticeText}>보관된 책 대화</Text>
             <Text style={styles.archivedDescription}>지난 대화는 읽을 수 있지만 새 글과 답글은 남길 수 없어요.</Text>
+            <View style={styles.archivedActions}>
+              <SecondaryAction label="별점 보기" onPress={handleOpenRatingSheet} />
+              {onOpenVideoArchive ? <SecondaryAction label="영상 기록" onPress={handleOpenVideoArchive} /> : null}
+            </View>
           </View>
         ) : (
         <View style={styles.composer}>
@@ -520,7 +508,7 @@ export function MobileBookDiscussionScreen({
             multiline
             onChangeText={setBody}
             placeholder={isReplying ? '답글을 남겨 주세요' : '이 책의 생각을 나눠 주세요'}
-            placeholderTextColor="#8C8C8C"
+            placeholderTextColor={mobileColors.placeholder}
             style={[styles.bodyInput, styles.bodyInputFlexible]}
             value={body}
           />
@@ -567,7 +555,7 @@ export function MobileBookDiscussionScreen({
               onPress={handleSubmit}
               style={({ pressed }) => [styles.submitAction, isSubmitting && styles.submitActionDisabled, pressed && styles.submitActionPressed]}
             >
-              {isSubmitting ? <ActivityIndicator color="#000000" /> : <Text style={styles.submitActionText}>{isReplying ? '답글 남기기' : '글 남기기'}</Text>}
+              {isSubmitting ? <ActivityIndicator color={mobileColors.primaryActionText} /> : <Text style={styles.submitActionText}>{isReplying ? '답글 남기기' : '글 남기기'}</Text>}
             </Pressable>
           </View>
         </View>
@@ -674,7 +662,7 @@ function DiscussionTimeline({
 function TimelineLoadingState(): React.JSX.Element {
   return (
     <View accessibilityLabel="대화를 불러오고 있어요." accessibilityRole="progressbar" style={styles.timelineState}>
-      <ActivityIndicator color="#FF835F" />
+      <ActivityIndicator color={mobileColors.accent} />
       <Text style={styles.stateText}>대화를 불러오고 있어요.</Text>
     </View>
   )
@@ -737,7 +725,7 @@ function DiscussionLoadingState({ label }: { label: string }): React.JSX.Element
   return (
     <SafeAreaView style={styles.container}>
       <View accessibilityLabel={label} accessibilityRole="progressbar" style={styles.fullState}>
-        <ActivityIndicator color="#FF835F" />
+        <ActivityIndicator color={mobileColors.accent} />
         <Text style={styles.stateText}>{label}</Text>
       </View>
     </SafeAreaView>
@@ -926,11 +914,16 @@ function RatingSheet({
                   <Pressable
                     accessibilityLabel="별점 삭제"
                     accessibilityRole="button"
+                    accessibilityState={{ busy: isSaving, disabled: isSaving }}
                     disabled={isSaving}
-                    onPress={onRemove}
+                    onPress={() => confirmRatingRemoval(onRemove)}
                     style={styles.ratingSecondaryAction}
                   >
-                    <Text style={styles.ratingSecondaryActionText}>별점 삭제</Text>
+                    {isSaving ? (
+                      <ActivityIndicator color={mobileColors.ink} />
+                    ) : (
+                      <Text style={styles.ratingSecondaryActionText}>별점 삭제</Text>
+                    )}
                   </Pressable>
                 ) : null}
               </View>
@@ -956,7 +949,7 @@ function RatingErrorState({ onRetry }: { onRetry(): void }): React.JSX.Element {
 function RatingLoadingState(): React.JSX.Element {
   return (
     <View accessibilityLabel="별점을 불러오고 있어요." accessibilityRole="progressbar" style={styles.ratingLoadingState}>
-      <ActivityIndicator color="#FF835F" />
+      <ActivityIndicator color={mobileColors.accent} />
       <Text style={styles.stateText}>별점을 불러오고 있어요.</Text>
     </View>
   )
@@ -987,7 +980,13 @@ function RatingRoster({ ratings }: { ratings: readonly BookChatRating[] }): Reac
       {ratings.map((rating) => (
         <View key={rating.profileId} style={styles.ratingMember}>
           <Text style={styles.ratingMemberName}>{rating.isMe ? '나' : rating.displayName}</Text>
-          {rating.rating ? <Text accessibilityLabel={`${rating.rating}점`} style={styles.memberRatingText}>{'★'.repeat(rating.rating)}</Text> : null}
+          {rating.rating ? (
+            <View accessibilityLabel={`${rating.rating}점`} accessible>
+              <Text importantForAccessibility="no-hide-descendants" style={styles.memberRatingText}>
+                {'★'.repeat(rating.rating)}
+              </Text>
+            </View>
+          ) : null}
           {rating.review ? <Text style={styles.ratingReviewText}>{rating.review}</Text> : null}
         </View>
       ))}
@@ -1020,17 +1019,29 @@ function RatingEditor({
   return (
     <View style={styles.ratingEditor}>
       <Text style={styles.ratingEditorLabel}>별점</Text>
-      <View accessibilityLabel="별점 선택" style={styles.ratingActions}>
+      <View
+        accessibilityLabel="별점 선택"
+        accessibilityRole="radiogroup"
+        accessibilityValue={{ text: rating === null ? '선택 안 함' : `${rating}점` }}
+        style={styles.ratingActions}
+      >
         {[1, 2, 3, 4, 5].map((score) => (
           <Pressable
             accessibilityLabel={`${score}점`}
-            accessibilityRole="button"
-            accessibilityState={{ selected: rating === score }}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: rating === score, disabled: isSaving }}
+            disabled={isSaving}
             key={score}
             onPress={() => onSelectRating(score)}
             style={[styles.ratingAction, rating !== null && score <= rating && styles.ratingActionSelected]}
           >
-            <Text style={[styles.ratingActionText, rating !== null && score <= rating && styles.ratingActionTextSelected]}>★</Text>
+            <Text
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+              style={[styles.ratingActionText, rating !== null && score <= rating && styles.ratingActionTextSelected]}
+            >
+              ★
+            </Text>
           </Pressable>
         ))}
       </View>
@@ -1041,7 +1052,7 @@ function RatingEditor({
         multiline
         onChangeText={onReviewChange}
         placeholder="이 책에 대한 생각을 적어 주세요. (선택)"
-        placeholderTextColor="#8C8C8C"
+        placeholderTextColor={mobileColors.placeholder}
         style={styles.ratingReviewInput}
         value={review}
       />
@@ -1058,11 +1069,19 @@ function RatingEditor({
           onPress={onSave}
           style={[styles.ratingPrimaryAction, isSaving && styles.submitActionDisabled]}
         >
-          {isSaving ? <ActivityIndicator color="#000000" /> : <Text style={styles.ratingPrimaryActionText}>별점 저장</Text>}
+          {isSaving ? <ActivityIndicator color={mobileColors.neutralActionText} /> : <Text style={styles.ratingPrimaryActionText}>별점 저장</Text>}
         </Pressable>
       </View>
     </View>
   )
+}
+
+/** 되돌릴 수 없는 별점 삭제 전에 확인 대화상자를 띄우고, 삭제를 고르면 onConfirm을 실행한다. */
+function confirmRatingRemoval(onConfirm: () => void): void {
+  Alert.alert('내 별점을 삭제할까요?', '별점과 총평이 함께 지워져요.', [
+    { style: 'cancel', text: '취소' },
+    { onPress: onConfirm, style: 'destructive', text: '삭제' },
+  ])
 }
 
 /** 별점 변경 뒤 책 대화 별점 현황과 내 별점 도서 캐시를 최신화한다. */
@@ -1078,11 +1097,9 @@ async function invalidateRatingCaches(
 }
 
 const styles = StyleSheet.create({
-  backButton: { alignItems: 'center', justifyContent: 'center', minHeight: 44, minWidth: 44 },
-  archivedDescription: { color: '#BDBDBD', fontSize: 14, lineHeight: 20, marginTop: 4 },
-  archivedNotice: { backgroundColor: '#171717', borderColor: '#393939', borderTopWidth: 1, paddingBottom: 16, paddingHorizontal: 16, paddingTop: 12 },
-  archivedNoticeText: { color: '#FFB5A3', fontSize: 15, fontWeight: '700', lineHeight: 22 },
-  backButtonText: { color: '#FFFFFF', fontSize: 32, lineHeight: 36 },
+  archivedDescription: { color: mobileColors.inkSubtle, fontSize: 14, lineHeight: 20, marginTop: 4 },
+  archivedNotice: { backgroundColor: mobileColors.surfaceRaised, borderColor: mobileColors.border, borderTopWidth: 1, gap: 8, paddingBottom: 16, paddingHorizontal: 16, paddingTop: 12 },
+  archivedNoticeText: { color: mobileColors.ink, fontSize: 15, fontWeight: '700', lineHeight: 22 },
   bodyInputFlexible: { flex: 1 },
   composerIconButton: {
     alignItems: 'center',
@@ -1110,80 +1127,77 @@ const styles = StyleSheet.create({
   },
   labelChipText: { color: mobileColors.inkSubtle, fontSize: 13 },
   labelChips: { flexDirection: 'row', flexWrap: 'wrap', gap: mobileSpacing.xs },
-  bodyInput: { backgroundColor: '#101010', borderColor: '#393939', borderRadius: 12, borderWidth: 1, color: '#FFFFFF', fontSize: 16, lineHeight: 24, maxHeight: 120, minHeight: 76, padding: 12, textAlignVertical: 'top' },
-  composer: { backgroundColor: '#000000', borderColor: '#393939', borderTopWidth: 1, gap: 8, paddingBottom: 12, paddingHorizontal: 16, paddingTop: 12 },
-  composerActions: { alignItems: 'center', flexDirection: 'row', gap: 8, justifyContent: 'flex-end' },
-  sheetActions: { flexDirection: 'row', gap: 8, justifyContent: 'flex-end', marginTop: 16 },
+  bodyInput: { backgroundColor: mobileColors.surfaceRaised, borderColor: mobileColors.border, borderRadius: 12, borderWidth: 1, color: mobileColors.ink, fontSize: 16, lineHeight: 24, maxHeight: 120, minHeight: 76, padding: 12, textAlignVertical: 'top' },
+  composer: { backgroundColor: mobileColors.surface, borderColor: mobileColors.border, borderTopWidth: 1, gap: 8, paddingBottom: 12, paddingHorizontal: 16, paddingTop: 12 },
+  composerActions: { alignItems: 'center', flexDirection: 'row', gap: 12, justifyContent: 'flex-end' },
+  sheetActions: { flexDirection: 'row', gap: 12, justifyContent: 'flex-end', marginTop: 16 },
   ratingAverage: { alignItems: 'baseline', flexDirection: 'row', gap: 8, marginTop: 16 },
-  ratingAverageText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700', lineHeight: 22 },
-  ratingCountText: { color: '#C7C7C7', fontSize: 13, lineHeight: 20 },
-  ratingBackdrop: { backgroundColor: 'rgba(0, 0, 0, 0.72)', bottom: 0, justifyContent: 'flex-end', left: 0, position: 'absolute', right: 0, top: 0 },
+  ratingAverageText: { color: mobileColors.ink, fontSize: 15, fontWeight: '700', lineHeight: 22 },
+  ratingCountText: { color: mobileColors.inkSubtle, fontSize: 13, lineHeight: 20 },
+  ratingBackdrop: { backgroundColor: withAlpha(mobileColors.surface, 0.72), bottom: 0, justifyContent: 'flex-end', left: 0, position: 'absolute', right: 0, top: 0 },
   ratingCloseAction: { alignItems: 'center', justifyContent: 'center', minHeight: 44, paddingHorizontal: 8 },
-  ratingCloseActionText: { color: '#FFB5A3', fontSize: 14, fontWeight: '700', lineHeight: 20 },
+  ratingCloseActionText: { color: mobileColors.inkSubtle, fontSize: 14, fontWeight: '700', lineHeight: 20 },
   ratingEditor: { gap: 12, marginTop: 16 },
-  ratingEditorLabel: { color: '#FFFFFF', fontSize: 15, fontWeight: '700', lineHeight: 22 },
-  ratingEmptyText: { color: '#C7C7C7', fontSize: 15, lineHeight: 22, marginTop: 16 },
-  ratingHeaderAction: { alignItems: 'center', justifyContent: 'center', minHeight: 44, minWidth: 44, paddingHorizontal: 4 },
-  ratingHeaderActionText: { color: '#FFB5A3', fontSize: 13, fontWeight: '700', lineHeight: 20 },
-  ratingLengthText: { alignSelf: 'flex-end', color: '#8C8C8C', fontSize: 12, lineHeight: 18, marginTop: -8 },
+  ratingEditorLabel: { color: mobileColors.ink, fontSize: 15, fontWeight: '700', lineHeight: 22 },
+  ratingEmptyText: { color: mobileColors.inkSubtle, fontSize: 15, lineHeight: 22, marginTop: 16 },
+  ratingLengthText: { alignSelf: 'flex-end', color: mobileColors.placeholder, fontSize: 12, lineHeight: 18, marginTop: -8 },
   ratingLoadingState: { alignItems: 'center', gap: 12, minHeight: 180, justifyContent: 'center' },
-  ratingMember: { borderColor: '#393939', borderRadius: 12, borderWidth: 1, padding: 12 },
-  ratingMemberName: { color: '#FFFFFF', fontSize: 15, fontWeight: '700', lineHeight: 22 },
-  ratingPrimaryAction: { alignItems: 'center', backgroundColor: '#FF835F', borderRadius: 12, flex: 1, justifyContent: 'center', minHeight: 44, paddingHorizontal: 12 },
-  ratingPrimaryActionText: { color: '#000000', fontSize: 14, fontWeight: '700', lineHeight: 20 },
-  memberRatingText: { color: '#FF835F', fontSize: 15, letterSpacing: 1, lineHeight: 22, marginTop: 4 },
-  ratingReviewInput: { backgroundColor: '#101010', borderColor: '#393939', borderRadius: 12, borderWidth: 1, color: '#FFFFFF', fontSize: 16, lineHeight: 24, minHeight: 108, padding: 12, textAlignVertical: 'top' },
-  ratingReviewText: { color: '#C7C7C7', fontSize: 14, lineHeight: 20, marginTop: 4 },
+  ratingMember: { borderColor: mobileColors.border, borderRadius: 12, borderWidth: 1, padding: 12 },
+  ratingMemberName: { color: mobileColors.ink, fontSize: 15, fontWeight: '700', lineHeight: 22 },
+  ratingPrimaryAction: { ...mobileButtonStyles.neutral, alignItems: 'center', borderRadius: 12, flex: 1, justifyContent: 'center', minHeight: 44, paddingHorizontal: 12 },
+  ratingPrimaryActionText: { ...mobileButtonStyles.neutralText, fontSize: 14, fontWeight: '700', lineHeight: 20 },
+  memberRatingText: { color: mobileColors.accent, fontSize: 15, letterSpacing: 1, lineHeight: 22, marginTop: 4 },
+  ratingReviewInput: { backgroundColor: mobileColors.surfaceRaised, borderColor: mobileColors.border, borderRadius: 12, borderWidth: 1, color: mobileColors.ink, fontSize: 16, lineHeight: 24, minHeight: 108, padding: 12, textAlignVertical: 'top' },
+  ratingReviewText: { color: mobileColors.inkSubtle, fontSize: 14, lineHeight: 20, marginTop: 4 },
   ratingRoster: { gap: 8, marginTop: 16 },
-  ratingSecondaryAction: { alignItems: 'center', borderColor: '#FF835F', borderRadius: 12, borderWidth: 1, justifyContent: 'center', minHeight: 44, paddingHorizontal: 12 },
-  ratingSecondaryActionText: { color: '#FF835F', fontSize: 14, fontWeight: '700', lineHeight: 20 },
-  ratingSheet: { backgroundColor: '#101010', borderColor: '#393939', borderTopLeftRadius: 20, borderTopRightRadius: 20, borderTopWidth: 1, maxHeight: '82%', paddingBottom: 24, paddingHorizontal: 16, paddingTop: 12 },
+  ratingSecondaryAction: { ...mobileButtonStyles.secondary, alignItems: 'center', borderRadius: 12, justifyContent: 'center', minHeight: 44, paddingHorizontal: 12 },
+  ratingSecondaryActionText: { ...mobileButtonStyles.secondaryText, fontSize: 14, fontWeight: '700', lineHeight: 20 },
+  ratingSheet: { backgroundColor: mobileColors.surfaceRaised, borderColor: mobileColors.border, borderTopLeftRadius: 20, borderTopRightRadius: 20, borderTopWidth: 1, maxHeight: '82%', paddingBottom: 24, paddingHorizontal: 16, paddingTop: 12 },
   ratingSheetHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
-  ratingSheetTitle: { color: '#FFFFFF', fontSize: 18, fontWeight: '700', lineHeight: 26 },
-  container: { backgroundColor: '#000000', flex: 1 },
-  emptyTitle: { color: '#FFFFFF', fontSize: 17, fontWeight: '700', lineHeight: 24, textAlign: 'center' },
-  errorText: { color: '#FF8A8A', fontSize: 15, lineHeight: 22, textAlign: 'center' },
+  ratingSheetTitle: { color: mobileColors.ink, fontSize: 18, fontWeight: '700', lineHeight: 26 },
+  container: { backgroundColor: mobileColors.surface, flex: 1 },
+  emptyTitle: { color: mobileColors.ink, fontSize: 17, fontWeight: '700', lineHeight: 24, textAlign: 'center' },
+  errorText: { color: mobileColors.danger, fontSize: 15, lineHeight: 22, textAlign: 'center' },
   fullState: { alignItems: 'center', flex: 1, gap: 12, justifyContent: 'center', paddingHorizontal: 16 },
-  header: { alignItems: 'center', borderColor: '#202020', borderBottomWidth: 1, flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 8 },
+  header: { alignItems: 'center', borderColor: mobileColors.border, borderBottomWidth: 1, flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 8 },
   headerCopy: { alignItems: 'center', flex: 1 },
+  archivedActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   headerSpacer: { minWidth: 44 },
   keyboardAvoidingView: { flex: 1 },
-  label: { backgroundColor: '#2D1712', borderRadius: 8, color: '#FFB5A3', fontSize: 13, lineHeight: 18, overflow: 'hidden', paddingHorizontal: 8, paddingVertical: 4 },
-  labels: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 8 },
-  mentionCandidate: { borderColor: '#393939', borderRadius: 8, borderWidth: 1, minHeight: 44, justifyContent: 'center', paddingHorizontal: 12 },
-  mentionCandidateText: { color: '#FFB5A3', fontSize: 14, lineHeight: 20 },
-  mentionCandidates: { gap: 4, maxHeight: 140 },
-  postAuthor: { color: '#FF835F', fontSize: 14, fontWeight: '700', lineHeight: 20 },
-  postBody: { color: '#FFFFFF', fontSize: 16, lineHeight: 24, marginTop: 8 },
-  postCard: { backgroundColor: '#101010', borderColor: '#393939', borderRadius: 12, borderWidth: 1, padding: 12 },
+  label: { backgroundColor: mobileColors.surface, borderColor: mobileColors.border, borderRadius: 8, borderWidth: 1, color: mobileColors.inkSubtle, fontSize: 13, lineHeight: 18, overflow: 'hidden', paddingHorizontal: 8, paddingVertical: 4 },
+  labels: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
+  mentionCandidate: { borderColor: mobileColors.border, borderRadius: 8, borderWidth: 1, minHeight: 44, justifyContent: 'center', paddingHorizontal: 12 },
+  mentionCandidateText: { color: mobileColors.ink, fontSize: 14, lineHeight: 20 },
+  mentionCandidates: { gap: 8, maxHeight: 140 },
+  postAuthor: { color: mobileColors.ink, fontSize: 14, fontWeight: '700', lineHeight: 20 },
+  postBody: { color: mobileColors.ink, fontSize: 16, lineHeight: 24, marginTop: 8 },
+  postCard: { backgroundColor: mobileColors.surfaceRaised, borderColor: mobileColors.border, borderRadius: 12, borderWidth: 1, padding: 12 },
   postList: { gap: 12 },
-  primaryAction: { alignItems: 'center', backgroundColor: '#FF835F', borderRadius: 12, justifyContent: 'center', minHeight: 48, minWidth: 160, paddingHorizontal: 16 },
-  primaryActionText: { color: '#000000', fontSize: 16, fontWeight: '700', lineHeight: 24 },
+  primaryAction: { ...mobileButtonStyles.primary, alignItems: 'center', borderRadius: 12, justifyContent: 'center', minHeight: 48, minWidth: 160, paddingHorizontal: 16 },
+  primaryActionText: { ...mobileButtonStyles.primaryText, fontSize: 16, fontWeight: '700', lineHeight: 24 },
   replyAction: { alignItems: 'flex-start', justifyContent: 'center', marginTop: 8, minHeight: 44 },
-  replyActionText: { color: '#FFB5A3', fontSize: 14, fontWeight: '700', lineHeight: 20 },
-  replyBanner: { alignItems: 'center', backgroundColor: '#2D1712', borderRadius: 8, flexDirection: 'row', minHeight: 44, paddingHorizontal: 12 },
-  replyBannerText: { color: '#FFB5A3', flex: 1, fontSize: 14, lineHeight: 20 },
+  replyActionText: { color: mobileColors.inkSubtle, fontSize: 14, fontWeight: '700', lineHeight: 20 },
+  replyBanner: { alignItems: 'center', backgroundColor: mobileColors.surfaceRaised, borderRadius: 8, flexDirection: 'row', minHeight: 44, paddingHorizontal: 12 },
+  replyBannerText: { color: mobileColors.ink, flex: 1, fontSize: 14, lineHeight: 20 },
   replyCancelButton: { alignItems: 'center', justifyContent: 'center', minHeight: 44, paddingHorizontal: 8 },
-  replyCancelText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700', lineHeight: 20 },
-  replyCard: { borderColor: '#FF835F', marginLeft: 24 },
+  replyCancelText: { color: mobileColors.ink, fontSize: 14, fontWeight: '700', lineHeight: 20 },
+  replyCard: { borderColor: mobileColors.borderStrong, marginLeft: 24 },
   ratingAction: { alignItems: 'center', justifyContent: 'center', minHeight: 44, minWidth: 44 },
-  ratingActionSelected: { backgroundColor: '#2D1712', borderRadius: 12 },
-  ratingActionText: { color: '#606060', fontSize: 28, lineHeight: 36 },
-  ratingActionTextSelected: { color: '#FF835F' },
-  ratingActions: { flexDirection: 'row', gap: 4 },
-  saveError: { color: '#FF8A8A', fontSize: 14, lineHeight: 20 },
-  secondaryAction: { alignItems: 'center', borderColor: '#FF835F', borderRadius: 12, borderWidth: 1, justifyContent: 'center', minHeight: 44, paddingHorizontal: 12 },
-  secondaryActionPressed: { backgroundColor: '#2D1712' },
-  secondaryActionText: { color: '#FF835F', fontSize: 14, fontWeight: '700', lineHeight: 20 },
-  stateText: { color: '#C7C7C7', fontSize: 15, lineHeight: 22, maxWidth: 280, textAlign: 'center' },
-  submitAction: { alignItems: 'center', backgroundColor: '#FF835F', borderRadius: 12, justifyContent: 'center', minHeight: 44, minWidth: 92, paddingHorizontal: 12 },
-  submitActionDisabled: { backgroundColor: '#A64F3A' },
-  submitActionPressed: { backgroundColor: '#FFB5A3' },
-  submitActionText: { color: '#000000', fontSize: 14, fontWeight: '700', lineHeight: 20 },
-  subtitle: { color: '#FFB5A3', fontSize: 12, lineHeight: 18, marginTop: 2 },
+  ratingActionSelected: { backgroundColor: mobileColors.accentSoft, borderRadius: 12 },
+  ratingActionText: { color: mobileColors.placeholder, fontSize: 28, lineHeight: 36 },
+  ratingActionTextSelected: { color: mobileColors.accent },
+  ratingActions: { flexDirection: 'row', gap: 8 },
+  saveError: { color: mobileColors.danger, fontSize: 14, lineHeight: 20 },
+  secondaryAction: { ...mobileButtonStyles.secondary, alignItems: 'center', borderRadius: 12, justifyContent: 'center', minHeight: 44, paddingHorizontal: 12 },
+  secondaryActionPressed: { ...mobileButtonStyles.secondaryPressed },
+  secondaryActionText: { ...mobileButtonStyles.secondaryText, fontSize: 14, fontWeight: '700', lineHeight: 20 },
+  stateText: { color: mobileColors.inkSubtle, fontSize: 15, lineHeight: 22, maxWidth: 280, textAlign: 'center' },
+  submitAction: { ...mobileButtonStyles.primary, alignItems: 'center', borderRadius: 12, justifyContent: 'center', minHeight: 44, minWidth: 92, paddingHorizontal: 12 },
+  submitActionDisabled: { ...mobileButtonStyles.disabled },
+  submitActionPressed: { ...mobileButtonStyles.primaryPressed },
+  submitActionText: { ...mobileButtonStyles.primaryText, fontSize: 14, fontWeight: '700', lineHeight: 20 },
+  subtitle: { color: mobileColors.inkSubtle, fontSize: 12, lineHeight: 18, marginTop: 2 },
   timeline: { flexGrow: 1, padding: 16 },
   timelineState: { alignItems: 'center', flex: 1, gap: 12, justifyContent: 'center', minHeight: 240 },
-  title: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', lineHeight: 24 },
-  videoHeaderAction: { alignItems: 'center', justifyContent: 'center', minHeight: 44, minWidth: 44 },
-  videoHeaderActionText: { color: '#FF835F', fontSize: 14, fontWeight: '700' },
+  title: { color: mobileColors.ink, fontSize: 16, fontWeight: '700', lineHeight: 24 },
 })
