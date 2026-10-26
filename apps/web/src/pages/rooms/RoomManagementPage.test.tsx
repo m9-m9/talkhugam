@@ -13,7 +13,9 @@ const { createManagedRoomInvite, getRoomManagement } = vi.hoisted(() => ({
     token: 'a'.repeat(64),
   }),
   getRoomManagement: vi.fn().mockResolvedValue({
+    canCurrentUserManageContent: true,
     createdBy: '00000000-0000-0000-0000-000000000001',
+    currentUserRole: 'owner',
     description: null,
     id: '00000000-0000-0000-0000-000000000101',
     isCurrentUserOwner: true,
@@ -56,7 +58,9 @@ describe('RoomManagementPage', () => {
       token: 'a'.repeat(64),
     })
     getRoomManagement.mockResolvedValue({
+      canCurrentUserManageContent: true,
       createdBy: '00000000-0000-0000-0000-000000000001',
+      currentUserRole: 'owner',
       description: null,
       id: '00000000-0000-0000-0000-000000000101',
       isCurrentUserOwner: true,
@@ -70,6 +74,58 @@ describe('RoomManagementPage', () => {
     cleanup()
     vi.clearAllMocks()
     Object.defineProperty(navigator, 'share', { configurable: true, value: undefined })
+  })
+
+  it('lets a manager create invites without owner-only settings and member menus', async () => {
+    getRoomManagement.mockResolvedValueOnce({
+      canCurrentUserManageContent: true,
+      createdBy: '00000000-0000-0000-0000-000000000001',
+      currentUserRole: 'manager',
+      description: null,
+      id: '00000000-0000-0000-0000-000000000101',
+      isCurrentUserOwner: false,
+      members: [
+        {
+          avatarPath: null,
+          displayName: '민규',
+          id: '00000000-0000-0000-0000-000000000201',
+          isCurrentUser: false,
+          joinedAt: '2026-07-17T02:01:30.123+00:00',
+          profileId: null,
+          role: 'owner',
+        },
+        {
+          avatarPath: null,
+          displayName: '서연',
+          id: '00000000-0000-0000-0000-000000000202',
+          isCurrentUser: true,
+          joinedAt: '2026-07-18T02:01:30.123+00:00',
+          profileId: null,
+          role: 'manager',
+        },
+        {
+          avatarPath: null,
+          displayName: '지우',
+          id: '00000000-0000-0000-0000-000000000203',
+          isCurrentUser: false,
+          joinedAt: '2026-07-19T02:01:30.123+00:00',
+          profileId: null,
+          role: 'member',
+        },
+      ],
+      name: '금요일 아침 책방',
+      status: 'active',
+    })
+
+    renderRoomManagementPage()
+
+    expect(await screen.findByRole('button', { name: '초대 코드 만들기' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '방 설정' })).not.toBeInTheDocument()
+    expect(screen.getByText('방장')).toBeInTheDocument()
+    expect(screen.getByText('운영자')).toBeInTheDocument()
+    expect(screen.getByText('멤버')).toBeInTheDocument()
+    expect(screen.queryByLabelText('지우 관리')).not.toBeInTheDocument()
+    expect(screen.queryByText('방장만 관리할 수 있어요')).not.toBeInTheDocument()
   })
 
   it('opens platform choices after creating an invite code', async () => {

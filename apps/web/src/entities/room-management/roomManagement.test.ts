@@ -39,7 +39,9 @@ describe('parseRoomManagement', () => {
         ownerProfileId,
       ),
     ).toEqual({
+      canCurrentUserManageContent: true,
       createdBy: ownerProfileId,
+      currentUserRole: 'owner',
       description: '이번 달 함께 읽는 책들',
       id: roomId,
       isCurrentUserOwner: true,
@@ -57,6 +59,49 @@ describe('parseRoomManagement', () => {
       name: '금요일 아침 독서방',
       status: 'active',
     })
+  })
+
+  it('marks a manager as a content manager without owner authority', () => {
+    const managerProfileId = '9a1b2c3d-4e5f-4a6b-8c7d-0e1f2a3b4c5d'
+    const room = parseRoomManagement(
+      {
+        created_by: ownerProfileId,
+        description: null,
+        id: roomId,
+        name: '금요일 아침 독서방',
+        status: 'active',
+      },
+      [
+        {
+          id: '10ff57f4-2f7a-49bb-9c6b-0d724fcb0e55',
+          joined_at: '2026-07-17T02:01:30.123+00:00',
+          profile_id: ownerProfileId,
+          role: 'owner',
+          room_avatar_path: null,
+          room_display_name: '민규',
+          room_id: roomId,
+          status: 'active',
+        },
+        {
+          id: '20ff57f4-2f7a-49bb-9c6b-0d724fcb0e55',
+          joined_at: '2026-07-18T02:01:30.123+00:00',
+          profile_id: managerProfileId,
+          role: 'manager',
+          room_avatar_path: null,
+          room_display_name: '서연',
+          room_id: roomId,
+          status: 'active',
+        },
+      ],
+      managerProfileId,
+    )
+
+    expect(room).toMatchObject({
+      canCurrentUserManageContent: true,
+      currentUserRole: 'manager',
+      isCurrentUserOwner: false,
+    })
+    expect(room.members.map((member) => member.role)).toEqual(['owner', 'manager'])
   })
 
   it('rejects a member that is not active', () => {

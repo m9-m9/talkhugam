@@ -38,9 +38,9 @@
 | 단계 | 티켓·브랜치 | 내용 | 상세 계획 |
 | --- | --- | --- | --- |
 | 1 | `refactor/talk-108-remove-progress-completion` | 진행률·완독 제거, 별점 기록 전환 | 이 문서 「1단계」 |
-| 2 | `feat/talk-109-room-manager-role` | 운영자 역할 DB·권한·도메인 (비공개+오픈 책방) | 이 문서 「2단계 계약」, 착수 시 상세화 |
+| 2 | `feat/talk-109-room-manager-role` | 운영자 역할 DB·권한·도메인 (비공개+오픈 책방) | `2026-10-26-stage2-room-manager-role.md` (완료, 책 대화 추가 제한은 4단계로 이연) |
 | 3 | `feat/talk-110-room-info-hub` | 「방 정보」 허브, 구성원 역할 변경 UI (웹·모바일) | 착수 시 상세화 |
-| 4 | `feat/talk-111-book-proposals` | 책 제안 요청과 승인 | 이 문서 「4단계 계약」, 착수 시 상세화 |
+| 4 | `feat/talk-111-book-proposals` | 책 제안 요청과 승인, `create_book_chat`을 방장·운영자로 제한(2단계에서 이연) | 이 문서 「4단계 계약」, 착수 시 상세화 |
 | 5 | `feat/talk-112-post-reactions` | 게시글 반응 (웹·모바일) | 이 문서 「5단계 계약」, 착수 시 상세화 |
 | 6 | `feat/talk-113-room-video-archive` | 책방 전체 영상 기록, `+` 메뉴 정리 | 착수 시 상세화 |
 
@@ -502,6 +502,8 @@ export function calculateAverageRating(ratings: Pick<BookChatRating, 'rating'>[]
 - pgTAP: 방장·운영자·참여자 × (초대, 책 추가, 역할 변경, 제재)의 허용·거부 행렬.
 
 ## 4단계 계약: 책 제안 요청 (착수 시 상세 계획 작성)
+
+- 2단계에서 이연: `create_book_chat`을 방장·운영자로 제한한다(`private.can_manage_room_content` 사용, 오픈 책방 포함). 참여자는 제안 흐름으로만 책을 추가하므로 제안 화면과 같은 PR에서 적용한다.
 
 - 테이블 `public.room_book_proposals(id, room_id, proposer_member_id, book_id references books, note text, status text check in ('pending','approved','rejected'), resolved_by_member_id, resolved_at, created_at)`. 같은 방·같은 책의 `pending`은 하나만 둔다(부분 유니크 인덱스).
 - RPC `create_room_book_proposal(p_room_id, p_book jsonb, p_note)`: 활성 멤버. 참여자가 책 검색 결과에서 「제안하기」를 누르면 호출한다.

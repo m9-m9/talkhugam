@@ -19,6 +19,8 @@ Talk후감은 클라이언트의 화면 조건을 최종 권한 판단으로 쓰
 
 예를 들어 [`20260718000500_add_room_management.sql`](../supabase/migrations/20260718000500_add_room_management.sql)의 `remove_room_member`는 호출자가 활성 소유자인지 확인하고, 본인이나 다른 소유자의 제거를 거부한 뒤 대상 멤버십을 `removed`로 기록한다. 이 제약은 [제품 흐름](./product-flows.md)의 관리 화면이 의존하는 실제 권한 계약이다.
 
+책방 역할은 `member_role` enum의 `owner`·`manager`·`member`다. [`20261027000200_add_room_manager_permissions.sql`](../supabase/migrations/20261027000200_add_room_manager_permissions.sql)의 `private.can_manage_room_content`가 「활성 방장 또는 운영자」를 판별하고, 초대 생성·폐기·초대 목록 RLS·책 대화 상태 변경(`20261027000300`)과 오픈 책방 제재(`20261027000400`)가 이 helper 또는 같은 역할 조건을 쓴다. 책 대화 추가(`create_book_chat`)는 2단계에서 바꾸지 않아 모든 활성 멤버가 가능하며, 방장·운영자 제한은 4단계(책 제안 요청)에서 적용한다. 방장 전용 동작(설정 수정 RLS, `remove_room_member`, `transfer_room_ownership`, `delete_reading_room`, `update_room_member_role`)은 `private.is_room_owner` 또는 `role = 'owner'` 조건을 그대로 쓴다. 비활성 멤버 행은 `room_members_inactive_owner_forbidden` check 때문에 항상 `member` 역할로 되돌려야 하므로, 멤버를 비활성화하는 새 RPC는 `role = 'member'`를 함께 설정한다. 허용·거부 행렬은 `supabase/tests/database/235`·`240`·`250` pgTAP이 고정한다.
+
 모든 스키마·인덱스·함수·trigger·RLS 변경은 Dashboard 수동 수정 대신 migration으로 기록한다. 생성된 `supabase/types/database.types.ts`는 직접 편집하지 않는다.
 
 ## Edge Function과 외부 경계

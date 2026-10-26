@@ -266,7 +266,7 @@ export function BookDiscussionPage() {
     ratingRemovalMutation.mutate(bookChatId)
   }
 
-  /** 방장이 새 초대 코드를 만들거나 이미 만든 초대를 공유 시트로 연다. */
+  /** 방장 또는 운영자가 새 초대 코드를 만들거나 이미 만든 초대를 공유 시트로 연다. */
   function handleOpenRoomInvite() {
     if (createdInvite !== null) {
       setIsInviteShareSheetOpen(true)
@@ -275,7 +275,7 @@ export function BookDiscussionPage() {
     inviteMutation.mutate()
   }
 
-  /** 현재 책방의 방장에게 친구 초대를 요청한다. */
+  /** 현재 책방의 방장과 운영자에게 친구 초대를 요청한다. */
   function handleRequestRoomInvite() {
     setInviteRequestMessage(null)
     inviteRequestMutation.mutate()
@@ -381,10 +381,10 @@ export function BookDiscussionPage() {
         )}
       </section>
       <ChatComposer
+        canCreateRoomInvite={roomManagementQuery.data?.canCurrentUserManageContent ?? false}
         inviteTriggerRef={inviteShareTriggerRef}
         errorMessage={errorMessage ?? videoErrorMessage}
         isReplying={Boolean(replyTo)}
-        isCurrentUserOwner={roomManagementQuery.data?.isCurrentUserOwner ?? false}
         key={bookChatId}
         labels={labels}
         mentionCandidates={(membersQuery.data ?? []).filter((member) => !member.isCurrentUser)}
@@ -757,10 +757,10 @@ function MemberRatingList({ ratings }: { ratings: BookChatRating[] }) {
 
 /** 대화 입력창 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function ChatComposer({
+  canCreateRoomInvite,
   errorMessage,
   hasMentionMemberError,
   isReplying,
-  isCurrentUserOwner,
   isRequestingRoomInvite,
   isUploadingVideo,
   labels,
@@ -780,10 +780,10 @@ function ChatComposer({
   value,
   inviteTriggerRef,
 }: {
+  canCreateRoomInvite: boolean
   errorMessage: string | null
   hasMentionMemberError: boolean
   isReplying: boolean
-  isCurrentUserOwner: boolean
   isRequestingRoomInvite: boolean
   isUploadingVideo: boolean
   labels: PostForm['labels']
@@ -1044,7 +1044,7 @@ function ChatComposer({
               >
                 별점
               </SeedActionButton>
-              {isCurrentUserOwner ? (
+              {canCreateRoomInvite ? (
                 <SeedActionButton
                   className="talkhugam-action-sheet-choice"
                   onClick={() => {

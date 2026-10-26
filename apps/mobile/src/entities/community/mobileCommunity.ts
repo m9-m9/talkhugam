@@ -3,20 +3,22 @@ import {
   createCommunityRoomFormSchema,
   parseCommunityRooms,
   parseJoinCommunityRoomResult,
+  roomRoleSchema,
   type CommunityRoom,
   type CreateCommunityRoomForm,
   type JoinCommunityRoomResult,
+  type RoomRole,
 } from '@talkhugam/domain'
 import { z } from 'zod'
 
 const createdRoomSchema = z.array(z.object({ room_id: z.string().uuid() })).length(1)
 const communityDetailSchema = z
-  .array(z.object({ current_member_id: z.string().uuid(), description: z.string().nullable(), id: z.string().uuid(), is_owner: z.boolean(), name: z.string() }))
+  .array(z.object({ current_member_id: z.string().uuid(), current_member_role: roomRoleSchema, description: z.string().nullable(), id: z.string().uuid(), is_owner: z.boolean(), name: z.string() }))
   .length(1)
-const messagesSchema = z.array(z.object({ body: z.string(), created_at: z.string().datetime({ offset: true }), id: z.string().uuid(), sender_display_name: z.string(), sender_member_id: z.string().uuid() }))
+const messagesSchema = z.array(z.object({ body: z.string(), created_at: z.string().datetime({ offset: true }), id: z.string().uuid(), sender_display_name: z.string(), sender_member_id: z.string().uuid(), sender_role: roomRoleSchema }))
 
-export type MobileCommunityDetail = { currentMemberId: string; description: string | null; id: string; isOwner: boolean; name: string }
-export type MobileCommunityMessage = { body: string; createdAt: string; id: string; senderDisplayName: string; senderMemberId: string }
+export type MobileCommunityDetail = { currentMemberId: string; currentMemberRole: RoomRole; description: string | null; id: string; isOwner: boolean; name: string }
+export type MobileCommunityMessage = { body: string; createdAt: string; id: string; senderDisplayName: string; senderMemberId: string; senderRole: RoomRole }
 
 /** 로그인한 회원이 참여할 수 있는 오픈 책방 발견 목록을 팔로우 우선순위로 조회한다. */
 export async function getMobileCommunityRooms(client: SupabaseClient): Promise<CommunityRoom[]> {
@@ -25,20 +27,20 @@ export async function getMobileCommunityRooms(client: SupabaseClient): Promise<C
   return parseCommunityRooms(response.data)
 }
 
-/** 활성 멤버에게 허용된 오픈 책방 상세와 현재 회원의 방장 권한을 반환한다. */
+/** 활성 멤버에게 허용된 오픈 책방 상세와 현재 회원의 책방 역할을 반환한다. */
 export async function getMobileCommunityRoom(client: SupabaseClient, roomId: string): Promise<MobileCommunityDetail> {
   const response = await client.rpc('get_community_room', { p_room_id: roomId })
   if (response.error) throw response.error
   const room = communityDetailSchema.parse(response.data).at(0)
   if (!room) throw new Error('오픈 책방을 찾을 수 없어요.')
-  return { currentMemberId: room.current_member_id, description: room.description, id: room.id, isOwner: room.is_owner, name: room.name }
+  return { currentMemberId: room.current_member_id, currentMemberRole: room.current_member_role, description: room.description, id: room.id, isOwner: room.is_owner, name: room.name }
 }
 
-/** 활성 멤버에게만 허용된 자유 채팅을 화면 모델로 검증해 반환한다. */
+/** 활성 멤버에게만 허용된 자유 채팅을 보낸 사람 역할과 함께 반환한다. */
 export async function getMobileCommunityMessages(client: SupabaseClient, roomId: string): Promise<MobileCommunityMessage[]> {
   const response = await client.rpc('list_community_messages', { p_limit: 100, p_room_id: roomId })
   if (response.error) throw response.error
-  return messagesSchema.parse(response.data).map((message) => ({ body: message.body, createdAt: message.created_at, id: message.id, senderDisplayName: message.sender_display_name, senderMemberId: message.sender_member_id }))
+  return messagesSchema.parse(response.data).map((message) => ({ body: message.body, createdAt: message.created_at, id: message.id, senderDisplayName: message.sender_display_name, senderMemberId: message.sender_member_id, senderRole: message.sender_role }))
 }
 
 /** 현재 프로필 표시 이름으로 공개 또는 비밀번호 오픈 책방을 만들고 방 식별자를 반환한다. */

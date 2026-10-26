@@ -135,3 +135,13 @@ export {
   type VideoPostFilter,
   type VideoThumbnailAuthorization,
 } from './video'
+export {
+  canBanCommunityMember,
+  canManageRoomContent,
+  canManageRoomMembers,
+  formatRoomRoleLabel,
+  parseRoomRole,
+  roomRoleKeys,
+  roomRoleSchema,
+  type RoomRole,
+} from './roomPermission'

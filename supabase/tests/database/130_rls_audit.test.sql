@@ -180,6 +180,7 @@ select is(
       and pg_proc.proname not in (
         'is_active_room_member',
         'is_room_owner',
+        'can_manage_room_content',
         'current_room_member_id',
         'shares_active_room',
         'can_access_book_chat',
