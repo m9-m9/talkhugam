@@ -30,8 +30,7 @@ export function NaverAccountInfoPage() {
     <main className="app-page bg-surface px-4 pb-8">
       <AppHeader onBack={() => void navigate('/profile/settings')} title="회원정보" />
       <header className="mt-8">
-        <p className="text-primary text-sm font-medium">Naver 계정</p>
-        <h1 className="text-ink mt-2 text-2xl font-bold">Naver 제공 정보</h1>
+        <h1 className="text-ink text-2xl font-bold">Naver 제공 정보</h1>
         <p className="text-ink-subtle mt-2 text-sm">
           로그인에 제공된 정보만 확인할 수 있어요. 이 화면에서 수정되지는 않아요.
         </p>

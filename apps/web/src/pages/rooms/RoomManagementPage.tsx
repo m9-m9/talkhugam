@@ -155,14 +155,13 @@ export function RoomManagementPage() {
     <main className="app-page bg-surface px-4 pb-8">
       <AppHeader onBack={() => void navigate(`/rooms/${roomId}`)} title="방 정보" />
       <header className="mt-8">
-        <p className="text-primary text-sm font-medium">함께 읽는 책방</p>
-        <h1 className="text-ink mt-2 text-xl font-bold">{room.name}</h1>
+        <h1 className="text-ink text-xl font-bold">{room.name}</h1>
         <p className="text-ink-subtle mt-2 text-sm">{room.description ?? '아직 소개가 없어요.'}</p>
       </header>
 
       {room.isCurrentUserOwner ? (
         <section className="mt-8" aria-labelledby="room-management-actions">
-          <h2 className="text-ink text-base font-bold" id="room-management-actions">
+          <h2 className="text-ink text-base font-semibold" id="room-management-actions">
             방 관리
           </h2>
           <div className="mt-4 grid grid-cols-2 gap-3">
@@ -231,7 +230,7 @@ export function RoomManagementPage() {
 
       <section className="mt-12" aria-labelledby="room-members-heading">
         <div className="flex items-center justify-between gap-4">
-          <h2 className="text-ink text-base font-bold" id="room-members-heading">
+          <h2 className="text-ink text-base font-semibold" id="room-members-heading">
             함께하는 사람 {room.members.length}명
           </h2>
           {room.isCurrentUserOwner ? (
@@ -264,7 +263,7 @@ export function RoomManagementPage() {
       </section>
 
       <section className="mt-12" aria-labelledby="room-exit-heading">
-        <h2 className="text-ink text-base font-bold" id="room-exit-heading">
+        <h2 className="text-ink text-base font-semibold" id="room-exit-heading">
           나가기
         </h2>
         <p className="text-ink-subtle mt-2 text-sm">
@@ -462,13 +461,12 @@ function RoomManagementConfirmDialog({
               취소
             </ActionButton>
             <ActionButton
-              className="talkhugam-primary-action"
               disabled={isPending}
               loading={isPending}
               onClick={onConfirm}
               size="large"
               type="button"
-              variant="brandSolid"
+              variant="criticalSolid"
             >
               {content.confirmLabel}
             </ActionButton>
@@ -509,7 +507,7 @@ function getActionContent(action: Exclude<PendingAction, null>) {
 /** 관리 대상 방이 없을 때 복귀를 안내한다. */
 function RoomManagementUnavailablePage({ onBack }: { onBack: () => void }) {
   return (
-    <main className="app-page bg-surface flex min-h-screen flex-col items-center justify-center px-4 text-center">
+    <main className="app-page bg-surface flex min-h-dvh flex-col items-center justify-center px-4 text-center">
       <p className="text-ink text-lg font-bold">이 책방을 찾을 수 없어요</p>
       <ActionButton
         className="talkhugam-primary-action mt-6"
@@ -527,7 +525,7 @@ function RoomManagementUnavailablePage({ onBack }: { onBack: () => void }) {
 /** 방 관리 정보를 기다리는 동안 책 로더를 렌더링한다. */
 function RoomManagementLoadingPage() {
   return (
-    <main className="app-page bg-surface flex min-h-screen items-center justify-center px-4">
+    <main className="app-page bg-surface flex min-h-dvh items-center justify-center px-4">
       <BookLoadingIndicator label="방 정보를 불러오고 있어요." />
     </main>
   )

@@ -12,8 +12,8 @@ export function AppBottomNavigation() {
   const isRoomsActive = location.pathname.startsWith('/rooms')
   const isProfileActive = location.pathname.startsWith('/profile')
   const navigationItems = [
-    { isActive: isRoomsActive, label: '책방', pathname: '/rooms' },
-    { isActive: isProfileActive, label: '내 정보', pathname: '/profile' },
+    { icon: <RoomsIcon />, isActive: isRoomsActive, label: '책방', pathname: '/rooms' },
+    { icon: <ProfileIcon />, isActive: isProfileActive, label: '내 정보', pathname: '/profile' },
   ]
 
   useEffect(() => {
@@ -170,39 +170,70 @@ export function AppBottomNavigation() {
         {navigationItems.map((navigationItem) => (
           <button
             aria-current={navigationItem.isActive ? 'page' : undefined}
-            className={`app-bottom-navigation__item min-h-11 px-0 text-sm font-medium ${
+            className={`app-bottom-navigation__item flex min-h-11 min-w-16 flex-col items-center justify-center gap-1 px-0 text-xs font-medium ${
               navigationItem.isActive ? 'text-ink' : 'text-ink-subtle'
             }`}
             key={navigationItem.pathname}
             onClick={() => void navigate(navigationItem.pathname)}
             type="button"
           >
+            {navigationItem.icon}
             {navigationItem.label}
           </button>
         ))}
       </div>
-      <div className="absolute top-0 left-1/2 z-20 -translate-x-1/2 -translate-y-1/2">
+      <div className="app-bottom-navigation__action absolute left-1/2 z-20 -translate-x-1/2 -translate-y-1/2">
         <button
           aria-expanded={isActionBookOpen}
           aria-label={isActionBookOpen ? '책방 시작 메뉴 닫기' : '책방 시작 메뉴 열기'}
-          className="talkhugam-bottom-navigation-action flex size-16 items-center justify-center rounded-full shadow-lg"
+          className="talkhugam-bottom-navigation-action flex size-12 items-center justify-center rounded-full"
           onClick={handleToggleActionBook}
           ref={actionMenuButtonRef}
           type="button"
         >
-          <svg aria-hidden="true" className="size-8" fill="none" viewBox="0 0 24 24">
+          <svg aria-hidden="true" className="size-6" fill="none" viewBox="0 0 24 24">
             <path
-              className={`origin-center transition-transform duration-300 ${
+              className={`origin-center transition-transform duration-300 motion-reduce:transition-none ${
                 isActionBookOpen ? 'rotate-45' : ''
               }`}
               d="M12 5v14M5 12h14"
               stroke="currentColor"
               strokeLinecap="round"
-              strokeWidth="2.8"
+              strokeWidth="2"
             />
           </svg>
         </button>
       </div>
     </nav>
+  )
+}
+
+/** 책방 탭을 나타내는 펼친 책 모양의 선형 아이콘을 렌더링한다. */
+function RoomsIcon() {
+  return (
+    <svg aria-hidden="true" className="size-5" fill="none" viewBox="0 0 24 24">
+      <path
+        d="M12 6.5C10.2 5.2 7.6 4.75 4 5v13c3.6-.25 6.2.2 8 1.5m0-13c1.8-1.3 4.4-1.75 8-1.5v13c-3.6-.25-6.2.2-8 1.5m0-13v13"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  )
+}
+
+/** 내 정보 탭을 나타내는 사람 모양의 선형 아이콘을 렌더링한다. */
+function ProfileIcon() {
+  return (
+    <svg aria-hidden="true" className="size-5" fill="none" viewBox="0 0 24 24">
+      <circle cx="12" cy="8" r="3.5" stroke="currentColor" strokeWidth="1.8" />
+      <path
+        d="M5 19.5c1.2-3.2 3.8-4.9 7-4.9s5.8 1.7 7 4.9"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.8"
+      />
+    </svg>
   )
 }

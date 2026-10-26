@@ -166,8 +166,7 @@ export function MyReadingBooksPage() {
     <main className="app-page bg-surface px-4 pb-8">
       <AppHeader onBack={() => void navigate('/profile')} title="읽고 있는 책" />
       <header className="mt-8">
-        <p className="text-primary text-sm font-medium">책 기록</p>
-        <h1 className="text-ink mt-2 text-xl font-bold">읽고 있는 책</h1>
+        <h1 className="text-ink text-xl font-bold">읽고 있는 책</h1>
         <p className="text-ink-subtle mt-2 text-sm">참여 중인 모든 책방의 책을 모아 봐요.</p>
       </header>
 
@@ -359,7 +358,7 @@ function ReadingBookGroups({
   if (groups.length === 0) {
     return (
       <section className="talkhugam-information-surface border-border mt-12 rounded-lg border p-6 text-center">
-        <h2 className="text-ink text-base font-bold">아직 읽고 있는 책이 없어요</h2>
+        <h2 className="text-ink text-base font-semibold">아직 읽고 있는 책이 없어요</h2>
         <p className="text-ink-subtle mt-2 text-sm">
           책방에서 첫 책을 골라 이야기를 시작해 보세요.
         </p>
@@ -371,7 +370,7 @@ function ReadingBookGroups({
     <div className="mt-12 space-y-8">
       {groups.map((group) => (
         <section aria-labelledby={`room-${group.roomId}`} key={group.roomId}>
-          <h2 className="text-ink text-base font-bold" id={`room-${group.roomId}`}>
+          <h2 className="text-ink text-base font-semibold" id={`room-${group.roomId}`}>
             {group.roomName}
           </h2>
           <ul className="mt-4 space-y-3">
@@ -476,7 +475,7 @@ function ReadingProgressSummary({ progress }: { progress: ReadingProgress | unde
   return (
     <div className="px-3 pb-3">
       <div className="text-ink-subtle flex items-center justify-between text-xs">
-        <span>
+        <span className="tabular-nums">
           {progress.currentPage} / {progress.totalPages}쪽
         </span>
         <span className="text-primary font-semibold">{percent}%</span>

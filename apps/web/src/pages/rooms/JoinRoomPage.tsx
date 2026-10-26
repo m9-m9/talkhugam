@@ -52,10 +52,7 @@ export function JoinRoomPage() {
     <main className="app-page bg-surface px-4 pb-8">
       <AppHeader onBack={() => void navigate(-1)} title="초대 코드" />
       <header className="mt-12 text-center">
-        <p aria-hidden="true" className="text-primary text-2xl">
-          ✦
-        </p>
-        <h1 className="text-ink mt-4 text-2xl font-bold">책방 초대장을 받았어요</h1>
+        <h1 className="text-ink text-2xl font-bold">책방 초대장을 받았어요</h1>
         <p className="talkhugam-balanced-copy text-ink-subtle mt-3 text-sm whitespace-pre-line">
           {inviteToken
             ? '친구가 보낸 초대 링크예요.\n참여하면 함께 읽는 책방 목록에 바로 추가돼요.'

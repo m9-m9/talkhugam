@@ -1,6 +1,5 @@
 import { matchPath, Outlet, useLocation } from 'react-router-dom'
 
-import { FeedbackLauncher } from '../../features/feedback'
 import { AppBottomNavigation } from '../../shared/ui/AppBottomNavigation'
 
 /** 앱 이동 레이아웃 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
@@ -23,7 +22,6 @@ export function AppNavigationLayout() {
   return (
     <div className={isImmersiveDetail ? undefined : 'app-with-bottom-navigation'}>
       <Outlet />
-      {isImmersiveDetail ? null : <FeedbackLauncher />}
       {isImmersiveDetail ? null : <AppBottomNavigation />}
     </div>
   )

@@ -70,6 +70,7 @@ import { CompletionMark } from '../../shared/ui/CompletionMark'
 import { LazyMuxVideoPlayer } from '../../shared/ui/LazyMuxVideoPlayer'
 import { BookLoadingIndicator, BrandLoadingSpinner } from '../../shared/ui/LoadingSpinner'
 import { RetryState } from '../../shared/ui/RetryState'
+import { StarIcon } from '../../shared/ui/StarIcon'
 
 type LabelKind = 'page' | 'chapter'
 
@@ -325,10 +326,10 @@ export function BookDiscussionPage() {
     }
   }
 
-  if (!roomId || !bookChatId) return <main className="bg-surface min-h-screen" />
+  if (!roomId || !bookChatId) return <main className="bg-surface min-h-dvh" />
   const roots = postsQuery.data?.filter((post) => post.depth === 0) ?? []
   return (
-    <main className="app-page bg-surface flex min-h-screen flex-col px-4 pb-6">
+    <main className="app-page bg-surface talkhugam-safe-bottom flex min-h-dvh flex-col px-4">
       <AppHeader
         action={
           <SeedActionButton
@@ -346,8 +347,7 @@ export function BookDiscussionPage() {
         title={roomQuery.data?.name ?? '책방'}
       />
       <header className="mt-8">
-        <p className="text-primary text-sm font-medium">책 대화</p>
-        <h1 className="text-ink mt-2 text-xl font-bold">
+        <h1 className="text-ink text-xl font-bold">
           {bookChatQuery.data?.title ?? '책을 불러오고 있어요.'}
         </h1>
       </header>
@@ -492,7 +492,7 @@ function DiscussionTimeline({
         <button
           aria-selected={activeTab === 'reviews'}
           className={`min-h-11 text-sm font-semibold ${
-            activeTab === 'reviews' ? 'bg-action text-action-text' : 'bg-surface text-ink-subtle'
+            activeTab === 'reviews' ? 'talkhugam-tab--selected' : 'bg-surface text-ink-subtle'
           }`}
           onClick={() => setActiveTab('reviews')}
           role="tab"
@@ -503,7 +503,7 @@ function DiscussionTimeline({
         <button
           aria-selected={activeTab === 'videos'}
           className={`border-border min-h-11 border-l text-sm font-semibold ${
-            activeTab === 'videos' ? 'bg-action text-action-text' : 'bg-surface text-ink-subtle'
+            activeTab === 'videos' ? 'talkhugam-tab--selected' : 'bg-surface text-ink-subtle'
           }`}
           onClick={() => setActiveTab('videos')}
           role="tab"
@@ -614,8 +614,11 @@ function CompletionSheet({
                     {completion.isMe ? '나' : completion.displayName}
                   </p>
                   {completion.rating ? (
-                    <p className="text-primary mt-1 text-sm" aria-label={`${completion.rating}점`}>
-                      {'★'.repeat(completion.rating)}
+                    <p className="text-primary mt-1 flex items-center gap-1">
+                      {Array.from({ length: completion.rating }, (_, index) => (
+                        <StarIcon className="size-4" filled key={index} />
+                      ))}
+                      <span className="sr-only">{completion.rating}점</span>
                     </p>
                   ) : null}
                   {completion.review ? (
@@ -647,7 +650,9 @@ function CompletionSummary({
 }) {
   return (
     <div className="border-ink/10 mt-4 border-t pt-4">
-      <p className="text-ink text-sm font-semibold">함께 읽은 기록 · {completionCount}명 완독</p>
+      <p className="text-ink text-sm font-semibold tabular-nums">
+        함께 읽은 기록 · {completionCount}명 완독
+      </p>
       <div className="mt-3 flex items-center gap-2">
         {hasOwnCompletion ? <CompletionMark label="내 완독" /> : null}
         <SeedActionButton
@@ -917,7 +922,7 @@ function ChatComposer({
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-2">
+            <div className="talkhugam-action-sheet-list">
               <SeedActionButton
                 className="talkhugam-action-sheet-choice"
                 disabled={isReplying}
@@ -1024,7 +1029,7 @@ function ChatComposer({
               d="M12 5v14M5 12h14"
               stroke="currentColor"
               strokeLinecap="round"
-              strokeWidth="2.4"
+              strokeWidth="2"
             />
           </svg>
         </SeedActionButton>
@@ -1230,6 +1235,10 @@ function ChatTimeline({
             key={message.video.id}
           >
             <VideoMessage
+              canRecoverFailure={isCurrentMemberMessage(
+                message.video.authorMemberId,
+                currentMemberId,
+              )}
               isThumbnailLoading={isThumbnailLoading}
               thumbnailAuthorization={thumbnailsByPostId.get(message.video.id)}
               video={message.video}
@@ -1243,14 +1252,18 @@ function ChatTimeline({
 
 /** 영상 메시지 화면 또는 UI 요소를 접근 가능한 형태로 렌더링한다. */
 function VideoMessage({
+  canRecoverFailure,
   isThumbnailLoading,
   thumbnailAuthorization,
   video,
 }: {
+  canRecoverFailure: boolean
   isThumbnailLoading: boolean
   thumbnailAuthorization: VideoThumbnailAuthorization | undefined
   video: VideoPost
 }) {
+  const navigate = useNavigate()
+  const { bookChatId, roomId } = useParams()
   const [isPlaying, setIsPlaying] = useState(false)
   const [hasPlaybackMediaError, setHasPlaybackMediaError] = useState(false)
   const playbackQuery = useQuery({
@@ -1335,6 +1348,8 @@ function VideoMessage({
             <img
               alt=""
               className="absolute inset-0 size-full object-cover"
+              decoding="async"
+              loading="lazy"
               src={createMuxThumbnailUrl(thumbnailAuthorization)}
             />
           ) : isThumbnailLoading ? (
@@ -1360,7 +1375,22 @@ function VideoMessage({
       {isLoading ? (
         <BookLoadingIndicator label={message} size="sm" tone="inverse" />
       ) : (
-        <p className="text-sm font-medium text-white">{message}</p>
+        <div className="flex flex-col items-center gap-3">
+          <p className="talkhugam-balanced-copy text-sm font-medium text-white" role="alert">
+            {canRecoverFailure ? `${message} 지우고 다시 올려 주세요.` : message}
+          </p>
+          {canRecoverFailure ? (
+            <SeedActionButton
+              className="!border-white/40 !text-white"
+              onClick={() => void navigate(`/rooms/${roomId}/books/${bookChatId}/videos`)}
+              size="small"
+              type="button"
+              variant="neutralOutline"
+            >
+              영상 기록에서 정리하기
+            </SeedActionButton>
+          ) : null}
+        </div>
       )}
     </article>
   )
@@ -1491,7 +1521,7 @@ function createChatMessages(posts: DiscussionPost[], videos: VideoPost[]) {
 
 /** 영상 메시지 라벨 데이터를 조회하거나 계산해 반환한다. */
 function getVideoMessageLabel(video: VideoPost) {
-  if (video.status === 'failed') return '영상 처리를 완료하지 못했어요. 잠시 후 다시 시도해 주세요.'
+  if (video.status === 'failed') return '영상을 처리하지 못했어요.'
   if (video.status === 'waiting_upload') return '영상을 올리고 있어요…'
   return '영상 준비 중…'
 }

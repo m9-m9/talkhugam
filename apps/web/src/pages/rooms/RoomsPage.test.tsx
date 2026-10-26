@@ -105,7 +105,7 @@ describe('RoomsPage', () => {
 
     expect(await screen.findByRole('heading', { level: 3, name: '첫 번째 책' })).toBeInTheDocument()
     const previewList = screen.getByRole('list', { name: '다른 추천 도서' })
-    expect(previewList).toHaveClass('grid-cols-3')
+    expect(previewList).toHaveStyle({ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' })
     expect(within(previewList).getAllByRole('button', { name: /추천 보기$/ })).toHaveLength(3)
 
     fireEvent.click(screen.getByRole('button', { name: '다음 추천 보기' }))

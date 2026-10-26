@@ -1,6 +1,8 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { ActionButton } from '@seed-design/react'
+
 import { FeedbackLauncher } from './FeedbackLauncher'
 
 const { submitFeedback } = vi.hoisted(() => ({ submitFeedback: vi.fn() }))
@@ -12,6 +14,19 @@ vi.mock('../../entities/feedback', async (importOriginal) => ({
 vi.mock('../../shared/api/supabaseClient', () => ({ createSupabaseClient: vi.fn() }))
 vi.mock('../../shared/analytics', () => ({ trackAnalyticsEvent: vi.fn() }))
 
+/** 테스트에서 의견 시트를 여는 기본 진입 버튼을 렌더링한다. */
+function renderFeedbackLauncher() {
+  return render(
+    <FeedbackLauncher
+      renderTrigger={({ onOpen }) => (
+        <ActionButton onClick={onOpen} type="button">
+          의견 보내기
+        </ActionButton>
+      )}
+    />,
+  )
+}
+
 describe('FeedbackLauncher', () => {
   afterEach(() => {
     cleanup()
@@ -20,7 +35,7 @@ describe('FeedbackLauncher', () => {
 
   it('submits a feature suggestion and confirms that it was received', async () => {
     submitFeedback.mockResolvedValue('ticket-1')
-    render(<FeedbackLauncher />)
+    renderFeedbackLauncher()
 
     fireEvent.click(screen.getByRole('button', { name: '의견 보내기' }))
     fireEvent.click(screen.getByRole('button', { name: '기능 제안' }))
@@ -42,10 +57,9 @@ describe('FeedbackLauncher', () => {
     expect(await screen.findByText('의견을 받았어요.')).toBeInTheDocument()
   })
 
-  it('uses SEED controls for the launcher, category toggle, text field, and submit action', () => {
-    render(<FeedbackLauncher />)
+  it('uses SEED controls for the category toggle, text field, and submit action', () => {
+    renderFeedbackLauncher()
 
-    expect(screen.getByRole('button', { name: '의견 보내기' })).toHaveClass('seed-action-button')
     fireEvent.click(screen.getByRole('button', { name: '의견 보내기' }))
 
     expect(screen.getByRole('button', { name: '기능 제안' })).toHaveClass('seed-toggle-button')

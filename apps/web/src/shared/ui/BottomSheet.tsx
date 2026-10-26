@@ -42,7 +42,7 @@ export function BottomSheet({
             <SwipeableMenuSheet.Title>{title}</SwipeableMenuSheet.Title>
             <ActionButton
               aria-label={`${title} 닫기`}
-              className="absolute top-0 right-0"
+              className="!absolute top-0 right-0"
               onClick={handleClose}
               size="small"
               type="button"

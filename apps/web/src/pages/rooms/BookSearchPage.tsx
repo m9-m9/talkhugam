@@ -248,7 +248,7 @@ function BookRecommendationList({
   return (
     <section aria-labelledby="recommended-books-heading" className="mt-8">
       <div className="mb-3">
-        <h2 className="text-ink text-base font-bold" id="recommended-books-heading">
+        <h2 className="text-ink text-base font-semibold" id="recommended-books-heading">
           지금 많이 읽는 책
         </h2>
         <p className="text-ink-subtle mt-1 text-xs">

@@ -278,8 +278,9 @@ describe('BookDiscussionPage', () => {
     expect(screen.getByText('다른 멤버의 독후감').closest('li')).toHaveClass('justify-start')
     await openVideoTab()
     expect(
-      screen.getByText('영상 처리를 완료하지 못했어요. 잠시 후 다시 시도해 주세요.').closest('li'),
+      screen.getByText('영상을 처리하지 못했어요. 지우고 다시 올려 주세요.').closest('li'),
     ).toHaveClass('justify-end')
+    expect(screen.getByRole('button', { name: '영상 기록에서 정리하기' })).toBeInTheDocument()
   })
 
   it('keeps the chat input at sixteen pixels to prevent mobile Safari zoom', () => {
@@ -353,7 +354,6 @@ describe('BookDiscussionPage', () => {
     renderBookDiscussionPage()
 
     expect(await screen.findByText('금요일 아침 책방')).toBeInTheDocument()
-    expect(screen.getByText('책 대화')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: '미움받을 용기' })).toBeInTheDocument()
   })
 

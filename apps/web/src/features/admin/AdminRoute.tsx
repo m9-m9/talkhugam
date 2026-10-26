@@ -26,7 +26,7 @@ export function AdminRoute() {
 
   if (hasAdminAccess === undefined) {
     return (
-      <main className="bg-surface flex min-h-screen items-center justify-center px-4">
+      <main className="bg-surface flex min-h-dvh items-center justify-center px-4">
         <BrandLoadingSpinner label="운영함 권한을 확인하고 있어요." />
       </main>
     )

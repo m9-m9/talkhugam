@@ -50,8 +50,7 @@ export function ProfileSharePage() {
     <main className="app-page bg-surface px-4 pb-8">
       <AppHeader onBack={() => void navigate('/profile')} title="공유 카드" />
       <header className="mt-8">
-        <p className="text-primary text-sm font-medium">나의 독서 기록</p>
-        <h1 className="text-ink mt-2 text-2xl font-bold">공유 카드</h1>
+        <h1 className="text-ink text-2xl font-bold">공유 카드</h1>
         <p className="text-ink-subtle mt-2 text-sm">
           내가 좋아하는 독서 방식을 가볍게 나눠 보세요.
         </p>
@@ -103,7 +102,7 @@ function createProfileShareData(displayName: string, bio: string | null) {
 /** 공유 카드 조회 중 브랜드 스피너를 렌더링한다. */
 function ProfileShareLoadingPage({ message }: { message: string }) {
   return (
-    <main className="app-page bg-surface flex min-h-screen items-center justify-center px-4">
+    <main className="app-page bg-surface flex min-h-dvh items-center justify-center px-4">
       <BrandLoadingSpinner label={message} />
     </main>
   )
@@ -112,7 +111,7 @@ function ProfileShareLoadingPage({ message }: { message: string }) {
 /** 공유 카드 조회 실패를 재시도와 함께 안내한다. */
 function ProfileShareErrorPage({ onBack, onRetry }: { onBack: () => void; onRetry: () => void }) {
   return (
-    <main className="app-page bg-surface flex min-h-screen flex-col items-center justify-center gap-4 px-4">
+    <main className="app-page bg-surface flex min-h-dvh flex-col items-center justify-center gap-4 px-4">
       <RetryState
         message="공유 카드를 불러오지 못했어요. 잠시 후 다시 시도해 주세요."
         onRetry={onRetry}

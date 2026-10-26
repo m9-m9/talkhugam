@@ -83,9 +83,16 @@ function PlatformIcon({ platform }: { platform: InviteSharePlatform }) {
     return (
       <span
         aria-hidden="true"
-        className="bg-primary flex size-6 items-center justify-center rounded-md text-xs font-bold text-white"
+        className="border-border text-ink flex size-6 items-center justify-center rounded-md border"
       >
-        ✦
+        <svg className="size-4" fill="none" viewBox="0 0 24 24">
+          <path
+            d="M5 6.5A2.5 2.5 0 0 1 7.5 4h9A2.5 2.5 0 0 1 19 6.5v7a2.5 2.5 0 0 1-2.5 2.5H11l-4 3.5V16h0a2 2 0 0 1-2-2V6.5Z"
+            stroke="currentColor"
+            strokeLinejoin="round"
+            strokeWidth="1.8"
+          />
+        </svg>
       </span>
     )
   if (platform === 'instagram')
@@ -115,13 +122,13 @@ function LinkIcon() {
         d="M10 13a5 5 0 0 0 7.07.07l2-2A5 5 0 0 0 12 4l-1.15 1.15"
         stroke="currentColor"
         strokeLinecap="round"
-        strokeWidth="2"
+        strokeWidth="1.8"
       />
       <path
         d="M14 11a5 5 0 0 0-7.07-.07l-2 2A5 5 0 0 0 12 20l1.15-1.15"
         stroke="currentColor"
         strokeLinecap="round"
-        strokeWidth="2"
+        strokeWidth="1.8"
       />
     </svg>
   )

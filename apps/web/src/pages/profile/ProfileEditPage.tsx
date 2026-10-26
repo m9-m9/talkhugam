@@ -129,8 +129,7 @@ export function ProfileEditPage() {
     <main className="app-page bg-surface px-4 pb-8">
       <AppHeader onBack={() => void navigate('/profile')} title="프로필 편집" />
       <header className="mt-8">
-        <p className="text-primary text-sm font-medium">프로필</p>
-        <h1 className="text-ink mt-2 text-2xl font-bold">프로필 편집</h1>
+        <h1 className="text-ink text-2xl font-bold">프로필 편집</h1>
         <p className="text-ink-subtle mt-2 text-sm">나를 소개할 한 줄을 적어 주세요.</p>
       </header>
 

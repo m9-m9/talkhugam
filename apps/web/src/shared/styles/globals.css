@@ -36,6 +36,7 @@
   --color-action: #ad3d22;
   --color-action-text: #ffffff;
   --color-danger: #ff6b6b;
+  --color-danger-action: #c4302b;
   --color-primary: var(--color-accent);
   --color-primary-text: var(--color-accent-text);
   --spacing-0: 0px;
@@ -78,37 +79,43 @@
   color: color-mix(in srgb, var(--color-action-text) 70%, transparent);
 }
 
+/* 보조 행동과 선택지는 흑백으로 두고, 코랄은 화면의 주요 행동 하나에만 남긴다. */
 .talkhugam-foundation-action--outline {
   background: var(--color-surface-raised);
-  border: 1px solid color-mix(in srgb, var(--color-action) 62%, transparent);
-  color: var(--color-accent-text);
+  border: 1px solid var(--color-border);
+  color: var(--color-ink);
 }
 
 .talkhugam-foundation-action--outline:is(:hover, :active, [data-loading]) {
   background: var(--color-surface-muted);
-  border-color: var(--color-action);
+  border-color: var(--color-ink-subtle);
 }
 
 .talkhugam-foundation-toggle {
   background: var(--color-surface-raised);
-  border: 1px solid color-mix(in srgb, var(--color-action) 42%, var(--color-border));
-  color: var(--color-accent-text);
+  border: 1px solid var(--color-border);
+  color: var(--color-ink);
 }
 
 .talkhugam-foundation-toggle:is([aria-pressed='true'], [data-pressed]) {
-  background: var(--color-action);
-  border-color: var(--color-action);
-  color: var(--color-action-text);
+  background: var(--color-ink);
+  border-color: var(--color-ink);
+  color: var(--color-surface);
 }
 
 .talkhugam-foundation-toggle:is([aria-pressed='true'], [data-pressed]):is(:hover, :active) {
-  background: var(--color-action);
-  border-color: var(--color-action);
+  background: var(--color-ink);
+  border-color: var(--color-ink);
 }
 
 .talkhugam-foundation-toggle:is([aria-pressed='true'], [data-pressed]) {
-  --seed-prefix-icon-color: var(--color-action-text);
-  --seed-suffix-icon-color: var(--color-action-text);
+  --seed-prefix-icon-color: var(--color-surface);
+  --seed-suffix-icon-color: var(--color-surface);
+}
+
+.talkhugam-tab--selected {
+  background: var(--color-ink) !important;
+  color: var(--color-surface) !important;
 }
 
 .talkhugam-video-filter-toggle {
@@ -116,23 +123,42 @@
 }
 
 .talkhugam-video-filter-toggle:is([aria-pressed='true'], [data-pressed]) {
-  background: var(--color-action);
-  color: var(--color-action-text);
+  background: var(--color-ink);
+  color: var(--color-surface);
 }
 
-.talkhugam-action-sheet-choice:not(:is(:disabled, [disabled], [data-disabled])) {
-  background: var(--color-surface-raised);
-  border: 1px solid color-mix(in srgb, var(--color-action) 42%, var(--color-border));
-  color: var(--color-accent-text);
+/* 시트 선택지는 버튼 격자 대신 구분선이 있는 목록 행으로 보여 준다. */
+.talkhugam-action-sheet-list {
+  border-block: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
 }
 
-.talkhugam-action-sheet-choice:not(:is(:disabled, [disabled], [data-disabled])):is(
-    :hover,
-    :active,
-    [data-loading]
-  ) {
+.talkhugam-action-sheet-choice.seed-action-button {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  border-radius: 0;
+  color: var(--color-ink);
+  justify-content: flex-start;
+  min-height: var(--spacing-12);
+  padding-inline: 0;
+  width: 100%;
+}
+
+.talkhugam-action-sheet-choice.seed-action-button:last-child {
+  border-bottom: 0;
+}
+
+.talkhugam-action-sheet-choice.seed-action-button:not(
+    :is(:disabled, [disabled], [data-disabled])
+  ):is(:hover, :active, [data-loading]) {
   background: var(--color-surface-muted);
-  border-color: var(--color-action);
+}
+
+.talkhugam-action-sheet-choice.seed-action-button:is(:disabled, [disabled], [data-disabled]) {
+  background: transparent;
+  color: var(--color-ink-subtle);
 }
 
 .talkhugam-information-field.seed-text-input__root,
@@ -156,7 +182,7 @@
 }
 
 .seed-switchmark__root--tone_brand:is(:checked, [data-checked]) {
-  background: var(--color-action);
+  background: var(--color-ink);
 }
 
 .seed-switchmark__thumb--tone_brand {
@@ -166,6 +192,35 @@
 .talkhugam-balanced-copy {
   text-wrap: pretty;
   word-break: keep-all;
+}
+
+/* 다크 테마의 대화상자는 바탕보다 한 단계 밝은 표면에 두고, 한글은 단어 단위로 줄바꿈한다. */
+.seed-dialog__content {
+  background: var(--color-surface-raised) !important;
+  border: 1px solid var(--color-border);
+  word-break: keep-all;
+}
+
+.seed-dialog__title {
+  color: var(--color-ink);
+}
+
+.seed-dialog__description {
+  color: var(--color-ink-subtle);
+}
+
+.seed-dialog__content .seed-action-button--variant_neutralOutline {
+  border: 1px solid var(--color-border);
+}
+
+/* 되돌리기 어려운 확인 행동은 코랄이 아닌 위험 색으로 구분한다. */
+.seed-action-button--variant_criticalSolid {
+  background: var(--color-danger-action);
+  color: var(--color-action-text);
+}
+
+.seed-action-button--variant_criticalSolid:is(:hover, :active, [data-loading]) {
+  background: color-mix(in srgb, var(--color-danger-action) 86%, white);
 }
 
 .seed-dialog__footer,
@@ -286,7 +341,11 @@
 
 @layer base {
   :root {
-    --app-bottom-navigation-height: calc(var(--spacing-12) + var(--spacing-6));
+    --app-safe-area-bottom: env(safe-area-inset-bottom, 0px);
+    --app-bottom-navigation-bar-height: calc(var(--spacing-12) + var(--spacing-6));
+    --app-bottom-navigation-height: calc(
+      var(--app-bottom-navigation-bar-height) + var(--app-safe-area-bottom)
+    );
     color: var(--color-ink);
     background: var(--color-surface);
     font-family:
@@ -300,7 +359,7 @@
   body {
     background: var(--color-surface);
     min-width: 320px;
-    min-height: 100vh;
+    min-height: 100dvh;
     margin: 0;
     scrollbar-width: none;
   }
@@ -336,7 +395,7 @@
 #root {
   background: var(--color-surface);
   color: var(--color-ink);
-  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .bg-surface,
@@ -395,6 +454,7 @@
     .talkhugam-video-filter-toggle,
     .talkhugam-action-sheet-choice,
     .talkhugam-social-login-button,
+    .seed-action-button--variant_criticalSolid,
     .text-danger
   ) {
   background-color: var(--color-surface-raised) !important;
@@ -420,40 +480,13 @@
 .app-page {
   margin-inline: auto;
   max-width: 640px;
-  min-height: 100vh;
+  min-height: 100dvh;
   width: 100%;
 }
 
 .app-with-bottom-navigation {
-  min-height: 100vh;
+  min-height: 100dvh;
   padding-bottom: var(--app-bottom-navigation-height);
-}
-
-.talkhugam-feedback-launcher {
-  --seed-icon-size: 28px;
-
-  bottom: calc(var(--app-bottom-navigation-height) + var(--spacing-4)) !important;
-  height: var(--spacing-12) !important;
-  left: auto !important;
-  position: fixed !important;
-  right: max(var(--spacing-4), calc(50% - 304px)) !important;
-  width: var(--spacing-12) !important;
-}
-
-.talkhugam-feedback-launcher svg {
-  height: 28px !important;
-  stroke-width: 2.1;
-  width: 28px !important;
-}
-
-.talkhugam-feedback-launcher__icon {
-  transform: scale(1.75);
-  transform-origin: center;
-}
-
-body:has([role='dialog']) .talkhugam-feedback-launcher {
-  pointer-events: none;
-  visibility: hidden;
 }
 
 .app-bottom-navigation {
@@ -461,6 +494,7 @@ body:has([role='dialog']) .talkhugam-feedback-launcher {
 
   bottom: 0;
   height: var(--bottom-navigation-height);
+  padding-bottom: var(--app-safe-area-bottom);
   left: 0;
   margin-inline: auto;
   max-width: 640px;
@@ -496,6 +530,11 @@ body:has([role='dialog']) .talkhugam-feedback-launcher {
 
 .app-bottom-navigation__item {
   justify-self: center;
+}
+
+/* + 버튼은 막대 안에 두어 본문이나 마지막 목록 항목을 가리지 않는다. */
+.app-bottom-navigation__action {
+  top: calc(var(--app-bottom-navigation-bar-height) / 2);
 }
 
 .talkhugam-bottom-navigation-action {
@@ -596,6 +635,10 @@ body:has([role='dialog']) .talkhugam-feedback-launcher {
   position: absolute;
   width: 0;
   z-index: 1;
+}
+
+.talkhugam-safe-bottom {
+  padding-bottom: calc(var(--spacing-6) + var(--app-safe-area-bottom));
 }
 
 .talkhugam-chat-composer-row {

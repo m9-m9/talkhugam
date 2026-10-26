@@ -32,7 +32,7 @@ export function ConsentRequiredRoute() {
 
   if (hasRequiredConsent === undefined)
     return (
-      <main className="bg-surface flex min-h-screen items-center justify-center px-4">
+      <main className="bg-surface flex min-h-dvh items-center justify-center px-4">
         <h1 className="sr-only">서비스 이용 동의를 확인하고 있어요.</h1>
         <BookLoadingIndicator label="서비스 이용 동의를 확인하고 있어요." size="sm" />
       </main>

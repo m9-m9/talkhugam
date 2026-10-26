@@ -105,7 +105,7 @@ export function RoomSettingsPage() {
 /** 방 설정 정보를 불러오는 동안 책 로더를 렌더링한다. */
 function RoomSettingsLoadingPage() {
   return (
-    <main className="app-page bg-surface flex min-h-screen items-center justify-center">
+    <main className="app-page bg-surface flex min-h-dvh items-center justify-center">
       <BookLoadingIndicator label="방 설정을 불러오고 있어요." />
     </main>
   )
@@ -114,7 +114,7 @@ function RoomSettingsLoadingPage() {
 /** 방 설정 권한이 없을 때 이전 화면으로 복귀할 선택지를 제공한다. */
 function RoomSettingsUnavailablePage({ onBack }: { onBack: () => void }) {
   return (
-    <main className="app-page bg-surface flex min-h-screen flex-col items-center justify-center px-4 text-center">
+    <main className="app-page bg-surface flex min-h-dvh flex-col items-center justify-center px-4 text-center">
       <p className="text-ink text-lg font-bold">방 설정 권한이 없어요</p>
       <ActionButton
         className="talkhugam-primary-action mt-6"

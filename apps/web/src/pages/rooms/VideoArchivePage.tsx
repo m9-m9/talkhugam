@@ -72,7 +72,7 @@ export function VideoArchivePage() {
     fileInputRef.current?.click()
   }
 
-  if (!roomId || !bookChatId) return <main className="app-page bg-surface min-h-screen" />
+  if (!roomId || !bookChatId) return <main className="app-page bg-surface min-h-dvh" />
 
   const hasVideos = Boolean(videosQuery.data?.length)
   const currentMemberId = membersQuery.data?.find((member) => member.isCurrentUser)?.id ?? null
@@ -396,6 +396,8 @@ function VideoGalleryItem({
           <img
             alt=""
             className="absolute inset-0 size-full object-cover"
+            decoding="async"
+            loading="lazy"
             src={createMuxThumbnailUrl(thumbnailAuthorization)}
           />
         ) : (
@@ -466,7 +468,7 @@ function VideoPlaceholder({ isLoading, message }: { isLoading: boolean; message:
 function PlusIcon({ className }: { className: string }) {
   return (
     <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 24 24">
-      <path d="M12 5v14M5 12h14" stroke="currentColor" strokeLinecap="round" strokeWidth="2.8" />
+      <path d="M12 5v14M5 12h14" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
     </svg>
   )
 }
