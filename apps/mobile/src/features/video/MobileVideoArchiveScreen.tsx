@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { getMobileVideoFilterMembers, getMobileVideoPosts } from '../../entities/video'
 import { createMobileSupabaseClient } from '../../shared/api/mobileSupabaseClient'
 import { MobileVideoUploadSheet } from './MobileVideoUploadSheet'
-import { mobileColors } from '../../shared/ui/theme'
+import { mobileColors } from '../../shared/ui/mobileTheme'
 
 type MobileVideoArchiveScreenProps = {
   bookChatId: string
@@ -196,11 +196,11 @@ const styles = StyleSheet.create({
   emptyTitle: { color: mobileColors.ink, fontSize: 17, fontWeight: '700', lineHeight: 24 },
   errorText: { color: mobileColors.danger, fontSize: 14, lineHeight: 20, textAlign: 'center' },
   filterBar: { flexDirection: 'row', gap: 8, marginTop: 24 },
-  filterButton: { alignItems: 'center', borderColor: '#4A4A4A', borderRadius: 22, borderWidth: 1, justifyContent: 'center', minHeight: 44, paddingHorizontal: 16 },
-  filterButtonActive: { backgroundColor: mobileColors.primaryAction, borderColor: mobileColors.ink },
+  filterButton: { alignItems: 'center', borderColor: mobileColors.borderStrong, borderRadius: 22, borderWidth: 1, justifyContent: 'center', minHeight: 44, paddingHorizontal: 16 },
+  filterButtonActive: { backgroundColor: mobileColors.accentSoft, borderColor: mobileColors.accent },
   filterButtonDisabled: { opacity: 0.5 },
   filterButtonText: { color: mobileColors.ink, fontSize: 14, fontWeight: '700' },
-  filterButtonTextActive: { color: mobileColors.primaryActionText },
+  filterButtonTextActive: { color: mobileColors.accentText },
   header: { alignItems: 'center', flexDirection: 'row', minHeight: 56 },
   headerSpacer: { minWidth: 88 },
   heading: { color: mobileColors.ink, flex: 1, fontSize: 18, fontWeight: '700', textAlign: 'center' },
@@ -211,8 +211,8 @@ const styles = StyleSheet.create({
   stateText: { color: mobileColors.inkSubtle, fontSize: 15, lineHeight: 22, textAlign: 'center' },
   title: { color: mobileColors.ink, fontSize: 24, fontWeight: '700', lineHeight: 32, marginTop: 24 },
   videoAuthor: { color: mobileColors.ink, fontSize: 16, fontWeight: '700', lineHeight: 22 },
-  videoCard: { alignItems: 'center', backgroundColor: '#171717', borderColor: '#313131', borderRadius: 12, borderWidth: 1, flexDirection: 'row', minHeight: 88, padding: 12 },
-  videoCardPressed: { backgroundColor: '#29201D' },
+  videoCard: { alignItems: 'center', backgroundColor: mobileColors.surfaceRaised, borderColor: mobileColors.border, borderRadius: 12, borderWidth: 1, flexDirection: 'row', minHeight: 88, padding: 12 },
+  videoCardPressed: { backgroundColor: mobileColors.surfacePressed },
   videoCopy: { flex: 1, marginLeft: 12 },
   videoList: { gap: 12, marginTop: 20 },
   videoPlaceholder: { alignItems: 'center', backgroundColor: mobileColors.surfaceRaised, borderRadius: 8, height: 56, justifyContent: 'center', width: 80 },

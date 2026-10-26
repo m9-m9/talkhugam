@@ -17,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { joinMobileRoomByCode } from '../../entities/reading-room'
 import { createMobileSupabaseClient } from '../../shared/api/mobileSupabaseClient'
 import { MobileBackButton } from '../../shared/ui/MobileBackButton'
-import { mobileColors } from '../../shared/ui/theme'
+import { mobileColors } from '../../shared/ui/mobileTheme'
 
 type JoinRoomScreenProps = {
   inviteToken: string | null
@@ -120,7 +120,7 @@ export function JoinRoomScreen({ inviteToken, onBack, onJoined }: JoinRoomScreen
               pressed && !isSubmitting && styles.primaryActionPressed,
             ]}
           >
-            {isSubmitting ? <ActivityIndicator color="#000000" /> : null}
+            {isSubmitting ? <ActivityIndicator color={mobileColors.primaryActionText} /> : null}
             <Text style={styles.primaryActionText}>
               {isSubmitting ? '책방에 들어가고 있어요.' : actionLabel}
             </Text>

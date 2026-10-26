@@ -1,6 +1,6 @@
 # Talk후감 UI/UX 전체 점검 (2026-10-27)
 
-어제(2026-10-26) 점검 뒤 바뀐 외부 가이드를 다시 확인하고, 사용자가 지적한 "책 대화 라벨 시트의 코랄 `추가` 버튼"을 계기로 코랄 규칙을 하나로 정리한 뒤 웹·모바일 전체 흐름을 다시 본 결과다.
+어제(2026-10-26) 점검 뒤 바뀐 외부 가이드를 다시 확인하고, 사용자가 지적한 "책 대화 라벨 시트의 코랄 `추가` 버튼"을 계기로 코랄 규칙을 하나로 정리한 뒤 웹·모바일 전체 흐름을 다시 본 결과다. 작업 중 사용자 의견("전체가 너무 블랙, 조도를 올리거나 색을 더 써도 된다")을 받아 바탕 팔레트를 웜 그레이로 올리고 코랄 규칙을 "의미 있는 곳에 적당히"로 다시 정했다. 이 보고서는 그 최종안을 기준으로 쓴다.
 
 ## 점검 방법
 
@@ -25,29 +25,64 @@
 
 `design.md`는 "화면의 주요 행동 하나"에 코랄을 허용했지만, 시트·다이얼로그·폼마다 "주요 행동 하나"가 생겨 흐름 전체로는 코랄이 계속 늘었다. 책 대화 화면에서는 라벨 시트의 `추가`와 입력창의 `전송`이 동시에 코랄로 보였다.
 
-### 정한 규칙
+### 정한 규칙 (최종)
 
-코랄은 세 자리에만 쓴다(`design.md`「코랄 규칙」, `AGENTS.md` UI 절).
+코랄은 "의미 있는 곳에 적당히" 쓴다(`design.md`「코랄 규칙」, `AGENTS.md` UI 절).
 
-1. 책 대화 **보내기 버튼의 활성 상태** — 새 variant `talkhugam-send-action`.
-2. **브랜드 표시** — 로고·워드마크, 브랜드 로더, 로그인·약관 동의·온보딩·오류 화면의 `Talk후감` 라벨.
-3. **작은 신호** — 읽지 않음 점, 알림 개수 배지, 멘션 이름, 고른 이모지 반응.
+1. **화면의 주요 행동 하나** — 페이지 CTA와 책 대화 `전송`은 코랄 면(`talkhugam-primary-action`·`talkhugam-send-action`, 토큰 `--color-primary-action` = `#AD3D22`).
+2. **선택 상태** — 고른 칩·탭·필터·토글은 약한 코랄 면(새 토큰 `--color-accent-soft` `#3A231C`) + 코랄 경계·글자. 스위치·체크박스 켜짐도 코랄.
+3. **브랜드 포인트** — 로고·워드마크, 브랜드 로더, 로그인·약관 동의·온보딩·오류 화면의 `Talk후감` 라벨.
+4. **핵심 콘텐츠 강조** — 채운 별점(새 클래스 `talkhugam-star--filled`), 인용 표시, 멘션, 읽지 않음 점·알림 배지.
 
-나머지 주요 행동(페이지 CTA, 시트·다이얼로그·폼의 확인·저장·추가, 하단 `+`)은 **흰 면 + 검정 글자**(`talkhugam-primary-action`, 새 토큰 `--color-primary-action`), 링크는 흰 글자 + 밑줄, 상태 안내는 회색 글자다.
+쓰지 않는 자리: **시트·대화상자 안의 확인·추가·저장**(흰 면 + 어두운 글자, `talkhugam-neutral-action` — 웹은 `talkhugam-primary-action`이 시트·대화상자 안에 있으면 CSS가 자동으로 흰 면으로 바꾼다), 하단 `+`(흰 면), 보조 버튼·다시 시도, 반복 목록 면, 안내 문구·카테고리 라벨·eyebrow, 링크(흰 글자 + 밑줄).
+
+그래서 사용자가 지적한 라벨 시트 `추가`는 흰 면이 되고, 같은 화면의 `전송`만 코랄 면으로 남는다. 두 버튼 모두 이번 PR에서 손대지 않은 `BookDiscussionPage.tsx`에 있지만 공용 CSS만으로 그렇게 바뀐다.
 
 ### 근거
 
-- Taste Skill `app-screens.md`: 실제 제품 화면 23개 중 12개는 채운 주요 버튼이 없고, 있는 경우도 거의 검정 또는 다크 화면의 흰 면 반전이다. 색은 데이터와 상태에 둔다.
-- UI UX Pro Max `primary-action`: 화면당 주요 행동 하나, 나머지는 시각적으로 낮춘다. 흰 면은 다크 화면에서 가장 큰 대비라 주요 행동이 색 없이도 드러난다.
-- 보내기는 Talk후감의 핵심 행동(대화)이고 하루에 가장 많이 누르는 버튼이라 코랄 신호를 남길 가치가 있다.
-- 색을 화면마다 고치지 않고 토큰·공용 variant 한 곳에서 바꿨기 때문에, 이번 PR에서 손대지 않은 책 대화 화면의 라벨 `추가` 버튼도 자동으로 흰 면이 됐다.
+- 처음 안(코랄을 보내기·브랜드·작은 신호로만)은 사용자 지적을 막았지만, 화면 전체가 흑백만 남아 "너무 블랙"이라는 의견을 받았다.
+- UI UX Pro Max `primary-action`: 화면당 주요 행동 하나, 나머지는 시각적으로 낮춘다. 화면 단위로 하나만 코랄이면 이 기준을 지키면서 브랜드 색이 보인다. 시트·대화상자 안 동작을 흰 면으로 두는 이유는 같은 화면에 코랄 면이 둘 생기지 않게 하려는 것이다.
+- Taste Skill `app-screens.md`: 색은 데이터·상태·주요 행동 하나에 두고 크롬(내비게이션·틀)에는 쓰지 않는다. 그래서 하단 `+`는 흰 면, 선택 상태와 별점에는 약한 코랄을 쓴다.
+- 색을 화면마다 고치지 않고 토큰·공용 variant·문맥 CSS 한 곳에서 바꿔 웹·모바일 전체가 같이 움직인다.
+
+## 팔레트 변경 (변경 전 → 후)
+
+| 역할                                                   | 변경 전             | 변경 후   | 비고                                                      |
+| ------------------------------------------------------ | ------------------- | --------- | --------------------------------------------------------- |
+| Surface(바탕)                                          | `#000000`           | `#141312` | 웜 그레이 다크                                            |
+| Surface Raised(표면·입력창·대화상자)                   | `#101010`           | `#1F1D1C` |                                                           |
+| Surface Muted(눌림·hover)                              | `#101010`           | `#292624` | 표면과 구분되는 단계로 분리                               |
+| Border                                                 | `#2A2A2A`           | `#3A3633` |                                                           |
+| Ink Subtle                                             | `#C7C7C7`           | `#C9C5C2` |                                                           |
+| Primary Action                                         | (처음 안) `#FFFFFF` | `#AD3D22` | 페이지 주요 행동 하나                                     |
+| Neutral Action(새)                                     | —                   | `#FFFFFF` | 시트·대화상자 확인, 하단 `+`                              |
+| Accent Soft(새)                                        | —                   | `#3A231C` | 선택된 칩·탭·필터                                         |
+| Accent · Accent Text · Action · Danger · Danger Action | 같음                | 같음      | `#FF835F` · `#FFB59C` · `#AD3D22` · `#FF6B6B` · `#C4302B` |
+
+웹 `globals.css`의 `@theme`, 주소창 색(`index.html`·`site.webmanifest`), 모바일 `apps/mobile/src/shared/ui/mobileTheme.ts`의 `mobileColors`를 같은 값으로 맞췄다. 대비는 모두 계산했다(`design.md` 대비 표): 본문·보조·자리표시 글자 4.5:1 이상(최저 자리표시 5.7), 코랄 면 위 흰 글자 6.1, 약한 코랄 면 위 코랄 글자 8.6, 코랄 별·점 그래픽 6.9 이상. 구획선(`Border`)은 바탕 대비 1.6이라 입력창 경계는 표면색 차이와 라벨로 함께 구분한다.
+
+### 320px 스크린샷 비교
+
+변경 전은 `main` 기준, 변경 후는 이 브랜치 최종본이다. `docs/ui-audit/screenshots/2026-10-27/`에 있다.
+
+| 화면                  | 변경 전                                               | 변경 후                                              |
+| --------------------- | ----------------------------------------------------- | ---------------------------------------------------- |
+| 책방 목록·추천        | `main-bestseller-320-before.png`                      | `main-bestseller-320-after.png`                      |
+| 책방 만들기           | `19-create-room-320-before.png`                       | `19-create-room-320-after.png`                       |
+| 책방 상세             | `14-room-detail-320-before.png`                       | `14-room-detail-320-after.png`                       |
+| 책 대화               | `6-book-discussion-chat-320-before.png`               | `6-book-discussion-chat-320-after.png`               |
+| 메시지 추가 시트      | `8-book-discussion-action-menu-320-before.png`        | `8-book-discussion-action-menu-320-after.png`        |
+| 별점 시트             | `15-book-chat-management-rating-sheet-320-before.png` | `15-book-chat-management-rating-sheet-320-after.png` |
+| 영상 기록 필터        | `5-video-archive-320-before.png`                      | `5-video-archive-320-after.png`                      |
+| 계정 설정             | `10-account-settings-320-before.png`                  | `10-account-settings-320-after.png`                  |
+| 방 관리 확인 대화상자 | `13-room-management-320-before.png`                   | `13-room-management-320-after.png`                   |
 
 ## 요약
 
 | 우선순위 | 웹  | 모바일 | 합계 | 이번 PR에서 수정                  |
 | -------- | --- | ------ | ---- | --------------------------------- |
 | P0       | 0   | 3      | 3    | 3                                 |
-| P1       | 2   | 15     | 17   | 15 (나머지 2건은 OCR 브랜치·후속) |
+| P1       | 3   | 15     | 18   | 16 (나머지 2건은 OCR 브랜치·후속) |
 | P2       | 9   | 15     | 24   | 11                                |
 | P3       | 5   | 23     | 28   | 1                                 |
 
@@ -57,8 +92,9 @@ OCR 브랜치에 넘길 항목(웹 3, 모바일 9)은 위 건수에 들어 있�
 
 ### P1
 
-1. **코랄 규칙 충돌, 주요 버튼 전체 코랄** — 해결. `talkhugam-primary-action`을 흰 면 + 검정 글자로, 비활성은 표면색 + 경계로 바꿨다. 하단 `+`도 같은 색. 코랄 면은 `talkhugam-send-action`에만 남겼다(`globals.css`). e2e 색 검사도 새 규칙으로 바꿨다.
-2. **시트와 대화상자가 하단 내비게이션 아래에 깔림** — 해결. SEED 시트·대화상자의 z-index가 2, 하단 내비게이션이 20이라 320px 책 대화 관리의 별점 시트에서 `취소`·`별점 저장` 버튼이 하단 막대에 가려졌다(수정 전 스크린샷 `15-book-chat-management-rating-sheet`). 방 관리 확인 대화상자도 하단 막대가 배경막 위에 밝게 남았다. `--sheet-z-index`·`--dialog-z-index`를 30으로 올렸다.
+1. **코랄 규칙 충돌, 시트 안 버튼까지 코랄** — 해결. 페이지의 `talkhugam-primary-action`·`talkhugam-send-action`은 코랄 면, 시트·대화상자 안의 같은 클래스와 새 `talkhugam-neutral-action`은 흰 면, 하단 `+`도 흰 면. 비활성은 표면색 + 경계. 선택 상태는 약한 코랄 면, 채운 별은 코랄(`globals.css`, `StarIcon.tsx`). e2e 색 검사에 페이지·시트 두 문맥을 모두 넣었다.
+2. **SEED ghost 버튼 아이콘이 다크 바탕에서 안 보임** — 해결. 책방 목록 머리의 알림 종 아이콘이 SEED 밝은 테마 아이콘색을 써서 바탕을 밝히자 거의 사라졌다. ghost 버튼 아이콘이 글자색을 따르게 했다.
+3. **시트와 대화상자가 하단 내비게이션 아래에 깔림** — 해결. SEED 시트·대화상자의 z-index가 2, 하단 내비게이션이 20이라 320px 책 대화 관리의 별점 시트에서 `취소`·`별점 저장` 버튼이 하단 막대에 가려졌다(수정 전 스크린샷 `15-book-chat-management-rating-sheet`). 방 관리 확인 대화상자도 하단 막대가 배경막 위에 밝게 남았다. `--sheet-z-index`·`--dialog-z-index`를 30으로 올렸다.
 
 ### P2
 
@@ -75,7 +111,7 @@ OCR 브랜치에 넘길 항목(웹 3, 모바일 9)은 위 건수에 들어 있�
 ### P3
 
 1. **캐러셀 이전/다음이 글자 기호 `‹` `›`** — 해결. 선형 chevron SVG(1.8).
-2. **책방 목록 빈 상태에 행동 버튼이 없음** — 유지. "하단 + 버튼에서 만들 수 있어요" 안내로 하단 `+`에 기대고 있다. 하단 `+`가 흰 면이 되면서 더 잘 보이게 됐다.
+2. **책방 목록 빈 상태에 행동 버튼이 없음** — 유지. "하단 + 버튼에서 만들 수 있어요" 안내로 하단 `+`(흰 면)에 기대고 있다.
 3. **`ProfileAvatar` 글자 아바타가 `.app-page .bg-ink` 덮어쓰기 때문에 검정 원 + 경계 없음** — 후속. 공용 아바타 디자인을 정할 때 같이 본다.
 4. **입력 제한 안내가 남은 필드** — 후속. 공개 프로필 신고 사유(500자), 오픈 책방 메시지(2,000자), 운영자 신고 처리 메모(500자), 초대 코드(6자리).
 5. **`font-bold` 52회** — 후속. 어제 64 → 42 이후 오픈 책방·별점 화면이 늘며 다시 늘었다.
@@ -90,7 +126,7 @@ OCR 브랜치에 넘길 항목(웹 3, 모바일 9)은 위 건수에 들어 있�
 
 ### P1
 
-1. **코랄 하드코딩 전면 사용, 공용 토큰 없음** — 해결. `src/shared/ui/theme.ts`(`mobileColors`, `mobileButtonStyles`)를 만들고 수정 가능한 18개 파일의 hex를 역할에 맞는 토큰으로 바꿨다. 주요 버튼 흰 면, 보조 버튼 회색 경계 + 흰 글자, 메타 글자 회색, 아바타·표지 자리 표면색, 스위치 흰 트랙. 오픈 책방 `보내기`만 코랄 면.
+1. **코랄 하드코딩 전면 사용, 공용 토큰 없음** — 해결. `src/shared/ui/mobileTheme.ts`(`mobileColors`, `mobileButtonStyles`)를 만들고 수정 가능한 18개 파일의 hex를 역할에 맞는 토큰으로 바꿨다. 화면 주요 버튼은 코랄 면 + 흰 글자, 영상 업로드 시트 안 버튼은 흰 면, 보조 버튼은 회색 경계 + 흰 글자, 선택된 필터·입장 방식은 약한 코랄 면, 메타 글자 회색, 아바타·표지 자리 표면색, 스위치 켜짐 코랄. 남은 하드코딩 회색도 토큰으로 바꿨다(`#BDEACB` 성공 글자 1곳만 남음).
 2. **계정 삭제 최종 확인이 코랄, 삭제 버튼이 일반 버튼과 같은 모양, 확인 패널이 화면 맨 아래에 생김** — 해결. 최종 확인은 `dangerAction`, 두 삭제 방식은 위험 색 글자, 확인 패널은 누른 버튼 바로 아래에 연다.
 3. **약관 동의·라우트 로딩 화면만 밝은 크림 배경** — 해결. 다크 토큰으로.
 4. **로그인 화면 상태바 아이콘이 검정 위 검정**(`StatusBar style="dark"`) — 해결. `light`.
@@ -129,14 +165,14 @@ OCR 브랜치에 넘길 항목(웹 3, 모바일 9)은 위 건수에 들어 있�
 
 ### 웹 `apps/web/src/pages/rooms/BookDiscussionPage.tsx`
 
-1. `전송` 버튼(약 1176행)의 `className="talkhugam-primary-action …"`을 `talkhugam-send-action`으로 바꾼다. 지금은 공용 variant를 따라 흰 면이 되었고, 바꾸면 규칙대로 활성일 때만 코랄이 된다. 라벨 시트 `추가`(약 989행)는 `talkhugam-primary-action` 그대로 두면 흰 면이다.
+1. 색 때문에 바꿀 것은 없다. `전송`(약 1176행)은 페이지에 있어 코랄 면, 라벨 시트 `추가`(약 989행)는 시트 안이라 자동으로 흰 면이다. 의도를 드러내려면 `전송`을 `talkhugam-send-action`으로 바꿔도 된다(모양 같음). 시트 밖으로 꺼내는 버튼이 생기면 `talkhugam-neutral-action`을 쓴다.
 2. 409행 상태 안내 `text-primary` → `text-ink-subtle`.
 3. 책 대화 H1이 영상 탭 오류와 함께 "책을 불러오고 있어요."로 남는지 확인(테스트 가짜 데이터 문제일 수 있음).
 4. 멘션 `text-primary`(1556행)는 규칙상 허용(작은 신호)이므로 그대로 둔다.
 
 ### 모바일 `apps/mobile/src/features/reading-room/MobileBookDiscussionScreen.tsx`, `app/rooms/[roomId]/books/[bookChatId].tsx`
 
-1. 하드코딩 코랄 27곳을 `src/shared/ui/theme.ts`의 `mobileColors`·`mobileButtonStyles`로 바꾼다. 역할 기준: 보내기(`submitAction`)만 `mobileColors.action` 면 + 흰 글자, `primaryAction`·`ratingPrimaryAction`은 `primary`(흰 면 + 검정 글자), `secondaryAction`·`ratingSecondaryAction`은 `secondary`, 작성자·라벨·답글·부제목 같은 글자(`postAuthor`, `label`, `subtitle`, `replyBannerText`, `mentionCandidateText`, `archivedNoticeText` 등)는 `ink`/`inkSubtle`, `replyCard` 코랄 경계는 `border`, `#2D1712` 면은 `surfaceRaised`/`surfacePressed`. 라우트 파일 `buttonText`도 같다.
+1. 하드코딩 코랄 27곳을 `src/shared/ui/mobileTheme.ts`의 `mobileColors`·`mobileButtonStyles`로 바꾼다. 역할 기준: 보내기(`submitAction`)는 `mobileButtonStyles.primary`(코랄 면 + 흰 글자), 별점 시트 안 `ratingPrimaryAction`과 시트 안 확인은 `neutral`(흰 면 + 어두운 글자), 화면의 다른 `primaryAction`은 그 화면에 보내기가 같이 보이면 `neutral`, `secondaryAction`·`ratingSecondaryAction`은 `secondary`, 고른 별점 행(`ratingActionSelected`)은 `accentSoft` + `accent` 경계 + `accentText`, 채운 별은 `accent`, 작성자·라벨·답글·부제목 같은 글자(`postAuthor`, `label`, `subtitle`, `replyBannerText`, `mentionCandidateText`, `archivedNoticeText` 등)는 `ink`/`inkSubtle`, `replyCard` 코랄 경계는 `border`, `#2D1712` 면은 `surfaceRaised`/`surfacePressed`. 라우트 파일 `buttonText`도 같다.
 2. 별점 삭제에 확인 대화상자와 처리 중 표시(743-747행).
 3. 별점 `★` 글자 기호를 아이콘으로(807·850행), 별점 선택을 `radiogroup` 또는 `adjustable` + `accessibilityValue`로(842-848행).
 4. 별 버튼 간격 4 → 8(964행), 헤더 `영상`·`별점` 버튼 간격 0 → 8(937행), 나란한 두 버튼 간격 8 → 12(905·906행), 멘션 후보 간격 4 → 8(946행).
@@ -153,7 +189,7 @@ OCR 브랜치에 넘길 항목(웹 3, 모바일 9)은 위 건수에 들어 있�
 | P1-4 시트 격자        | 해결 유지                         | 메시지 추가 시트 목록형 확인. 재구성은 OCR 브랜치 진행 중                              |
 | P1-5 재시도 없음      | 해결 유지                         | 영상 처리 실패 안내 확인. 제목 로딩 문구는 OCR 브랜치 확인 항목                        |
 | P2-1 내비 아이콘      | 해결 유지                         |                                                                                        |
-| P2-2 스위치 정렬      | 해결 유지                         | 모바일 스위치도 오늘 흰 트랙으로 맞춤                                                  |
+| P2-2 스위치 정렬      | 해결 유지                         | 모바일 스위치 켜짐은 코랄 트랙                                                         |
 | P2-3 위험 행동 색     | 웹 해결 유지, 모바일 미반영이었음 | 오늘 모바일 계정 삭제 확인을 위험 색으로                                               |
 | P2-4 특수 기호        | 웹 일부 남음                      | 오늘 캐러셀 `‹` `›` 교체. 모바일 `✓` `‹` `▶` `★`는 후속·OCR                            |
 | P2-5 뷰포트 단위      | 일부 남아 있었음                  | 오늘 `min-h-screen` 4곳 정리                                                           |
@@ -179,3 +215,5 @@ OCR 브랜치에 넘길 항목(웹 3, 모바일 9)은 위 건수에 들어 있�
 | `pnpm test:mobile`                                           | vitest 단위 + jest 25개 묶음 95개 테스트 통과 |
 | `pnpm --filter @talkhugam/domain test`                       | 통과                                          |
 | `playwright test e2e/ui-health.spec.ts`(4391 포트 임시 설정) | 102개 통과, 320·640px 스크린샷 44장 확인      |
+
+다른 작업이 같은 기기에서 동시에 돌아 부하가 높았을 때(load average 130 이상) `pnpm test:web`에서 시간 초과 2건(`AdminPage`, `NotificationsPage`)이 한 번 났고, 단독 실행과 전체 재실행 모두 통과했다. 코드 변경과 관계없는 부하 문제로 본다.

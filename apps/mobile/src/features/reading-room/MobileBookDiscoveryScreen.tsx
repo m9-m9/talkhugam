@@ -19,7 +19,7 @@ import {
   searchMobileBooks,
 } from '../../entities/reading-room'
 import { createMobileSupabaseClient } from '../../shared/api/mobileSupabaseClient'
-import { mobileColors } from '../../shared/ui/theme'
+import { mobileColors } from '../../shared/ui/mobileTheme'
 
 type MobileBookDiscoveryScreenProps = {
   onBack(): void
@@ -143,7 +143,7 @@ export function MobileBookDiscoveryScreen({
             autoCapitalize="none"
             onChangeText={handleQueryChange}
             placeholder="책 제목이나 저자"
-            placeholderTextColor="#8C8C8C"
+            placeholderTextColor={mobileColors.placeholder}
             returnKeyType="search"
             style={styles.searchInput}
             value={query}

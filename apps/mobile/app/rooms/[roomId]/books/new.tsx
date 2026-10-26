@@ -6,7 +6,7 @@ import { z } from 'zod'
 import { useMobileProtectedRoute } from '../../../../src/features/auth/useMobileProtectedRoute'
 import { MobileBookDiscoveryScreen } from '../../../../src/features/reading-room/MobileBookDiscoveryScreen'
 import { MobileRouteLoadingScreen } from '../../../../src/shared/ui/MobileRouteLoadingScreen'
-import { mobileColors } from '../../../../src/shared/ui/theme'
+import { mobileColors } from '../../../../src/shared/ui/mobileTheme'
 
 /** 동적 경로 값을 UUID로 검증해 잘못된 책방에는 검색·생성 요청을 보내지 않는다. */
 function parseRoomId(value: string | string[] | undefined): string | null {

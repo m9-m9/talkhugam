@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text } from 'react-native'
 
-import { mobileColors } from './theme'
+import { mobileColors } from './mobileTheme'
 
 type MobileBackButtonProps = {
   accessibilityLabel?: string

@@ -18,7 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { createMobileRoomWithInvite } from '../../entities/reading-room'
 import { createMobileSupabaseClient } from '../../shared/api/mobileSupabaseClient'
 import { MobileBackButton } from '../../shared/ui/MobileBackButton'
-import { mobileButtonStyles, mobileColors } from '../../shared/ui/theme'
+import { mobileButtonStyles, mobileColors } from '../../shared/ui/mobileTheme'
 
 type CreateRoomScreenProps = {
   onBack?: () => void
@@ -140,7 +140,7 @@ export function CreateRoomScreen({ onBack, onFinished }: CreateRoomScreenProps):
               pressed && !isSubmitting && styles.primaryActionPressed,
             ]}
           >
-            {isSubmitting ? <ActivityIndicator color="#000000" /> : null}
+            {isSubmitting ? <ActivityIndicator color={mobileColors.primaryActionText} /> : null}
             <Text style={styles.primaryActionText}>
               {isSubmitting ? '책방을 만들고 있어요.' : '책방 만들기'}
             </Text>

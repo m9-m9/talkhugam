@@ -15,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { completeMobileOnboarding, getMobileProfile } from '../../entities/profile'
 import { createMobileSupabaseClient } from '../../shared/api/mobileSupabaseClient'
-import { mobileColors } from '../../shared/ui/theme'
+import { mobileColors } from '../../shared/ui/mobileTheme'
 
 type OnboardingScreenProps = {
   onCompleted(): void

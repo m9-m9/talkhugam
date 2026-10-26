@@ -1,6 +1,6 @@
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { mobileColors } from './theme'
+import { mobileColors } from './mobileTheme'
 
 type MobileRouteLoadingScreenProps = {
   label: string

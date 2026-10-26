@@ -22,7 +22,7 @@ import {
 } from '../../entities/profile'
 import { useMobileSessionProfileId } from '../../shared/api/MobileAppProviders'
 import { createMobileSupabaseClient } from '../../shared/api/mobileSupabaseClient'
-import { mobileColors } from '../../shared/ui/theme'
+import { mobileColors } from '../../shared/ui/mobileTheme'
 
 type MobileProfileScreenProps = {
   onBack(): void
@@ -223,7 +223,7 @@ function NotificationPreferencesContent({ error, isLoading, isSaving, onChange, 
 
 /** 한 종류의 알림 수신 여부를 44px 행과 네이티브 switch로 제어한다. */
 function NotificationPreferenceRow({ isDisabled, label, onChange, value }: { isDisabled: boolean; label: string; onChange(): void; value: boolean }): React.JSX.Element {
-  return <View style={styles.preferenceRow}><Text style={styles.preferenceLabel}>{label}</Text><Switch accessibilityLabel={label} accessibilityRole="switch" accessibilityState={{ busy: isDisabled, disabled: isDisabled }} disabled={isDisabled} onValueChange={onChange} thumbColor={value ? mobileColors.surface : mobileColors.ink} trackColor={{ false: mobileColors.switchTrackOff, true: mobileColors.ink }} value={value} /></View>
+  return <View style={styles.preferenceRow}><Text style={styles.preferenceLabel}>{label}</Text><Switch accessibilityLabel={label} accessibilityRole="switch" accessibilityState={{ busy: isDisabled, disabled: isDisabled }} disabled={isDisabled} onValueChange={onChange} thumbColor={mobileColors.ink} trackColor={{ false: mobileColors.switchTrackOff, true: mobileColors.action }} value={value} /></View>
 }
 
 /** 프로필 정보를 준비하는 동안 전체 화면 진행 상태를 표시한다. */

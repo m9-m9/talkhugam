@@ -10,7 +10,7 @@ import {
   type MobileNotification,
 } from '../../entities/notification/mobileNotification'
 import { createMobileSupabaseClient } from '../../shared/api/mobileSupabaseClient'
-import { mobileButtonStyles, mobileColors } from '../../shared/ui/theme'
+import { mobileButtonStyles, mobileColors } from '../../shared/ui/mobileTheme'
 import { parseMobileNotificationTargetPath } from './mobileNotificationTarget'
 
 type MobileNotificationsScreenProps = {

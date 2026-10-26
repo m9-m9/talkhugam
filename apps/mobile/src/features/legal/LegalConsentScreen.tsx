@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { legalDocumentVersion } from '@talkhugam/domain'
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { mobileColors } from '../../shared/ui/theme'
+import { mobileColors } from '../../shared/ui/mobileTheme'
 
 type LegalDocument = {
   id: 'terms' | 'privacy'
@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 24,
   },
-  checkboxChecked: { backgroundColor: mobileColors.primaryAction, borderColor: mobileColors.ink },
+  checkboxChecked: { backgroundColor: mobileColors.primaryAction, borderColor: mobileColors.accent },
   checkmark: { color: mobileColors.primaryActionText, fontSize: 16, fontWeight: '700', lineHeight: 20 },
   container: { backgroundColor: mobileColors.surface, flex: 1, padding: 16 },
   content: { flex: 1, paddingTop: 32 },

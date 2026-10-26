@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { getMobileCommunityRooms } from '../../entities/community/mobileCommunity'
 import { createMobileSupabaseClient } from '../../shared/api/mobileSupabaseClient'
 import { MobileBackButton } from '../../shared/ui/MobileBackButton'
-import { mobileColors } from '../../shared/ui/theme'
+import { mobileColors } from '../../shared/ui/mobileTheme'
 
 type Props = { loadRooms?(): ReturnType<typeof getMobileCommunityRooms>; onBack?: () => void; onCreateRoom(): void; onJoinRoom(roomId: string, requiresPassword: boolean): void }
 

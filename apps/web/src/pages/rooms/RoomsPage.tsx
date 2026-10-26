@@ -145,7 +145,7 @@ function BestsellerCarousel({ books }: { books: BookBestseller[] }) {
             <li className="min-w-0" key={book.id}>
               <ActionButton
                 aria-label={`${book.title} 추천 보기`}
-                className="border-border hover:!border-ink !bg-surface-muted !flex !h-auto min-h-32 w-full !flex-col !items-start !justify-start gap-2 overflow-hidden rounded-md border p-2 text-left"
+                className="border-border hover:!border-ink !bg-surface-raised !flex !h-auto min-h-32 w-full !flex-col !items-start !justify-start gap-2 overflow-hidden rounded-md border p-2 text-left"
                 onClick={() => handleSelectPreviewBook(index)}
                 size="large"
                 type="button"

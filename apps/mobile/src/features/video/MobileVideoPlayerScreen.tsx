@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { getMobileVideoAsset, getMobileVideoPlaybackAuthorization } from '../../entities/video'
 import { createMobileSupabaseClient } from '../../shared/api/mobileSupabaseClient'
-import { mobileColors } from '../../shared/ui/theme'
+import { mobileColors } from '../../shared/ui/mobileTheme'
 
 type MobileVideoPlayerScreenProps = { onBack(): void; postId: string }
 

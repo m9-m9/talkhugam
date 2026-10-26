@@ -14,7 +14,7 @@ import { resolveMobileAuthDestination } from '../src/features/auth/resolveMobile
 import { type MobileOAuthProvider } from '../src/features/auth/startMobileOAuth'
 import { createMobileSupabaseClient } from '../src/shared/api/mobileSupabaseClient'
 import { MobileRouteLoadingScreen } from '../src/shared/ui/MobileRouteLoadingScreen'
-import { mobileColors } from '../src/shared/ui/theme'
+import { mobileColors } from '../src/shared/ui/mobileTheme'
 
 type SocialLoginButtonProps = {
   accessibilityLabel: string
@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   errorMessage: {
-    color: '#FF6B6B',
+    color: mobileColors.danger,
     fontSize: 14,
     lineHeight: 20,
     marginBottom: 12,
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   loginButtonPressed: {
-    backgroundColor: '#2A2A2A',
+    backgroundColor: mobileColors.surfacePressed,
   },
   loginButtonText: {
     color: mobileColors.ink,
