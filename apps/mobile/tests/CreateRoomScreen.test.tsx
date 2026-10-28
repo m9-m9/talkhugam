@@ -60,7 +60,7 @@ describe('CreateRoomScreen', () => {
     expect(await screen.findByText('TALK87')).toBeVisible()
     expect(screen.getByText('지금 한 번만 확인할 수 있는 초대 코드예요.')).toBeVisible()
     expect(mockCreateMobileRoomWithInvite).toHaveBeenCalledWith(
-      {},
+      {} as never,
       {
         description: '이번 달 함께 읽는 책들',
         name: '금요일 아침 책방',

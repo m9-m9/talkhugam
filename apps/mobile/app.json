@@ -59,7 +59,9 @@
         }
       ],
       "expo-video",
-      "expo-notifications"
+      "expo-notifications",
+      "expo-status-bar",
+      "expo-web-browser"
     ],
     "extra": {
       "router": {},
