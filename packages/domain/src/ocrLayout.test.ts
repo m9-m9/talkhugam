@@ -118,6 +118,22 @@ describe('groupClovaFieldsIntoLines', () => {
     expect(lines[1]?.box).toEqual({ height: 0.015, width: 0.8, x: 0.1, y: 0.175 })
   })
 
+  it('본문과 줄 간격보다 크게 떨어진 위쪽 좁은 머리글·장 제목 줄을 지운다', () => {
+    const page = { height: 2000, width: 1000 }
+    const lines = groupClovaFieldsIntoLines(
+      [
+        createField('머리글', { height: 20, width: 200, x: 400, y: 100 }, true),
+        ...createBodyLine('첫', 300),
+        ...createBodyLine('둘', 350),
+        createField('짧은 끝줄', { height: 30, width: 200, x: 100, y: 400 }, true),
+        ...createBodyLine('넷', 450),
+      ],
+      page,
+    )
+
+    expect(lines.map((line) => line.text)).toEqual(['첫앞 첫뒤', '둘앞 둘뒤', '짧은 끝줄', '넷앞 넷뒤'])
+  })
+
   it('줄 첫 필드의 세로 중심으로 위→아래 정렬한다', () => {
     const page = { height: 2000, width: 1000 }
     const lines = groupClovaFieldsIntoLines(

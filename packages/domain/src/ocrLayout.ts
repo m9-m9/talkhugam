@@ -81,6 +81,9 @@ export const OCR_MARGIN_TOLERANCE_RATIO = 0.02
 /** 직선 적합 뒤 잔차 하위 이 비율까지만 남겨 한 번 다시 적합한다(들여쓰기·화자 표시 같은 이상치 제거). */
 export const OCR_MARGIN_FIT_KEEP_QUANTILE = 0.8
 
+/** 위·아래 끝 줄이 이웃 줄과 보통 줄 간격의 이 배수보다 멀리 떨어져 있으면 본문 밖(머리글·장 제목)으로 본다. */
+export const OCR_DETACHED_EDGE_GAP_RATIO = 1.5
+
 /** 숫자·점·가운뎃점·말줄임표만 남은 줄(쪽 번호 등)을 가려내는 패턴. */
 const pageNumberPattern = /^[\d.…·\s]+$/
 
@@ -182,24 +185,52 @@ function isPageNumberDraft(draft: LineDraft): boolean {
   return pageNumberPattern.test(draft.words.map((word) => word.text).join(' '))
 }
 
+/** 위→아래로 정렬한 줄들의 보통 줄 간격(이웃 줄 첫 단어 세로 중심 차의 중앙값)을 반환한다. */
+function getMedianLinePitch(drafts: LineDraft[]): number {
+  const gaps = drafts.slice(1).map((draft, index) => getDraftAnchorY(draft) - getDraftAnchorY(drafts[index] as LineDraft))
+  return [...gaps].sort((a, b) => a - b)[Math.floor(gaps.length / 2)] ?? 0
+}
+
+/** 끝 줄이 넓은 본문 줄이 아니고, 이웃 줄과 보통 줄 간격보다 크게 떨어져 있는지 판단한다. */
+function isDetachedEdgeLine(edge: LineDraft, neighbor: LineDraft | undefined, pitch: number, pageWidth: number): boolean {
+  if (!neighbor || pitch <= 0) return false
+  const bounds = getDraftBounds(edge)
+  const isWide = bounds.maxX - bounds.minX >= OCR_WIDE_LINE_MIN_WIDTH_RATIO * pageWidth
+  const gap = Math.abs(getDraftAnchorY(neighbor) - getDraftAnchorY(edge))
+  return !isWide && gap > OCR_DETACHED_EDGE_GAP_RATIO * pitch
+}
+
+/** 위·아래 끝에서 본문과 떨어진 좁은 줄(머리글·장 제목·꼬리글)을 차례로 지운다. 정렬된 줄을 받는다. */
+function trimDetachedEdgeLines(drafts: LineDraft[], pageWidth: number): LineDraft[] {
+  const pitch = getMedianLinePitch(drafts)
+  let start = 0
+  let end = drafts.length
+  while (end - start > 1 && isDetachedEdgeLine(drafts[start] as LineDraft, drafts[start + 1], pitch, pageWidth)) start += 1
+  while (end - start > 1 && isDetachedEdgeLine(drafts[end - 1] as LineDraft, drafts[end - 2], pitch, pageWidth)) end -= 1
+  return drafts.slice(start, end)
+}
+
 /**
  * 본문 선 바깥 단어(잘린 앞 페이지 조각·화자 표시)를 지우고, 비었거나 쪽 번호만 남은 줄을 빼서
- * 줄 첫 단어의 세로 중심 순으로 정렬한다. 본문 선을 추정할 수 없으면 줄 초안을 그대로 돌려준다.
+ * 줄 첫 단어의 세로 중심 순으로 정렬한 뒤, 위·아래에서 본문과 떨어진 머리글·장 제목 줄을 지운다.
+ * 본문 선을 추정할 수 없으면 줄 초안을 그대로 돌려준다.
  */
 function keepBodyLines(drafts: LineDraft[], pageWidth: number): LineDraft[] {
   const margins = estimateBodyMargins(drafts, pageWidth)
   if (!margins) return drafts
   const tolerance = OCR_MARGIN_TOLERANCE_RATIO * pageWidth
-  return drafts
+  const bodyDrafts = drafts
     .map((draft) => ({ words: draft.words.filter((word) => isInsideBody(word, margins, tolerance)) }))
     .filter((draft) => draft.words.length > 0 && !isPageNumberDraft(draft))
     .sort((first, second) => getDraftAnchorY(first) - getDraftAnchorY(second))
+  return trimDetachedEdgeLines(bodyDrafts, pageWidth)
 }
 
 /**
  * CLOVA OCR General V2의 `fields`와 인식한 이미지의 픽셀 크기를 받아 줄 목록을 반환한다.
  * 줄은 CLOVA 순서와 `lineBreak`(기운 줄에서도 정확)로 나누고, 넓은 줄로 기울기를 반영한 본문 선을
- * 추정해 선 바깥 조각·화자 표시와 쪽 번호를 지운 뒤 위→아래로 정렬한다. 박스는 남은 단어로만 계산한다.
+ * 추정해 선 바깥 조각·화자 표시와 쪽 번호를 지운 뒤 위→아래로 정렬하고, 본문과 떨어진 머리글·장 제목을 지운다.
+ * 박스는 남은 단어로만 계산한다.
  */
 export function groupClovaFieldsIntoLines(
   fields: ClovaField[] | undefined,
