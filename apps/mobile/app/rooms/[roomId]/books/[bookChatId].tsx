@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { useMobileProtectedRoute } from '../../../../src/features/auth/useMobileProtectedRoute'
 import { MobileBookDiscussionScreen } from '../../../../src/features/reading-room/MobileBookDiscussionScreen'
 import { MobileRouteLoadingScreen } from '../../../../src/shared/ui/MobileRouteLoadingScreen'
+import { mobileButtonStyles, mobileColors } from '../../../../src/shared/ui/mobileTheme'
 
 /** 동적 경로 값 하나를 UUID로 제한해 잘못된 식별자가 서버 조회·후속 경로에 쓰이지 않게 한다. */
 function parseRouteId(value: string | string[] | undefined): string | null {
@@ -64,23 +65,23 @@ function UnavailableBookChatRoute({ onBack }: { onBack(): void }): React.JSX.Ele
 const styles = StyleSheet.create({
   button: {
     alignItems: 'center',
-    backgroundColor: '#FF835F',
+    ...mobileButtonStyles.primary,
     borderRadius: 12,
     justifyContent: 'center',
     marginTop: 24,
     minHeight: 48,
     paddingHorizontal: 16,
   },
-  buttonText: { color: '#000000', fontSize: 16, fontWeight: '700', lineHeight: 24 },
-  container: { backgroundColor: '#000000', flex: 1, paddingHorizontal: 16 },
+  buttonText: { ...mobileButtonStyles.primaryText, fontSize: 16, fontWeight: '700', lineHeight: 24 },
+  container: { backgroundColor: mobileColors.surface, flex: 1, paddingHorizontal: 16 },
   content: { alignItems: 'center', flex: 1, justifyContent: 'center' },
   description: {
-    color: '#C7C7C7',
+    color: mobileColors.inkSubtle,
     fontSize: 15,
     lineHeight: 22,
     marginTop: 12,
     maxWidth: 280,
     textAlign: 'center',
   },
-  title: { color: '#FFFFFF', fontSize: 22, fontWeight: '700', lineHeight: 30, textAlign: 'center' },
+  title: { color: mobileColors.ink, fontSize: 22, fontWeight: '700', lineHeight: 30, textAlign: 'center' },
 })

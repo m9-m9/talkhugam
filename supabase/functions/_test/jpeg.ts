@@ -1,0 +1,9 @@
+/** 테스트용 JPEG 헤더 생성 도구. */
+
+/** APP0 세그먼트 뒤에 지정한 SOF 표식과 크기를 둔 최소 JPEG 헤더를 base64로 만든다. */
+export function createJpegHeader(width: number, height: number, sofMarker = 0xc0): string {
+  const app0 = [0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00]
+  const sof = [0xff, sofMarker, 0x00, 0x11, 0x08, height >> 8, height & 0xff, width >> 8, width & 0xff, 0x03]
+  const bytes = [0xff, 0xd8, ...app0, ...sof, ...new Array(12).fill(0)]
+  return btoa(String.fromCharCode(...bytes))
+}

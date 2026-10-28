@@ -61,6 +61,23 @@ pnpm backend:test:integration
 - 통합 테스트는 실제 Auth·RLS·RPC·Edge Function 흐름을 테스트 전용 Supabase 프로젝트에서 수행한다. 운영 프로젝트를 대상으로 실행하지 않으며 GitHub Actions workflow도 수동 dispatch와 별도 `integration` environment를 사용한다(`docs/integration-test.md`, `.github/workflows/integration-tests.yml`).
 - `pnpm backend:test:mux`는 비용·외부 상태 의존성이 있는 실제 Mux 흐름용 분리 명령이다. 모든 PR에서 자동 실행된다고 가정하지 않는다.
 
+## OCR 코퍼스
+
+사진 문장 가져오기(CLOVA OCR)는 사람이 매번 사진을 찍어 확인하지 않도록 합성 책 페이지 코퍼스로 자동 검증한다. [`packages/domain/src/__fixtures__/ocr-corpus`](../packages/domain/src/__fixtures__/ocr-corpus)의 페이지마다 직접 쓴 글(`page.json`), 조판한 사진(`page.jpg`), 정답 줄·문장(`expected.json`), 실제 CLOVA 응답 녹화(`clova.json`)가 있다. 글은 저작권이 없는 자작 글이라 커밋한다. 실제 책 사진과 그 원문 응답은 커밋하지 않는다.
+
+| 명령 | CLOVA 호출 | 하는 일 |
+| --- | --- | --- |
+| `pnpm test:ocr:corpus` | 없음(녹화 재생) | 줄 묶기·본문 필터·문장 나누기를 정답과 채점한다. 도메인 Vitest에 포함돼 CI에서도 돈다 |
+| `pnpm backend:test:functions` | 없음 | `ocr-page` handler가 실제 JPEG와 녹화 응답으로 같은 줄을 돌려주는지 확인한다 |
+| `pnpm test:e2e:ocr` | 없음 | 사진 올리기 → 문장으로 고르기 → 채점 → 고른 문장이 인용 칸에 들어가는지 Playwright로 확인한다 |
+| `pnpm test:ocr:live`, `pnpm test:e2e:ocr:live` | 페이지당 1회 | 같은 검사를 실제 CLOVA로 한다. live E2E는 브라우저가 줄여 보낸 사진을 그대로 보낸다 |
+| `pnpm test:ocr:record` | 페이지당 1회 | 실제 CLOVA로 `clova.json`을 다시 녹화한다 |
+| `pnpm ocr:corpus:render` | 없음 | `page.json`을 바꾼 뒤 `page.jpg`·`expected.json`을 다시 만든다(macOS AppleMyungjo 글꼴). 다시 만들면 녹화도 새로 한다 |
+
+통과 기준은 [`ocrCorpusScore.ts`](../packages/domain/src/testing/ocrCorpusScore.ts)의 `OCR_CORPUS_THRESHOLDS`다. 글자 오류율 3% 이하, 정답 문장 90% 이상이 유사도 0.9 이상, 문장 수 차이 1 이하, 줄 잇기 띄어쓰기 오류율 10% 이하, 머리글·장 제목·쪽 번호가 본문에 남지 않아야 한다. CLOVA가 둥근 따옴표를 곧은 따옴표로 돌려주는 것은 오류로 세지 않는다. 채점 결과는 `packages/domain/test-results/ocr-corpus/<페이지>.<모드>.json`과 Playwright 첨부 파일에 남는다.
+
+live·record 명령은 [`scripts/with-clova-secret.sh`](../scripts/with-clova-secret.sh)가 macOS 키체인 서비스 `talkhugam-clova-ocr`에서 호출 주소(`invoke-url`)와 Secret(`secret`)을 읽어 환경 변수로만 넘긴다. 처음 한 번 새 터미널에서 `security add-generic-password -U -s talkhugam-clova-ocr -a invoke-url -w`와 `... -a secret -w`로 등록한다. 값을 대화·로그·파일에 남기지 않는다. 줄 묶기 규칙을 바꾸면 replay로 먼저 확인하고, 호출 비용이 드는 live는 규칙 변경을 마무리할 때 한 번 돌린다.
+
 ## CI와 변경 매트릭스
 
 프론트엔드 CI([`frontend-ci.yml`](../.github/workflows/frontend-ci.yml))는 install 후 format, 함수 문서 검사, lint, typecheck, unit/component test, build, Chromium Playwright를 수행한다. 백엔드 CI([`backend-ci.yml`](../.github/workflows/backend-ci.yml))는 보안·origin·통합 구성 검사, Deno 검사/테스트, 로컬 Supabase migration·lint·pgTAP, 전체 Git 이력의 gitleaks를 수행한다.

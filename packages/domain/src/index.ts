@@ -145,3 +145,57 @@ export {
   roomRoleSchema,
   type RoomRole,
 } from './roomPermission'
+export {
+  groupClovaFieldsIntoLines,
+  OCR_MARGIN_FIT_KEEP_QUANTILE,
+  OCR_MARGIN_TOLERANCE_RATIO,
+  OCR_MIN_WIDE_LINES_FOR_MARGINS,
+  OCR_WIDE_LINE_MIN_WIDTH_RATIO,
+  type ClovaField,
+  type OcrBox,
+  type OcrLine,
+  type OcrPageSize,
+} from './ocrLayout'
+export {
+  getOcrLineSeparator,
+  insertQuoteIntoDraft,
+  isQuoteWithinLimit,
+  joinOcrLines,
+  ocrBoxSchema,
+  ocrLineSchema,
+  ocrPageResponseSchema,
+  OCR_WORD_ENDING_SYLLABLES,
+  ocrQuoteMaxLength,
+  parseOcrPageResponse,
+} from './ocrQuote'
+export {
+  alignSelectionToSentences,
+  getQuoteDrafts,
+  splitOcrSentences,
+  type OcrSentence,
+  type QuoteDrafts,
+} from './ocrSentence'
+export {
+  applyLineRange,
+  findLineAtPoint,
+  getLineRangeIds,
+  getLineSelectionSummary,
+  getSelectedLineTexts,
+  toggleLineId,
+  type LineRangeMode,
+  type LineSelectionSummary,
+} from './ocrLineSelection'
+export {
+  getPhotoQuoteErrorMessage,
+  ocrEmptyResultMessage,
+  recognizePagePhoto,
+  type OcrFunctionsInvoker,
+} from './ocrPageClient'
+export {
+  getScaledImageSize,
+  isPhotoDecodeError,
+  ocrPhotoJpegQuality,
+  PhotoDecodeError,
+  ocrPhotoMaxSide,
+  type OcrImageSize,
+} from './ocrPhoto'

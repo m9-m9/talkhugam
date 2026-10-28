@@ -1,8 +1,20 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+
 import { expect, test, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
+import {
+  findLineAtPoint,
+  getLineRangeIds,
+  getQuoteDrafts,
+  groupClovaFieldsIntoLines,
+  ocrQuoteMaxLength,
+  splitOcrSentences,
+  type ClovaField,
+  type OcrLine,
+} from '@talkhugam/domain'
 
-const roomId = '89544530-dd36-422b-aaff-b6a70180f521'
-const bookChatId = '00000000-0000-4000-8000-000000000002'
+import { authenticatePage, bookChatId, roomId } from './support/session'
 
 test('keeps the app canvas within the supported viewport', async ({ page }, testInfo) => {
   await page.goto('/')
@@ -921,18 +933,18 @@ test('resets a dismissed book-chat label editor while keeping the message draft'
     'rgb(20, 19, 18)',
   )
   await expectBottomSheetToHideInternalScrollbar(page)
-  await expect(page.getByRole('button', { name: '페이지 라벨' })).toHaveCSS(
+  await expect(page.getByRole('button', { name: '라벨', exact: true })).toHaveCSS(
     'background-color',
     'rgba(0, 0, 0, 0)',
   )
-  await expect(page.getByRole('button', { name: '페이지 라벨' })).toHaveCSS(
+  await expect(page.getByRole('button', { name: '라벨', exact: true })).toHaveCSS(
     'border-bottom-color',
     'rgb(58, 54, 51)',
   )
   await page.screenshot({
     path: `artifacts/seed-comparison/8-book-discussion-action-menu-after-${testInfo.project.name}.png`,
   })
-  await page.getByRole('button', { name: '페이지 라벨' }).click()
+  await page.getByRole('button', { name: '라벨', exact: true }).click()
   await page.getByRole('textbox', { name: '페이지 번호' }).fill('87')
   await page.keyboard.press('Escape')
   await expect(page.getByRole('textbox', { name: '페이지 번호' })).toBeHidden()
@@ -941,14 +953,14 @@ test('resets a dismissed book-chat label editor while keeping the message draft'
   await composer.fill('이 문장을 기억할게요')
 
   await page.getByRole('button', { name: '메시지 추가 메뉴 열기' }).click()
-  await expect(page.getByRole('button', { name: '페이지 라벨' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '라벨', exact: true })).toBeVisible()
   await expect(page.getByRole('textbox', { name: '페이지 번호' })).toBeHidden()
   await page.keyboard.press('Escape')
   await expect(page.getByRole('dialog', { name: '메시지 추가' })).toBeHidden()
   await expect(composer).toHaveValue('이 문장을 기억할게요')
 
   await page.getByRole('button', { name: '메시지 추가 메뉴 열기' }).click()
-  await page.getByRole('button', { name: '페이지 라벨' }).click()
+  await page.getByRole('button', { name: '라벨', exact: true }).click()
   await expect(page.getByRole('textbox', { name: '페이지 번호' })).toHaveValue('')
 
   const accessibilityScanResults = await new AxeBuilder({ page }).analyze()
@@ -1015,6 +1027,101 @@ test('opens the bookshop invite sheet from the plus menu without losing a draft'
   await expect(page.getByRole('dialog', { name: '책방 초대하기' })).toBeHidden()
   await expect(composer).toHaveValue('이 문장을 함께 나누고 싶어요.')
 })
+test('opens quote, label tabs, and video choices from the book-chat plus menu', async ({
+  page,
+}, testInfo) => {
+  await authenticatePage(page)
+  await page.goto(`/rooms/${roomId}/books/${bookChatId}`)
+  const shotPrefix = `artifacts/photo-quote/${testInfo.project.name}`
+
+  await page.getByRole('button', { name: '메시지 추가 메뉴 열기' }).click()
+  await expectDialogToFitViewport(page, '메시지 추가', testInfo.project.use.viewport?.height ?? 900)
+  await page.screenshot({ path: `${shotPrefix}-1-menu.png` })
+
+  await page.getByRole('button', { name: '라벨', exact: true }).click()
+  await expect(page.getByRole('tab', { name: '페이지' })).toHaveAttribute('aria-selected', 'true')
+  await page.getByRole('tab', { name: '챕터' }).click()
+  await expect(page.getByRole('textbox', { name: '챕터 이름 또는 번호' })).toBeVisible()
+  await expectDialogToFitViewport(page, '라벨', testInfo.project.use.viewport?.height ?? 900)
+  await page.screenshot({ path: `${shotPrefix}-2-label.png` })
+
+  await page.getByRole('button', { name: '메시지 추가 메뉴로 돌아가기' }).click()
+  await page.getByRole('button', { name: '문장 인용' }).click()
+  await expect(page.getByText('한 페이지만, 위에서 평평하게 찍으면 더 정확해요.')).toBeVisible()
+  await expect(page.getByRole('button', { name: '사진에서 가져오기' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '직접 입력' })).toBeVisible()
+  await expectDialogToFitViewport(page, '문장 인용', testInfo.project.use.viewport?.height ?? 900)
+  await page.screenshot({ path: `${shotPrefix}-3-quote.png` })
+})
+
+test('reads a real-layout page fixture into body sentences and aligns dragged lines to sentences', async ({
+  page,
+}, testInfo) => {
+  const { lines, removedTokens } = readOcrFixtureLines('a')
+  const sentences = splitOcrSentences(lines)
+  const dragTarget = findAlignedDragTarget(lines)
+  const viewportWidth = testInfo.project.use.viewport?.width ?? 640
+  const shotPrefix = `artifacts/photo-quote/fixture-${testInfo.project.name}`
+  await authenticatePage(page)
+  await page.route('**/functions/v1/ocr-page', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({ data: { lines }, ok: true, requestId: 'e2e' }),
+      contentType: 'application/json',
+      status: 200,
+    })
+  })
+  await page.goto(`/rooms/${roomId}/books/${bookChatId}`)
+  await uploadGrayPagePhoto(page)
+
+  const toggle = page.getByRole('button', { name: '문장으로 고르기' })
+  await expect(toggle).toBeVisible()
+  await page.screenshot({ fullPage: true, path: `${shotPrefix}-1-select.png` })
+  await toggle.click()
+  const sentenceButtons = page.locator('#photo-quote-sentence-list button')
+  await expect(sentenceButtons).toHaveText(sentences.map((sentence) => sentence.text))
+  const listText = (await sentenceButtons.allTextContents()).join(' ')
+  for (const token of removedTokens) expect(listText).not.toContain(token)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+    viewportWidth,
+  )
+  await page.screenshot({ fullPage: true, path: `${shotPrefix}-2-sentences.png` })
+
+  const pickedSentence = sentences[2]
+  if (!pickedSentence) throw new Error('fixture sentence missing')
+  await sentenceButtons.nth(2).click()
+  await expect(sentenceButtons.nth(2)).toHaveAttribute('aria-pressed', 'true')
+  await page.getByRole('button', { name: '다음' }).click()
+  await expect(page.getByRole('textbox', { name: '인용할 문장' })).toHaveValue(pickedSentence.text)
+  await page.screenshot({ path: `${shotPrefix}-3-sentence-confirm.png` })
+  await page
+    .getByRole('dialog', { name: '가져올 문장 확인' })
+    .getByRole('button', { name: '이전 화면으로' })
+    .click()
+
+  const overlay = page.getByTestId('photo-quote-overlay')
+  await overlay.scrollIntoViewIfNeeded()
+  const box = await overlay.boundingBox()
+  if (!box) throw new Error('overlay missing')
+  await page.mouse.move(
+    box.x + box.width * dragTarget.from.x,
+    box.y + box.height * dragTarget.from.y,
+  )
+  await page.mouse.down()
+  await page.mouse.move(box.x + box.width * dragTarget.to.x, box.y + box.height * dragTarget.to.y, {
+    steps: 6,
+  })
+  await page.mouse.up()
+  await page.screenshot({ fullPage: true, path: `${shotPrefix}-4-dragged.png` })
+  await page.getByRole('button', { name: '다음' }).click()
+  const quoteInput = page.getByRole('textbox', { name: '인용할 문장' })
+  await expect(quoteInput).toHaveValue(dragTarget.alignedQuote)
+  await expect(page.getByText('앞뒤 잘린 문장 조각은 뺐어요.')).toBeVisible()
+  await page.screenshot({ path: `${shotPrefix}-5-aligned.png` })
+  await page.getByRole('button', { name: '고른 줄 그대로' }).click()
+  await expect(quoteInput).toHaveValue(dragTarget.rawQuote)
+  await page.screenshot({ path: `${shotPrefix}-6-raw.png` })
+})
+
 test('selects a member by typing an at-sign in the book-chat composer', async ({ page }) => {
   await authenticatePage(page)
   await mockVideoMembers(page, [
@@ -1372,48 +1479,6 @@ test('returns to the video archive when the requested video no longer exists', a
   await expect(page).toHaveURL(`/rooms/${roomId}/books/${bookChatId}/videos`)
 })
 
-/** E2E 실행 페이지에 인증된 Supabase 세션과 사용자 조회 응답을 설정한다. */
-async function authenticatePage(page: Page) {
-  const user = {
-    app_metadata: {},
-    aud: 'authenticated',
-    created_at: '2026-07-17T00:00:00.000Z',
-    email: 'e2e@example.com',
-    id: '00000000-0000-4000-8000-000000000001',
-    user_metadata: {},
-  }
-  await page.addInitScript((authenticatedUser) => {
-    window.localStorage.setItem(
-      'sb-aibrendxalzmqsovaqps-auth-token',
-      JSON.stringify({
-        access_token: 'e2e-access-token',
-        expires_at: Math.floor(Date.now() / 1000) + 3600,
-        expires_in: 3600,
-        refresh_token: 'e2e-refresh-token',
-        token_type: 'bearer',
-        user: authenticatedUser,
-      }),
-    )
-  }, user)
-  await page.route('**/auth/v1/user', async (route) => {
-    await route.fulfill({
-      body: JSON.stringify(user),
-      contentType: 'application/json',
-      status: 200,
-    })
-  })
-  await page.route('**/rest/v1/user_legal_consents?*', async (route) => {
-    await route.fulfill({
-      body: JSON.stringify([
-        { document_type: 'terms', document_version: '2026-10-26.1' },
-        { document_type: 'privacy', document_version: '2026-10-26.1' },
-      ]),
-      contentType: 'application/json',
-      status: 200,
-    })
-  })
-}
-
 /** 지정한 영상 게시물 목록을 반환하도록 Supabase posts 요청을 가로챈다. */
 async function mockVideoPosts(page: Page, posts: unknown[]) {
   await page.route('**/rest/v1/posts?*', async (route) => {
@@ -1768,4 +1833,70 @@ function createAdminFeedbackTicket() {
     id: '8fc963a4-da01-4696-995c-755fe145776f',
     status: 'unread',
   }
+}
+
+type OcrFixture = {
+  images: Array<{ convertedImageInfo: { height: number; width: number }; fields: ClovaField[] }>
+}
+
+/**
+ * 글자를 가짜 한글로 바꾼 실제 CLOVA 좌표 픽스처를 서버와 같은 domain 알고리즘으로 줄로 만들고,
+ * 본문에서 지워진(잘린 조각·화자·쪽 번호) 두 글자 이상 토큰을 함께 돌려준다.
+ */
+function readOcrFixtureLines(name: 'a' | 'b'): { lines: OcrLine[]; removedTokens: string[] } {
+  const path = resolve(
+    process.cwd(),
+    `../../packages/domain/src/__fixtures__/clova-fixture-page-${name}.json`,
+  )
+  const image = (JSON.parse(readFileSync(path, 'utf8')) as OcrFixture).images[0]
+  if (!image) throw new Error('fixture image missing')
+  const lines = groupClovaFieldsIntoLines(image.fields, image.convertedImageInfo)
+  const keptTokens = new Set(lines.flatMap((line) => line.text.split(' ')))
+  const removedTokens = image.fields
+    .map((field) => (field.inferText ?? '').trim())
+    .filter((token) => token.length >= 2 && !keptTokens.has(token))
+  return { lines, removedTokens }
+}
+
+/** 줄 박스의 가운데 비율 좌표를 반환한다. */
+function getLineCenter(line: OcrLine): { x: number; y: number } {
+  return { x: line.box.x + line.box.width / 2, y: line.box.y + line.box.height / 2 }
+}
+
+/**
+ * 사진 위에서 몇 줄을 끌었을 때 문장 경계 맞춤 결과가 고른 줄 그대로와 달라지는 끌기 구간을 찾는다.
+ * 기운 줄 박스가 겹칠 수 있어 실제 화면과 같은 findLineAtPoint·getLineRangeIds로 기대값을 계산한다.
+ */
+function findAlignedDragTarget(lines: OcrLine[]) {
+  for (let start = 1; start < lines.length - 3; start += 1) {
+    const from = getLineCenter(lines[start] as OcrLine)
+    const to = getLineCenter(lines[start + 3] as OcrLine)
+    const anchor = findLineAtPoint(lines, from.x, from.y)
+    const end = findLineAtPoint(lines, to.x, to.y)
+    const ids = anchor && end ? getLineRangeIds(lines, anchor.id, end.id) : []
+    const drafts = getQuoteDrafts(lines, ids)
+    if (drafts.alignedQuote && drafts.rawQuote.length <= ocrQuoteMaxLength)
+      return { alignedQuote: drafts.alignedQuote, from, rawQuote: drafts.rawQuote, to }
+  }
+  throw new Error('no aligned drag target in fixture')
+}
+
+/** 사진 선택 입력에 1500×2000 빈 회색 JPEG을 넣어 문장 고르기 화면을 연다. */
+async function uploadGrayPagePhoto(page: Page) {
+  const pagePhoto = await page.evaluate(() => {
+    const canvas = document.createElement('canvas')
+    canvas.width = 1500
+    canvas.height = 2000
+    const context = canvas.getContext('2d')
+    if (context) {
+      context.fillStyle = '#9a9a9a'
+      context.fillRect(0, 0, 1500, 2000)
+    }
+    return canvas.toDataURL('image/jpeg', 0.8).replace(/^data:[^,]*,/, '')
+  })
+  await page.getByLabel('문장을 가져올 사진 선택').setInputFiles({
+    buffer: Buffer.from(pagePhoto, 'base64'),
+    mimeType: 'image/jpeg',
+    name: 'page.jpg',
+  })
 }
