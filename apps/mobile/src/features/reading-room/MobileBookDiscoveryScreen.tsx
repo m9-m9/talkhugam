@@ -19,6 +19,7 @@ import {
   searchMobileBooks,
 } from '../../entities/reading-room'
 import { createMobileSupabaseClient } from '../../shared/api/mobileSupabaseClient'
+import { mobileColors } from '../../shared/ui/mobileTheme'
 
 type MobileBookDiscoveryScreenProps = {
   onBack(): void
@@ -142,7 +143,7 @@ export function MobileBookDiscoveryScreen({
             autoCapitalize="none"
             onChangeText={handleQueryChange}
             placeholder="책 제목이나 저자"
-            placeholderTextColor="#8C8C8C"
+            placeholderTextColor={mobileColors.placeholder}
             returnKeyType="search"
             style={styles.searchInput}
             value={query}
@@ -151,8 +152,10 @@ export function MobileBookDiscoveryScreen({
           <Pressable
             accessibilityLabel="검색"
             accessibilityRole="button"
+            accessibilityState={{ busy: isSearching, disabled: isSearching }}
+            disabled={isSearching}
             onPress={handleSearch}
-            style={styles.searchButton}
+            style={({ pressed }) => [styles.searchButton, pressed && styles.searchButtonPressed]}
           >
             <Text style={styles.searchButtonText}>검색</Text>
           </Pressable>
@@ -286,7 +289,7 @@ function BookCard({
             accessibilityRole="progressbar"
             style={styles.creatingState}
           >
-            <ActivityIndicator color="#FF835F" />
+            <ActivityIndicator color={mobileColors.accent} />
             <Text style={styles.creatingText}>책 대화를 만들고 있어요.</Text>
           </View>
         ) : null}
@@ -299,7 +302,7 @@ function BookCard({
 function LoadingState({ label }: { label: string }): React.JSX.Element {
   return (
     <View accessibilityLabel={label} accessibilityRole="progressbar" style={styles.state}>
-      <ActivityIndicator color="#FF835F" />
+      <ActivityIndicator color={mobileColors.accent} />
       <Text style={styles.stateText}>{label}</Text>
     </View>
   )
@@ -371,11 +374,11 @@ function SecondaryAction({
 
 const styles = StyleSheet.create({
   backButton: { alignItems: 'center', justifyContent: 'center', minHeight: 44, minWidth: 44 },
-  backButtonText: { color: '#FFFFFF', fontSize: 32, lineHeight: 36 },
+  backButtonText: { color: mobileColors.ink, fontSize: 32, lineHeight: 36 },
   bookCard: {
     alignItems: 'center',
-    backgroundColor: '#101010',
-    borderColor: '#393939',
+    backgroundColor: mobileColors.surfaceRaised,
+    borderColor: mobileColors.borderStrong,
     borderRadius: 12,
     borderWidth: 1,
     flexDirection: 'row',
@@ -383,29 +386,29 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   bookCardDisabled: { opacity: 0.65 },
-  bookCardPressed: { backgroundColor: '#1B1B1B', borderColor: '#FF835F' },
+  bookCardPressed: { backgroundColor: mobileColors.surfacePressed, borderColor: mobileColors.inkSubtle },
   bookCopy: { flex: 1, marginLeft: 12 },
   bookList: { gap: 12, marginTop: 16 },
-  bookMeta: { color: '#FFB5A3', fontSize: 14, lineHeight: 20, marginTop: 4 },
-  bookTitle: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', lineHeight: 24 },
-  container: { backgroundColor: '#000000', flex: 1, paddingHorizontal: 16 },
+  bookMeta: { color: mobileColors.inkSubtle, fontSize: 14, lineHeight: 20, marginTop: 4 },
+  bookTitle: { color: mobileColors.ink, fontSize: 16, fontWeight: '700', lineHeight: 24 },
+  container: { backgroundColor: mobileColors.surface, flex: 1, paddingHorizontal: 16 },
   coverPlaceholder: {
     alignItems: 'center',
-    backgroundColor: '#2D1712',
+    backgroundColor: mobileColors.surfaceRaised,
     borderRadius: 8,
     height: 64,
     justifyContent: 'center',
     width: 48,
   },
-  coverPlaceholderText: { color: '#FFB5A3', fontSize: 12, fontWeight: '700', lineHeight: 18 },
+  coverPlaceholderText: { color: mobileColors.inkSubtle, fontSize: 12, fontWeight: '700', lineHeight: 18 },
   creatingState: { alignItems: 'center', flexDirection: 'row', gap: 8, marginTop: 8 },
-  creatingText: { color: '#FFB5A3', fontSize: 13, lineHeight: 18 },
-  description: { color: '#C7C7C7', fontSize: 15, lineHeight: 22, marginTop: 8 },
-  errorText: { color: '#FF8A8A', fontSize: 15, lineHeight: 22, marginTop: 12, textAlign: 'center' },
+  creatingText: { color: mobileColors.inkSubtle, fontSize: 13, lineHeight: 18 },
+  description: { color: mobileColors.inkSubtle, fontSize: 15, lineHeight: 22, marginTop: 8 },
+  errorText: { color: mobileColors.danger, fontSize: 15, lineHeight: 22, marginTop: 12, textAlign: 'center' },
   header: { alignItems: 'center', flexDirection: 'row', marginTop: 8 },
   headerSpacer: { minWidth: 44 },
   headerTitle: {
-    color: '#FFFFFF',
+    color: mobileColors.ink,
     flex: 1,
     fontSize: 16,
     fontWeight: '700',
@@ -413,25 +416,26 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   introduction: { marginTop: 32 },
-  resultsDescription: { color: '#C7C7C7', fontSize: 14, lineHeight: 20, marginTop: 4 },
+  resultsDescription: { color: mobileColors.inkSubtle, fontSize: 14, lineHeight: 20, marginTop: 4 },
   resultsSection: { marginTop: 32 },
-  resultsTitle: { color: '#FFFFFF', fontSize: 18, fontWeight: '700', lineHeight: 26 },
+  resultsTitle: { color: mobileColors.ink, fontSize: 18, fontWeight: '700', lineHeight: 26 },
   scrollContent: { flexGrow: 1, paddingBottom: 32 },
   searchButton: {
     alignItems: 'center',
-    backgroundColor: '#FF835F',
+    backgroundColor: mobileColors.primaryAction,
     borderRadius: 12,
     justifyContent: 'center',
     minHeight: 48,
     paddingHorizontal: 16,
   },
-  searchButtonText: { color: '#000000', fontSize: 15, fontWeight: '700', lineHeight: 22 },
+  searchButtonPressed: { backgroundColor: mobileColors.primaryActionPressed },
+  searchButtonText: { color: mobileColors.primaryActionText, fontSize: 15, fontWeight: '700', lineHeight: 22 },
   searchInput: {
-    backgroundColor: '#101010',
-    borderColor: '#393939',
+    backgroundColor: mobileColors.surfaceRaised,
+    borderColor: mobileColors.borderStrong,
     borderRadius: 12,
     borderWidth: 1,
-    color: '#FFFFFF',
+    color: mobileColors.ink,
     flex: 1,
     fontSize: 15,
     lineHeight: 22,
@@ -441,7 +445,7 @@ const styles = StyleSheet.create({
   searchRow: { flexDirection: 'row', gap: 8, marginTop: 24 },
   secondaryAction: {
     alignItems: 'center',
-    borderColor: '#FF835F',
+    borderColor: mobileColors.borderStrong,
     borderRadius: 12,
     borderWidth: 1,
     justifyContent: 'center',
@@ -449,8 +453,8 @@ const styles = StyleSheet.create({
     minWidth: 120,
     paddingHorizontal: 16,
   },
-  secondaryActionText: { color: '#FF835F', fontSize: 16, fontWeight: '700', lineHeight: 24 },
+  secondaryActionText: { color: mobileColors.ink, fontSize: 16, fontWeight: '700', lineHeight: 24 },
   state: { alignItems: 'center', gap: 12, minHeight: 180, justifyContent: 'center' },
-  stateText: { color: '#C7C7C7', fontSize: 15, lineHeight: 22, maxWidth: 280, textAlign: 'center' },
-  title: { color: '#FFFFFF', fontSize: 24, fontWeight: '700', lineHeight: 32 },
+  stateText: { color: mobileColors.inkSubtle, fontSize: 15, lineHeight: 22, maxWidth: 280, textAlign: 'center' },
+  title: { color: mobileColors.ink, fontSize: 24, fontWeight: '700', lineHeight: 32 },
 })

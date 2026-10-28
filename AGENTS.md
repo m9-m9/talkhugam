@@ -68,6 +68,7 @@
 
 - Figma Foundations의 spacing `0/4/8/12/16/24/32/40/48/64`와 정의된 radius token만 사용한다.
 - Talk후감의 페이지 레이아웃, 640px 중앙 캔버스, Warm Coral 브랜드 컬러, 로고, 책 표지와 사용자 콘텐츠는 제품 고유 UI로 유지한다. 디자인 시스템 교체를 이유로 이를 SEED 기본 레이아웃이나 중립 팔레트로 치환하지 않는다.
+- 코랄은 `design.md`「코랄 규칙」대로 화면의 주요 행동 하나(페이지 CTA, 책 대화 보내기), 선택 상태, 브랜드 포인트, 별점·인용·멘션 같은 핵심 콘텐츠에 쓴다. 시트·대화상자 안의 확인 버튼과 하단 `+`는 흰 면(`talkhugam-neutral-action`, 모바일 `mobileButtonStyles.neutral`)이고, 보조 동작과 반복 목록 면에는 코랄을 쓰지 않는다. 색은 화면이 아니라 토큰(`globals.css`, 모바일 `theme.ts`)과 공용 variant에서 바꾼다.
 - 반복되는 상호작용 요소는 `@seed-design/react` 원본 컴포넌트를 우선 검토한다. Avatar, List, Text, Field, ActionButton, Dialog, Sheet, Tabs, Switch, Checkbox, Snackbar가 대상이며, Talk후감의 여백·색·문구 규칙이 필요하면 공용 래퍼에서 조합한다.
 - SEED 전체 스타일시트는 전역으로 import하지 않는다. 실제 사용하는 recipe CSS만 추가하고, 새 recipe가 기존 화면의 배치·색·타이포를 바꾸지 않는지 320px과 640px에서 확인한다.
 - 새 화면이나 기존 화면 전환은 기존 콘텐츠 순서와 주요 정렬을 먼저 유지한다. 레이아웃 변경이 필요한 경우에만 Figma와 Product Hub의 결정 기록을 함께 갱신한다.

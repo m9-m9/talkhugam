@@ -71,7 +71,7 @@ test('loads Clarity once while masking all app text and user content', async ({ 
   await expect(page.locator('#talkhugam-clarity')).toHaveCount(1)
 })
 
-test('keeps brand, accent, and action colors independently swappable', async ({ page }) => {
+test('keeps page primary actions coral and sheet actions white', async ({ page }) => {
   await page.goto('/')
   await page.evaluate(() => {
     const action = document.createElement('button')
@@ -81,6 +81,20 @@ test('keeps brand, accent, and action colors independently swappable', async ({ 
     actionIcon.classList.add('text-ink')
     action.append(actionIcon)
     document.body.append(action)
+
+    const send = document.createElement('button')
+    send.className = 'talkhugam-send-action'
+    send.textContent = 'send'
+    document.body.append(send)
+
+    const sheet = document.createElement('div')
+    sheet.className = 'seed-menu-sheet__content'
+    const sheetAction = document.createElement('button')
+    sheetAction.className = 'talkhugam-primary-action'
+    sheetAction.dataset.testid = 'sheet-action'
+    sheetAction.textContent = 'add'
+    sheet.append(sheetAction)
+    document.body.append(sheet)
 
     const loaderCover = document.createElement('div')
     loaderCover.className = 'talkhugam-book-loader__cover'
@@ -110,6 +124,14 @@ test('keeps brand, accent, and action colors independently swappable', async ({ 
       ).color,
       actionText: rootStyle.getPropertyValue('--color-action-text').trim(),
       brand: rootStyle.getPropertyValue('--color-brand').trim(),
+      sendBackground: window.getComputedStyle(document.querySelector('.talkhugam-send-action')!)
+        .backgroundColor,
+      sheetActionBackground: window.getComputedStyle(
+        document.querySelector('[data-testid="sheet-action"]')!,
+      ).backgroundColor,
+      sheetActionText: window.getComputedStyle(
+        document.querySelector('[data-testid="sheet-action"]')!,
+      ).color,
       brandSoft: rootStyle.getPropertyValue('--color-brand-soft').trim(),
       loaderBorder: loaderStyle.borderTopColor,
       surface: rootStyle.getPropertyValue('--color-surface').trim(),
@@ -127,9 +149,12 @@ test('keeps brand, accent, and action colors independently swappable', async ({ 
     brand: '#ff835f',
     brandSoft: '#ffb59c',
     loaderBorder: 'rgb(255, 131, 95)',
-    surface: '#000000',
+    sendBackground: 'rgb(173, 61, 34)',
+    sheetActionBackground: 'rgb(255, 255, 255)',
+    sheetActionText: 'rgb(20, 19, 18)',
+    surface: '#141312',
     textOnSurface: 'rgb(255, 255, 255)',
-    whiteCardBackground: 'rgb(16, 16, 16)',
+    whiteCardBackground: 'rgb(31, 29, 28)',
   })
 })
 
@@ -258,7 +283,7 @@ test('renders profile edit controls with the current profile values', async ({
   )
   await expect(page.getByLabel('이름').locator('xpath=..')).toHaveCSS(
     'background-color',
-    'rgb(16, 16, 16)',
+    'rgb(31, 29, 28)',
   )
   await page.screenshot({
     path: `artifacts/seed-comparison/9-profile-edit-after-${testInfo.project.name}.png`,
@@ -301,7 +326,7 @@ test('renders account settings controls with current preferences', async ({ page
   })
   await expect(page.getByText('e2e@example.com').locator('xpath=ancestor::dl')).toHaveCSS(
     'background-color',
-    'rgb(16, 16, 16)',
+    'rgb(31, 29, 28)',
   )
   await expect(page.getByRole('switch', { name: '멘션 알림' })).toBeChecked()
 })
@@ -318,7 +343,7 @@ test('renders room settings with SEED form controls', async ({ page }, testInfo)
   await expect(page.getByLabel('책방 이름').locator('xpath=..')).toHaveClass(/seed-text-input/)
   await expect(page.getByLabel('책방 이름').locator('xpath=..')).toHaveCSS(
     'background-color',
-    'rgb(16, 16, 16)',
+    'rgb(31, 29, 28)',
   )
   await expect(page.getByRole('button', { name: '저장하기' })).toHaveClass(/seed-action-button/)
 })
@@ -330,7 +355,7 @@ test('renders room creation with dark SEED information fields', async ({ page },
   await expect(page.getByRole('heading', { name: '책방 만들기' })).toBeVisible()
   await expect(page.getByLabel('책방 이름').locator('xpath=..')).toHaveCSS(
     'background-color',
-    'rgb(16, 16, 16)',
+    'rgb(31, 29, 28)',
   )
   await page.screenshot({
     path: `artifacts/seed-comparison/19-create-room-after-${testInfo.project.name}.png`,
@@ -386,7 +411,7 @@ test('renders invite-code entry with a dark SEED information field', async ({ pa
   await expect(page.getByRole('heading', { name: '책방 초대장을 받았어요' })).toBeVisible()
   await expect(page.getByLabel('6자리 초대 코드').locator('xpath=..')).toHaveCSS(
     'background-color',
-    'rgb(16, 16, 16)',
+    'rgb(31, 29, 28)',
   )
   await page.screenshot({
     path: `artifacts/seed-comparison/20-join-room-after-${testInfo.project.name}.png`,
@@ -431,11 +456,11 @@ test('uses the bottom-navigation token as the global page bottom spacing', async
   await expect(page.locator('.app-with-bottom-navigation')).toHaveCSS('padding-bottom', '72px')
   await expect(page.getByRole('button', { name: '책방 시작 메뉴 열기' })).toHaveCSS(
     'background-color',
-    'rgb(173, 61, 34)',
+    'rgb(255, 255, 255)',
   )
   await expect(page.getByRole('button', { name: '책방 시작 메뉴 열기' })).toHaveCSS(
     'color',
-    'rgb(255, 255, 255)',
+    'rgb(20, 19, 18)',
   )
   await expect(page.getByRole('button', { name: '의견 보내기' })).toHaveCount(0)
 })
@@ -457,11 +482,11 @@ test('slides the highlighted bestseller card instead of replacing the page conte
   await expect(track).toHaveAttribute('style', 'transform: translateX(0%);')
   await expect(page.getByTestId('bestseller-feature').first()).toHaveCSS(
     'background-color',
-    'rgb(0, 0, 0)',
+    'rgb(20, 19, 18)',
   )
   await expect(page.getByRole('button', { name: /추천 보기/ }).first()).toHaveCSS(
     'background-color',
-    'rgb(16, 16, 16)',
+    'rgb(31, 29, 28)',
   )
   await expect(page.locator('[aria-label="다른 추천 도서"] .line-clamp-2').first()).toHaveCSS(
     'white-space',
@@ -586,7 +611,7 @@ test('renders room detail command controls with SEED components', async ({ page 
   await expect(page.getByText('미움받을 용기', { exact: true })).toHaveCSS('white-space', 'normal')
   await expect(page.getByRole('button', { name: /미움받을 용기/ })).toHaveCSS(
     'background-color',
-    'rgb(16, 16, 16)',
+    'rgb(31, 29, 28)',
   )
   await expect(page.getByRole('button', { name: /미움받을 용기/ })).not.toHaveClass(/!bg-white/)
   await page.screenshot({
@@ -893,7 +918,7 @@ test('resets a dismissed book-chat label editor while keeping the message draft'
   await expectDialogToFitViewport(page, '메시지 추가', testInfo.project.use.viewport?.height ?? 900)
   await expect(page.getByRole('dialog', { name: '메시지 추가' })).toHaveCSS(
     'background-color',
-    'rgb(0, 0, 0)',
+    'rgb(20, 19, 18)',
   )
   await expectBottomSheetToHideInternalScrollbar(page)
   await expect(page.getByRole('button', { name: '페이지 라벨' })).toHaveCSS(
@@ -902,7 +927,7 @@ test('resets a dismissed book-chat label editor while keeping the message draft'
   )
   await expect(page.getByRole('button', { name: '페이지 라벨' })).toHaveCSS(
     'border-bottom-color',
-    'rgb(42, 42, 42)',
+    'rgb(58, 54, 51)',
   )
   await page.screenshot({
     path: `artifacts/seed-comparison/8-book-discussion-action-menu-after-${testInfo.project.name}.png`,
@@ -1071,7 +1096,7 @@ test('opens my books from the profile hub and edits my rating', async ({ page })
     page
       .getByRole('link', { name: '미움받을 용기 책 대화로 이동' })
       .locator('xpath=ancestor::article[1]'),
-  ).toHaveCSS('background-color', 'rgb(16, 16, 16)')
+  ).toHaveCSS('background-color', 'rgb(31, 29, 28)')
   await expect(page.getByRole('img', { name: '별점 4점' })).toBeVisible()
   await page.getByRole('button', { name: '미움받을 용기 별점 수정하기' }).click()
   await expect(page.getByRole('dialog', { name: '별점 남기기' })).toBeVisible()
@@ -1259,11 +1284,11 @@ test('filters saved videos with the SEED member menu', async ({ page }, testInfo
 
   await expect(page.getByRole('button', { name: '전체' })).toHaveCSS(
     'background-color',
-    'rgb(255, 255, 255)',
+    'rgb(58, 35, 28)',
   )
   await expect(page.getByRole('button', { name: '내 영상' })).toHaveCSS(
     'background-color',
-    'rgb(16, 16, 16)',
+    'rgb(31, 29, 28)',
   )
   await page.screenshot({
     path: `artifacts/seed-comparison/5-video-archive-after-${testInfo.project.name}.png`,

@@ -8,5 +8,5 @@ export default function NotificationsRoute(): React.JSX.Element {
   const router = useRouter()
   const allowed = useMobileProtectedRoute('/rooms')
   if (!allowed) return <MobileRouteLoadingScreen label="알림을 확인하고 있어요." />
-  return <MobileNotificationsScreen onOpen={(path) => router.push(path)} />
+  return <MobileNotificationsScreen onBack={() => router.back()} onOpen={(path) => router.push(path)} />
 }

@@ -65,7 +65,7 @@ export function AdminPage() {
   return (
     <main className="app-page bg-surface px-4 pb-12">
       <header className="border-border -mx-4 border-b px-4 py-4">
-        <p className="text-primary text-sm font-semibold">Operator inbox</p>
+        <p className="text-ink-subtle text-sm font-medium">Operator inbox</p>
         <h1 className="text-ink mt-1 text-xl font-bold">이용자 의견</h1>
       </header>
       <section className="pt-6" aria-label="피드백 상태 필터">
@@ -106,7 +106,7 @@ export function AdminPage() {
                 variant="neutralWeak"
               >
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-primary text-xs font-semibold">
+                  <span className="text-ink-subtle text-xs font-medium">
                     {formatFeedbackCategory(ticket.category)}
                   </span>
                   <span className="text-ink-subtle text-xs">
@@ -123,7 +123,7 @@ export function AdminPage() {
       {selectedTicket ? (
         <BottomSheet onClose={handleCloseTicket} title="의견 상세">
           <section className="pt-5">
-            <p className="text-primary text-sm font-semibold">
+            <p className="text-ink-subtle text-sm font-medium">
               {formatFeedbackCategory(selectedTicket.category)}
             </p>
             <p className="text-ink mt-3 text-sm leading-6 whitespace-pre-wrap">
@@ -132,7 +132,7 @@ export function AdminPage() {
             <div className="border-border mt-6 border-t pt-4 text-sm">
               <p className="text-ink-subtle">답변 이메일</p>
               <a
-                className="text-primary mt-1 inline-flex min-h-11 items-center font-semibold"
+                className="text-ink mt-1 inline-flex min-h-11 items-center font-semibold underline underline-offset-2"
                 href={`mailto:${selectedTicket.authorEmailSnapshot}`}
               >
                 {selectedTicket.authorEmailSnapshot}

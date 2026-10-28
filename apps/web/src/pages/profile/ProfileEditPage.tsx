@@ -7,7 +7,10 @@ import { ActionButton, TextField } from '@seed-design/react'
 
 import {
   getProfile,
+  createProfileAvatarUrlQueryKey,
+  createProfileAvatarUrlQueryPrefix,
   getProfileAvatarUrl,
+  profileAvatarUrlStaleTime,
   profileFormSchema,
   type ProfileForm,
   uploadProfileAvatar,
@@ -40,12 +43,12 @@ export function ProfileEditPage() {
   const avatarUrlQuery = useQuery({
     enabled: Boolean(profileQuery.data?.avatarPath),
     queryFn: getAvatarUrl,
-    queryKey: [
-      'profile-avatar-url',
+    queryKey: createProfileAvatarUrlQueryKey(
       profileId,
       profileQuery.data?.avatarPath,
       profileQuery.data?.updatedAt,
-    ],
+    ),
+    staleTime: profileAvatarUrlStaleTime,
   })
   const avatarUploadMutation = useMutation({
     mutationFn: uploadAvatar,
@@ -88,7 +91,7 @@ export function ProfileEditPage() {
   /** 사진 업로드 후 프로필과 임시 URL을 최신 상태로 갱신한다. */
   async function handleAvatarUploadSuccess() {
     await queryClient.invalidateQueries({ queryKey: ['profile', profileId] })
-    await queryClient.invalidateQueries({ queryKey: ['profile-avatar-url', profileId] })
+    await queryClient.invalidateQueries({ queryKey: createProfileAvatarUrlQueryPrefix(profileId) })
   }
 
   /** 사진 업로드의 검증 또는 네트워크 실패를 사용자가 이해할 문구로 표시한다. */
@@ -135,7 +138,9 @@ export function ProfileEditPage() {
 
       <section aria-label="프로필 사진" className="mt-8 flex items-center gap-4">
         <ProfileAvatar
-          avatarUrl={avatarUrlQuery.data ?? null}
+          avatarPath={profileQuery.data?.avatarPath}
+          avatarUrl={avatarUrlQuery.data}
+          hasAvatarError={avatarUrlQuery.isError}
           displayName={profileQuery.data?.displayName ?? ''}
         />
         <div>
@@ -171,7 +176,12 @@ export function ProfileEditPage() {
             <TextField.Input {...form.register('displayName')} />
           </TextField.Root>
         </FormField>
-        <FormField errorMessage={form.formState.errors.bio?.message} label="한 줄 소개" name="bio">
+        <FormField
+          description="80자까지 적을 수 있어요."
+          errorMessage={form.formState.errors.bio?.message}
+          label="한 줄 소개"
+          name="bio"
+        >
           <TextField.Root className="talkhugam-information-field">
             <TextField.Textarea autoresize={false} maxLength={80} {...form.register('bio')} />
           </TextField.Root>

@@ -82,7 +82,7 @@ export function ProfileSharePage() {
         공유하기
       </ActionButton>
       {feedback ? (
-        <p className="text-primary mt-3 text-center text-sm" role="status">
+        <p className="text-ink-subtle mt-3 text-center text-sm" role="status">
           {feedback}
         </p>
       ) : null}

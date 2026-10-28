@@ -15,7 +15,13 @@ const { getProfile, getProfileAvatarUrl } = vi.hoisted(() => ({
 
 vi.mock('../../entities/book-chat', () => ({}))
 
-vi.mock('../../entities/profile', () => ({ getProfile, getProfileAvatarUrl }))
+vi.mock('../../entities/profile', async () => ({
+  ...(await vi.importActual<typeof import('../../entities/profile/profileAvatarQuery')>(
+    '../../entities/profile/profileAvatarQuery',
+  )),
+  getProfile,
+  getProfileAvatarUrl,
+}))
 
 vi.mock('../../features/auth', () => ({
   useAuthenticatedUser: () => ({ id: '00000000-0000-0000-0000-000000000001' }),
@@ -77,6 +83,22 @@ describe('ProfilePage', () => {
     expect(
       screen.queryByRole('status', { name: '내 정보를 불러오고 있어요.' }),
     ).not.toBeInTheDocument()
+  })
+
+  it('does not flash the name initial while the signed photo URL is loading', async () => {
+    getProfile.mockResolvedValue({
+      avatarPath: '00000000-0000-4000-8000-000000000001/avatar',
+      bio: '',
+      displayName: '정민',
+      updatedAt: '2026-07-19T00:00:00.000+00:00',
+    })
+    getProfileAvatarUrl.mockImplementation(() => new Promise(() => undefined))
+
+    renderProfilePage()
+
+    expect(await screen.findByRole('heading', { name: '정민' })).toBeInTheDocument()
+    expect(screen.queryByText('정')).not.toBeInTheDocument()
+    expect(screen.getByTestId('profile-avatar')).toHaveAttribute('data-avatar-state', 'placeholder')
   })
 
   it('renders a private profile photo through its signed URL when one exists', async () => {

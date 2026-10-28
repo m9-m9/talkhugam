@@ -77,7 +77,6 @@ export function NotificationsPage() {
       <AppHeader
         action={
           <ActionButton
-            className="text-primary"
             disabled={!hasUnreadNotifications || readMutation.isPending}
             onClick={() => void handleMarkAllRead()}
             size="small"

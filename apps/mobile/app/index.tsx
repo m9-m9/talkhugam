@@ -14,6 +14,7 @@ import { resolveMobileAuthDestination } from '../src/features/auth/resolveMobile
 import { type MobileOAuthProvider } from '../src/features/auth/startMobileOAuth'
 import { createMobileSupabaseClient } from '../src/shared/api/mobileSupabaseClient'
 import { MobileRouteLoadingScreen } from '../src/shared/ui/MobileRouteLoadingScreen'
+import { mobileColors } from '../src/shared/ui/mobileTheme'
 
 type SocialLoginButtonProps = {
   accessibilityLabel: string
@@ -124,7 +125,7 @@ export default function WelcomeScreen(): React.JSX.Element {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
       <View style={styles.content}>
         <Text style={styles.wordmark}>Talk후감</Text>
         <Text style={styles.title}>읽고 나눈 마음을{'\n'}책방에 남겨 보세요.</Text>
@@ -138,7 +139,7 @@ export default function WelcomeScreen(): React.JSX.Element {
             accessibilityRole="progressbar"
             style={styles.status}
           >
-            <ActivityIndicator color="#AD3D22" />
+            <ActivityIndicator color={mobileColors.accent} />
             <Text style={styles.statusText}>로그인을 연결하고 있어요.</Text>
           </View>
         ) : null}
@@ -166,7 +167,7 @@ export default function WelcomeScreen(): React.JSX.Element {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#000000',
+    backgroundColor: mobileColors.surface,
     flex: 1,
     paddingHorizontal: 16,
     paddingVertical: 48,
@@ -176,15 +177,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   errorMessage: {
-    color: '#FF6B6B',
+    color: mobileColors.danger,
     fontSize: 14,
     lineHeight: 20,
     marginBottom: 12,
   },
   loginButton: {
     alignItems: 'center',
-    backgroundColor: '#101010',
-    borderColor: '#2A2A2A',
+    backgroundColor: mobileColors.surfaceRaised,
+    borderColor: mobileColors.border,
     borderRadius: 12,
     borderWidth: 1,
     justifyContent: 'center',
@@ -194,10 +195,10 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   loginButtonPressed: {
-    backgroundColor: '#2A2A2A',
+    backgroundColor: mobileColors.surfacePressed,
   },
   loginButtonText: {
-    color: '#FFFFFF',
+    color: mobileColors.ink,
     fontSize: 16,
     fontWeight: '700',
     lineHeight: 24,
@@ -206,7 +207,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   message: {
-    color: '#C7C7C7',
+    color: mobileColors.inkSubtle,
     fontSize: 16,
     lineHeight: 24,
     marginTop: 16,
@@ -219,19 +220,19 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   statusText: {
-    color: '#C7C7C7',
+    color: mobileColors.inkSubtle,
     fontSize: 14,
     lineHeight: 20,
   },
   title: {
-    color: '#FFFFFF',
+    color: mobileColors.ink,
     fontSize: 28,
     fontWeight: '700',
     lineHeight: 40,
     marginTop: 24,
   },
   wordmark: {
-    color: '#FF835F',
+    color: mobileColors.ink,
     fontSize: 24,
     fontWeight: '700',
     lineHeight: 32,
