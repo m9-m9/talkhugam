@@ -121,7 +121,7 @@ describe('WelcomeScreen', () => {
 
     await waitFor(() => {
       expect(mockResolveMobileAuthDestination).toHaveBeenCalledWith(
-        mockCreateMobileSupabaseClient.mock.results[0]?.value,
+        mockCreateMobileSupabaseClient.mock.results[0]?.value as never,
       )
       expect(replace).toHaveBeenCalledWith('/legal-consent')
     })

@@ -54,7 +54,7 @@ describe('JoinRoomScreen', () => {
     fireEvent.press(screen.getByRole('button', { name: '함께 읽기 시작하기' }))
 
     await waitFor(() => {
-      expect(mockJoinMobileRoomByCode).toHaveBeenCalledWith({}, { code: 'TALK87' })
+      expect(mockJoinMobileRoomByCode).toHaveBeenCalledWith({} as never, { code: 'TALK87' })
       expect(onJoined).toHaveBeenCalledTimes(1)
     })
   })
@@ -101,7 +101,7 @@ describe('JoinRoomScreen', () => {
     fireEvent.press(screen.getByRole('button', { name: '초대받은 책방에 참여하기' }))
 
     await waitFor(() => {
-      expect(mockJoinMobileRoomByCode).toHaveBeenCalledWith({}, { code: latestToken })
+      expect(mockJoinMobileRoomByCode).toHaveBeenCalledWith({} as never, { code: latestToken })
     })
   })
 })

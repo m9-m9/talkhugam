@@ -43,7 +43,7 @@ function createTestContext(): { queryClient: QueryClient; wrapper: ({ children }
 describe('MobileVideoUploadSheet', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    Object.defineProperty(global, 'crypto', { configurable: true, value: { randomUUID: jest.fn(() => uploadClientId) } })
+    Object.defineProperty(globalThis, 'crypto', { configurable: true, value: { randomUUID: jest.fn(() => uploadClientId) } })
     jest.mocked(createMobileSupabaseClient).mockReturnValue({} as never)
     mockCreateUpload.mockResolvedValue({ postId: '00000000-0000-4000-8000-000000000003', uploadUrl: 'https://upload.example.test/video' })
     mockCameraPermission.mockResolvedValue({ granted: true } as never)
