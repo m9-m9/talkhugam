@@ -20,7 +20,7 @@
     "backend:check:integration-command": "bash scripts/check-integration-test-command.sh",
     "backend:check:functions": "deno check --config supabase/functions/deno.json supabase/functions",
     "backend:check:integration": "deno check --config supabase/functions/deno.json supabase/tests/integration",
-    "backend:test:functions": "deno test --config supabase/functions/deno.json --allow-env supabase/functions",
+    "backend:test:functions": "deno test --config supabase/functions/deno.json --allow-env --allow-read=packages/domain/src/__fixtures__/ocr-corpus supabase/functions",
     "backend:test:integration": "bash scripts/run-integration-tests.sh",
     "backend:test:mux": "deno test --config supabase/functions/deno.json --allow-env --allow-net --env-file=.env supabase/tests/integration/muxLiveFlow.test.ts",
     "backend:functions:serve": "supabase functions serve --env-file supabase/functions/.env.local",
@@ -36,7 +36,13 @@
     "test:web": "pnpm --filter @talkhugam/web test",
     "test:mobile": "pnpm --filter @talkhugam/mobile test",
     "typecheck:mobile": "pnpm --filter @talkhugam/mobile typecheck",
-    "test:e2e:web": "pnpm --filter @talkhugam/web test:e2e"
+    "test:e2e:web": "pnpm --filter @talkhugam/web test:e2e",
+    "test:ocr:corpus": "pnpm --filter @talkhugam/domain exec vitest run src/ocrCorpus.test.ts",
+    "test:ocr:live": "bash scripts/with-clova-secret.sh env OCR_CORPUS_MODE=live pnpm --filter @talkhugam/domain exec vitest run src/ocrCorpus.test.ts",
+    "test:ocr:record": "bash scripts/with-clova-secret.sh env OCR_CORPUS_MODE=record pnpm --filter @talkhugam/domain exec vitest run src/ocrCorpus.test.ts",
+    "test:e2e:ocr": "pnpm --filter @talkhugam/web exec playwright test e2e/ocrCorpus.spec.ts",
+    "test:e2e:ocr:live": "bash scripts/with-clova-secret.sh env OCR_CORPUS_MODE=live pnpm --filter @talkhugam/web exec playwright test e2e/ocrCorpus.spec.ts",
+    "ocr:corpus:render": "pnpm --filter @talkhugam/web exec node scripts/ocr-corpus/renderPages.mjs"
   },
   "devDependencies": {
     "deno": "2.9.2",
