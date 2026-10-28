@@ -94,7 +94,7 @@ export function LegalConsentPage() {
                 </span>
               </Checkbox.Label>
               <Link
-                className="text-primary min-h-11 shrink-0 content-center text-sm font-medium"
+                className="text-ink min-h-11 shrink-0 content-center text-sm font-medium underline underline-offset-2"
                 onClick={(event) => event.stopPropagation()}
                 to={`/legal/${document.id}`}
               >

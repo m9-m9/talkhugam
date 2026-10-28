@@ -26,7 +26,13 @@ const { getProfile, getProfileAvatarUrl, getRoomManagement } = vi.hoisted(() => 
   }),
 }))
 
-vi.mock('../../entities/profile', () => ({ getProfile, getProfileAvatarUrl }))
+vi.mock('../../entities/profile', async () => ({
+  ...(await vi.importActual<typeof import('../../entities/profile/profileAvatarQuery')>(
+    '../../entities/profile/profileAvatarQuery',
+  )),
+  getProfile,
+  getProfileAvatarUrl,
+}))
 vi.mock('../../entities/room-management', () => ({
   getRoomManagement,
   roomManagementKeys: { detail: (roomId: string) => ['room-management', roomId] },

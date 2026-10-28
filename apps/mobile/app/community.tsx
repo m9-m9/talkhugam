@@ -11,5 +11,5 @@ export default function CommunityRoute(): React.JSX.Element {
   /** 선택한 방의 비밀번호 필요 여부를 넘겨 참여 화면을 연다. */
   function handleJoinRoom(roomId: string, requiresPassword: boolean): void { router.push({ pathname: '/community/[roomId]/join', params: { roomId, requiresPassword: String(requiresPassword) } }) }
   if (!isAllowed) return <MobileRouteLoadingScreen label="오픈 책방을 불러오고 있어요." />
-  return <MobileCommunityRoomsScreen onCreateRoom={handleCreateRoom} onJoinRoom={handleJoinRoom} />
+  return <MobileCommunityRoomsScreen onBack={() => router.back()} onCreateRoom={handleCreateRoom} onJoinRoom={handleJoinRoom} />
 }

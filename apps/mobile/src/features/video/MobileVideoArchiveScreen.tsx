@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { getMobileVideoFilterMembers, getMobileVideoPosts } from '../../entities/video'
 import { createMobileSupabaseClient } from '../../shared/api/mobileSupabaseClient'
 import { MobileVideoUploadSheet } from './MobileVideoUploadSheet'
+import { mobileColors } from '../../shared/ui/mobileTheme'
 
 type MobileVideoArchiveScreenProps = {
   bookChatId: string
@@ -160,9 +161,9 @@ function VideoArchiveContent({
   onRetry(): void
   videos: readonly VideoPost[]
 }): React.JSX.Element {
-  if (isLoading) return <View accessibilityLabel="영상 기록을 불러오고 있어요." accessibilityRole="progressbar" style={styles.state}><ActivityIndicator color="#FF835F" /><Text style={styles.stateText}>영상 기록을 불러오고 있어요.</Text></View>
+  if (isLoading) return <View accessibilityLabel="영상 기록을 불러오고 있어요." accessibilityRole="progressbar" style={styles.state}><ActivityIndicator color={mobileColors.accent} /><Text style={styles.stateText}>영상 기록을 불러오고 있어요.</Text></View>
   if (isError) return <View style={styles.state}><Text accessibilityRole="alert" style={styles.errorText}>영상 기록을 불러오지 못했어요. 다시 시도해 주세요.</Text><Pressable accessibilityLabel="영상 기록 다시 시도" accessibilityRole="button" onPress={onRetry} style={styles.retryButton}><Text style={styles.retryText}>다시 시도</Text></Pressable></View>
-  if (videos.length === 0) return <View style={styles.state}><Text style={styles.emptyTitle}>아직 남긴 영상이 없어요.</Text><Text style={styles.stateText}>영상 촬영과 업로드 기능은 곧 추가돼요.</Text></View>
+  if (videos.length === 0) return <View style={styles.state}><Text style={styles.emptyTitle}>아직 남긴 영상이 없어요.</Text><Text style={styles.stateText}>위의 영상 추가로 첫 독서 순간을 남겨 보세요.</Text></View>
 
   return <View accessibilityLabel="영상 기록 목록" style={styles.videoList}>{videos.map((video) => <VideoCard key={video.id} onOpenVideo={onOpenVideo} video={video} />)}</View>
 }
@@ -188,35 +189,35 @@ function getVideoStatusLabel(status: VideoPost['status']): string {
 
 const styles = StyleSheet.create({
   backButton: { justifyContent: 'center', minHeight: 44, minWidth: 88 },
-  backButtonText: { color: '#FF835F', fontSize: 15, fontWeight: '700' },
-  container: { backgroundColor: '#000000', flex: 1, paddingHorizontal: 16 },
+  backButtonText: { color: mobileColors.ink, fontSize: 15, fontWeight: '700' },
+  container: { backgroundColor: mobileColors.surface, flex: 1, paddingHorizontal: 16 },
   content: { paddingBottom: 32 },
-  description: { color: '#C7C7C7', fontSize: 15, lineHeight: 22, marginTop: 8 },
-  emptyTitle: { color: '#FFFFFF', fontSize: 17, fontWeight: '700', lineHeight: 24 },
-  errorText: { color: '#FF8A8A', fontSize: 14, lineHeight: 20, textAlign: 'center' },
+  description: { color: mobileColors.inkSubtle, fontSize: 15, lineHeight: 22, marginTop: 8 },
+  emptyTitle: { color: mobileColors.ink, fontSize: 17, fontWeight: '700', lineHeight: 24 },
+  errorText: { color: mobileColors.danger, fontSize: 14, lineHeight: 20, textAlign: 'center' },
   filterBar: { flexDirection: 'row', gap: 8, marginTop: 24 },
-  filterButton: { alignItems: 'center', borderColor: '#4A4A4A', borderRadius: 22, borderWidth: 1, justifyContent: 'center', minHeight: 44, paddingHorizontal: 16 },
-  filterButtonActive: { backgroundColor: '#FF835F', borderColor: '#FF835F' },
+  filterButton: { alignItems: 'center', borderColor: mobileColors.borderStrong, borderRadius: 22, borderWidth: 1, justifyContent: 'center', minHeight: 44, paddingHorizontal: 16 },
+  filterButtonActive: { backgroundColor: mobileColors.accentSoft, borderColor: mobileColors.accent },
   filterButtonDisabled: { opacity: 0.5 },
-  filterButtonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
-  filterButtonTextActive: { color: '#000000' },
+  filterButtonText: { color: mobileColors.ink, fontSize: 14, fontWeight: '700' },
+  filterButtonTextActive: { color: mobileColors.accentText },
   header: { alignItems: 'center', flexDirection: 'row', minHeight: 56 },
   headerSpacer: { minWidth: 88 },
-  heading: { color: '#FFFFFF', flex: 1, fontSize: 18, fontWeight: '700', textAlign: 'center' },
-  memberError: { color: '#FFCCB8', fontSize: 13, lineHeight: 19, marginTop: 12 },
-  retryButton: { alignItems: 'center', borderColor: '#FF835F', borderRadius: 12, borderWidth: 1, justifyContent: 'center', marginTop: 16, minHeight: 44, paddingHorizontal: 16 },
-  retryText: { color: '#FF835F', fontSize: 15, fontWeight: '700' },
+  heading: { color: mobileColors.ink, flex: 1, fontSize: 18, fontWeight: '700', textAlign: 'center' },
+  memberError: { color: mobileColors.danger, fontSize: 13, lineHeight: 19, marginTop: 12 },
+  retryButton: { alignItems: 'center', borderColor: mobileColors.borderStrong, borderRadius: 12, borderWidth: 1, justifyContent: 'center', marginTop: 16, minHeight: 44, paddingHorizontal: 16 },
+  retryText: { color: mobileColors.ink, fontSize: 15, fontWeight: '700' },
   state: { alignItems: 'center', gap: 12, justifyContent: 'center', minHeight: 220, paddingHorizontal: 16 },
-  stateText: { color: '#C7C7C7', fontSize: 15, lineHeight: 22, textAlign: 'center' },
-  title: { color: '#FFFFFF', fontSize: 24, fontWeight: '700', lineHeight: 32, marginTop: 24 },
-  videoAuthor: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', lineHeight: 22 },
-  videoCard: { alignItems: 'center', backgroundColor: '#171717', borderColor: '#313131', borderRadius: 12, borderWidth: 1, flexDirection: 'row', minHeight: 88, padding: 12 },
-  videoCardPressed: { backgroundColor: '#29201D' },
+  stateText: { color: mobileColors.inkSubtle, fontSize: 15, lineHeight: 22, textAlign: 'center' },
+  title: { color: mobileColors.ink, fontSize: 24, fontWeight: '700', lineHeight: 32, marginTop: 24 },
+  videoAuthor: { color: mobileColors.ink, fontSize: 16, fontWeight: '700', lineHeight: 22 },
+  videoCard: { alignItems: 'center', backgroundColor: mobileColors.surfaceRaised, borderColor: mobileColors.border, borderRadius: 12, borderWidth: 1, flexDirection: 'row', minHeight: 88, padding: 12 },
+  videoCardPressed: { backgroundColor: mobileColors.surfacePressed },
   videoCopy: { flex: 1, marginLeft: 12 },
   videoList: { gap: 12, marginTop: 20 },
-  videoPlaceholder: { alignItems: 'center', backgroundColor: '#AD3D22', borderRadius: 8, height: 56, justifyContent: 'center', width: 80 },
-  videoPlaceholderText: { color: '#FFFFFF', fontSize: 22 },
-  videoStatus: { color: '#C7C7C7', fontSize: 13, lineHeight: 19, marginTop: 4 },
-  uploadButton: { alignItems: 'center', alignSelf: 'flex-start', borderColor: '#FF835F', borderRadius: 12, borderWidth: 1, justifyContent: 'center', marginTop: 16, minHeight: 44, paddingHorizontal: 16 },
-  uploadButtonText: { color: '#FF835F', fontWeight: '700' },
+  videoPlaceholder: { alignItems: 'center', backgroundColor: mobileColors.surfaceRaised, borderRadius: 8, height: 56, justifyContent: 'center', width: 80 },
+  videoPlaceholderText: { color: mobileColors.ink, fontSize: 22 },
+  videoStatus: { color: mobileColors.inkSubtle, fontSize: 13, lineHeight: 19, marginTop: 4 },
+  uploadButton: { alignItems: 'center', alignSelf: 'flex-start', borderColor: mobileColors.borderStrong, borderRadius: 12, borderWidth: 1, justifyContent: 'center', marginTop: 16, minHeight: 44, paddingHorizontal: 16 },
+  uploadButtonText: { color: mobileColors.ink, fontWeight: '700' },
 })

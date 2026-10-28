@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { completeMobileOnboarding, getMobileProfile } from '../../entities/profile'
 import { createMobileSupabaseClient } from '../../shared/api/mobileSupabaseClient'
+import { mobileColors } from '../../shared/ui/mobileTheme'
 
 type OnboardingScreenProps = {
   onCompleted(): void
@@ -132,7 +133,7 @@ export function OnboardingScreen({ onCompleted }: OnboardingScreenProps): React.
                 maxLength={30}
                 onChangeText={handleChangeDisplayName}
                 placeholder="이름을 입력해 주세요"
-                placeholderTextColor="#8D8D8D"
+                placeholderTextColor={mobileColors.placeholder}
                 style={styles.textInput}
                 value={profileForm.displayName}
               />
@@ -146,7 +147,7 @@ export function OnboardingScreen({ onCompleted }: OnboardingScreenProps): React.
                 multiline
                 onChangeText={handleChangeBio}
                 placeholder="함께 읽고 싶은 이야기를 알려 주세요"
-                placeholderTextColor="#8D8D8D"
+                placeholderTextColor={mobileColors.placeholder}
                 style={[styles.textInput, styles.bioInput]}
                 textAlignVertical="top"
                 value={profileForm.bio ?? ''}
@@ -164,7 +165,7 @@ export function OnboardingScreen({ onCompleted }: OnboardingScreenProps): React.
               accessibilityRole="progressbar"
               style={styles.saveStatus}
             >
-              <ActivityIndicator color="#FF835F" />
+              <ActivityIndicator color={mobileColors.accent} />
               <Text style={styles.saveStatusText}>프로필을 저장하고 있어요.</Text>
             </View>
           ) : null}
@@ -195,7 +196,7 @@ function OnboardingLoadingState(): React.JSX.Element {
   return (
     <SafeAreaView style={styles.container}>
       <View accessibilityLabel="프로필을 준비하고 있어요." accessibilityRole="progressbar" style={styles.centered}>
-        <ActivityIndicator color="#FF835F" />
+        <ActivityIndicator color={mobileColors.accent} />
         <Text style={styles.loadingText}>프로필을 준비하고 있어요.</Text>
       </View>
     </SafeAreaView>
@@ -234,26 +235,26 @@ function OnboardingLoadErrorState({
 const styles = StyleSheet.create({
   bioInput: { minHeight: 112, paddingTop: 12 },
   centered: { alignItems: 'center', flex: 1, gap: 16, justifyContent: 'center' },
-  container: { backgroundColor: '#000000', flex: 1, padding: 16 },
+  container: { backgroundColor: mobileColors.surface, flex: 1, padding: 16 },
   content: { flex: 1, paddingTop: 32 },
-  description: { color: '#C7C7C7', fontSize: 15, lineHeight: 22, marginTop: 12 },
-  eyebrow: { color: '#FF835F', fontSize: 14, fontWeight: '700', lineHeight: 20 },
-  errorMessage: { color: '#FF8A8A', fontSize: 14, lineHeight: 20, marginTop: 16 },
+  description: { color: mobileColors.inkSubtle, fontSize: 15, lineHeight: 22, marginTop: 12 },
+  eyebrow: { color: mobileColors.accentText, fontSize: 14, fontWeight: '700', lineHeight: 20 },
+  errorMessage: { color: mobileColors.danger, fontSize: 14, lineHeight: 20, marginTop: 16 },
   fieldGroup: { gap: 8, marginTop: 24 },
-  fieldLabel: { color: '#FFFFFF', fontSize: 15, fontWeight: '700', lineHeight: 22 },
+  fieldLabel: { color: mobileColors.ink, fontSize: 15, fontWeight: '700', lineHeight: 22 },
   keyboardContainer: { flex: 1 },
-  loadingText: { color: '#C7C7C7', fontSize: 15, lineHeight: 22 },
+  loadingText: { color: mobileColors.inkSubtle, fontSize: 15, lineHeight: 22 },
   retryButton: {
     alignItems: 'center',
-    borderColor: '#FF835F',
+    borderColor: mobileColors.borderStrong,
     borderRadius: 12,
     borderWidth: 1,
     justifyContent: 'center',
     minHeight: 48,
     paddingHorizontal: 16,
   },
-  retryButtonPressed: { backgroundColor: '#25130E' },
-  retryButtonText: { color: '#FF835F', fontSize: 15, fontWeight: '700', lineHeight: 22 },
+  retryButtonPressed: { backgroundColor: mobileColors.surfacePressed },
+  retryButtonText: { color: mobileColors.ink, fontSize: 15, fontWeight: '700', lineHeight: 22 },
   saveStatus: {
     alignItems: 'center',
     flexDirection: 'row',
@@ -261,28 +262,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 12,
   },
-  saveStatusText: { color: '#C7C7C7', fontSize: 14, lineHeight: 20 },
+  saveStatusText: { color: mobileColors.inkSubtle, fontSize: 14, lineHeight: 20 },
   scrollContent: { flexGrow: 1 },
   submitButton: {
     alignItems: 'center',
-    backgroundColor: '#FF835F',
+    backgroundColor: mobileColors.primaryAction,
     borderRadius: 12,
     justifyContent: 'center',
     minHeight: 52,
   },
-  submitButtonDisabled: { backgroundColor: '#6F4B41' },
-  submitButtonPressed: { backgroundColor: '#E46845' },
-  submitButtonText: { color: '#000000', fontSize: 16, fontWeight: '700', lineHeight: 24 },
+  submitButtonDisabled: { backgroundColor: mobileColors.borderStrong },
+  submitButtonPressed: { backgroundColor: mobileColors.primaryActionPressed },
+  submitButtonText: { color: mobileColors.primaryActionText, fontSize: 16, fontWeight: '700', lineHeight: 24 },
   textInput: {
-    backgroundColor: '#101010',
-    borderColor: '#393939',
+    backgroundColor: mobileColors.surfaceRaised,
+    borderColor: mobileColors.borderStrong,
     borderRadius: 12,
     borderWidth: 1,
-    color: '#FFFFFF',
+    color: mobileColors.ink,
     fontSize: 16,
     lineHeight: 24,
     minHeight: 52,
     paddingHorizontal: 12,
   },
-  title: { color: '#FFFFFF', fontSize: 28, fontWeight: '700', lineHeight: 38, marginTop: 8 },
+  title: { color: mobileColors.ink, fontSize: 28, fontWeight: '700', lineHeight: 38, marginTop: 8 },
 })

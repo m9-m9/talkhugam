@@ -3,7 +3,12 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ActionButton } from '@seed-design/react'
 
-import { getProfile, getProfileAvatarUrl } from '../../entities/profile'
+import {
+  createProfileAvatarUrlQueryKey,
+  getProfile,
+  getProfileAvatarUrl,
+  profileAvatarUrlStaleTime,
+} from '../../entities/profile'
 import { useAuthenticatedUser } from '../../features/auth'
 import { FeedbackLauncher } from '../../features/feedback'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
@@ -31,12 +36,12 @@ export function ProfilePage() {
   const avatarUrlQuery = useQuery({
     enabled: Boolean(profileQuery.data?.avatarPath),
     queryFn: fetchProfileAvatarUrl,
-    queryKey: [
-      'profile-avatar',
+    queryKey: createProfileAvatarUrlQueryKey(
       profileId,
       profileQuery.data?.avatarPath,
       profileQuery.data?.updatedAt,
-    ],
+    ),
+    staleTime: profileAvatarUrlStaleTime,
   })
 
   /** 로그인한 사용자의 최신 프로필 정보를 조회해 반환한다. */
@@ -78,7 +83,9 @@ export function ProfilePage() {
       <section aria-labelledby="profile-heading" className="mt-8">
         <div className="flex min-w-0 items-center gap-4">
           <ProfileAvatar
-            avatarUrl={avatarUrlQuery.data ?? null}
+            avatarPath={profile.avatarPath}
+            avatarUrl={avatarUrlQuery.data}
+            hasAvatarError={avatarUrlQuery.isError}
             displayName={profile.displayName}
           />
           <div className="min-w-0">

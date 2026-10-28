@@ -2,7 +2,12 @@ import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ActionButton } from '@seed-design/react'
 
-import { getProfile, getProfileAvatarUrl } from '../../entities/profile'
+import {
+  createProfileAvatarUrlQueryKey,
+  getProfile,
+  getProfileAvatarUrl,
+  profileAvatarUrlStaleTime,
+} from '../../entities/profile'
 import { getRoomManagement, roomManagementKeys } from '../../entities/room-management'
 import { useAuthenticatedUser } from '../../features/auth'
 import { createSupabaseClient } from '../../shared/api/supabaseClient'
@@ -31,12 +36,12 @@ export function MemberProfilePage() {
   const avatarUrlQuery = useQuery({
     enabled: Boolean(profileQuery.data?.avatarPath),
     queryFn: fetchProfileAvatarUrl,
-    queryKey: [
-      'profile-avatar',
+    queryKey: createProfileAvatarUrlQueryKey(
       member?.profileId,
       profileQuery.data?.avatarPath,
       profileQuery.data?.updatedAt,
-    ],
+    ),
+    staleTime: profileAvatarUrlStaleTime,
   })
 
   /** 선택한 책방 멤버의 공개 프로필을 권한 범위 안에서 조회해 반환한다. */
@@ -76,7 +81,9 @@ export function MemberProfilePage() {
       <section className="mt-8" aria-labelledby="member-profile-heading">
         <div className="flex items-center gap-4">
           <ProfileAvatar
-            avatarUrl={avatarUrlQuery.data ?? null}
+            avatarPath={profile.avatarPath}
+            avatarUrl={avatarUrlQuery.data}
+            hasAvatarError={avatarUrlQuery.isError}
             displayName={profile.displayName}
           />
           <div>

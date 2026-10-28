@@ -209,13 +209,7 @@ function RoomCreatedContent({
     <main className="app-page bg-surface flex flex-col px-4 pb-16">
       <AppHeader
         action={
-          <ActionButton
-            className="text-primary"
-            onClick={onClose}
-            size="medium"
-            type="button"
-            variant="ghost"
-          >
+          <ActionButton onClick={onClose} size="medium" type="button" variant="ghost">
             나중에
           </ActionButton>
         }

@@ -72,7 +72,11 @@ export function RatingForm({
         </div>
       </fieldset>
       <div className="mt-4">
-        <FormField label="총평 (선택)" name="rating-review">
+        <FormField
+          description="1,000자까지 적을 수 있어요."
+          label="총평 (선택)"
+          name="rating-review"
+        >
           <TextField.Root>
             <TextField.Textarea
               autoresize={false}

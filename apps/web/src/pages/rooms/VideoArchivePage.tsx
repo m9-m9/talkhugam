@@ -104,7 +104,9 @@ export function VideoArchivePage() {
       <header className="mt-8 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-ink text-xl font-bold">함께 남긴 독서 순간</h1>
-          <p className="text-ink-subtle mt-2 text-sm">이 책을 읽으며 남긴 30초 영상이에요.</p>
+          <p className="text-ink-subtle talkhugam-balanced-copy mt-2 text-sm">
+            이 책을 읽으며 남긴 30초 영상이에요.
+          </p>
         </div>
         <input
           accept="video/mp4,video/quicktime"
@@ -176,7 +178,6 @@ export function VideoArchivePage() {
           <div className="mt-8 flex flex-col items-center gap-3 py-8 text-center">
             <p className="text-ink-subtle text-sm">선택한 멤버의 영상이 없어요.</p>
             <ActionButton
-              className="text-primary"
               onClick={() => setFilter({ kind: 'all' })}
               size="medium"
               type="button"
@@ -352,7 +353,7 @@ function MemberFilterLoadError({ onRetry }: { onRetry: () => void }) {
     <div className="mt-6 flex items-center justify-between gap-2" role="alert">
       <p className="text-sm text-red-600">멤버를 불러오지 못했어요. 다시 시도해 주세요.</p>
       <ActionButton
-        className="text-primary shrink-0"
+        className="shrink-0"
         onClick={onRetry}
         size="small"
         type="button"

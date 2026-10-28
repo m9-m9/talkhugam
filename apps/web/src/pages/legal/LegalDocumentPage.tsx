@@ -45,7 +45,7 @@ function UnknownLegalDocumentState() {
         로그인 화면에서 현재 정책 문서를 다시 확인해 주세요.
       </p>
       <Link
-        className="bg-action text-action-text mt-6 flex min-h-11 items-center rounded-md px-4 text-sm font-semibold"
+        className="talkhugam-primary-action mt-6 flex min-h-11 items-center rounded-md px-4 text-sm font-semibold"
         to="/"
       >
         로그인으로 돌아가기

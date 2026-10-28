@@ -16,5 +16,5 @@ export default function CreateRoomRoute(): React.JSX.Element {
 
   if (!isAllowed) return <MobileRouteLoadingScreen label="책방 만들기를 준비하고 있어요." />
 
-  return <CreateRoomScreen onFinished={handleFinished} />
+  return <CreateRoomScreen onBack={() => router.back()} onFinished={handleFinished} />
 }
