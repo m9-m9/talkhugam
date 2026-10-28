@@ -28,6 +28,7 @@
 | Mux | 사용자가 올린 영상의 업로드·변환·재생 | Access Token, signing key, webhook secret |
 | 카카오·Google·Naver | 소셜 로그인 시 계정 식별 정보 제공 | OAuth client secret, callback 검증값 |
 | Kakao Book Search | 도서 검색어에 맞는 도서 정보 제공 | REST API 키, 호출 제한 설정 |
+| NAVER Cloud CLOVA OCR | 사진에서 문장 가져오기의 책 페이지 글자 인식(사진·결과 미저장) | Invoke URL, Secret Key, 도메인 설정 |
 | Google Analytics·Microsoft Clarity | 서비스 개선을 위한 익명화된 접속·이용 경향 확인 | 계정 식별 정보, 채팅 본문, 영상 URL |
 
 처리자·국외 이전·보존 기간은 실제 운영 계약과 서비스 구조를 확정한 뒤 정확히 기재한다. 추측한 국가, 리전, 보안 설정을 사용자 문서에 쓰지 않는다.
